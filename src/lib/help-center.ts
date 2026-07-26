@@ -39,7 +39,7 @@ export const helpCategoryMeta = {
   },
   billing: {
     label: "Billing",
-    description: "Mesh Pro, Stripe checkout, subscription access, and payment issues.",
+    description: "MeshPro, Stripe checkout, subscription access, and payment issues.",
     icon: CreditCard,
   },
   "connected-platforms": {
@@ -121,12 +121,12 @@ export const helpArticles: HelpArticle[] = [
     steps: [
       "Open Settings and find the Meshi customization section.",
       "Pick visual options that still keep Meshi simple and readable.",
-      "Some cosmetic items may be tied to Mesh Pro or future marketplace unlocks.",
+      "Some cosmetic items may be tied to MeshPro or future marketplace unlocks.",
       "Changes should update your identity surfaces across the platform.",
     ],
     relatedLinks: [
       { href: "/settings", label: "Settings" },
-      { href: "/meshpro", label: "Mesh Pro" },
+      { href: "/meshpro", label: "MeshPro" },
     ],
   },
   {
@@ -164,16 +164,16 @@ export const helpArticles: HelpArticle[] = [
   {
     id: "mesh-pro-billing",
     category: "billing",
-    title: "Mesh Pro billing",
-    summary: "Mesh Pro uses Stripe checkout so Mesh.me does not store card numbers.",
+    title: "MeshPro billing",
+    summary: "MeshPro uses Stripe checkout so Mesh.me does not store card numbers.",
     steps: [
-      "Open Mesh Pro or Billing and choose the plan you want.",
+      "Open MeshPro or Billing and choose the plan you want.",
       "Checkout opens through Stripe or a configured Stripe payment link.",
-      "After payment succeeds, your account should update with Mesh Pro access.",
-      "If access does not update, revisit Mesh Pro, refresh, or contact support with your checkout email.",
+      "After payment succeeds, your account should update with MeshPro access.",
+      "If access does not update, revisit MeshPro, refresh, or contact support with your checkout email.",
     ],
     relatedLinks: [
-      { href: "/meshpro", label: "Mesh Pro" },
+      { href: "/meshpro", label: "MeshPro" },
       { href: "/billing", label: "Billing" },
     ],
   },
@@ -183,10 +183,10 @@ export const helpArticles: HelpArticle[] = [
     title: "Payment did not complete",
     summary: "Payments can fail if Stripe is not configured, the checkout session expires, or the payment method is declined.",
     steps: [
-      "Try checkout again from Mesh Pro instead of reusing an old checkout link.",
+      "Try checkout again from MeshPro instead of reusing an old checkout link.",
       "Check whether the public Status page says payments are operational.",
       "Confirm the payment method with your bank or card provider.",
-      "If you were charged but Mesh Pro did not activate, contact support and include the checkout email.",
+      "If you were charged but MeshPro did not activate, contact support and include the checkout email.",
     ],
     relatedLinks: [
       { href: "/status", label: "System status" },

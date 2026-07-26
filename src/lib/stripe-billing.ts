@@ -128,7 +128,7 @@ export async function syncMeshProCheckoutSessionForUser(sessionId: string, userI
 
   if (subscription) {
     await syncMeshProSubscription(subscription, userId);
-    return { ok: true, message: "Mesh Pro is active." };
+    return { ok: true, message: "MeshPro is active." };
   }
 
   const customerId = stripeObjectId(session.customer);
@@ -143,7 +143,7 @@ export async function syncMeshProCheckoutSessionForUser(sessionId: string, userI
     });
     // No revalidatePath here: this runs during the meshpro page render (E7).
     // The checkout.session.completed webhook revalidates authoritatively.
-    return { ok: true, message: "Mesh Pro is active." };
+    return { ok: true, message: "MeshPro is active." };
   }
 
   return { ok: false, message: "Checkout has not completed yet." };

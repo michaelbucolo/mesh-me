@@ -643,7 +643,7 @@ export function AnalyticsDashboard({ data, embedded = false }: { data: Analytics
             label={data.privacy.twoFactorMethods > 0 ? `${data.privacy.twoFactorMethods} 2FA method${data.privacy.twoFactorMethods > 1 ? "s" : ""}` : "2FA off"}
             ok={data.privacy.twoFactorMethods > 0}
           />
-          <StatusPill label={data.user.isMeshPro ? "Mesh Pro" : "Free plan"} ok={data.user.isMeshPro} />
+          <StatusPill label={data.user.isMeshPro ? "MeshPro" : "Free plan"} ok={data.user.isMeshPro} />
           <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border-primary)] bg-[var(--bg-secondary)] px-2.5 py-1 text-micro font-semibold text-[var(--text-secondary)]">
             {effectiveProfileVisibility(data.user.isPublic, data.user.meshVisibility) === "public"
               ? "Public profile"

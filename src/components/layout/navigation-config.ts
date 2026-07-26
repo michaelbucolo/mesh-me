@@ -13,7 +13,7 @@ export interface NavItem {
 // The five persistent rail/tab surfaces: Mesh, Flow, MeChat, Explore, Profile.
 // Notifications is intentionally NOT a tab — it lives only in the top-bar bell
 // (with its unread badge). Analytics is folded into Profile (own-profile tab)
-// and Settings / One Account / Mesh Pro live in the account menu, so the primary
+// and Settings / One Account / MeshPro live in the account menu, so the primary
 // nav stays these five top-level destinations everywhere — sidebar and mobile.
 export const sidebarNavItems: NavItem[] = [
   { href: "/mesh", icon: MeshIcon, label: "Mesh" },

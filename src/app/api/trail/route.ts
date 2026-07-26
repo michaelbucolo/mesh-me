@@ -43,10 +43,10 @@ export async function GET(req: Request) {
 
   const { searchParams } = new URL(req.url);
   const now = new Date();
-  // "Your Year" — the same trail across twelve months, a Mesh Pro view.
+  // "Your Year" — the same trail across twelve months, a MeshPro view.
   const yearMode = searchParams.get("range") === "year";
   if (yearMode && !user.isMeshPro) {
-    return NextResponse.json({ error: "Your Year is a Mesh Pro view." }, { status: 403 });
+    return NextResponse.json({ error: "Your Year is a MeshPro view." }, { status: 403 });
   }
 
   let year = now.getFullYear();

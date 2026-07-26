@@ -7235,7 +7235,7 @@ body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
   will-change: transform;
 }
 
-/* Mesh Pro mark — a single discreet gold hairline around a Pro member's
+/* MeshPro mark — a single discreet gold hairline around a Pro member's
    Meshi. No glow, no shimmer: quiet, like a good watch. Server-authoritative
    (presence carries isPro), purely decorative. */
 

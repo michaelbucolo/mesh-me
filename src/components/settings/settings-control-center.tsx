@@ -238,7 +238,7 @@ const sectionOrder: Array<{
   { id: "appearance", label: "Appearance", description: "Theme, mode, and sound", icon: Palette, keywords: ["dark mode", "light mode", "theme", "colors", "preset", "custom", "sound", "sounds", "audio", "mute"] },
   { id: "meshi", label: "Meshi", description: "Your character", icon: Sparkles, keywords: ["mascot", "avatar", "hat", "hair", "outfit", "accessories", "badge", "expression"] },
   { id: "data", label: "Data", description: "Export and delete data", icon: Database, keywords: ["export", "download", "storage", "records", "analytics"] },
-  { id: "billing", label: "Billing", description: "Mesh Pro and invoices", icon: CreditCard, keywords: ["subscription", "payment", "upgrade", "pro", "invoices", "plan"] },
+  { id: "billing", label: "Billing", description: "MeshPro and invoices", icon: CreditCard, keywords: ["subscription", "payment", "upgrade", "pro", "invoices", "plan"] },
 ];
 
 // Sections whose controls persist on every change (no explicit save button).
@@ -561,7 +561,7 @@ export function SettingsControlCenter({
   function applyCustomTheme(event: FormEvent) {
     event.preventDefault();
     if (!settings.isMeshPro) {
-      setStatus({ type: "error", message: "Mesh Pro is required for custom themes." });
+      setStatus({ type: "error", message: "MeshPro is required for custom themes." });
       return;
     }
     setCustomTheme(themeDraft);
@@ -698,7 +698,7 @@ export function SettingsControlCenter({
             }
             icon={LockKeyhole}
           />
-          <SummaryPill label="Plan" value={settings.isMeshPro ? "Mesh Pro" : "Free"} icon={Crown} />
+          <SummaryPill label="Plan" value={settings.isMeshPro ? "MeshPro" : "Free"} icon={Crown} />
         </div>
       </header>
 
@@ -887,7 +887,7 @@ function AccountSection({
           <SettingsRow icon={AtSign} label="Username" value={`@${settings.username}`} />
           <SettingsRow icon={Mail} label="Email" value={settings.email || "No email on file"} />
           <SettingsRow icon={MailCheck} label="Email verification" value={settings.emailVerified ? "Verified" : "Not verified"} />
-          <SettingsRow icon={Crown} label="Mesh Pro" value={settings.isMeshPro ? "Active" : "Free"} />
+          <SettingsRow icon={Crown} label="MeshPro" value={settings.isMeshPro ? "Active" : "Free"} />
         </div>
         {/* `.mesh-action` is the OLD paper model: it LIFTS on hover (globals.css:2293,
             and again at :4130), presses by SHRINKING away from the finger (:2298),
@@ -1812,7 +1812,7 @@ function MeshSection({
           <div className="settings-muted-box mb-3 flex flex-wrap items-center justify-between gap-3">
             <span className="inline-flex items-center gap-2 text-sm font-semibold">
               <Crown size={15} aria-hidden="true" />
-              Mesh Pro customization
+              MeshPro customization
             </span>
             <Link href="/meshpro" className="text-xs font-semibold text-[var(--accent)]">Upgrade</Link>
           </div>
@@ -2044,7 +2044,7 @@ function AppearanceSection({
         <SettingsCard title="Custom theme" icon={Crown}>
           <div className="flex flex-wrap items-center justify-between gap-2">
             <p className="text-xs text-[var(--text-muted)]">
-              Mesh Pro unlocks full color tuning — light/dark mode stays available to everyone.
+              MeshPro unlocks full color tuning — light/dark mode stays available to everyone.
             </p>
             {!isMeshPro && <Link href="/meshpro" className="text-xs font-semibold text-[var(--accent)]">Upgrade</Link>}
           </div>
@@ -2079,17 +2079,17 @@ function AppearanceSection({
 function BillingSection({ isMeshPro }: { isMeshPro: boolean }) {
   return (
     <div className="settings-section-stack">
-      <SettingsCard title="Mesh Pro" icon={Crown}>
+      <SettingsCard title="MeshPro" icon={Crown}>
         <p className="text-xs text-[var(--text-muted)]">
           {isMeshPro
-            ? "Mesh Pro is active. Billing and payment methods are managed from the billing page."
-            : "Mesh Pro unlocks deeper analytics, custom Mesh visuals, Meshi cosmetics, badges, and themes."}
+            ? "MeshPro is active. Billing and payment methods are managed from the billing page."
+            : "MeshPro unlocks deeper analytics, custom Mesh visuals, Meshi cosmetics, badges, and themes."}
         </p>
         <div className="mt-3 grid gap-2 sm:grid-cols-2">
           <Link href="/meshpro" className="key settings-action-row">
             <span className="flex min-w-0 items-center gap-2.5">
               <IconTile icon={Crown} />
-              {isMeshPro ? "View Pro features" : "Upgrade to Mesh Pro"}
+              {isMeshPro ? "View Pro features" : "Upgrade to MeshPro"}
             </span>
             <ChevronRight size={15} className="shrink-0" aria-hidden="true" />
           </Link>

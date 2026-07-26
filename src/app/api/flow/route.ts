@@ -41,7 +41,7 @@ export async function GET(request: Request) {
   const exclude = new Set(excludeIds);
   const seen = new Set(parseIds("seen"));
   const mode = normalizeFlowRankMode(searchParams.get("mode"));
-  // Custom Studio weights are a Mesh Pro control — validated server-side so
+  // Custom Studio weights are a MeshPro control — validated server-side so
   // the flag can't be spoofed by the client.
   const isPro = (user as { isMeshPro?: boolean }).isMeshPro === true;
   const studio = isPro ? normalizeStudioWeights(searchParams.get("studio")) : null;

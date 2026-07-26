@@ -129,7 +129,7 @@ export const getCurrentUser = cache(async () => {
   const user = session.user;
   if (!user || user.isSuspended) return null;
 
-  // Founder accounts carry Mesh Pro for life. Resolved here, at the one place
+  // Founder accounts carry MeshPro for life. Resolved here, at the one place
   // every authenticated request loads its user, so nothing downstream has to
   // remember — see FOUNDER_USERNAMES in lib/mesh-pro.ts for why this is derived
   // rather than a row.

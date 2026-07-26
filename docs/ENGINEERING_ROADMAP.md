@@ -58,7 +58,7 @@ Run `npm run roadmap:check` from the repository root to generate a live implemen
 - Centralize Meshi logic in one domain module.
 - Keep Meshi as the only deeply integrated AI surface.
 - Add privacy-first Mesh question answering over local/user-authorized data.
-- Add Meshi customization with Mesh Pro boundaries.
+- Add Meshi customization with MeshPro boundaries.
 
 ## Phase 7: Mobile and Notification Hub
 

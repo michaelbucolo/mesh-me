@@ -17,7 +17,7 @@ type MeshProPageProps = {
 };
 
 export const metadata: Metadata = {
-  title: "Mesh Pro",
+  title: "MeshPro",
   description: "Real controls, not decorations: your algorithm, your year, your world's look. No ads, ever.",
 };
 
@@ -109,7 +109,7 @@ export default async function MeshProPage({ searchParams }: MeshProPageProps) {
       )}
 
       <header className="pt-4 text-center">
-        <p className="text-xs font-semibold mesh-eyebrow text-[var(--accent)]">Mesh Pro</p>
+        <p className="text-xs font-semibold mesh-eyebrow text-[var(--accent)]">MeshPro</p>
         <h1 className="mx-auto mt-3 max-w-xl text-3xl font-semibold leading-tight md:text-4xl">
           Real controls, not decorations
         </h1>
@@ -126,7 +126,7 @@ export default async function MeshProPage({ searchParams }: MeshProPageProps) {
               </Button>
             </>
           ) : (
-            <MeshProCheckoutButton plan="yearly">Get Mesh Pro</MeshProCheckoutButton>
+            <MeshProCheckoutButton plan="yearly">Get MeshPro</MeshProCheckoutButton>
           )}
         </div>
         {isPro && renewalDate && (

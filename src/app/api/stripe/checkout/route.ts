@@ -62,7 +62,7 @@ export async function POST(req: Request) {
     if (user.isMeshPro && user.stripeSubscriptionId) {
       return NextResponse.json(
         {
-          error: "Mesh Pro is already active. Manage your billing instead.",
+          error: "MeshPro is already active. Manage your billing instead.",
           alreadyActive: true,
         },
         { status: 409 },

@@ -36,7 +36,7 @@ Identity:
 
 Product truth:
 - Mesh.me is privacy-first, security-first, consumer-first, no ads, and no selling user data.
-- Mesh.me unifies social feeds, messages, creator analytics, notifications, privacy controls, Mesh Pro, and the visual Mesh.
+- Mesh.me unifies social feeds, messages, creator analytics, notifications, privacy controls, MeshPro, and the visual Mesh.
 - The Mesh is the user's interactive map of posts, people, platforms, communities, messages, and relationships.
 - MeChat is the unified communication layer.
 - Analytics is both performance insight and privacy/data control.
@@ -166,7 +166,7 @@ export async function callMeshiReasoning(input: MeshiReasoningInput): Promise<Me
     : "Trusted Mesh database answer: none. Answer only from provided public/product knowledge and visible context.";
 
   const userContext = input.user
-    ? `User: @${input.user.username || "unknown"} (${input.user.displayName || "unnamed"}), Mesh Pro: ${input.user.isMeshPro ? "yes" : "no"}`
+    ? `User: @${input.user.username || "unknown"} (${input.user.displayName || "unnamed"}), MeshPro: ${input.user.isMeshPro ? "yes" : "no"}`
     : "User: authenticated Mesh.me user";
 
   const response = await fetch("https://api.openai.com/v1/responses", {

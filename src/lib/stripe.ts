@@ -1,6 +1,21 @@
 import Stripe from "stripe";
 import { PRODUCTION_APP_URL } from "./oauth";
 
+/**
+ * The two `label` fields below are the ONLY place in this repo that mirrors the
+ * product names configured in the Stripe Dashboard, and they are deliberately
+ * still spelled "Mesh Pro" while the rest of the product says "MeshPro".   MESHPRO-NAME-ALLOW
+ *
+ * They are not rendered anywhere — `MESH_PRO_PLANS` is read for `.envKey` and
+ * `.paymentLinkEnvKey` (below) and for `Object.keys` in system-status.ts, never
+ * for `.label` — so respelling them here would change nothing a user sees, and
+ * would quietly desync the code from what Stripe prints on the invoice. The
+ * receipt name lives in the Stripe Dashboard (and, for native iOS, in App Store
+ * Connect); renaming it there is the change that matters, and this comment is
+ * here so these two lines are updated in the SAME breath rather than drifting.
+ *
+ * scripts/meshpro-name-check.ts allows exactly these two lines, and only these.
+ */
 export const MESH_PRO_PLANS = {
   monthly: {
     envKey: "STRIPE_MONTHLY_PRICE_ID",

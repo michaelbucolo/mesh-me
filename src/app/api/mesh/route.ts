@@ -663,7 +663,7 @@ async function getPublicMesh(targetUserId: string, viewer: Awaited<ReturnType<ty
       where: { userId: targetUserId },
       select: { colorTheme: true, hatStyle: true, faceStyle: true, hairStyle: true, accessoryStyle: true, eyeStyle: true, badgeStyle: true, outfitStyle: true },
     }),
-    // The owner's Mesh Pro visuals (atmosphere, thread color, node style,
+    // The owner's MeshPro visuals (atmosphere, thread color, node style,
     // motion) travel with their mesh — visitors see the world as it's dressed.
     prisma.meshCosmetic.findMany({
       where: { userId: targetUserId, isActive: true },

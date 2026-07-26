@@ -1005,7 +1005,7 @@ function readStoredMode(): FlowMode {
   }
 }
 
-// Algorithm Studio (Mesh Pro): the viewer's own ranking mix. Five sliders,
+// Algorithm Studio (MeshPro): the viewer's own ranking mix. Five sliders,
 // 50 = neutral; validated again server-side, where Pro is enforced.
 type StudioMix = {
   enabled: boolean;
@@ -1676,14 +1676,14 @@ export function FlowClient({
               ))}
             </div>
 
-            {/* Algorithm Studio — the Mesh Pro layer: your own mix, five
+            {/* Algorithm Studio — the MeshPro layer: your own mix, five
                 sliders, applied server-side. Not a preset; a possession. */}
             <div className={`mt-5 rounded-2xl border px-4 py-4 ${studioActive ? "border-white/25 bg-white/10" : "border-white/10"}`}>
               <div className="flex items-center justify-between gap-3">
                 <div className="min-w-0">
                   <p className="text-sm font-semibold text-white">Your mix</p>
                   <p className="text-xs text-white/55">
-                    {isPro ? "Tune the exact weights your Flow ranks by." : "A Mesh Pro control — tune the exact weights your Flow ranks by."}
+                    {isPro ? "Tune the exact weights your Flow ranks by." : "A MeshPro control — tune the exact weights your Flow ranks by."}
                   </p>
                 </div>
                 {isPro ? (
@@ -1706,7 +1706,7 @@ export function FlowClient({
                   </button>
                 ) : (
                   <Link href="/meshpro" className="shrink-0 rounded-full border border-white/20 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-white/10">
-                    Mesh Pro
+                    MeshPro
                   </Link>
                 )}
               </div>

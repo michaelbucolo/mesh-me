@@ -185,7 +185,7 @@ export async function getAdminDashboard() {
     check("pass", "Admin route gated", "Only users with isAdmin can open this panel."),
     check(adminUserCount > 0 ? "pass" : "fail", "Admin account exists", `${adminUserCount} admin account${adminUserCount === 1 ? "" : "s"} found.`),
     check(pendingReportCount === 0 ? "pass" : pendingReportCount > 10 ? "fail" : "warn", "Moderation queue", `${pendingReportCount} report${pendingReportCount === 1 ? "" : "s"} pending.`),
-    check(stripeConfigured ? "pass" : "warn", "Mesh Pro payments", stripeConfigured ? "Stripe keys and webhook secret are configured." : "Stripe payment environment is incomplete."),
+    check(stripeConfigured ? "pass" : "warn", "MeshPro payments", stripeConfigured ? "Stripe keys and webhook secret are configured." : "Stripe payment environment is incomplete."),
     check(emailConfigured ? "pass" : "warn", "Account email", emailConfigured ? "Transactional email is configured." : "Password reset and verification email need provider env keys."),
     check(appUrlConfigured ? "pass" : "warn", "Public app URL", appUrlConfigured ? "NEXT_PUBLIC_APP_URL is set." : "NEXT_PUBLIC_APP_URL should be set before launch."),
     check(oauthConfiguredCount > 0 ? "pass" : "warn", "Connected account OAuth", `${oauthConfiguredCount} social OAuth secret${oauthConfiguredCount === 1 ? "" : "s"} configured.`),
@@ -208,7 +208,7 @@ export async function getAdminDashboard() {
       ? [alert("low", "Expired sessions remain", `${expiredSessionCount} expired session${expiredSessionCount === 1 ? "" : "s"} can be cleaned from storage.`, "#security")]
       : []),
     ...(!stripeConfigured
-      ? [alert("medium", "Stripe launch setup incomplete", "Mesh Pro payments should not be public until Stripe keys and webhooks are configured.", "#launch")]
+      ? [alert("medium", "Stripe launch setup incomplete", "MeshPro payments should not be public until Stripe keys and webhooks are configured.", "#launch")]
       : []),
     ...(!adultVerificationConfigured
       ? [alert("medium", "Adult verification inactive", "NSFW content is off by default; configure verification before enabling it.", "#launch")]

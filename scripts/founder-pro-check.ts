@@ -1,7 +1,7 @@
 /**
- * FOUNDER MESH PRO — granted in code, so it cannot lapse.
+ * FOUNDER MESHPRO — granted in code, so it cannot lapse.
  *
- * @stephen and @michaelbucolo have Mesh Pro for life. That is implemented as a
+ * @stephen and @michaelbucolo have MeshPro for life. That is implemented as a
  * DERIVED property rather than a row, and this holds the reasoning in place:
  *
  *   A one-time `UPDATE User SET isMeshPro = 1 WHERE username IN (...)` has two
@@ -12,7 +12,7 @@
  *   again. Derived from the username, it cannot be missed and cannot be revoked.
  *
  * What this asserts:
- *   1. Both founders resolve to Mesh Pro through the real function, with the
+ *   1. Both founders resolve to MeshPro through the real function, with the
  *      stored column false — i.e. the derivation alone is sufficient.
  *   2. It is not a blanket grant: an ordinary account is unaffected.
  *   3. The session chokepoint (getCurrentUser) applies it, so every
@@ -71,7 +71,7 @@ const ok = () => { checks += 1; };
 // ── 1. Both founders resolve to Pro with the column false ────────────────────
 for (const username of FOUNDER_USERNAMES) {
   if (!hasMeshPro({ username, isMeshPro: false })) {
-    fail("1 derived", `@${username} does not resolve to Mesh Pro when the stored column is false`);
+    fail("1 derived", `@${username} does not resolve to MeshPro when the stored column is false`);
   } else ok();
   // Usernames are stored as typed; the comparison must not care.
   for (const variant of [username.toUpperCase(), ` ${username} `, username[0].toUpperCase() + username.slice(1)]) {
@@ -89,12 +89,12 @@ for (const expected of ["stephen", "michaelbucolo"]) {
 // ── 2. Not a blanket grant ───────────────────────────────────────────────────
 for (const outsider of ["alexcreates", "demouser", "", "stephenx", "notstephen"]) {
   if (hasMeshPro({ username: outsider, isMeshPro: false })) {
-    fail("2 scope", `@${outsider} was granted Mesh Pro — the founder list is matching too broadly`);
+    fail("2 scope", `@${outsider} was granted MeshPro — the founder list is matching too broadly`);
   } else ok();
 }
 // A paying member is still Pro whatever their name.
 if (!hasMeshPro({ username: "somebody", isMeshPro: true })) {
-  fail("2 scope", "a paid member no longer resolves to Mesh Pro");
+  fail("2 scope", "a paid member no longer resolves to MeshPro");
 } else ok();
 if (hasMeshPro(null) || hasMeshPro(undefined)) {
   fail("2 scope", "hasMeshPro(null/undefined) returned true");
@@ -118,7 +118,7 @@ if (hasMeshPro(null) || hasMeshPro(undefined)) {
   const ensure = read("scripts/ensure-remote-schema.mjs");
   const grant = /UPDATE User SET isMeshPro = 1[\s\S]{0,240}?isMeshPro = 0/.exec(ensure);
   if (!grant) {
-    fail("5 deploy", "the founder Mesh Pro grant is gone from ensure-remote-schema.mjs");
+    fail("5 deploy", "the founder MeshPro grant is gone from ensure-remote-schema.mjs");
   } else {
     ok();
     // `AND isMeshPro = 0` is what makes replaying it harmless.
@@ -207,4 +207,4 @@ if (failures.length) {
   console.error("");
   process.exit(1);
 }
-console.log(`founder-pro: ${checks} assertions passed — @${FOUNDER_USERNAMES.join(", @")} have Mesh Pro for life.`);
+console.log(`founder-pro: ${checks} assertions passed — @${FOUNDER_USERNAMES.join(", @")} have MeshPro for life.`);

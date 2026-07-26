@@ -53,7 +53,7 @@ export function drawEdges(ctx: CanvasRenderingContext2D, o: ScenePaintOptions, k
     const isRelationship = parent.kind === "self" && node.kind !== "post";
     const baseAlpha = node.depth === 1 ? 0.34 : node.depth === 2 ? 0.22 : 0.14;
     const alpha = onHoverPath ? 0.85 : baseAlpha * (0.35 + 0.65 * emph);
-    // Mesh Pro: the owner can dye their relationship threads a signature color.
+    // MeshPro: the owner can dye their relationship threads a signature color.
     const threadColor = isRelationship ? o.visuals?.connectionColor || null : null;
     const grad = ctx.createLinearGradient(a.x, a.y, b.x, b.y);
     // Every strand starts at you. The self node used to carry a periwinkle of

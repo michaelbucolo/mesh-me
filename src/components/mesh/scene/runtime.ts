@@ -59,7 +59,7 @@ type FlyingHeart = {
   burst?: { angle: number; dist: number };
 };
 
-/** Mesh Pro visuals chosen by this mesh's OWNER — read per-frame. */
+/** MeshPro visuals chosen by this mesh's OWNER — read per-frame. */
 interface ProVisuals {
   connectionColor: string | null;
   nodeStyle: string | null;

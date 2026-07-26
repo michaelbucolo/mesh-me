@@ -74,7 +74,7 @@ const routeInfoMap: Record<string, RouteInfo> = {
   "/analytics": { title: "Analytics", description: "Understand your digital footprint." },
   "/explore": { title: "Explore", description: "Discover new content, people, and communities." },
   "/privacy-controls": { title: "Privacy", description: "Control your data, permissions, and visibility." },
-  "/meshpro": { title: "Mesh Pro", description: "Unlock deeper analytics and richer personalization." },
+  "/meshpro": { title: "MeshPro", description: "Unlock deeper analytics and richer personalization." },
   "/billing": { title: "Billing", description: "Manage your subscription and payments." },
   "/admin": { title: "Admin", description: "Platform administration." },
 };
@@ -305,7 +305,7 @@ function ShellTopBar({
               <Link href="/connected-accounts" className="mesh-dropdown-item mesh-account-item" style={{ ["--acc-i" as string]: 1 }}>One Account</Link>
               <Link href="/settings" className="mesh-dropdown-item mesh-account-item" style={{ ["--acc-i" as string]: 2 }}>Settings</Link>
               <Link href="/search" className="mesh-dropdown-item mesh-account-item lg:hidden" style={{ ["--acc-i" as string]: 3 }}>Search</Link>
-              <Link href="/meshpro" className="mesh-dropdown-item mesh-account-item" style={{ ["--acc-i" as string]: 4 }}>Mesh Pro</Link>
+              <Link href="/meshpro" className="mesh-dropdown-item mesh-account-item" style={{ ["--acc-i" as string]: 4 }}>MeshPro</Link>
               <button
                 type="button"
                 className="mesh-dropdown-item mesh-account-item w-full text-left"
