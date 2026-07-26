@@ -31,19 +31,19 @@ model User {
   comments                   Comment[]
   reactions                  Reaction[]
   flowImpressions            FlowImpression[]
-  followers                  Follow[]                   @relation("following")
-  following                  Follow[]                   @relation("follower")
-  sentMessages               Message[]                  @relation("sender")
+  followers                  Follow[]                    @relation("following")
+  following                  Follow[]                    @relation("follower")
+  sentMessages               Message[]                   @relation("sender")
   threadMembers              ThreadMember[]
-  notifications              Notification[]             @relation("recipient")
+  notifications              Notification[]              @relation("recipient")
   notificationPreference     UserNotificationPreference?
-  actorNotifs                Notification[]             @relation("actor")
-  reports                    Report[]                   @relation("reporter")
-  reportedUser               Report[]                   @relation("reportedUser")
-  blocks                     Block[]                    @relation("blocker")
-  blockedBy                  Block[]                    @relation("blocked")
-  mutes                      Mute[]                     @relation("muter")
-  mutedBy                    Mute[]                     @relation("muted")
+  actorNotifs                Notification[]              @relation("actor")
+  reports                    Report[]                    @relation("reporter")
+  reportedUser               Report[]                    @relation("reportedUser")
+  blocks                     Block[]                     @relation("blocker")
+  blockedBy                  Block[]                     @relation("blocked")
+  mutes                      Mute[]                      @relation("muter")
+  mutedBy                    Mute[]                      @relation("muted")
   communityMemberships       CommunityMember[]
   interests                  UserInterest[]
   links                      UserLink[]
@@ -59,16 +59,16 @@ model User {
   authIdentities             AuthIdentity[]
   globalMeshMember           GlobalMeshMember?
   activeTitle                String?
-  isMeshPro                  Boolean                    @default(false)
+  isMeshPro                  Boolean                     @default(false)
   meshProSince               DateTime?
-  stripeCustomerId           String?                    @unique
+  stripeCustomerId           String?                     @unique
   stripeSubscriptionId       String?
   signupNumber               Int?
   // Privacy toggles
-  showInDiscovery            Boolean                    @default(false)
-  hideActivityStatus         Boolean                    @default(false)
-  readReceipts               Boolean                    @default(false)
-  ghostMode                  Boolean                    @default(false)
+  showInDiscovery            Boolean                     @default(false)
+  hideActivityStatus         Boolean                     @default(false)
+  readReceipts               Boolean                     @default(false)
+  ghostMode                  Boolean                     @default(false)
   /// Algorithm Studio weights, as the same JSON string the ranker already
   /// validates with normalizeStudioWeights(). Stored on the account rather than
   /// in localStorage because it is the thing MeshPro sells — "your algorithm,
@@ -77,21 +77,21 @@ model User {
   flowStudio                 String?
   // Sensitive-content controls. NSFW is always off unless an adult-verification
   // provider confirms the user is eligible; Mesh.me never stores ID images.
-  nsfwEnabled                Boolean                    @default(false)
-  adultVerificationStatus    String                     @default("unverified")
+  nsfwEnabled                Boolean                     @default(false)
+  adultVerificationStatus    String                      @default("unverified")
   adultVerifiedAt            DateTime?
   adultVerificationExpiresAt DateTime?
   adultVerificationProvider  String?
   adultVerificationRegion    String?
   adultVerificationReference String?
   // Verification tracking
-  emailVerified              Boolean                    @default(false)
-  phoneVerified              Boolean                    @default(false)
+  emailVerified              Boolean                     @default(false)
+  phoneVerified              Boolean                     @default(false)
   // Password reset
-  resetToken                 String?                    @unique
+  resetToken                 String?                     @unique
   resetTokenExpiry           DateTime?
   // Online status: "online" | "dnd" | "busy" | "offline"
-  status                     String                     @default("offline")
+  status                     String                      @default("offline")
   lastSeenAt                 DateTime?
   // Account-merge tombstone: set when this account was merged into another
   // mesh.me account. The account stays suspended (never hard-deleted) and this
@@ -103,13 +103,13 @@ model User {
   phones                     UserPhone[]
   twoFactorMethods           TwoFactorMethod[]
   profileInfo                ProfileInfo?
-  hostedMeChatSessions       MeChatSession[]            @relation("sessionHost")
-  meChatSessionParticipants  MeChatSessionParticipant[] @relation("sessionParticipant")
-  meChatSessionItems         MeChatSessionItem[]        @relation("sessionItemAuthor")
-  meChatSessionVotes         MeChatSessionVote[]        @relation("sessionVoteUser")
+  hostedMeChatSessions       MeChatSession[]             @relation("sessionHost")
+  meChatSessionParticipants  MeChatSessionParticipant[]  @relation("sessionParticipant")
+  meChatSessionItems         MeChatSessionItem[]         @relation("sessionItemAuthor")
+  meChatSessionVotes         MeChatSessionVote[]         @relation("sessionVoteUser")
   meshNodes                  MeshNode[]
   meChatNotes                MeChatNote[]
-  meshEdgesFrom              MeshEdge[]                 @relation("MeshEdgeFromUser")
+  meshEdgesFrom              MeshEdge[]                  @relation("MeshEdgeFromUser")
   contentSources             ContentSource[]
   syncedContent              SyncedContent[]
   syncedInteractions         SyncedInteraction[]
@@ -242,18 +242,18 @@ model Reaction {
 /// scores on, so taste survives the source item's own retention purge. Only ever
 /// queried by the row-owner's own id.
 model FlowImpression {
-  userId    String
-  postId    String
-  seenAt    DateTime @default(now())
-  liked     Boolean  @default(false)
-  authorKey String?
-  format    String?
-  tags      String?
+  userId     String
+  postId     String
+  seenAt     DateTime @default(now())
+  liked      Boolean  @default(false)
+  authorKey  String?
+  format     String?
+  tags       String?
   // Watch signal (Reels-style ranking inputs): accumulated on-screen time in
   // ms, and the best video completion fraction (0..1) reached. A tiny watchMs
   // with no like is an implicit "skipped past it" negative signal.
-  watchMs    Int   @default(0)
-  completion Float @default(0)
+  watchMs    Int      @default(0)
+  completion Float    @default(0)
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -297,17 +297,17 @@ model CommunityMember {
 }
 
 model MessageThread {
-  id                     String         @id @default(cuid())
+  id                     String            @id @default(cuid())
   title                  String?
-  threadType             String         @default("direct")
-  sourcePlatform         String         @default("mesh")
-  isEncrypted            Boolean        @default(true)
+  threadType             String            @default("direct")
+  sourcePlatform         String            @default("mesh")
+  isEncrypted            Boolean           @default(true)
   // For threads mirrored from a connected platform: the owning connection
   // and the platform-side conversation identifier.
   connectedAccountId     String?
   externalConversationId String?
-  createdAt              DateTime       @default(now())
-  updatedAt              DateTime       @updatedAt
+  createdAt              DateTime          @default(now())
+  updatedAt              DateTime          @updatedAt
   members                ThreadMember[]
   messages               Message[]
   // This was a bare String? for its whole life, so disconnecting a platform
@@ -542,7 +542,7 @@ model PlatformPost {
   // Real length of the item in seconds, when the platform reports one. The
   // Flow is shorts-and-reels only and this is the sole signal in the pipeline
   // that is a measurement rather than a guess about a URL shape.
-  durationSeconds Int?
+  durationSeconds    Int?
   postType           String    @default("text")
   // Engagement metrics
   likeCount          Int       @default(0)
@@ -604,7 +604,7 @@ model PlatformFeedItem {
   thumbnailUrl       String?
   mediaUrl           String?
   // "post" | "video" | "image" | "link" | "stream" | "activity"
-  durationSeconds Int?
+  durationSeconds    Int?
   postType           String    @default("post")
   likeCount          Int       @default(0)
   commentCount       Int       @default(0)
@@ -783,17 +783,17 @@ model SyncJob {
 }
 
 model FeedPreference {
-  id        String   @id @default(cuid())
-  userId    String   @unique
-  layout    String   @default("cards")
-  sources   String   @default("all")
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  layout       String   @default("cards")
+  sources      String   @default("all")
   // Viewer-side muted mesh sources (JSON array of "author:{userId}" /
   // "account:{connectedAccountId}" keys). Muting is a private preference: it
   // drops a source's content from THIS viewer's own mesh model and Flow
   // candidates only — it never changes what anyone else can see.
-  mutedSources String @default("[]")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  mutedSources String   @default("[]")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
@@ -1114,12 +1114,12 @@ model UserEmail {
 }
 
 model EmailVerificationToken {
-  id         String   @id @default(cuid())
+  id         String    @id @default(cuid())
   userId     String
   email      String
-  tokenHash  String   @unique
+  tokenHash  String    @unique
   expiresAt  DateTime
-  createdAt  DateTime @default(now())
+  createdAt  DateTime  @default(now())
   consumedAt DateTime?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -1167,13 +1167,13 @@ model TwoFactorMethod {
 // ─── Account Merge Requests ─────────────────────────────────
 
 model AccountMergeRequest {
-  id             String    @id @default(cuid())
+  id              String    @id @default(cuid())
   // The account that will remain (primary)
-  primaryUserId  String
+  primaryUserId   String
   // The identifier (email or username) the requester entered for the account
   // to merge in. Stored exactly as entered (normalized) so the requester's own
   // view never reveals the resolved account's real email address.
-  secondaryEmail String
+  secondaryEmail  String
   // The resolved account that will be merged in (secondary → becomes alter
   // ego). Null when the identifier didn't resolve — the row is still created
   // so request creation never acts as an account-existence oracle.
@@ -1181,15 +1181,15 @@ model AccountMergeRequest {
   // Status: "pending" (awaiting secondary-side approval) | "verified"
   // (secondary side proven via credentials or in-session approval) |
   // "completed" | "declined" | "cancelled" | "expired"
-  status         String    @default("pending")
+  status          String    @default("pending")
   // Legacy email-token flow artifact; unused by the two-party flow.
-  verifyToken    String?
+  verifyToken     String?
   // When the secondary side was proven (credential check or B's approval).
-  approvedAt     DateTime?
+  approvedAt      DateTime?
   // Pending requests expire; treated as createdAt + 7 days when null (legacy rows).
-  expiresAt      DateTime?
-  completedAt    DateTime?
-  createdAt      DateTime  @default(now())
+  expiresAt       DateTime?
+  completedAt     DateTime?
+  createdAt       DateTime  @default(now())
 
   @@index([primaryUserId])
   @@index([secondaryEmail])
@@ -1306,13 +1306,13 @@ model MeChatSessionVote {
 }
 
 model MeChatNote {
-  id        String   @id @default(cuid())
-  userId    String
-  text      String
-  songTitle String?
+  id         String   @id @default(cuid())
+  userId     String
+  text       String
+  songTitle  String?
   songArtist String?
-  createdAt DateTime @default(now())
-  expiresAt DateTime
+  createdAt  DateTime @default(now())
+  expiresAt  DateTime
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -1381,4 +1381,93 @@ model RateLimitHit {
   updatedAt   DateTime  @updatedAt
 
   @@index([resetAt])
+}
+
+/// PUBLIC CONTENT THAT BELONGS TO NO MESH.ME ACCOUNT.
+///
+/// Every other content model in this schema hangs off ConnectedAccount:
+/// PlatformPost.connectedAccountId, PlatformFeedItem.connectedAccountId. That
+/// is why a new account's Flow is empty and stays empty — there was literally
+/// nowhere to put a video that nobody here had connected an account to fetch.
+/// The product's whole premise ("browse every platform from mesh.me without
+/// connecting anything") had no table.
+///
+/// This is that table. A row is public content fetched from a platform's
+/// OFFICIAL API using MESH.ME'S OWN app credentials — never a user's, never by
+/// scraping. It is attributed to its real author on the source platform, and
+/// it links back there.
+///
+/// `expiresAt` IS A COMPLIANCE MECHANISM, NOT A CACHE HINT. Several platforms
+/// cap how long a third party may retain API results. Every read filters on it
+/// and a sweep deletes past it, so "we keep this only as long as their terms
+/// allow" is enforced by the schema rather than promised in a comment.
+model PublicPost {
+  id             String @id @default(cuid())
+  /// Source platform id, matching platform-capabilities.ts (youtube, twitch, …).
+  platform       String
+  /// The id this item has ON that platform. Unique with platform, so refetching
+  /// updates in place instead of duplicating the Flow.
+  platformPostId String
+  /// Which provider lane produced it, e.g. "youtube:mostPopular". Lets one
+  /// misbehaving lane be disabled without dropping a whole platform.
+  lane           String
+
+  title           String?
+  content         String?
+  url             String?
+  postType        String  @default("video")
+  thumbnailUrl    String?
+  mediaUrl        String?
+  /// Real length from the source. The Flow is shorts-only and EXCLUDES what it
+  /// cannot classify, so an absent duration means the item never plays there.
+  durationSeconds Int?
+  /// BCP-47-ish language tag when the platform reports one.
+  lang            String?
+
+  authorName      String?
+  authorUsername  String?
+  authorAvatarUrl String?
+  authorUrl       String?
+
+  viewCount    Int @default(0)
+  likeCount    Int @default(0)
+  commentCount Int @default(0)
+
+  /// Safety classification, same contract as PlatformPost: hidden unless the
+  /// viewer is adult-verified AND has explicitly opted in.
+  isNsfw        Boolean @default(false)
+  contentRating String  @default("general")
+
+  publishedAt DateTime?
+  fetchedAt   DateTime  @default(now())
+  /// Hard retention limit from the source platform's terms. Reads filter on it.
+  expiresAt   DateTime
+
+  @@unique([platform, platformPostId])
+  @@index([platform, publishedAt])
+  @@index([expiresAt])
+  @@index([lane, fetchedAt])
+}
+
+/// One fetch of one lane, kept so the supply is observable and honest.
+///
+/// Without this, "the Flow is empty" has two indistinguishable causes: nobody
+/// configured a key, or the fetch is failing. That ambiguity is what lets a
+/// broken feed look like a quiet one. The public-supply status surface reads
+/// these rows, so what a user is told matches what actually happened.
+model PublicSupplyRun {
+  id           String   @id @default(cuid())
+  platform     String
+  lane         String
+  /// "ok" | "not_configured" | "rate_limited" | "error"
+  status       String
+  itemsFetched Int      @default(0)
+  itemsStored  Int      @default(0)
+  /// Message safe to show an operator. Never contains a credential.
+  detail       String?
+  durationMs   Int      @default(0)
+  startedAt    DateTime @default(now())
+
+  @@index([platform, startedAt])
+  @@index([startedAt])
 }

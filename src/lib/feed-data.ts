@@ -4,6 +4,7 @@ import { nsfwHiddenWhere } from "./content-safety";
 import { buildExternalMedia } from "./external-media";
 import { getFriendPlatformFeedPosts, type FriendPlatformFeedPost } from "./friend-mesh";
 import { prisma } from "./prisma";
+import { getPublicSupplyFeedPosts } from "./public-supply/feed";
 
 // The viewer's follow/community graph is stable within a request, but the feed
 // builds several candidate passes (all + discover + per-platform) that each
@@ -829,7 +830,7 @@ export async function getCombinedFeedPosts({
   limit: number;
 }) {
   const providerLimit = Math.min(Math.max(limit * 2, 48), 240);
-  const [nativePosts, ownPlatformPosts, friendPlatformPosts, mergedForYouPosts, discoverPlatformPosts] = await Promise.all([
+  const [nativePosts, ownPlatformPosts, friendPlatformPosts, mergedForYouPosts, discoverPlatformPosts, publicSupplyPosts] = await Promise.all([
     getNativeFeedPostsForSource(user, source, providerLimit),
     source === "discover" ? Promise.resolve([]) : getConnectedPlatformFeedPosts(user, providerLimit),
     source === "discover" ? Promise.resolve([]) : getFriendPlatformFeedPosts(user, providerLimit),
@@ -837,6 +838,17 @@ export async function getCombinedFeedPosts({
     // Everyone's public platform content circulates — the open internet's
     // supply, not just the viewer's own graph.
     source === "following" ? Promise.resolve([]) : getDiscoverPlatformPosts(user, providerLimit),
+    // ...and the supply that belongs to nobody here at all: public content
+    // fetched from each platform's official API on mesh.me's OWN app
+    // credentials. This is what makes a brand-new account's feed non-empty.
+    //
+    // Every other lane above requires some mesh.me user to have connected an
+    // account first — which is exactly why the product's central promise,
+    // "browse every platform from mesh.me without connecting anything", did
+    // not hold: there was no source of content that did not trace back to a
+    // ConnectedAccount row. Excluded from "following" like the others, because
+    // nobody here followed these authors.
+    source === "following" ? Promise.resolve([]) : getPublicSupplyFeedPosts(user, providerLimit),
   ]);
 
   // A friend's shared post and the open-discovery copy are the same underlying
@@ -849,6 +861,10 @@ export async function getCombinedFeedPosts({
     ...(friendPlatformPosts as FriendPlatformFeedPost[]),
     ...mergedForYouPosts,
     ...discoverPlatformPosts,
+    // LAST on purpose. Same first-wins dedup: if this video also arrived as
+    // "Maya shared it", that copy carries attribution a person cares about and
+    // should win. Public supply is the floor under the feed, not the front.
+    ...publicSupplyPosts,
   ]) {
     const key = canonicalFeedKey(post);
     if (!byId.has(key)) byId.set(key, post);
