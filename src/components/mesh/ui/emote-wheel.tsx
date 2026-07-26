@@ -163,7 +163,7 @@ export function MeshEmoteWheel({
                   className="flex h-5 w-5 items-center justify-center [&_svg]:h-full [&_svg]:w-full"
                   dangerouslySetInnerHTML={{ __html: reactionGlyphSvg(emote.verb) }}
                 />
-                <span className="text-[8px] font-semibold mesh-eyebrow text-white/60">
+                <span className="text-micro font-semibold mesh-eyebrow text-white/60">
                   {emote.label}
                 </span>
               </button>

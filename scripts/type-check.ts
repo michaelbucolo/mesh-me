@@ -174,6 +174,73 @@ for (const family of ["Fraunces", "Instrument_Sans", "IBM_Plex_Mono"]) {
   );
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// NO ARBITRARY FONT SIZES. THE SCALE IS THE SCALE.
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// The scale's smallest step was --t-caption at 0.78125rem (12.5px), and 199 of
+// the 202 arbitrary sizes in the product were BELOW it: 8, 8.5, 9, 9.5, 10,
+// 10.5, 11 and 11.5px. Eight distinct sizes, none on any scale — which is not
+// eight decisions, it is one decision made eight times by different people, and
+// it is most of why a page reported eleven font sizes.
+//
+// The scale gained the step it was actually missing (--fs-micro, 0.6875rem) and
+// every one of those sites collapsed onto it. This keeps them collapsed.
+// THE MICRO FLOOR SURVIVES THE RESPONSIVE ROOT DOWNSCALE.
+//
+// --fs-micro is 0.6875rem because 11px is the legibility floor for meta text,
+// and collapsing the old 8-11.5px values onto it was justified as an
+// accessibility improvement. But globals.css deliberately drops the rem base to
+// 13.5px on cover screens (<=320px), and every rem follows it — so the token
+// computed to 9.28px there, BELOW several values it replaced, on the one class
+// of device where legibility is hardest. The claim and the behaviour disagreed.
+//
+// Whenever the root font size is overridden, --fs-micro must be re-pinned in
+// the same query so it still lands on 11px. Caught by an external reviewer, not
+// by me: the token read correctly in isolation and only failed in combination.
+const rootOverrides = [...globals.matchAll(/@media[^{]*\{[\s\S]*?html\s*\{[^}]*font-size:\s*([0-9.]+)px/g)];
+for (const [, rootPx] of rootOverrides) {
+  const root = Number(rootPx);
+  const scoped = globals.slice(globals.indexOf(`font-size: ${rootPx}px`));
+  const pinned = /--fs-micro:\s*([0-9.]+)rem/.exec(scoped.slice(0, 1200));
+  assert.ok(
+    pinned,
+    `globals.css overrides the root font size to ${rootPx}px but does not re-pin --fs-micro in the\n` +
+      `  same query. At that root the token computes to ${(0.6875 * root).toFixed(2)}px — below the 11px\n` +
+      "  floor it exists to guarantee, and below several of the fixed sizes it replaced.",
+  );
+  const computed = Number(pinned[1]) * root;
+  assert.ok(
+    Math.abs(computed - 11) < 0.25,
+    `--fs-micro is re-pinned to ${pinned[1]}rem at a ${rootPx}px root, computing to ${computed.toFixed(2)}px.\n` +
+      "  The floor is 11px. Pin it so it lands there.",
+  );
+}
+
+const arbitrary: string[] = [];
+for (const file of files) {
+  if (!file.endsWith(".tsx")) continue;
+  // stripComments, because this file's own prose and several components' comments
+  // quote `text-[10px]` while explaining why it is gone. Reading commentary as a
+  // violation is the same mistake in the other direction, and this repo's gates
+  // have made both.
+  const body = stripComments(readFileSync(join(ROOT, file), "utf8"));
+  for (const m of body.matchAll(/text-\[[0-9.]+px\]/g)) {
+    arbitrary.push(`${file}: ${m[0]}`);
+  }
+}
+assert.deepEqual(
+  arbitrary,
+  [],
+  "Arbitrary pixel font sizes are back:\n" +
+    arbitrary.slice(0, 20).map((a) => `    ${a}`).join("\n") +
+    (arbitrary.length > 20 ? `\n    …and ${arbitrary.length - 20} more` : "") +
+    "\n  Use a scale step. `text-micro` is the floor for meta text (badges, counts, timestamps);\n" +
+    "  above it the rem-valued steps in tokens.css cover everything. A one-off px size is how the\n" +
+    "  product ended up reporting eleven font sizes on a single screen, which is the difference\n" +
+    "  between a type system and a pile of numbers.",
+);
+
 console.log(
   `type contract OK — ${files.length} files scanned: no uppercase, no weight above 600, no tracking\n` +
     "  above +0.02em, the small-caps eyebrow exists, and all three families load through next/font.\n" +

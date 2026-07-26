@@ -139,7 +139,7 @@ export function HelpCenterSearch({ articles }: HelpCenterSearchProps) {
                 <article key={article.id} id={article.id} className="rounded-2xl border border-[var(--glass-card-border)] bg-[var(--glass-card-bg)] p-4 shadow-[var(--shadow-sm)]">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border-primary)] bg-[var(--bg-primary)] px-2.5 py-1 text-[11px] font-semibold mesh-eyebrow text-[var(--text-muted)]">
+                      <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border-primary)] bg-[var(--bg-primary)] px-2.5 py-1 text-micro font-semibold mesh-eyebrow text-[var(--text-muted)]">
                         <Icon className="h-3.5 w-3.5 text-[var(--accent)]" aria-hidden="true" />
                         {meta.label}
                       </span>

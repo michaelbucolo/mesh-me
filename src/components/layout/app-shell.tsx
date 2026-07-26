@@ -119,7 +119,7 @@ function SidebarNavItem({ item, href, active }: { item: NavItem; href: string; a
   return (
     <Link
       href={href}
-      className={`mesh-nav-item group relative flex items-center gap-3.5 rounded-xl px-3.5 py-2.5 text-[15px] font-medium transition-all duration-150 ${
+      className={`mesh-nav-item group relative flex items-center gap-3.5 rounded-xl px-3.5 py-2.5 text-[0.9375rem] font-medium transition-all duration-150 ${
         active
           ? "mesh-nav-item-active bg-[var(--mesh-panel-hover)] font-semibold text-[var(--mesh-text)]"
           : "text-[var(--mesh-text-secondary)] hover:bg-[var(--mesh-panel-hover)] hover:text-[var(--mesh-text)]"
@@ -226,7 +226,7 @@ function ShellTopBar({
       `}</style>
       <div className="min-w-0 flex-1 lg:flex-none">
         <div className="flex min-w-0 items-center gap-2">
-          <h1 className="truncate text-[19px] font-semibold tracking-tight text-[var(--mesh-text)] lg:text-xl">{routeInfo.title}</h1>
+          <h1 className="truncate text-[1.25rem] font-semibold tracking-tight text-[var(--mesh-text)] lg:text-xl">{routeInfo.title}</h1>
         </div>
         {routeInfo.description && (
           <p className="mt-0.5 hidden text-sm text-[var(--mesh-text-muted)] lg:block">{routeInfo.description}</p>
@@ -270,7 +270,7 @@ function ShellTopBar({
                and white on it measures ~1.9:1. --accent-ink is the PINNED ink for
                that fill (tokens.css:69, 197) and is contrast-verified in both
                themes. */
-            <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--accent)] px-1 text-[9px] font-semibold text-[var(--accent-ink)]">
+            <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--accent)] px-1 text-micro font-semibold text-[var(--accent-ink)]">
               {unreadCounts.unreadNotifications > 99 ? "99+" : unreadCounts.unreadNotifications}
             </span>
           )}
@@ -537,7 +537,7 @@ export function AppShell({ children, user }: AppShellProps) {
             )}
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-semibold text-[var(--mesh-text)]">{user.displayName}</p>
-              <p className="truncate text-[11px] text-[var(--mesh-text-muted)]">@{user.username}</p>
+              <p className="truncate text-micro text-[var(--mesh-text-muted)]">@{user.username}</p>
             </div>
             <ChevronRight className="h-4 w-4 shrink-0 text-[var(--mesh-text-muted)]" aria-hidden="true" />
           </Link>
@@ -545,7 +545,7 @@ export function AppShell({ children, user }: AppShellProps) {
 
         {/* Footer */}
         <div className="flex items-center justify-between border-t border-[var(--mesh-border)] px-5 py-3">
-          <div className="text-[10px] text-[var(--mesh-text-muted)]">
+          <div className="text-micro text-[var(--mesh-text-muted)]">
             <p suppressHydrationWarning>© {new Date().getFullYear()} Mesh.me</p>
             <p>All rights reserved</p>
           </div>

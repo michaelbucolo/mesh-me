@@ -259,7 +259,7 @@ export function NotificationsClient({ initialPayload }: { initialPayload: Notifi
                     <span className={`relative flex items-center gap-1.5 ${active ? "text-white" : ""}`}>
                       <Icon size={14} aria-hidden="true" />
                       {getNotificationCategoryLabel(category)}
-                      {counts.unread > 0 ? <span className={`rounded-full px-1.5 py-0.5 text-[10px] text-white ${active ? "bg-white/25" : "bg-[var(--accent)]"}`}>{counts.unread}</span> : null}
+                      {counts.unread > 0 ? <span className={`rounded-full px-1.5 py-0.5 text-micro text-white ${active ? "bg-white/25" : "bg-[var(--accent)]"}`}>{counts.unread}</span> : null}
                     </span>
                   </button>
                 );
@@ -369,12 +369,12 @@ function NotificationGroupCard({
             <div className="flex flex-wrap items-center gap-2">
               <h2 className="min-w-0 truncate text-base font-semibold text-[var(--text-primary)]">{group.title}</h2>
               {group.unreadCount > 0 && (
-                <span className="rounded-full bg-[var(--accent)] px-2 py-0.5 text-[10px] font-semibold text-white">
+                <span className="rounded-full bg-[var(--accent)] px-2 py-0.5 text-micro font-semibold text-white">
                   {group.unreadCount} unread
                 </span>
               )}
               {group.priority === "high" && (
-                <span className="rounded-full border border-[var(--mesh-danger)]/30 px-2 py-0.5 text-[10px] font-semibold text-[var(--mesh-danger)]">
+                <span className="rounded-full border border-[var(--mesh-danger)]/30 px-2 py-0.5 text-micro font-semibold text-[var(--mesh-danger)]">
                   Priority
                 </span>
               )}

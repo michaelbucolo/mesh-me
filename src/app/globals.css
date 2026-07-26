@@ -158,11 +158,22 @@ body {
   background: var(--bg-primary);
   color: var(--text-primary);
   font-family: var(--font-sans);
+  /* THE TYPE SCALE'S BASE, WHICH NOTHING WAS APPLYING.
+     This rule set font-FAMILY and no font-SIZE, so every element without an
+     explicit size fell through to the browser's 16px default. Measured on
+     /feed: 54 elements, more than any actual scale step and by a wide margin
+     the most common text size in the product — a value the design system never
+     chose and does not contain.
+     --t-body is 0.9375rem (15px): the size this system has always specified for
+     body text. Setting it here is not a new decision, it is the first time the
+     existing one takes effect. Line-height comes with it, which is why the
+     hardcoded 1.5 below is gone — 1.55 is the paired value. */
+  font-size: 0.9375rem;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   transition: background-color 0.2s ease, color 0.2s ease;
   letter-spacing: 0;
-  line-height: 1.5;
+  line-height: 1.55;
 }
 
 html {
@@ -1490,7 +1501,7 @@ body[data-meshi-panel="open"] .bug-report-widget {
   border-radius: 0.85rem;
   background: var(--bg-primary);
   color: var(--text-primary);
-  font-size: 0.9rem;
+  font-size: 0.9375rem;
   font-weight: 600;
   transition:
     transform 180ms var(--mesh-ease-out),
@@ -1653,7 +1664,7 @@ body[data-meshi-panel="open"] .bug-report-widget {
   background: var(--bg-primary);
   padding: 0.7rem 1rem;
   color: var(--text-primary);
-  font-size: 0.9rem;
+  font-size: 0.9375rem;
   font-weight: 600;
   box-shadow: var(--shadow-sm);
 }
@@ -1668,7 +1679,7 @@ body[data-meshi-panel="open"] .bug-report-widget {
   border-radius: 0.85rem;
   background: var(--bg-primary);
   color: var(--text-primary);
-  font-size: 0.9rem;
+  font-size: 0.9375rem;
   font-weight: 600;
   transition:
     transform 180ms var(--mesh-ease-out),
@@ -1705,7 +1716,7 @@ body[data-meshi-panel="open"] .bug-report-widget {
   background: var(--bg-primary);
   padding: 0.65rem 0.75rem;
   color: var(--text-secondary);
-  font-size: 0.86rem;
+  font-size: 0.875rem;
   font-weight: 600;
   text-align: left;
   transition:
@@ -1846,7 +1857,7 @@ body[data-meshi-panel="open"] .bug-report-widget {
   justify-content: center;
   border-bottom: 2px solid transparent;
   color: var(--text-muted);
-  font-size: 0.82rem;
+  font-size: 0.78125rem;
   font-weight: 600;
   letter-spacing: 0.01em;
   transition:
@@ -1930,7 +1941,7 @@ body[data-meshi-panel="open"] .bug-report-widget {
   min-height: 2.5rem;
   border-radius: 0.7rem;
   color: var(--text-secondary);
-  font-size: 0.9rem;
+  font-size: 0.9375rem;
   font-weight: 600;
   transition:
     color var(--mesh-transition-fast),
@@ -2013,7 +2024,7 @@ body[data-meshi-panel="open"] .bug-report-widget {
 
 .simple-muted {
   color: var(--text-secondary);
-  font-size: 0.95rem;
+  font-size: 0.9375rem;
 }
 
 /* Mesh.me motion system */
@@ -2579,7 +2590,7 @@ html {
   border: 1px solid var(--glass-card-border);
   background: var(--glass-card-bg);
   color: var(--text-secondary);
-  font-size: 0.86rem;
+  font-size: 0.875rem;
   font-weight: 600;
   transform: translateZ(0);
   transition:
@@ -3336,7 +3347,7 @@ body {
   border-radius: 999px;
   color: var(--text-muted);
   background: transparent;
-  font-size: 0.72rem;
+  font-size: 0.6875rem;
   font-weight: 600;
   white-space: nowrap;
   transition:
@@ -3447,7 +3458,7 @@ body {
 
 .feed-creator-stat span {
   color: var(--text-muted);
-  font-size: 0.66rem;
+  font-size: 0.6875rem;
   font-weight: 600;
   font-variant-caps: all-small-caps;
 }
@@ -3484,7 +3495,7 @@ body {
   gap: 0.5rem;
   min-height: 3.5rem;
   color: var(--text-muted);
-  font-size: 0.8rem;
+  font-size: 0.78125rem;
   font-weight: 600;
 }
 
@@ -3778,13 +3789,13 @@ body {
   .feed-mode-button {
     min-height: 2rem;
     padding-inline: 0.68rem;
-    font-size: 0.71rem;
+    font-size: 0.6875rem;
   }
 
   .feed-control-chip {
     min-height: 2rem;
     padding-inline: 0.62rem;
-    font-size: 0.71rem;
+    font-size: 0.6875rem;
   }
 
   .feed-layout-toggle {
@@ -3884,7 +3895,7 @@ body {
 
   .feed-like-count {
     color: var(--text-muted);
-    font-size: 0.76rem;
+    font-size: 0.78125rem;
   }
 
   .mobile-bottom-nav {
@@ -4433,7 +4444,7 @@ body,
   border-radius: 0.5rem;
   padding-inline: 0.75rem;
   color: var(--text-secondary);
-  font-size: 0.8rem;
+  font-size: 0.78125rem;
   font-weight: 600;
   transition: background-color 120ms ease, color 120ms ease;
 }
@@ -4469,7 +4480,7 @@ body,
   border-radius: 0.7rem;
   padding: 0.4rem 0.6rem;
   color: var(--text-secondary);
-  font-size: 0.85rem;
+  font-size: 0.84375rem;
   font-weight: 600;
 }
 
@@ -4491,7 +4502,7 @@ body,
   border-radius: 0.7rem;
   padding: 0.5rem 0.65rem;
   color: var(--text-primary);
-  font-size: 0.85rem;
+  font-size: 0.84375rem;
   font-weight: 600;
 }
 
@@ -4582,7 +4593,7 @@ body,
   transform: translateX(-50%);
   z-index: 60;
   padding: 0.7rem 1.1rem;
-  font-size: 0.85rem;
+  font-size: 0.84375rem;
   font-weight: 600;
   animation: settings-toast-in 0.2s ease;
 }
@@ -4618,7 +4629,7 @@ body,
 .settings-mini-label {
   display: block;
   color: var(--text-muted);
-  font-size: 0.68rem;
+  font-size: 0.6875rem;
   font-weight: 600;
   letter-spacing: 0.02em;
   font-variant-caps: all-small-caps;
@@ -4671,7 +4682,7 @@ body,
 
 .settings-card-heading h3 {
   color: var(--text-secondary);
-  font-size: 0.7rem;
+  font-size: 0.6875rem;
   font-weight: 600;
   letter-spacing: 0.02em;
   font-variant-caps: all-small-caps;
@@ -4690,7 +4701,7 @@ body,
   border-radius: 0.5rem;
   padding: 0.25rem 0.4rem;
   color: var(--text-muted);
-  font-size: 0.75rem;
+  font-size: 0.78125rem;
   font-weight: 600;
   cursor: pointer;
   list-style: none;
@@ -4721,7 +4732,7 @@ body,
 .settings-hint-body {
   padding: 0 0.4rem 0.4rem;
   color: var(--text-secondary);
-  font-size: 0.75rem;
+  font-size: 0.78125rem;
   line-height: 1.55;
 }
 
@@ -5168,7 +5179,7 @@ body,
   border-top: 1px solid var(--border-primary);
   padding-top: 0.75rem;
   color: var(--text-muted);
-  font-size: 0.75rem;
+  font-size: 0.78125rem;
   font-weight: 600;
 }
 
@@ -5389,7 +5400,7 @@ body {
   }
 
   .mesh-topbar h1 {
-    font-size: 0.95rem;
+    font-size: 0.9375rem;
   }
 
   .mesh-topbar p {
@@ -5407,7 +5418,7 @@ body {
   .mesh-topbar-owner {
     padding: 0;
     gap: 0.25rem;
-    font-size: 0.8rem;
+    font-size: 0.78125rem;
   }
 
   .mesh-topbar-icon {
@@ -5543,7 +5554,7 @@ body {
   }
 
   .settings-traditional-header h1 {
-    font-size: 1.2rem;
+    font-size: 1.25rem;
   }
 
   .settings-traditional-grid {
@@ -5560,7 +5571,7 @@ body {
   .settings-nav-item {
     min-height: 2.75rem;
     scroll-snap-align: start;
-    font-size: 0.82rem;
+    font-size: 0.78125rem;
     padding: 0.5rem 0.65rem;
     gap: 0.4rem;
     white-space: nowrap;
@@ -5580,7 +5591,7 @@ body {
   }
 
   .settings-panel-heading h2 {
-    font-size: 1.1rem;
+    font-size: 1.0625rem;
   }
 
   .settings-panel-scroll {
@@ -5592,14 +5603,14 @@ body {
     align-items: flex-start;
     gap: 0.25rem;
     padding: 0.6rem 0.65rem;
-    font-size: 0.8rem;
+    font-size: 0.78125rem;
   }
 
   .settings-row,
   .settings-action-row,
   .settings-toggle {
     padding: 0.7rem !important;
-    font-size: 0.88rem;
+    font-size: 0.875rem;
   }
 
   .settings-section-stack {
@@ -5648,7 +5659,7 @@ body {
   }
 
   .profile-header-card .profile-actions > * {
-    font-size: 0.82rem;
+    font-size: 0.78125rem;
     padding: 0.45rem 0.75rem;
   }
 
@@ -5686,12 +5697,12 @@ body {
   }
 
   .simple-page header h1 {
-    font-size: 1.15rem;
+    font-size: 1.0625rem;
     line-height: 1.3;
   }
 
   .simple-page header p {
-    font-size: 0.8rem;
+    font-size: 0.78125rem;
   }
 
   .simple-page .mesh-surface {
@@ -5890,13 +5901,22 @@ body {
     font-size: 15px;
   }
 
+  /* Same floor, same reasoning as the 320px query below: the rem base is
+     downscaled on purpose for LAYOUT, and the smallest text in the product must
+     not follow it below 11px. 11 / 15 = 0.7333rem.
+     An external reviewer caught the 320px case; type-check found this one,
+     which is the difference between fixing an instance and holding the rule. */
+  :root {
+    --fs-micro: 0.7333rem;
+  }
+
   .mesh-topbar {
     gap: 0.3rem;
     padding-inline: 0.5rem;
   }
 
   .mesh-topbar h1 {
-    font-size: 0.9rem;
+    font-size: 0.9375rem;
   }
 
   /* Account menu dropdown is w-64 (16rem); keep it inside the viewport */
@@ -5919,6 +5939,21 @@ body {
 @media (max-width: 320px) {
   html {
     font-size: 13.5px;
+  }
+
+  /* THE LEGIBILITY FLOOR DOES NOT SCALE WITH THE LAYOUT.
+     The rule above deliberately shrinks the rem base so a cover screen fits
+     more, and every rem-sized thing follows it — which is correct for layout
+     and wrong for the smallest text in the product. --fs-micro is 0.6875rem
+     precisely because 11px is the floor for meta text; at a 13.5px root it
+     computes to 9.28px, BELOW several of the fixed values it was introduced to
+     replace. The token would have been claiming a floor it did not hold, on the
+     one class of device where legibility is already hardest.
+     11 / 13.5 = 0.8148rem restores it. Still rem, so a reader who raises their
+     browser's font size is still respected — this pins the floor against the
+     LAYOUT downscale, not against the user. */
+  :root {
+    --fs-micro: 0.8148rem;
   }
 
   .mesh-topbar [aria-pressed][title*="Ghost Mode"] {
@@ -6164,7 +6199,7 @@ body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
   -webkit-backdrop-filter: blur(18px) saturate(150%);
   box-shadow: 0 24px 60px -36px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.04);
   color: var(--text-primary);
-  font-size: 1.1rem;
+  font-size: 1.0625rem;
   font-weight: 500;
   letter-spacing: -0.01em;
   text-align: left;
@@ -6510,7 +6545,7 @@ body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
   box-shadow: 0 14px 40px -30px rgba(125, 155, 255, 0.9);
 }
 .mesh-gate-input:disabled { opacity: 0.55; }
-.mesh-gate-input-line { text-align: left; padding: 0.55rem 0.2rem; font-size: 1.02rem; font-weight: 500; }
+.mesh-gate-input-line { text-align: left; padding: 0.55rem 0.2rem; font-size: 1rem; font-weight: 500; }
 
 /* Subtle enter affordance — appears once there's something to submit. */
 .mesh-gate-go {
@@ -6546,20 +6581,20 @@ body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
 .mesh-gate-peek:hover { color: #f3f5fb; }
 
 .mesh-gate-hint {
-  font-size: 0.82rem;
+  font-size: 0.78125rem;
   font-weight: 500;
   letter-spacing: 0.02em;
   color: rgba(154, 163, 188, 0.55);
 }
 .mesh-gate-msg {
-  font-size: 0.85rem;
+  font-size: 0.84375rem;
   font-weight: 600;
   color: #fecaca;
   max-width: 26rem;
 }
 
 .mesh-gate-textlink {
-  font-size: 0.85rem;
+  font-size: 0.84375rem;
   font-weight: 600;
   color: rgba(179, 190, 220, 0.82);
   transition: color 150ms ease;
@@ -6637,7 +6672,7 @@ body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
   flex-direction: column;
   gap: 0.2rem;
   text-align: left;
-  font-size: 0.72rem;
+  font-size: 0.6875rem;
   font-weight: 600;
   letter-spacing: 0.02em;
   color: rgba(154, 163, 188, 0.72);
@@ -6780,7 +6815,7 @@ body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
   position: absolute;
   top: -10px;
   right: -6px;
-  font-size: 0.9rem;
+  font-size: 0.9375rem;
   font-weight: 600;
   color: rgba(190, 205, 255, 0.9);
   animation: meshOwnerZzz 3s ease-in-out infinite;
@@ -6789,14 +6824,14 @@ body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
 .mesh-owner-zzz:nth-of-type(2) {
   top: -18px;
   right: -14px;
-  font-size: 0.72rem;
+  font-size: 0.6875rem;
   opacity: 0.8;
   animation-delay: 0.7s;
 }
 .mesh-owner-zzz:nth-of-type(3) {
   top: -25px;
   right: -21px;
-  font-size: 0.58rem;
+  font-size: 0.6875rem;
   opacity: 0.65;
   animation-delay: 1.4s;
 }
@@ -7116,13 +7151,13 @@ body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
 }
 
 .watch-brand {
-  font-size: 0.95rem;
+  font-size: 0.9375rem;
   font-weight: 600;
   letter-spacing: -0.02em;
 }
 
 .watch-muted {
-  font-size: 0.8rem;
+  font-size: 0.78125rem;
   line-height: 1.35;
   color: rgba(255, 255, 255, 0.6);
 }
@@ -7147,7 +7182,7 @@ body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
 
 .watch-item-title {
   overflow: hidden;
-  font-size: 0.82rem;
+  font-size: 0.78125rem;
   font-weight: 600;
   line-height: 1.3;
   display: -webkit-box;
@@ -7159,7 +7194,7 @@ body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
-  font-size: 0.7rem;
+  font-size: 0.6875rem;
   color: rgba(255, 255, 255, 0.55);
 }
 
@@ -7168,7 +7203,7 @@ body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
   align-items: center;
   background: #fff;
   color: #000;
-  font-size: 0.85rem;
+  font-size: 0.84375rem;
   font-weight: 600;
 }
 
@@ -7731,3 +7766,7 @@ button, [role="button"] {
   background: var(--mould, var(--mould-cobalt));
   color: var(--mould-ink, var(--mould-cobalt-ink));
 }
+
+/* The one utility for meta text. `text-[10px]` and its seven siblings all
+   resolve here now, so a page reports one small size instead of eight. */
+.text-micro { font-size: var(--fs-micro); }

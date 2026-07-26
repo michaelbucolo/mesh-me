@@ -445,15 +445,15 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
             <div className="min-w-0">
               <div className="flex min-w-0 items-center gap-1.5">
                 {isExternalFeedItem && externalAuthor?.profileUrl ? (
-                  <a href={safeHref(externalAuthor.profileUrl)} target="_blank" rel="noopener noreferrer" className="truncate text-[0.9rem] font-semibold hover:underline" style={{ color: "var(--text-primary)" }}>
+                  <a href={safeHref(externalAuthor.profileUrl)} target="_blank" rel="noopener noreferrer" className="truncate text-[0.9375rem] font-semibold hover:underline" style={{ color: "var(--text-primary)" }}>
                     {post.author.displayName}
                   </a>
                 ) : isExternalFeedItem ? (
-                  <span className="truncate text-[0.9rem] font-semibold" style={{ color: "var(--text-primary)" }}>
+                  <span className="truncate text-[0.9375rem] font-semibold" style={{ color: "var(--text-primary)" }}>
                     {post.author.displayName}
                   </span>
                 ) : (
-                  <Link href={`/profile/${post.author.username}`} className="truncate text-[0.9rem] font-semibold hover:underline" style={{ color: "var(--text-primary)" }}>
+                  <Link href={`/profile/${post.author.username}`} className="truncate text-[0.9375rem] font-semibold hover:underline" style={{ color: "var(--text-primary)" }}>
                     {post.author.displayName}
                   </Link>
                 )}
@@ -461,7 +461,7 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
                   <BadgeCheck className="h-4 w-4" style={{ color: "var(--accent)" }} />
                 )}
               </div>
-              <div className="flex items-center gap-1 text-[0.8rem] flex-wrap" style={{ color: "var(--text-muted)" }}>
+              <div className="flex items-center gap-1 text-[0.78125rem] flex-wrap" style={{ color: "var(--text-muted)" }}>
                 {isExternalFeedItem && externalAuthor?.profileUrl ? (
                   <a href={safeHref(externalAuthor.profileUrl)} target="_blank" rel="noopener noreferrer" className="hover:underline">
                     @{post.author.username}
@@ -489,7 +489,7 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
                         triples exist to prevent. The brand colour is now a
                         decorative swatch carrying NO text — --ink-4-class usage —
                         and the label rides --ink-2, which contrast:check owns. */}
-                    <span className="inline-flex items-center gap-1 px-1.5 py-0 rounded text-[10px] font-medium text-[var(--ink-2)]">
+                    <span className="inline-flex items-center gap-1 px-1.5 py-0 rounded text-micro font-medium text-[var(--ink-2)]">
                       <span
                         className="w-2.5 h-2.5 rounded-sm"
                         style={{ backgroundColor: platformBadge.color }}
@@ -503,7 +503,7 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
                 {post.crossPostedTo && post.crossPostedTo.length > 0 && (
                   <>
                     <span>&middot;</span>
-                    <span className="text-[10px] text-[var(--text-muted)] flex items-center gap-0.5">
+                    <span className="text-micro text-[var(--text-muted)] flex items-center gap-0.5">
                       <Share2 className="h-2.5 w-2.5" />
                       +{post.crossPostedTo.length}
                     </span>
@@ -520,7 +520,7 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
                 {isOptimistic && (
                   <>
                     <span>&middot;</span>
-                    <span className="inline-flex items-center gap-1 rounded-full border border-[var(--accent-muted)] bg-[var(--accent-subtle)] px-2 py-0.5 text-[10px] font-semibold text-[var(--accent)]">
+                    <span className="inline-flex items-center gap-1 rounded-full border border-[var(--accent-muted)] bg-[var(--accent-subtle)] px-2 py-0.5 text-micro font-semibold text-[var(--accent)]">
                       <PaperWait size="sm" />
                       Posting
                     </span>
@@ -529,7 +529,7 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
                 {post.isNsfw && (
                   <>
                     <span>&middot;</span>
-                    <span className="inline-flex items-center rounded px-1.5 py-0 text-[10px] font-semibold text-[var(--mould-crimson-ink)] bg-[var(--mould-crimson)]">
+                    <span className="inline-flex items-center rounded px-1.5 py-0 text-micro font-semibold text-[var(--mould-crimson-ink)] bg-[var(--mould-crimson)]">
                       NSFW
                     </span>
                   </>
@@ -632,7 +632,7 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
             <ExpandablePostText
               content={post.content}
               compact={compact}
-              className="text-[0.95rem] leading-6 text-[var(--text-primary)]"
+              className="text-[0.9375rem] leading-6 text-[var(--text-primary)]"
             />
           </div>
         )}
@@ -757,7 +757,7 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
             <ExpandablePostText
               content={post.content}
               compact={compact}
-              className="text-[1.05rem] font-semibold leading-7 text-[var(--text-primary)]"
+              className="text-[1.0625rem] font-semibold leading-7 text-[var(--text-primary)]"
             />
             {isOptimistic ? (
               <p className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--text-muted)]">
@@ -842,7 +842,7 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
           </div>
         </div>
 
-        <p className="feed-like-count mt-1.5 text-[0.82rem] font-semibold text-[var(--text-primary)]">
+        <p className="feed-like-count mt-1.5 text-[0.78125rem] font-semibold text-[var(--text-primary)]">
           <span key={likeCount} className="mesh-roll-in tabular-nums">{formatCount(likeCount)}</span> likes
         </p>
 
@@ -861,7 +861,7 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
           </p>
         )}
 
-        <div className="mt-1 flex flex-wrap items-center gap-2 text-[0.8rem] text-[var(--text-muted)]">
+        <div className="mt-1 flex flex-wrap items-center gap-2 text-[0.78125rem] text-[var(--text-muted)]">
           <Link
             href={postHref}
             onClick={(event) => {

@@ -295,7 +295,7 @@ export function ContentLens({
               <p className="truncate text-sm font-semibold text-white">{node.label}</p>
               {node.sublabel && <p className="truncate text-xs text-white/50">{node.sublabel}</p>}
             </div>
-            <span className="inline-flex items-center gap-1 rounded-full bg-white/6 px-2.5 py-1 text-[10px] font-medium mesh-eyebrow text-white/45">
+            <span className="inline-flex items-center gap-1 rounded-full bg-white/6 px-2.5 py-1 text-micro font-medium mesh-eyebrow text-white/45">
               <Sparkles size={11} />
               {node.kind === "activity" ? "Activity" : "Post"}
             </span>
@@ -311,7 +311,7 @@ export function ContentLens({
 
           {/* Body */}
           {node.content ? (
-            <p className="max-h-[28vh] overflow-y-auto whitespace-pre-wrap text-[15px] leading-relaxed text-white/85">
+            <p className="max-h-[28vh] overflow-y-auto whitespace-pre-wrap text-[0.9375rem] leading-relaxed text-white/85">
               {node.content}
             </p>
           ) : (
@@ -389,7 +389,7 @@ export function ContentLens({
               <Link
                 href={node.href}
                 target="_blank"
-                className="ml-auto inline-flex items-center gap-1 text-[11px] font-medium text-white/40 transition-colors hover:text-white/70"
+                className="ml-auto inline-flex items-center gap-1 text-micro font-medium text-white/40 transition-colors hover:text-white/70"
               >
                 <ExternalLink size={11} />
                 {node.sublabel || "source"}
@@ -426,11 +426,11 @@ export function ContentLens({
                 ))}
               </div>
             ) : (
-              <span className="text-[11px] font-semibold text-cyan-100/80">
+              <span className="text-micro font-semibold text-cyan-100/80">
                 {catchup.index + 1} / {catchup.total}
               </span>
             )}
-            <span className="text-[10px] font-medium mesh-eyebrow text-cyan-100/50">
+            <span className="text-micro font-medium mesh-eyebrow text-cyan-100/50">
               {catchup.paused ? "Paused" : "Catch-up"}
             </span>
           </div>
@@ -447,7 +447,7 @@ export function ContentLens({
               <ChevronLeft size={15} />
               Prev
             </button>
-            <span className="text-[11px] font-medium text-white/40">
+            <span className="text-micro font-medium text-white/40">
               {index >= 0 ? index + 1 : 1} / {total} {streamLabel}
             </span>
             <button

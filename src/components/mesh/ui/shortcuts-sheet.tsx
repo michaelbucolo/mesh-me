@@ -60,7 +60,7 @@ export function MeshShortcutsSheet({
                   {s.keys.map((k) => (
                     <kbd
                       key={k}
-                      className="rounded-md border border-white/15 bg-white/8 px-1.5 py-0.5 text-[10px] font-semibold text-white/85"
+                      className="rounded-md border border-white/15 bg-white/8 px-1.5 py-0.5 text-micro font-semibold text-white/85"
                     >
                       {k}
                     </kbd>
@@ -78,7 +78,7 @@ export function MeshShortcutsSheet({
           </p>
         )}
         {!isCoarsePointer && (
-          <p className="mt-3 text-[11px] leading-relaxed text-white/50">
+          <p className="mt-3 text-micro leading-relaxed text-white/50">
             Tip: press and hold a post to pluck it — Like, Save, Share and Mute pop out around it
             (fling it to throw a heart). Hold a person to send a reaction, and sweep your cursor
             across the strands to strum them.

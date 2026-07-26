@@ -99,18 +99,18 @@ export function ExternalPostDetail({ post }: { post: FeedCardPost }) {
                 {formatRelativeTime(String(post.createdAt))}
               </p>
             </div>
-            <span className="shrink-0 rounded-full bg-[var(--accent)]/12 px-2.5 py-1 text-[10px] font-semibold mesh-eyebrow text-[var(--accent)]">
+            <span className="shrink-0 rounded-full bg-[var(--accent)]/12 px-2.5 py-1 text-micro font-semibold mesh-eyebrow text-[var(--accent)]">
               {source}
             </span>
             {post.visibility && post.visibility !== "public" && (
-              <span className="shrink-0 rounded-full border border-[var(--mesh-border)] px-2 py-1 text-[10px] font-semibold mesh-eyebrow text-[var(--mesh-text-muted)]">
+              <span className="shrink-0 rounded-full border border-[var(--mesh-border)] px-2 py-1 text-micro font-semibold mesh-eyebrow text-[var(--mesh-text-muted)]">
                 {post.visibility}
               </span>
             )}
           </header>
 
           {post.content && (
-            <p className="whitespace-pre-wrap text-[15px] leading-relaxed text-[var(--mesh-text)]">{post.content}</p>
+            <p className="whitespace-pre-wrap text-[0.9375rem] leading-relaxed text-[var(--mesh-text)]">{post.content}</p>
           )}
 
           {/* Source engagement — honest about whose numbers these are */}

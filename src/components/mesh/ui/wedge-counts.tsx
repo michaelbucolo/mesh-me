@@ -39,10 +39,10 @@ export function MeshWedgeCounts({
           <button
             type="button"
             onClick={() => onFocusBranch(branch)}
-            className="mesh-ctl ds-focus-ring rounded-full px-2.5 py-1 text-[11px] font-semibold text-white/85"
+            className="mesh-ctl ds-focus-ring rounded-full px-2.5 py-1 text-micro font-semibold text-white/85"
           >
             {BRANCH_LABELS[branch] ?? branch}
-            <span className="ml-1.5 rounded-full bg-cyan-400/15 px-1.5 py-px text-[10px] font-semibold text-cyan-200">
+            <span className="ml-1.5 rounded-full bg-cyan-400/15 px-1.5 py-px text-micro font-semibold text-cyan-200">
               {count} new
             </span>
           </button>

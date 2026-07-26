@@ -123,13 +123,13 @@ export function NodeDetail({
       </div>
 
       {node.placeReason && (
-        <p className="mt-2.5 rounded-lg bg-white/[0.04] px-2.5 py-1.5 text-[11px] leading-snug text-white/55">
+        <p className="mt-2.5 rounded-lg bg-white/[0.04] px-2.5 py-1.5 text-micro leading-snug text-white/55">
           {node.placeReason}
         </p>
       )}
 
       {muteKey && muted && (
-        <p className="mt-2.5 rounded-lg bg-amber-400/[0.08] px-2.5 py-1.5 text-[11px] leading-snug text-amber-100/80">
+        <p className="mt-2.5 rounded-lg bg-amber-400/[0.08] px-2.5 py-1.5 text-micro leading-snug text-amber-100/80">
           Muted — this source&apos;s posts stay off your mesh and Flow. Only you can see this.
         </p>
       )}
@@ -139,7 +139,7 @@ export function NodeDetail({
       {node.meta && node.meta.length > 0 && (
         <div className="mt-3 flex flex-wrap gap-2">
           {node.meta.map((m) => (
-            <span key={m.label} className="rounded-lg bg-white/5 px-2.5 py-1 text-[11px] text-white/70">
+            <span key={m.label} className="rounded-lg bg-white/5 px-2.5 py-1 text-micro text-white/70">
               <span className="font-semibold text-white">{m.value}</span> {m.label}
             </span>
           ))}

@@ -308,7 +308,7 @@ export async function InstagramProfileView({ username, tab }: { username: string
                   </p>
                   <div className="mt-0.5 flex items-center gap-1.5">
                     <span className={`h-1.5 w-1.5 rounded-full ${showLive ? "bg-[var(--mesh-green)] motion-safe:animate-pulse" : "bg-[var(--mesh-text-muted)]/50"}`} />
-                    <span className={`text-[10px] ${showLive ? "text-[var(--mesh-green)]" : "text-[var(--mesh-text-muted)]"}`}>
+                    <span className={`text-micro ${showLive ? "text-[var(--mesh-green)]" : "text-[var(--mesh-text-muted)]"}`}>
                       {presenceLabel ?? "Away"}
                     </span>
                   </div>
@@ -568,7 +568,7 @@ export async function InstagramProfileView({ username, tab }: { username: string
                     <p className="truncate font-medium text-[var(--mesh-text)]">{m.community.name}</p>
                     <p className="text-xs text-[var(--mesh-text-muted)]">{formatCount(m.community._count.members)} members</p>
                   </div>
-                  <span className="shrink-0 rounded-md bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-400">Joined</span>
+                  <span className="shrink-0 rounded-md bg-emerald-500/10 px-2 py-0.5 text-micro font-semibold text-emerald-400">Joined</span>
                 </Link>
               ))
             ) : (

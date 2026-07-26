@@ -55,7 +55,7 @@ export function ConnectionSnappedError({
           compact ? "max-w-2xl" : "max-w-3xl",
         )}
       >
-        <div className="mx-auto inline-flex items-center gap-2 rounded-full border border-[var(--border-primary)] bg-[var(--bg-primary)] px-3 py-1.5 text-[11px] font-semibold mesh-eyebrow text-[var(--text-muted)]">
+        <div className="mx-auto inline-flex items-center gap-2 rounded-full border border-[var(--border-primary)] bg-[var(--bg-primary)] px-3 py-1.5 text-micro font-semibold mesh-eyebrow text-[var(--text-muted)]">
           <span className="connection-snapped-status-dot" aria-hidden="true" />
           500
         </div>

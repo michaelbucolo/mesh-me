@@ -48,7 +48,7 @@ export function AdminActions(props: AdminActionsProps) {
         >
           {props.isSuspended ? "Unsuspend" : "Suspend"}
         </Button>
-        {error ? <p className="text-[10px] text-[var(--ds-danger)]">{error}</p> : null}
+        {error ? <p className="text-micro text-[var(--ds-danger)]">{error}</p> : null}
       </div>
     );
   }
@@ -76,7 +76,7 @@ export function AdminActions(props: AdminActionsProps) {
             <X className="h-3 w-3" />
           </Button>
         </div>
-        {error ? <p className="text-[10px] text-[var(--ds-danger)]">{error}</p> : null}
+        {error ? <p className="text-micro text-[var(--ds-danger)]">{error}</p> : null}
       </div>
     );
   }
@@ -94,7 +94,7 @@ export function AdminActions(props: AdminActionsProps) {
         >
           Delete post
         </Button>
-        {error ? <p className="text-[10px] text-[var(--ds-danger)]">{error}</p> : null}
+        {error ? <p className="text-micro text-[var(--ds-danger)]">{error}</p> : null}
       </div>
     );
   }
@@ -123,7 +123,7 @@ export function AdminActions(props: AdminActionsProps) {
           Resolve reports
         </Button>
       ) : null}
-      {error ? <p className="basis-full text-[10px] text-[var(--ds-danger)]">{error}</p> : null}
+      {error ? <p className="basis-full text-micro text-[var(--ds-danger)]">{error}</p> : null}
     </div>
   );
 }

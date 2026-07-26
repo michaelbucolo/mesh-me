@@ -120,7 +120,7 @@ export function MeChatInfoRail({
                 className="flex flex-col items-center gap-1 rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] px-2 py-3 text-center"
               >
                 <item.icon size={15} className="text-[var(--mesh-text-secondary)]" />
-                <span className="text-[11px] font-semibold text-[var(--mesh-text-secondary)]">{item.label}</span>
+                <span className="text-micro font-semibold text-[var(--mesh-text-secondary)]">{item.label}</span>
                 <span className="text-xs font-semibold text-[var(--mesh-text)]">{item.value}</span>
               </div>
             ))}

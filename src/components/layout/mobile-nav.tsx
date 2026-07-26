@@ -102,7 +102,7 @@ function MobileNavItem({
           /* `text-white` on `bg-[var(--accent)]` measures ~1.9:1 in Worklight,
              where --accent is #93a9ff (tokens.css:194). --accent-ink is the
              pinned ink for that fill (tokens.css:69, 197). */
-          className="absolute right-2 top-1.5 z-10 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--accent)] px-1 text-[8px] font-semibold text-[var(--accent-ink)]"
+          className="absolute right-2 top-1.5 z-10 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--accent)] px-1 text-micro font-semibold text-[var(--accent-ink)]"
         >
           {badgeCount > 99 ? "99+" : badgeCount}
         </motion.span>

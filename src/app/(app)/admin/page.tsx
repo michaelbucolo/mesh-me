@@ -382,7 +382,7 @@ export default async function AdminPage() {
                   <div key={log.id} className="rounded-2xl border border-[var(--ds-border)] bg-[var(--ds-surface)] p-3">
                     <p className="text-sm font-semibold text-[var(--text-primary)]">{log.action.replace(/_/g, " ")}</p>
                     <p className="mt-1 text-xs text-[var(--text-secondary)]">{log.details || "No details"}</p>
-                    <p className="mt-1 text-[10px] text-[var(--text-tertiary)]">
+                    <p className="mt-1 text-micro text-[var(--text-tertiary)]">
                       {log.admin.displayName || log.admin.username} · {formatRelativeTime(log.createdAt)}
                     </p>
                   </div>
@@ -406,7 +406,7 @@ export default async function AdminPage() {
                   <div key={log.id} className="rounded-2xl border border-[var(--ds-border)] bg-[var(--ds-surface)] p-3">
                     <p className="text-sm font-semibold text-[var(--text-primary)]">{log.action.replace(/_/g, " ")}</p>
                     <p className="mt-1 text-xs text-[var(--text-secondary)]">{log.details || "No details"}</p>
-                    <p className="mt-1 text-[10px] text-[var(--text-tertiary)]">{formatRelativeTime(log.createdAt)}</p>
+                    <p className="mt-1 text-micro text-[var(--text-tertiary)]">{formatRelativeTime(log.createdAt)}</p>
                   </div>
                 ))
               ) : (

@@ -809,20 +809,20 @@ function GlobalMeshCard({
                   ? "You have no public content yet — you'll appear as a profile only."
                   : "Only your already-public content is shared — nothing private."}
               </p>
-              <p className="text-[11px] leading-4 text-[var(--text-muted)]">
+              <p className="text-micro leading-4 text-[var(--text-muted)]">
                 Any public mature posts appear only to adult-verified viewers, so they aren&rsquo;t shown here.
               </p>
               {previewItems > 0 ? (
                 <div className="grid max-h-48 gap-2 overflow-y-auto rounded-md border border-[var(--border-primary)] bg-[var(--bg-primary)]/40 p-2">
                   {preview.posts.map((post) => (
                     <div key={post.id} className="flex items-center gap-2 text-xs text-[var(--text-primary)]">
-                      <span className="rounded bg-[var(--accent-subtle)] px-1.5 py-0.5 text-[10px] font-semibold mesh-eyebrow text-[var(--accent)]">Post</span>
+                      <span className="rounded bg-[var(--accent-subtle)] px-1.5 py-0.5 text-micro font-semibold mesh-eyebrow text-[var(--accent)]">Post</span>
                       <span className="truncate">{post.content || "Media post"}</span>
                     </div>
                   ))}
                   {preview.platforms.map((platform) => (
                     <div key={platform.id} className="flex items-center gap-2 text-xs text-[var(--text-primary)]">
-                      <span className="rounded bg-[var(--accent-subtle)] px-1.5 py-0.5 text-[10px] font-semibold mesh-eyebrow capitalize text-[var(--accent)]">{platform.platform}</span>
+                      <span className="rounded bg-[var(--accent-subtle)] px-1.5 py-0.5 text-micro font-semibold mesh-eyebrow capitalize text-[var(--accent)]">{platform.platform}</span>
                       <span className="truncate">{platform.title}</span>
                     </div>
                   ))}
@@ -1014,7 +1014,7 @@ function PolicyRow({
 function MiniStat({ label, value, tone }: { label: string; value: number; tone?: "imported" }) {
   return (
     <div className="rounded-md border border-[var(--border-primary)] bg-[var(--bg-secondary)]/60 px-3 py-2">
-      <p className="text-[10px] font-semibold mesh-eyebrow text-[var(--text-muted)]">
+      <p className="text-micro font-semibold mesh-eyebrow text-[var(--text-muted)]">
         {label.replace(/([A-Z])/g, " $1").trim()}
       </p>
       <p className={cn("mt-1 text-sm font-semibold text-[var(--text-primary)]", tone === "imported" && "text-[var(--accent)]")}>

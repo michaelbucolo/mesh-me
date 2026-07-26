@@ -85,12 +85,12 @@ function ShareBar({ row }: { row: MixRow }) {
       </div>
       <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1">
         {visible.map((part) => (
-          <span key={part.platform} className="inline-flex items-center gap-1.5 text-[10px] text-[var(--text-muted)]">
+          <span key={part.platform} className="inline-flex items-center gap-1.5 text-micro text-[var(--text-muted)]">
             <span className="h-2 w-2 rounded-full" style={{ backgroundColor: tone(part.platform) }} />
             {label(part.platform)} {Math.round((part.value / row.total) * 100)}%
           </span>
         ))}
-        {visible.length === 0 && <span className="text-[10px] text-[var(--text-muted)]">No data synced yet</span>}
+        {visible.length === 0 && <span className="text-micro text-[var(--text-muted)]">No data synced yet</span>}
       </div>
     </div>
   );
@@ -102,7 +102,7 @@ function LeaderCard({ icon: Icon, title, platform, stat, detail, index }: { icon
       className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-primary)]/60 p-3.5"
       style={index !== undefined ? ({ "--i": index } as CSSProperties) : undefined}
     >
-      <p className="flex items-center gap-1.5 text-[10px] font-semibold mesh-eyebrow text-[var(--text-muted)]">
+      <p className="flex items-center gap-1.5 text-micro font-semibold mesh-eyebrow text-[var(--text-muted)]">
         <Icon size={12} aria-hidden="true" />
         {title}
       </p>
@@ -155,7 +155,7 @@ function PerPostBar({ platform, epp, maxEpp, index }: { platform: string; epp: n
 function CrossPlatformFans({ overlap }: { overlap: AnalyticsDashboardData["audienceOverlap"] }) {
   return (
     <div className="mt-4 rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-primary)]/40 p-4">
-      <p className="flex items-center gap-1.5 text-[10px] font-semibold mesh-eyebrow text-[var(--accent)]">
+      <p className="flex items-center gap-1.5 text-micro font-semibold mesh-eyebrow text-[var(--accent)]">
         <Fingerprint size={12} aria-hidden="true" />
         Your true fans
       </p>
@@ -220,7 +220,7 @@ function CrossPlatformFans({ overlap }: { overlap: AnalyticsDashboardData["audie
           )}
         </>
       )}
-      <p className="mt-3 text-[10px] leading-snug text-[var(--text-muted)]">
+      <p className="mt-3 text-micro leading-snug text-[var(--text-muted)]">
         Matched by username across your synced followers (exact matches only) — a lower bound, not your full audience.
       </p>
     </div>
@@ -282,7 +282,7 @@ export function CrossPlatformCommand({ data }: { data: AnalyticsDashboardData })
     <section className="rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-secondary)] p-4 md:p-5">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <p className="flex items-center gap-1.5 text-[10px] font-semibold mesh-eyebrow text-[var(--accent)]">
+          <p className="flex items-center gap-1.5 text-micro font-semibold mesh-eyebrow text-[var(--accent)]">
             <Layers size={12} aria-hidden="true" />
             Only on mesh.me
           </p>
@@ -331,7 +331,7 @@ export function CrossPlatformCommand({ data }: { data: AnalyticsDashboardData })
               <PerPostBar key={p.id} platform={p.platform} epp={p.epp} maxEpp={maxEpp} index={i} />
             ))}
           </div>
-          <p className="mt-3 flex items-center gap-1.5 text-[11px] text-[var(--text-muted)]">
+          <p className="mt-3 flex items-center gap-1.5 text-micro text-[var(--text-muted)]">
             <Gauge size={12} aria-hidden="true" />
             {hardestWorking
               ? `A post on ${label(hardestWorking.platform)} earns ${fmt(hardestWorking.epp)} engagements on average — ${

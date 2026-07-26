@@ -152,7 +152,7 @@ export default function FeaturesPage() {
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <h3 className="text-sm font-semibold text-[var(--text-primary)]">{mode.title}</h3>
-                    <p className="mt-1 text-[11px] font-semibold mesh-eyebrow text-[var(--text-muted)]">
+                    <p className="mt-1 text-micro font-semibold mesh-eyebrow text-[var(--text-muted)]">
                       {mode.audience}
                     </p>
                   </div>

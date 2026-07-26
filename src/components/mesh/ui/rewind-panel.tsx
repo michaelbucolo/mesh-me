@@ -36,7 +36,7 @@ export function MeshRewindPanel({
         onPointerDown={(e) => e.stopPropagation()}
       >
         <div className="mb-1.5 flex items-center justify-between gap-2">
-          <p className="flex min-w-0 items-center gap-1.5 truncate text-[11px] font-semibold text-white/85">
+          <p className="flex min-w-0 items-center gap-1.5 truncate text-micro font-semibold text-white/85">
             <History size={12} className="shrink-0 text-amber-300/90" />
             {rewindAt
               ? `${headingSubject} on ${new Date(rewindAt).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}`
@@ -47,7 +47,7 @@ export function MeshRewindPanel({
               <button
                 type="button"
                 onClick={onBackToNow}
-                className="mesh-bubble-btn rounded-full bg-white/10 px-2.5 py-1 text-[10px] font-semibold text-white hover:bg-white/15"
+                className="mesh-bubble-btn rounded-full bg-white/10 px-2.5 py-1 text-micro font-semibold text-white hover:bg-white/15"
               >
                 Back to now
               </button>
@@ -71,7 +71,7 @@ export function MeshRewindPanel({
           onChange={(e) => onInput(Number(e.target.value))}
           className="w-full accent-amber-300"
         />
-        <div className="flex justify-between text-[9px] font-medium mesh-eyebrow text-white/35">
+        <div className="flex justify-between text-micro font-medium mesh-eyebrow text-white/35">
           <span>{new Date(oldestMoment).toLocaleDateString(undefined, { month: "short", year: "numeric" })}</span>
           <span>Now</span>
         </div>

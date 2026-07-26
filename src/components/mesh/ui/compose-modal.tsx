@@ -29,7 +29,7 @@ export function MeshComposeModal({
             <Sparkles size={15} className="text-[var(--accent)]" />
             <div>
               <p className="text-sm font-semibold text-white">Create on your mesh</p>
-              <p className="text-[11px] text-white/45">Watch it weave itself into your web.</p>
+              <p className="text-micro text-white/45">Watch it weave itself into your web.</p>
             </div>
           </div>
           <button
