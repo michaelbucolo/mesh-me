@@ -35,6 +35,48 @@ import type { PlatformSupplyStatus, PublicSupplyLane } from "./types";
  * When a platform changes its terms, this file is the one place to change —
  * and `reason` is user-facing, so it must stay plain, specific, and free of
  * blame. These companies are not villains for having an API policy.
+ *
+ * ── THE ANTI-SUBSTITUTE CLAUSE, AND WHY IT SHAPES THIS WHOLE MODULE ─────────
+ *
+ * An adversarial re-check of every verdict found the same clause in three
+ * different agreements, none of which the first pass had opened:
+ *
+ *   YouTube Developer Policies III.I — must not "recreate the browse
+ *   experience from any YouTube Application without adding significant
+ *   independent value to that flow".
+ *
+ *   X Developer Agreement III.A(c) — must not "create a substitute or similar
+ *   service or product to the X Applications".
+ *
+ *   Snap Public Content Display Terms §2 — "Don't use the Embed or Public
+ *   Content to replicate or compete with the Snapchat application."
+ *
+ * That is not three coincidences. Every large platform forbids being cloned,
+ * and a single-platform feed inside mesh.me is exactly a clone of that
+ * platform's browse experience. What makes this defensible is the ONE thing
+ * mesh.me does that no source can: putting several networks in one place
+ * alongside a person's own mesh. The independent value is the meshing.
+ *
+ * So this is a design constraint, not a footnote. A "YouTube tab" or a
+ * "Twitch tab" — one platform, its own surface, its own browse flow — would
+ * breach the clause the moment it shipped. Lanes feed the MERGED Flow, and
+ * that is why the store has no per-platform browse route and why
+ * getPublicSupplyFeedPosts returns into getCombinedFeedPosts rather than
+ * anywhere a single platform could be isolated.
+ *
+ * ── WHAT ELSE THE RE-CHECK CORRECTED ────────────────────────────────────────
+ *
+ * VIMEO was researched as permitted and is not: its Developer Addendum §3.5
+ * says "You may not charge End Users a fee for your Application", and MeshPro
+ * is a fee. It was never built, which was luck rather than judgement — it was
+ * on the shortlist as "the cheapest next platform to add".
+ *
+ * MASTODON needs a per-server answer, not a platform-wide one. Mastodon gGmbH
+ * publishes a default terms template that many servers adopt, and it prohibits
+ * automated systems accessing the service. Reading a documented public trends
+ * endpoint that a server has deliberately left open is a long way from the
+ * scraping that clause targets — but it is the server operator's call, not
+ * ours, and the lane currently makes it for them. Flagged, not resolved.
  */
 
 export const PUBLIC_SUPPLY_LANES: PublicSupplyLane[] = [
@@ -106,9 +148,16 @@ export const PLATFORM_SUPPLY_STATUS: PlatformSupplyStatus[] = [
     // So there is no lane, because a feed needs discovery and Instagram
     // publishes none. Connecting gets you YOUR OWN posts, and that is the whole
     // of what any third-party app can offer.
+    //
+    // CORRECTED after an adversarial re-check: the first version of this entry
+    // said a linked post "shows up fine". The transport does work tokenless,
+    // but Meta Developer Policies §6.2 says don't "use the Instagram Platform
+    // to simply display User Content" — which is what an unfurl in someone
+    // else's feed is. Working and permitted are different questions, and this
+    // entry originally answered only the first.
     anonymousRead: "requires_connection",
     reason:
-      "Instagram offers no way for another app to browse or search its content — there is no trending or public feed to read. A specific post shows up fine when someone links it. Connecting your account brings your own Instagram posts onto your mesh.",
+      "Instagram offers no way for another app to browse or search its content, and Meta's developer policies separately forbid an app from existing to display other people's Instagram posts. Connecting your account brings your own Instagram posts onto your mesh — that is the whole of what any third-party app can do here.",
     lanes: [],
     docsUrl: "https://developers.facebook.com/docs/instagram-platform",
   },

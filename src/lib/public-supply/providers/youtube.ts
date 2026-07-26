@@ -56,6 +56,7 @@ type YtItem = {
     thumbnails?: Record<string, YtThumb>;
   };
   contentDetails?: { duration?: string };
+  status?: { madeForKids?: boolean };
   statistics?: { viewCount?: string; likeCount?: string; commentCount?: string };
 };
 
@@ -92,7 +93,7 @@ async function fetchMostPopular(ctx: LaneContext): Promise<PublicItem[]> {
     if (items.length >= ctx.limit) break;
     const url =
       `https://www.googleapis.com/youtube/v3/videos` +
-      `?part=snippet,contentDetails,statistics&chart=mostPopular` +
+      `?part=snippet,contentDetails,statistics,status&chart=mostPopular` +
       `&regionCode=${region}&maxResults=${perRegion}&key=${encodeURIComponent(key)}`;
 
     // One region failing (an unsupported regionCode, a transient 5xx) must not
@@ -111,6 +112,32 @@ async function fetchMostPopular(ctx: LaneContext): Promise<PublicItem[]> {
     for (const raw of list) {
       const id = raw?.id;
       if (!id || seen.has(id)) continue;
+
+      // MADE FOR KIDS IS SKIPPED ENTIRELY, NOT MERELY UNTRACKED.
+      //
+      // YouTube's Developer Policies require an API Client to look up the Made
+      // For Kids status of every video it embeds, and to disable tracking for
+      // those that are. mesh.me records watch time and completion on every Flow
+      // item (FlowImpression) to feed ranking, so honouring that would mean a
+      // per-item carve-out threaded through the beacon, the ranker and the
+      // taste profile — a lot of surface, all of it easy to break silently, all
+      // of it about children's data.
+      //
+      // Not ingesting them removes the obligation instead of managing it. The
+      // cost is a handful of nursery-rhyme videos absent from a trending chart,
+      // which is not a loss. This lane shipped without the `status` part at all,
+      // so the check did not exist until now.
+      //
+      // IT FAILS CLOSED. The obvious spelling — `=== true` — admits anything
+      // whose status is missing, so if YouTube ever drops the field or the
+      // `status` part is edited out of the request above, children's content
+      // starts flowing in and being tracked, silently and indefinitely. The
+      // same reasoning as the refresh endpoint's secret two files away: absent
+      // information must mean no, never yes. An unreadable status empties the
+      // lane, which is loud, recoverable, and shows up as 0 items in the run
+      // record — the failure you find in a day rather than in a subpoena.
+      if (raw.status?.madeForKids !== false) continue;
+
       seen.add(id);
 
       const snippet = raw.snippet ?? {};
