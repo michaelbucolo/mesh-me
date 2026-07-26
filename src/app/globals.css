@@ -101,6 +101,53 @@
   --radius-xl: 1.75rem;   /* 28px — was 24 */
   --radius-2xl: 1.75rem;  /* 28px — was 32, capped */
   --radius-3xl: 1.75rem;  /* 28px — collapses rounded-3xl into the cap */
+
+  /* Type scale — the same lever as the radii above, for the same reason.
+     Tailwind v4 compiles `text-sm` to `font-size: var(--text-sm)`, so these ten
+     lines move every one of the 1,131 `text-*` utilities in the product onto the
+     scale with no codemod.
+
+     THEY WERE NOT ON IT. Measured in a browser across seven signed-in surfaces:
+     367 of 653 text nodes (56%) rendered at a size this design system does not
+     contain — 184 at 14px and 183 at 12px, which are Tailwind's stock `text-sm`
+     and `text-xs`, against 45 nodes at the scale's own body size of 15px. The
+     product's voice was two framework defaults; the scale was the minority.
+
+     scripts/type-check.ts already banned `text-[13px]` and had for a while. It
+     never looked at the named steps, so the one-off nobody writes was gated and
+     the default everybody writes was not — 513 `text-sm` and 417 `text-xs`
+     straight past a rule called THE SCALE IS THE SCALE. Same shape as always:
+     the rule was written down once and taught to one of the two places.
+
+     Every value below is an existing `--t-*` step from tokens.css, not a new
+     decision. `6xl` collapses into `display` exactly as `rounded-3xl` collapses
+     into the radius cap: the top of a scale is the top. */
+  --text-xs:   0.78125rem;  /* 12.5px — --t-caption   (was 12) */
+  --text-sm:   0.84375rem;  /* 13.5px — --t-small     (was 14) */
+  --text-base: 0.9375rem;   /* 15px   — --t-body      (was 16) */
+  --text-lg:   1.0625rem;   /* 17px   — --t-title     (was 18) */
+  --text-xl:   1.25rem;     /* 20px   — --t-h4        (unchanged) */
+  --text-2xl:  1.5rem;      /* 24px   — --t-h3        (unchanged) */
+  --text-3xl:  1.9375rem;   /* 31px   — --t-h2        (was 30) */
+  --text-4xl:  2.5rem;      /* 40px   — --t-h1        (was 36) */
+  --text-5xl:  3.25rem;     /* 52px   — --t-display   (was 48) */
+  --text-6xl:  3.25rem;     /* 52px   — --t-display, collapsed (was 60) */
+
+  /* Each step's paired leading, from the same `--t-*` entry. Tailwind's stock
+     pairings are computed against ITS sizes, so leaving them would put the right
+     size on the wrong rhythm. `lg` takes the title value rather than the lead
+     value — both are 17px in the scale, and 41 of the 55 `text-lg` sites in the
+     product are on an <h2>. */
+  --text-xs--line-height:   1.4;
+  --text-sm--line-height:   1.45;
+  --text-base--line-height: 1.55;
+  --text-lg--line-height:   1.4;
+  --text-xl--line-height:   1.34;
+  --text-2xl--line-height:  1.24;
+  --text-3xl--line-height:  1.14;
+  --text-4xl--line-height:  1.08;
+  --text-5xl--line-height:  1.02;
+  --text-6xl--line-height:  1.02;
 }
 
 /* ─── Light Theme ─── */
@@ -728,7 +775,7 @@ select:focus-visible {
   border-radius: 0.625rem;
   border: 1px solid var(--mesh-border);
   background: transparent;
-  font-size: 0.875rem;
+  font-size: var(--text-sm);
   font-weight: 500;
   color: var(--mesh-text-secondary);
   transition: background-color 150ms ease, color 150ms ease, border-color 150ms ease;
@@ -746,7 +793,7 @@ select:focus-visible {
   gap: 0.5rem;
   padding: 0.5rem 0.75rem;
   border-radius: 0.5rem;
-  font-size: 0.875rem;
+  font-size: var(--text-sm);
   color: var(--mesh-text-secondary);
   transition: background-color 120ms ease, color 120ms ease;
 }
@@ -1716,7 +1763,7 @@ body[data-meshi-panel="open"] .bug-report-widget {
   background: var(--bg-primary);
   padding: 0.65rem 0.75rem;
   color: var(--text-secondary);
-  font-size: 0.875rem;
+  font-size: var(--text-sm);
   font-weight: 600;
   text-align: left;
   transition:
@@ -2590,7 +2637,7 @@ html {
   border: 1px solid var(--glass-card-border);
   background: var(--glass-card-bg);
   color: var(--text-secondary);
-  font-size: 0.875rem;
+  font-size: var(--text-sm);
   font-weight: 600;
   transform: translateZ(0);
   transition:
@@ -3465,7 +3512,7 @@ body {
 
 .feed-creator-stat strong {
   color: var(--text-primary);
-  font-size: 1rem;
+  font-size: var(--text-base);
   font-weight: 600;
 }
 
@@ -5628,7 +5675,7 @@ body {
   .settings-action-row,
   .settings-toggle {
     padding: 0.7rem !important;
-    font-size: 0.875rem;
+    font-size: var(--text-sm);
   }
 
   .settings-section-stack {
@@ -6701,7 +6748,7 @@ body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
   background: var(--brand-gradient);
   color: #fff;
   font-weight: 600;
-  font-size: 1rem;
+  font-size: var(--text-base);
   display: inline-flex;
   align-items: center;
   justify-content: center;
