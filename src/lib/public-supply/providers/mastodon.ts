@@ -57,7 +57,13 @@ type MastoAccount = {
   avatar_static?: string;
   url?: string;
 };
-type MastoAttachment = { type?: string; url?: string; preview_url?: string };
+type MastoAttachment = {
+  type?: string;
+  url?: string;
+  preview_url?: string;
+  /** Videos carry real measurements. `original.duration` is seconds. */
+  meta?: { original?: { duration?: number; width?: number; height?: number } };
+};
 type MastoStatus = {
   id?: string;
   uri?: string;
@@ -110,7 +116,16 @@ async function trendsAvailable(ctx: LaneContext, host: string): Promise<boolean>
   }
 }
 
-async function fetchTrending(ctx: LaneContext): Promise<PublicItem[]> {
+/**
+ * Both lanes read statuses and turn them into items; only the endpoint differs.
+ * `videoOnly` additionally discards anything without a playable duration, which
+ * is what makes the shorts lane a shorts lane rather than a hopeful one.
+ */
+async function collect(
+  ctx: LaneContext,
+  endpoints: (host: string, per: number) => string[],
+  videoOnly: boolean,
+): Promise<PublicItem[]> {
   const hosts = instancesFrom(ctx);
   const perHost = Math.max(4, Math.ceil(ctx.limit / hosts.length));
   const items: PublicItem[] = [];
@@ -120,9 +135,11 @@ async function fetchTrending(ctx: LaneContext): Promise<PublicItem[]> {
     if (items.length >= ctx.limit) break;
     if (!(await trendsAvailable(ctx, host))) continue;
 
+    for (const endpoint of endpoints(host, perHost)) {
+    if (items.length >= ctx.limit) break;
     let payload: unknown;
     try {
-      payload = await ctx.get(`https://${host}/api/v1/trends/statuses?limit=${perHost}`);
+      payload = await ctx.get(endpoint);
     } catch {
       // Rate-limited, disabled, or simply down. Not our business to complain.
       continue;
@@ -137,19 +154,47 @@ async function fetchTrending(ctx: LaneContext): Promise<PublicItem[]> {
       seen.add(identity);
 
       const account = status.account ?? {};
-      const image = (status.media_attachments ?? []).find((m) => m?.type === "image" && m.url);
+      const attachments = status.media_attachments ?? [];
       const text = htmlToText(status.content);
-      if (!text && !image) continue;
+
+      // VIDEO IS WHY THIS LANE CAN REACH THE FLOW AT ALL.
+      //
+      // The Flow is shorts-only and EXCLUDES anything it cannot positively
+      // classify as short — an item with no duration is "unknown" and is
+      // dropped. This lane originally read only `type === "image"`, so every
+      // item it produced was text or a still, every one had a null duration,
+      // and every one was filtered out. The supply layer shipped filling /feed
+      // and /explore while the flagship surface still said "No shorts to play".
+      //
+      // Mastodon reports `meta.original.duration` in seconds on video and gifv
+      // attachments — a measurement, not a guess about a URL — which is exactly
+      // the signal flowFormClass wants. Measured live across four servers: 20 of
+      // 20 video attachments carried a duration, and all of them were under two
+      // minutes.
+      //
+      // Unlike YouTube and Twitch, Mastodon mandates no player, so `mediaUrl` is
+      // the file itself and the Flow plays it natively.
+      const video = attachments.find(
+        (m) => (m?.type === "video" || m?.type === "gifv") && m.url && typeof m.meta?.original?.duration === "number",
+      );
+      const image = attachments.find((m) => m?.type === "image" && m.url);
+      if (videoOnly && !video) continue;
+      if (!text && !video && !image) continue;
 
       items.push({
         platformPostId: identity,
         title: null,
         content: [status.spoiler_text?.trim(), text].filter(Boolean).join("\n\n").slice(0, 600) || null,
         url: link,
-        postType: image ? "image" : "text",
-        thumbnailUrl: image?.preview_url ?? image?.url ?? null,
-        mediaUrl: image?.url ?? null,
-        durationSeconds: null,
+        postType: video ? "video" : image ? "image" : "text",
+        thumbnailUrl: video?.preview_url ?? image?.preview_url ?? image?.url ?? null,
+        mediaUrl: video?.url ?? image?.url ?? null,
+        // Rounded, and only when positive — flowFormClass treats <= 0 as
+        // unknown, so a zero-length attachment must not masquerade as a short.
+        durationSeconds:
+          video && typeof video.meta?.original?.duration === "number" && video.meta.original.duration > 0
+            ? Math.round(video.meta.original.duration)
+            : null,
         lang: status.language ?? null,
         authorName: account.display_name?.trim() || account.username || account.acct || null,
         authorUsername: account.acct ?? account.username ?? null,
@@ -165,10 +210,14 @@ async function fetchTrending(ctx: LaneContext): Promise<PublicItem[]> {
       });
       if (items.length >= ctx.limit) break;
     }
+    }
   }
 
   return items;
 }
+
+/** Tags that reliably carry short video, and are general-interest rather than niche. */
+const VIDEO_TAGS = ["video", "animation", "nature", "wildlife", "music"];
 
 export const mastodonTrending: PublicSupplyLane = {
   id: "mastodon:trending",
@@ -185,5 +234,43 @@ export const mastodonTrending: PublicSupplyLane = {
   retentionHours: 48,
   minIntervalSeconds: 45 * 60,
   attribution: "Mastodon",
-  fetch: fetchTrending,
+  fetch: (ctx) => collect(ctx, (host, per) => [`https://${host}/api/v1/trends/statuses?limit=${per}`], false),
+};
+
+/**
+ * SHORT VIDEO, WHICH IS THE ONLY THING THE FLOW WILL PLAY.
+ *
+ * The trends lane above is the right feed for /feed and /explore and a poor one
+ * for /flow: measured live, exactly 1 of 52 trending statuses carried a video
+ * duration, so the flagship surface stayed empty while the supply layer looked
+ * healthy everywhere else.
+ *
+ * Hashtag timelines are where the video is. `/api/v1/timelines/tag/{tag}` is
+ * anonymously readable on servers that leave `hashtag_feeds` public — including
+ * mastodon.social, which has switched its firehose off but not this — and the
+ * same 20-of-20 probe that found durations found them here.
+ *
+ * Kept separate from trends rather than merged into it so that one lane going
+ * quiet does not look like the other failing, and so the run record says which
+ * of the two is thin.
+ */
+export const mastodonShortVideo: PublicSupplyLane = {
+  id: "mastodon:shortVideo",
+  platform: "mastodon",
+  label: "Mastodon — short video",
+  endpoint: "GET https://{instance}/api/v1/timelines/tag/{tag} (video attachments only)",
+  authModel: "none",
+  envKeys: [],
+  retentionHours: 48,
+  // More endpoints per run than the trends lane, so it runs less often. The
+  // unauthenticated budget is 300 requests per 5 minutes PER IP, shared with
+  // every other lane and every other instance of this app.
+  minIntervalSeconds: 60 * 60,
+  attribution: "Mastodon",
+  fetch: (ctx) =>
+    collect(
+      ctx,
+      (host, per) => VIDEO_TAGS.map((tag) => `https://${host}/api/v1/timelines/tag/${tag}?limit=${per}&only_media=true`),
+      true,
+    ),
 };

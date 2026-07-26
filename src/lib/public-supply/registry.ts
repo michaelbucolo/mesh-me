@@ -1,5 +1,5 @@
 import { blueskyWhatsHot } from "./providers/bluesky";
-import { mastodonTrending } from "./providers/mastodon";
+import { mastodonShortVideo, mastodonTrending } from "./providers/mastodon";
 import { twitchTopClips } from "./providers/twitch";
 import { youtubeMostPopular } from "./providers/youtube";
 import type { PlatformSupplyStatus, PublicSupplyLane } from "./types";
@@ -84,6 +84,7 @@ export const PUBLIC_SUPPLY_LANES: PublicSupplyLane[] = [
   twitchTopClips,
   blueskyWhatsHot,
   mastodonTrending,
+  mastodonShortVideo,
 ];
 
 export const PLATFORM_SUPPLY_STATUS: PlatformSupplyStatus[] = [
@@ -119,8 +120,8 @@ export const PLATFORM_SUPPLY_STATUS: PlatformSupplyStatus[] = [
     name: "Mastodon",
     anonymousRead: "permitted_with_limits",
     reason:
-      "Trending posts from several servers appear without connecting. Each server decides what it shares, so some show more than others.",
-    lanes: [mastodonTrending],
+      "Trending posts and short video from several servers appear without connecting. Each server decides what it shares, so some show more than others.",
+    lanes: [mastodonTrending, mastodonShortVideo],
     docsUrl: "https://docs.joinmastodon.org/api/",
   },
   {
