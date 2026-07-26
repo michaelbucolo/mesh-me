@@ -2,6 +2,7 @@
 
 import { unstable_cache } from "next/cache";
 import { safeLinkHref } from "@/lib/profile-links";
+import { hasMeshPro } from "@/lib/mesh-pro";
 import { prisma } from "./prisma";
 import { getCurrentUser } from "./auth";
 import { parseMeChatMetadata } from "./mechat-metadata";
@@ -547,6 +548,10 @@ export async function getUserProfile(username: string) {
     // profile, so you always see your own last-seen.
     lastSeenAt: user.hideActivityStatus || !profileVisible ? null : user.lastSeenAt,
     hideActivityStatus: undefined,
+    // Founder accounts read as Mesh Pro to everyone, not just to themselves —
+    // getCurrentUser resolves this for the session user, and this is the same
+    // rule on the OTHER side of the request, for the profile being viewed.
+    isMeshPro: hasMeshPro(user),
     bio: profileVisible ? user.bio : null,
     location: profileVisible ? user.location : null,
     website: profileVisible ? user.website : null,
