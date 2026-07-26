@@ -61,7 +61,6 @@ function paintOrb(
   r: number,
   color: string,
   emph: number,
-  light: string,
   style?: string | null,
 ): void {
   const haloMul = style === "soft" ? 1.7 : style === "bold" ? 1.25 : 1;
@@ -85,9 +84,13 @@ function paintOrb(
   ctx.arc(x, y, r, 0, Math.PI * 2);
   ctx.fill();
 
+  // The boundary is --edge, not a tint of the fill. The body gradient above
+  // still lifts its top stop, which is where the "lit" reading comes from — but
+  // a rim whose only job is to separate the object from the mat cannot be made
+  // out of the object. See PaintTheme.edge for the measurements.
   ctx.beginPath();
   ctx.arc(x, y, r, 0, Math.PI * 2);
-  ctx.strokeStyle = withAlpha(light, Math.min(0.95, (0.55 * emph + 0.12) * rimMul));
+  ctx.strokeStyle = withAlpha(paintTheme().edge, Math.min(0.95, (0.62 * emph + 0.3) * rimMul));
   ctx.lineWidth = rimWidth;
   ctx.stroke();
 }
@@ -117,7 +120,6 @@ function paintAvatarNode(
   r: number,
   color: string,
   emph: number,
-  light: string,
   img: HTMLImageElement,
 ): void {
   const bloom = ctx.createRadialGradient(x, y, r * 0.4, x, y, r * 3);
@@ -132,7 +134,7 @@ function paintAvatarNode(
   ctx.globalAlpha = 1;
   ctx.beginPath();
   ctx.arc(x, y, r, 0, Math.PI * 2);
-  ctx.strokeStyle = withAlpha(light, 0.6 * emph + 0.18);
+  ctx.strokeStyle = withAlpha(paintTheme().edge, 0.6 * emph + 0.34);
   ctx.lineWidth = 1.5;
   ctx.stroke();
 }
@@ -145,7 +147,6 @@ function paintPlatformTile(
   r: number,
   color: string,
   emph: number,
-  light: string,
   brand: HTMLImageElement,
 ): void {
   const halo = ctx.createRadialGradient(x, y, r * 0.6, x, y, r * 2.2);
@@ -157,7 +158,7 @@ function paintPlatformTile(
   ctx.fill();
   drawLogoTile(ctx, brand, x, y, r * 1.9, 0.4 + 0.6 * emph);
   roundRectPath(ctx, x - r * 0.95, y - r * 0.95, r * 1.9, r * 1.9, r * 0.53);
-  ctx.strokeStyle = withAlpha(light, 0.5 * emph + 0.15);
+  ctx.strokeStyle = withAlpha(paintTheme().edge, 0.5 * emph + 0.32);
   ctx.lineWidth = 1;
   ctx.stroke();
 }
@@ -400,10 +401,14 @@ function paintSelfProfile(
     ctx.lineWidth = Math.max(1.8, 2.2 * zoomScale);
     ctx.stroke();
   } else {
+    // The one place the product's OWN colour belongs: the disc standing in for
+    // you when there is no avatar. Reads --accent live, so it is cobalt at 3pm
+    // and periwinkle at 3am — the node.color literal it replaced was a single
+    // pale periwinkle that measured 1.66:1 against the Daylight mat.
     const fallback = ctx.createRadialGradient(x - avatarR * 0.18, y - avatarR * 0.18, 0, x, y, avatarR);
-    fallback.addColorStop(0, withAlpha(node.color, 0.35));
-    fallback.addColorStop(0.45, node.color);
-    fallback.addColorStop(1, withAlpha(node.color, 0.4));
+    fallback.addColorStop(0, withAlpha(th.accent, 0.35));
+    fallback.addColorStop(0.45, th.accent);
+    fallback.addColorStop(1, withAlpha(th.accent, 0.4));
     ctx.fillStyle = fallback;
     ctx.beginPath();
     ctx.arc(x, y, avatarR, 0, Math.PI * 2);
@@ -719,12 +724,12 @@ export function drawNodesPass(o: ScenePaintOptions, rc: NodePassResources): void
           const key = spriteKey(rc, node, rQ, emph, 0, brand.naturalWidth, null);
           const half = 2.2 * rQ + 2;
           const sprite = rc.atlas.get(key, half * 2, half * 2, half, half, (sctx) => {
-            paintPlatformTile(sctx, 0, 0, rQ, node.color, emph, tint(node.color, 0.72), brand);
+            paintPlatformTile(sctx, 0, 0, rQ, node.color, emph, brand);
           });
           if (sprite) blitSprite(ctx, sprite, p.x, p.y, r / rQ);
-          else paintPlatformTile(ctx, p.x, p.y, r, node.color, emph, tint(node.color, 0.72), brand);
+          else paintPlatformTile(ctx, p.x, p.y, r, node.color, emph, brand);
         } else {
-          paintPlatformTile(ctx, p.x, p.y, r, node.color, emph, tint(node.color, 0.72), brand);
+          paintPlatformTile(ctx, p.x, p.y, r, node.color, emph, brand);
         }
         if (isSelected || isFocus || isHover) {
           ctx.beginPath();
@@ -749,12 +754,12 @@ export function drawNodesPass(o: ScenePaintOptions, rc: NodePassResources): void
         const key = spriteKey(rc, node, rQ, emph, 0, img.naturalWidth || img.width, null);
         const half = 3 * rQ + 2;
         const sprite = rc.atlas.get(key, half * 2, half * 2, half, half, (sctx) => {
-          paintAvatarNode(sctx, 0, 0, rQ, node.color, emph, tint(node.color, 0.72), img);
+          paintAvatarNode(sctx, 0, 0, rQ, node.color, emph, img);
         });
         if (sprite) blitSprite(ctx, sprite, p.x, p.y, r / rQ);
-        else paintAvatarNode(ctx, p.x, p.y, r, node.color, emph, tint(node.color, 0.72), img);
+        else paintAvatarNode(ctx, p.x, p.y, r, node.color, emph, img);
       } else {
-        paintAvatarNode(ctx, p.x, p.y, r, node.color, emph, tint(node.color, 0.72), img);
+        paintAvatarNode(ctx, p.x, p.y, r, node.color, emph, img);
       }
     } else {
       // Everything else is a clean luminous orb.
@@ -767,17 +772,17 @@ export function drawNodesPass(o: ScenePaintOptions, rc: NodePassResources): void
         const key = spriteKey(rc, node, rQ, emph, flags, 0, style);
         const half = 2.4 * rQ + 2;
         const sprite = rc.atlas.get(key, half * 2, half * 2, half, half, (sctx) => {
-          paintOrb(sctx, 0, 0, rQ, node.color, emph, tint(node.color, 0.72), style);
+          paintOrb(sctx, 0, 0, rQ, node.color, emph, style);
           if (wantsLetter) paintOrbInitial(sctx, 0, 0, rQ, node.label, emph);
         });
         // The pulse breath rides the blit scale — the sprite stays cached.
         if (sprite) blitSprite(ctx, sprite, p.x, p.y, (r * (0.97 + 0.03 * pulse)) / rQ);
         else {
-          paintOrb(ctx, p.x, p.y, r * (0.97 + 0.03 * pulse), node.color, emph, tint(node.color, 0.72), style);
+          paintOrb(ctx, p.x, p.y, r * (0.97 + 0.03 * pulse), node.color, emph, style);
           if (wantsLetter) paintOrbInitial(ctx, p.x, p.y, r, node.label, emph);
         }
       } else {
-        paintOrb(ctx, p.x, p.y, r * (0.97 + 0.03 * pulse), node.color, emph, tint(node.color, 0.72), style);
+        paintOrb(ctx, p.x, p.y, r * (0.97 + 0.03 * pulse), node.color, emph, style);
         if (wantsLetter) paintOrbInitial(ctx, p.x, p.y, r, node.label, emph);
       }
     }

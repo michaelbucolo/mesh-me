@@ -56,7 +56,14 @@ export function drawEdges(ctx: CanvasRenderingContext2D, o: ScenePaintOptions, k
     // Mesh Pro: the owner can dye their relationship threads a signature color.
     const threadColor = isRelationship ? o.visuals?.connectionColor || null : null;
     const grad = ctx.createLinearGradient(a.x, a.y, b.x, b.y);
-    grad.addColorStop(0, withAlpha(threadColor ?? parent.color, alpha));
+    // Every strand starts at you. The self node used to carry a periwinkle of
+    // its own (#a5b4fc — 2.6deg from --accent and a shade lighter, so it read as
+    // the accent rendered wrong), which meant the centre of the mesh competed
+    // with the six branch colours instead of anchoring them. It is neutral now:
+    // a strand fades from the ink of the page out into whatever its branch is
+    // made of, and the only hues on the mesh are the six that mean something.
+    const originColor = parent.kind === "self" ? paintTheme().ink3 : parent.color;
+    grad.addColorStop(0, withAlpha(threadColor ?? originColor, alpha));
     grad.addColorStop(1, withAlpha(threadColor ?? node.color, alpha));
     ctx.strokeStyle = grad;
     ctx.lineWidth = (onHoverPath ? 2.4 : node.depth === 1 ? 1.6 : 1) * Math.max(0.7, o.camera.zoom);

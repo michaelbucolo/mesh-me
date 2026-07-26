@@ -38,13 +38,13 @@ function HoverPreviewCard({ node }: { node: SceneNode }) {
       style={{ boxShadow: `0 12px 40px rgba(0,0,0,0.55), inset 0 2px 0 ${node.color || "var(--accent)"}` }}
     >
       <div className="px-3 py-2">
-        <p className="truncate text-micro font-semibold text-white">{node.label}</p>
-        {node.sublabel && <p className="truncate text-micro text-white/55">{node.sublabel}</p>}
+        <p className="truncate text-micro font-semibold text-[var(--text-primary)]">{node.label}</p>
+        {node.sublabel && <p className="truncate text-micro text-[var(--text-tertiary)]">{node.sublabel}</p>}
         {node.kind === "person" && node.placeReason && (
-          <p className="mt-0.5 text-micro leading-snug text-white/45">{node.placeReason}</p>
+          <p className="mt-0.5 text-micro leading-snug text-[var(--text-tertiary)]">{node.placeReason}</p>
         )}
         {node.content && node.content !== node.label && (
-          <p className="mt-1 line-clamp-2 text-left text-micro leading-snug text-white/75">{node.content}</p>
+          <p className="mt-1 line-clamp-2 text-left text-micro leading-snug text-[var(--text-secondary)]">{node.content}</p>
         )}
         {node.imageUrl && (
           // eslint-disable-next-line @next/next/no-img-element
@@ -53,14 +53,14 @@ function HoverPreviewCard({ node }: { node: SceneNode }) {
         {node.meta && node.meta.length > 0 && (
           <div className="mt-1.5 flex flex-wrap justify-center gap-x-2.5 gap-y-0.5">
             {node.meta.map((m) => (
-              <span key={m.label} className="text-micro text-white/55">
-                <span className="font-semibold text-white/90">{m.value}</span> {m.label.toLowerCase()}
+              <span key={m.label} className="text-micro text-[var(--text-tertiary)]">
+                <span className="font-semibold text-[var(--text-secondary)]">{m.value}</span> {m.label.toLowerCase()}
               </span>
             ))}
           </div>
         )}
       </div>
-      <p className="border-t border-white/8 bg-white/[0.04] px-3 py-1.5 text-micro font-semibold mesh-eyebrow text-white/45">
+      <p className="border-t border-[var(--rule)] bg-[var(--paper-2)] px-3 py-1.5 text-micro font-semibold mesh-eyebrow text-[var(--text-tertiary)]">
         {node.kind === "person"
           ? "Click to visit their mesh"
           : node.kind === "post" && node.href?.startsWith("/feed/")
@@ -105,7 +105,7 @@ const RemoteMeshi = memo(function RemoteMeshi({
           showGlow={false}
         />
       </div>
-      <p className="mt-0.5 max-w-[5rem] truncate text-center text-micro font-medium text-white/70">
+      <p className="mt-0.5 max-w-[5rem] truncate text-center text-micro font-medium text-[var(--text-secondary)]">
         @{p.username}
       </p>
       {arriving && <span className="meshi-arrive-ring" aria-hidden />}

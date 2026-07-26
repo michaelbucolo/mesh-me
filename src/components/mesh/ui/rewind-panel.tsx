@@ -36,7 +36,7 @@ export function MeshRewindPanel({
         onPointerDown={(e) => e.stopPropagation()}
       >
         <div className="mb-1.5 flex items-center justify-between gap-2">
-          <p className="flex min-w-0 items-center gap-1.5 truncate text-micro font-semibold text-white/85">
+          <p className="flex min-w-0 items-center gap-1.5 truncate text-micro font-semibold text-[var(--text-secondary)]">
             <History size={12} className="shrink-0 text-amber-300/90" />
             {rewindAt
               ? `${headingSubject} on ${new Date(rewindAt).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}`
@@ -47,7 +47,7 @@ export function MeshRewindPanel({
               <button
                 type="button"
                 onClick={onBackToNow}
-                className="mesh-bubble-btn rounded-full bg-white/10 px-2.5 py-1 text-micro font-semibold text-white hover:bg-white/15"
+                className="mesh-bubble-btn rounded-full bg-[var(--paper-2)] px-2.5 py-1 text-micro font-semibold text-[var(--text-primary)] hover:bg-[var(--paper-hover)]"
               >
                 Back to now
               </button>
@@ -56,7 +56,7 @@ export function MeshRewindPanel({
               type="button"
               aria-label="Close rewind"
               onClick={onClose}
-              className="rounded-md p-1 text-white/50 transition-colors hover:bg-white/10 hover:text-white"
+              className="rounded-md p-1 text-[var(--text-tertiary)] transition-colors hover:bg-[var(--paper-hover)] hover:text-[var(--text-primary)]"
             >
               <X size={13} />
             </button>
@@ -71,7 +71,7 @@ export function MeshRewindPanel({
           onChange={(e) => onInput(Number(e.target.value))}
           className="w-full accent-amber-300"
         />
-        <div className="flex justify-between text-micro font-medium mesh-eyebrow text-white/35">
+        <div className="flex justify-between text-micro font-medium mesh-eyebrow text-[var(--text-tertiary)]">
           <span>{new Date(oldestMoment).toLocaleDateString(undefined, { month: "short", year: "numeric" })}</span>
           <span>Now</span>
         </div>

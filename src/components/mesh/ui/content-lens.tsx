@@ -269,7 +269,7 @@ export function ContentLens({
                 type="button"
                 aria-label={isLensFullscreen ? "Exit fullscreen" : "Fullscreen"}
                 onClick={toggleLensFullscreen}
-                className="mesh-glass mesh-ctl ds-focus-ring absolute right-3 top-3 z-10 rounded-full p-2 text-white/90 transition active:scale-90"
+                className="mesh-glass mesh-ctl ds-focus-ring absolute right-3 top-3 z-10 rounded-full p-2 text-[var(--text-secondary)] transition active:scale-90"
               >
                 {isLensFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
               </button>
@@ -292,10 +292,10 @@ export function ContentLens({
               />
             )}
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-semibold text-white">{node.label}</p>
-              {node.sublabel && <p className="truncate text-xs text-white/50">{node.sublabel}</p>}
+              <p className="truncate text-sm font-semibold text-[var(--text-primary)]">{node.label}</p>
+              {node.sublabel && <p className="truncate text-xs text-[var(--text-tertiary)]">{node.sublabel}</p>}
             </div>
-            <span className="inline-flex items-center gap-1 rounded-full bg-white/6 px-2.5 py-1 text-micro font-medium mesh-eyebrow text-white/45">
+            <span className="inline-flex items-center gap-1 rounded-full bg-[var(--paper-2)] px-2.5 py-1 text-micro font-medium mesh-eyebrow text-[var(--text-tertiary)]">
               <Sparkles size={11} />
               {node.kind === "activity" ? "Activity" : "Post"}
             </span>
@@ -303,7 +303,7 @@ export function ContentLens({
               type="button"
               aria-label="Close"
               onClick={onClose}
-              className="rounded-md p-1 text-white/50 transition-colors hover:bg-white/10 hover:text-white"
+              className="rounded-md p-1 text-[var(--text-tertiary)] transition-colors hover:bg-[var(--paper-hover)] hover:text-[var(--text-primary)]"
             >
               <X size={18} />
             </button>
@@ -311,19 +311,19 @@ export function ContentLens({
 
           {/* Body */}
           {node.content ? (
-            <p className="max-h-[28vh] overflow-y-auto whitespace-pre-wrap text-[0.9375rem] leading-relaxed text-white/85">
+            <p className="max-h-[28vh] overflow-y-auto whitespace-pre-wrap text-[0.9375rem] leading-relaxed text-[var(--text-secondary)]">
               {node.content}
             </p>
           ) : (
-            <p className="text-sm text-white/45">{node.label}</p>
+            <p className="text-sm text-[var(--text-tertiary)]">{node.label}</p>
           )}
 
           {/* Engagement */}
-          <div className="flex items-center gap-2 border-t border-white/8 pt-3">
+          <div className="flex items-center gap-2 border-t border-[var(--rule)] pt-3">
             {/* Read-only (Global): no interactive Like — it's a write that
                 notifies the author. Share/Comment/Ask-Meshi (reads) remain. */}
             {readOnly ? (
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/6 px-3 py-1.5 text-xs font-semibold text-white/55">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--paper-2)] px-3 py-1.5 text-xs font-semibold text-[var(--text-tertiary)]">
                 <Heart size={14} />
                 {likeCount}
               </span>
@@ -334,7 +334,7 @@ export function ContentLens({
                 onClick={handleLike}
                 disabled={!postId || likePending}
                 className={`mesh-bubble-btn inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
-                  liked ? "bg-rose-500/15 text-rose-300" : "bg-white/6 text-white/75 hover:bg-white/10"
+                  liked ? "bg-rose-500/15 text-rose-300" : "bg-[var(--paper-2)] text-[var(--text-secondary)] hover:bg-[var(--paper-hover)]"
                 } ${!postId ? "cursor-default opacity-70" : ""}`}
               >
                 <span
@@ -352,13 +352,13 @@ export function ContentLens({
               <Link
                 href={node.href}
                 onClick={onClose}
-                className="inline-flex items-center gap-1.5 rounded-full bg-white/6 px-3 py-1.5 text-xs font-semibold text-white/75 transition-colors hover:bg-white/10"
+                className="inline-flex items-center gap-1.5 rounded-full bg-[var(--paper-2)] px-3 py-1.5 text-xs font-semibold text-[var(--text-secondary)] transition-colors hover:bg-[var(--paper-hover)]"
               >
                 <MessageCircle size={14} />
                 {commentCount > 0 ? commentCount : "Comment"}
               </Link>
             ) : (
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/6 px-3 py-1.5 text-xs font-semibold text-white/55">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--paper-2)] px-3 py-1.5 text-xs font-semibold text-[var(--text-tertiary)]">
                 <MessageCircle size={14} />
                 {commentCount}
               </span>
@@ -367,7 +367,7 @@ export function ContentLens({
             <button
               type="button"
               onClick={() => openMeshi("chat")}
-              className="inline-flex items-center gap-1.5 rounded-full bg-white/6 px-3 py-1.5 text-xs font-semibold text-white/75 transition-colors hover:bg-white/10"
+              className="inline-flex items-center gap-1.5 rounded-full bg-[var(--paper-2)] px-3 py-1.5 text-xs font-semibold text-[var(--text-secondary)] transition-colors hover:bg-[var(--paper-hover)]"
             >
               <Sparkles size={14} />
               Ask Meshi
@@ -377,7 +377,7 @@ export function ContentLens({
               type="button"
               aria-label="Share post"
               onClick={handleShare}
-              className="inline-flex items-center gap-1.5 rounded-full bg-white/6 px-3 py-1.5 text-xs font-semibold text-white/75 transition-colors hover:bg-white/10"
+              className="inline-flex items-center gap-1.5 rounded-full bg-[var(--paper-2)] px-3 py-1.5 text-xs font-semibold text-[var(--text-secondary)] transition-colors hover:bg-[var(--paper-hover)]"
             >
               {shareCopied ? <Check size={14} /> : <Share2 size={14} />}
               {shareCopied ? "Copied" : "Share"}
@@ -389,7 +389,7 @@ export function ContentLens({
               <Link
                 href={node.href}
                 target="_blank"
-                className="ml-auto inline-flex items-center gap-1 text-micro font-medium text-white/40 transition-colors hover:text-white/70"
+                className="ml-auto inline-flex items-center gap-1 text-micro font-medium text-[var(--text-tertiary)] transition-colors hover:text-[var(--text-secondary)]"
               >
                 <ExternalLink size={11} />
                 {node.sublabel || "source"}
@@ -401,12 +401,12 @@ export function ContentLens({
         {/* Catch-up progress — dots for every unseen stop, pause/resume for
             the auto-advance. Reading (any touch in the panel) pauses too. */}
         {catchup && (
-          <div className="flex items-center justify-center gap-2.5 border-t border-white/8 bg-cyan-400/[0.06] px-4 py-2">
+          <div className="flex items-center justify-center gap-2.5 border-t border-[var(--rule)] bg-cyan-400/[0.06] px-4 py-2">
             <button
               type="button"
               aria-label={catchup.paused ? "Resume catch-up" : "Pause catch-up"}
               onClick={catchup.onTogglePause}
-              className="rounded-full bg-white/8 p-1.5 text-cyan-100 transition-colors hover:bg-white/15"
+              className="rounded-full bg-[var(--paper-2)] p-1.5 text-cyan-100 transition-colors hover:bg-[var(--paper-hover)]"
             >
               {catchup.paused ? <Play size={12} /> : <Pause size={12} />}
             </button>
@@ -420,7 +420,7 @@ export function ContentLens({
                         ? "h-2 w-2 bg-cyan-300"
                         : i < catchup.index
                           ? "h-1.5 w-1.5 bg-cyan-300/45"
-                          : "h-1.5 w-1.5 bg-white/20"
+                          : "h-1.5 w-1.5 bg-[var(--paper-2)]"
                     }`}
                   />
                 ))}
@@ -438,22 +438,22 @@ export function ContentLens({
 
         {/* Stream controls — browse content across the mesh */}
         {total > 1 && (
-          <div className="flex items-center justify-between border-t border-white/8 bg-black/30 px-4 py-2.5">
+          <div className="flex items-center justify-between border-t border-[var(--rule)] bg-black/30 px-4 py-2.5">
             <button
               type="button"
               onClick={() => onNavigate(-1)}
-              className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+              className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--paper-hover)] hover:text-[var(--text-primary)]"
             >
               <ChevronLeft size={15} />
               Prev
             </button>
-            <span className="text-micro font-medium text-white/40">
+            <span className="text-micro font-medium text-[var(--text-tertiary)]">
               {index >= 0 ? index + 1 : 1} / {total} {streamLabel}
             </span>
             <button
               type="button"
               onClick={() => onNavigate(1)}
-              className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+              className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--paper-hover)] hover:text-[var(--text-primary)]"
             >
               Next
               <ChevronRight size={15} />

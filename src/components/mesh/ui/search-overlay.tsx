@@ -93,7 +93,7 @@ export function MeshSearchOverlay({
     >
       <div className="w-full max-w-md animate-[bubbleIn_.36s_cubic-bezier(0.22,1,0.36,1)] rounded-2xl mesh-panel p-2 shadow-2xl">
         <div className="flex items-center gap-2 px-2">
-          <Search size={15} className="shrink-0 text-white/45" />
+          <Search size={15} className="shrink-0 text-[var(--text-tertiary)]" />
           <input
             autoFocus
             value={searchQuery}
@@ -102,61 +102,61 @@ export function MeshSearchOverlay({
               if (e.key === "Enter" && searchResults[0]) onJump(searchResults[0]);
             }}
             placeholder={placeholder}
-            className="w-full bg-transparent py-2.5 text-sm text-white placeholder:text-white/35 focus:outline-none"
+            className="w-full bg-transparent py-2.5 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:outline-none"
           />
           <button
             type="button"
             aria-label="Close search"
             onClick={onClose}
-            className="rounded-md p-1 text-white/50 transition-colors hover:bg-white/10 hover:text-white"
+            className="rounded-md p-1 text-[var(--text-tertiary)] transition-colors hover:bg-[var(--paper-hover)] hover:text-[var(--text-primary)]"
           >
             <X size={15} />
           </button>
         </div>
         {searchResults.length > 0 && (
-          <ul className="max-h-72 overflow-y-auto border-t border-white/8 pt-1">
+          <ul className="max-h-72 overflow-y-auto border-t border-[var(--rule)] pt-1">
             {searchResults.map((node) => (
               <li key={node.id}>
                 <button
                   type="button"
                   onClick={() => onJump(node)}
-                  className="flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left transition-colors hover:bg-white/6"
+                  className="flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left transition-colors hover:bg-[var(--paper-hover)]"
                 >
                   <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: node.color }} />
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm text-white">{node.label}</span>
-                    {node.sublabel && <span className="block truncate text-micro text-white/50">{node.sublabel}</span>}
+                    <span className="block truncate text-sm text-[var(--text-primary)]">{node.label}</span>
+                    {node.sublabel && <span className="block truncate text-micro text-[var(--text-tertiary)]">{node.sublabel}</span>}
                   </span>
-                  <span className="shrink-0 text-micro mesh-eyebrow text-white/35">{node.kind}</span>
+                  <span className="shrink-0 text-micro mesh-eyebrow text-[var(--text-tertiary)]">{node.kind}</span>
                 </button>
               </li>
             ))}
           </ul>
         )}
         {discoverUsers.length > 0 && (
-          <div className="border-t border-white/8 pt-1">
-            <p className="px-3 pt-1.5 pb-0.5 text-micro mesh-eyebrow text-white/35">Across mesh.me</p>
+          <div className="border-t border-[var(--rule)] pt-1">
+            <p className="px-3 pt-1.5 pb-0.5 text-micro mesh-eyebrow text-[var(--text-tertiary)]">Across mesh.me</p>
             <ul className="max-h-48 overflow-y-auto">
               {discoverUsers.map((u) => (
                 <li key={u.id}>
                   <button
                     type="button"
                     onClick={() => onVisitUser(u.id)}
-                    className="flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left transition-colors hover:bg-white/6"
+                    className="flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left transition-colors hover:bg-[var(--paper-hover)]"
                   >
                     {u.avatarUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={u.avatarUrl} alt="" className="h-6 w-6 shrink-0 rounded-full object-cover" />
                     ) : (
-                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white/10 text-micro font-semibold text-white/70">
+                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--paper-2)] text-micro font-semibold text-[var(--text-secondary)]">
                         {(u.displayName || u.username).slice(0, 1).toUpperCase()}
                       </span>
                     )}
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm text-white">{u.displayName || u.username}</span>
-                      <span className="block truncate text-micro text-white/50">@{u.username}</span>
+                      <span className="block truncate text-sm text-[var(--text-primary)]">{u.displayName || u.username}</span>
+                      <span className="block truncate text-micro text-[var(--text-tertiary)]">@{u.username}</span>
                     </span>
-                    <span className="shrink-0 text-micro mesh-eyebrow text-white/35">Visit mesh</span>
+                    <span className="shrink-0 text-micro mesh-eyebrow text-[var(--text-tertiary)]">Visit mesh</span>
                   </button>
                 </li>
               ))}
@@ -164,7 +164,7 @@ export function MeshSearchOverlay({
           </div>
         )}
         {searchQuery.trim() && searchResults.length === 0 && discoverUsers.length === 0 && (
-          <p className="border-t border-white/8 px-3 py-3 text-xs text-white/45">Nothing on the mesh matches that.</p>
+          <p className="border-t border-[var(--rule)] px-3 py-3 text-xs text-[var(--text-tertiary)]">Nothing on the mesh matches that.</p>
         )}
       </div>
     </div>

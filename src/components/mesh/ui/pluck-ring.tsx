@@ -185,7 +185,7 @@ export function MeshPluckRing({
       />
       {confirmation ? (
         <span
-          className="mesh-glass pointer-events-none absolute flex -translate-x-1/2 -translate-y-1/2 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold text-white"
+          className="mesh-glass pointer-events-none absolute flex -translate-x-1/2 -translate-y-1/2 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold text-[var(--text-primary)]"
           style={{ left: cx, top: cy, animation: reducedMotion ? undefined : "bubbleIn .18s ease" }}
         >
           <Check size={13} className="text-emerald-300" />
@@ -216,10 +216,10 @@ export function MeshPluckRing({
                 }
                 onPointerDown={(e) => e.stopPropagation()}
                 onClick={action.run}
-                className="mesh-glass mesh-ctl ds-focus-ring flex h-12 w-12 flex-col items-center justify-center gap-0.5 rounded-full text-white/90 transition-transform hover:scale-110"
+                className="mesh-glass mesh-ctl ds-focus-ring flex h-12 w-12 flex-col items-center justify-center gap-0.5 rounded-full text-[var(--text-secondary)] transition-transform hover:scale-110"
               >
                 {action.icon}
-                <span className="text-micro font-semibold mesh-eyebrow text-white/60">
+                <span className="text-micro font-semibold mesh-eyebrow text-[var(--text-tertiary)]">
                   {action.label}
                 </span>
               </button>

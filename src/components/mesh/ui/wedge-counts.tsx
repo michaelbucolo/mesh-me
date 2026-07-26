@@ -39,7 +39,7 @@ export function MeshWedgeCounts({
           <button
             type="button"
             onClick={() => onFocusBranch(branch)}
-            className="mesh-ctl ds-focus-ring rounded-full px-2.5 py-1 text-micro font-semibold text-white/85"
+            className="mesh-ctl ds-focus-ring rounded-full px-2.5 py-1 text-micro font-semibold text-[var(--text-secondary)]"
           >
             {BRANCH_LABELS[branch] ?? branch}
             <span className="ml-1.5 rounded-full bg-cyan-400/15 px-1.5 py-px text-micro font-semibold text-cyan-200">
@@ -51,7 +51,7 @@ export function MeshWedgeCounts({
             aria-label={`Mark ${BRANCH_LABELS[branch] ?? branch} seen`}
             title="Mark seen"
             onClick={() => onMarkSeen(branch)}
-            className="mesh-ctl ds-focus-ring rounded-full p-1.5 text-white/55 transition-colors hover:text-white"
+            className="mesh-ctl ds-focus-ring rounded-full p-1.5 text-[var(--text-tertiary)] transition-colors hover:text-[var(--text-primary)]"
           >
             <Check size={12} />
           </button>

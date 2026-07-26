@@ -22,6 +22,7 @@ import { ImageLru } from "./caches";
 import { drawEdges } from "./edges";
 import { drawReactionTrails } from "./fx";
 import { createNodePassResources, drawNodesPass, type NodePassResources } from "./nodes";
+import { paintTheme } from "./theme";
 import { domSurface, type CreateSurface, type ScenePaintOptions } from "./types";
 
 
@@ -77,6 +78,14 @@ export function createPaintEngine(options: PaintEngineOptions = {}): PaintEngine
         camera: o.camera,
         atmosphere: o.visuals?.atmosphere,
         stars: o.backgroundStars,
+        // WITHOUT THIS THE MESH IS DARK IN DAYLIGHT. `paintSky` reads
+        // `o.dark !== false`, and `dark` was never put on this object — so
+        // `undefined !== false` chose the lamplit paper on every frame, in
+        // every theme. Measured on the running build: 44% of the /mesh canvas
+        // was #1f1b17 with the DOM in `.light`, a brown tabletop inside a cream
+        // page. The gap between the canvas and the chrome around it is most of
+        // what "the colours don't complement each other" is describing.
+        dark: paintTheme().dark,
       };
       if (cached) background.draw(ctx, skyInputs, params.backgroundRefreshMs);
       else paintSky(ctx, skyInputs); // direct: the exact legacy op stream

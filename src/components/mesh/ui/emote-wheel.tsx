@@ -119,7 +119,7 @@ export function MeshEmoteWheel({
       />
       {confirmation ? (
         <span
-          className="mesh-glass pointer-events-none absolute flex -translate-x-1/2 -translate-y-1/2 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold text-white"
+          className="mesh-glass pointer-events-none absolute flex -translate-x-1/2 -translate-y-1/2 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold text-[var(--text-primary)]"
           style={{ left: cx, top: cy, animation: reducedMotion ? undefined : "bubbleIn .18s ease" }}
         >
           <Check size={13} className="text-emerald-300" />
@@ -155,7 +155,7 @@ export function MeshEmoteWheel({
                   const sent = onSend(emote.verb, emote.targeted ? target : null);
                   confirmAndClose(sent ? "Sent" : "One at a time…");
                 }}
-                className="mesh-glass mesh-ctl ds-focus-ring flex h-12 w-12 flex-col items-center justify-center gap-0.5 rounded-full text-white/90 transition-transform hover:scale-110"
+                className="mesh-glass mesh-ctl ds-focus-ring flex h-12 w-12 flex-col items-center justify-center gap-0.5 rounded-full text-[var(--text-secondary)] transition-transform hover:scale-110"
               >
                 {/* The same hand-drawn glyphs every reaction uses — never emoji. */}
                 <span
@@ -163,7 +163,7 @@ export function MeshEmoteWheel({
                   className="flex h-5 w-5 items-center justify-center [&_svg]:h-full [&_svg]:w-full"
                   dangerouslySetInnerHTML={{ __html: reactionGlyphSvg(emote.verb) }}
                 />
-                <span className="text-micro font-semibold mesh-eyebrow text-white/60">
+                <span className="text-micro font-semibold mesh-eyebrow text-[var(--text-tertiary)]">
                   {emote.label}
                 </span>
               </button>

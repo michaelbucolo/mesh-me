@@ -28,15 +28,15 @@ export function MeshComposeModal({
           <div className="flex items-center gap-2">
             <Sparkles size={15} className="text-[var(--accent)]" />
             <div>
-              <p className="text-sm font-semibold text-white">Create on your mesh</p>
-              <p className="text-micro text-white/45">Watch it weave itself into your web.</p>
+              <p className="text-sm font-semibold text-[var(--text-primary)]">Create on your mesh</p>
+              <p className="text-micro text-[var(--text-tertiary)]">Watch it weave itself into your web.</p>
             </div>
           </div>
           <button
             type="button"
             aria-label="Close"
             onClick={onClose}
-            className="rounded-md p-1 text-white/50 transition-colors hover:bg-white/10 hover:text-white"
+            className="rounded-md p-1 text-[var(--text-tertiary)] transition-colors hover:bg-[var(--paper-hover)] hover:text-[var(--text-primary)]"
           >
             <X size={16} />
           </button>

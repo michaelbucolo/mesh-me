@@ -57,17 +57,17 @@ export function MeshVisitingHeader({
       <button
         type="button"
         onClick={onBack}
-        className="mesh-glass mesh-ctl ds-focus-ring flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-medium text-white"
+        className="mesh-glass mesh-ctl ds-focus-ring flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-medium text-[var(--text-primary)]"
       >
         <ArrowLeft size={14} />
         Back to your mesh
       </button>
-      <span className="mesh-glass rounded-full px-3 py-2 text-xs text-white/80">
+      <span className="mesh-glass rounded-full px-3 py-2 text-xs text-[var(--text-secondary)]">
         {viewedUser.displayName || "@" + viewedUser.username}&apos;s mesh
       </span>
       <Link
         href={`/profile/${viewedUser.username}`}
-        className="mesh-glass mesh-ctl ds-focus-ring flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-medium text-white"
+        className="mesh-glass mesh-ctl ds-focus-ring flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-medium text-[var(--text-primary)]"
       >
         <UserRound size={14} aria-hidden="true" />
         View profile

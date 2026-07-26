@@ -11,6 +11,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { RouteWait } from "@/components/loading/route-wait";
+import { inkForFill } from "@/lib/palette";
 
 type TrailStep = {
   id: string;
@@ -464,10 +465,12 @@ function TrailLabel({ step, align }: { step: TrailStep; align: "left" | "right" 
       {/* Was the node colour as INK on a 12% wash of itself. On the dark canvas that
           wash is dark and the ink reads; in the light theme the same wash lands on
           light paper and the saturated ink fell to 1.37:1. The colour is the FILL
-          now, with --chip-ink on top — 5.24:1 at worst across all eight node
-          colours, and identical in both themes because neither the fill nor the ink
-          moves with one. */}
-      <span className="mb-0.5 inline-flex items-center gap-1 rounded-full px-1.5 py-px text-micro font-semibold mesh-eyebrow " style={{ color: "var(--chip-ink)", background: step.color }}>
+          now, and the ink is the one PINNED to that fill by tokens.css — --chip-ink
+          was tuned against the old pastel node colours and fails AA on four of the
+          seven plastics (cobalt 3.28, teal 3.47, grape 3.19, crimson 2.90). The
+          pinned inks clear 5.09-8.69 by construction, in both themes, because
+          neither the fill nor the ink moves with one. */}
+      <span className="mb-0.5 inline-flex items-center gap-1 rounded-full px-1.5 py-px text-micro font-semibold mesh-eyebrow " style={{ color: inkForFill(step.color), background: step.color }}>
         {TYPE_LABELS[step.type]}
       </span>
       <span className="block truncate text-micro font-medium leading-snug text-[var(--media-ink)] group-hover:text-[var(--media-ink)]">{step.title}</span>
