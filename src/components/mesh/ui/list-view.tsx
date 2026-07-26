@@ -115,7 +115,7 @@ export function MeshListView({
                         <img src={node.avatarUrl} alt="" className="mt-0.5 h-7 w-7 shrink-0 rounded-full object-cover" />
                       ) : (
                         <span
-                          className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-micro font-semibold text-white"
+                          className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-micro font-semibold text-[var(--chip-ink)]"
                           style={{ background: node.color }}
                         >
                           {node.label.slice(0, 1).toUpperCase()}

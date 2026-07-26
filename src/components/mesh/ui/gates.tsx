@@ -226,7 +226,7 @@ function MeshEmptyHint({
             <button
               type="button"
               onClick={onCompose}
-              className="mesh-bubble-btn rounded-full bg-[var(--accent)] px-4 py-1.5 text-xs font-medium text-white"
+              className="mesh-bubble-btn rounded-full bg-[var(--accent)] px-4 py-1.5 text-xs font-medium text-[var(--accent-contrast)]"
             >
               Create your first post
             </button>

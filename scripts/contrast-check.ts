@@ -27,7 +27,7 @@
  */
 
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 const ROOT = process.cwd();
@@ -329,6 +329,142 @@ for (const name of NEUTRAL_TOKENS) {
   checks += 1;
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// 11. THE INK THAT SHIPS, NOT THE INK THAT EXISTS.
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// Everything above measures the PALETTE, and the palette was fine. `--accent-ink`
+// on `--accent` is 8.24:1 and this gate has said so for a long time.
+//
+// The product shipped `color: #fff` on that same fill: 2.24:1, and 1.81:1 on
+// --accent-hover, where the label got LESS readable under the pointer. Every
+// filled button, the mesh CTA, the compose FAB, the first-run Meshi badge and
+// the sign-in gate's primary action. A browser sweep of seven signed-in surfaces
+// found 24 failing text nodes; the sign-in CTA failed in BOTH themes.
+//
+// Two of the components carried a comment saying `text-white` on the accent "was
+// a real contrast failure" — someone found it, fixed those two, and the other
+// nineteen kept shipping. That is the shape of every defect in this codebase:
+// the rule gets written down once and taught to one of the places that decide it.
+//
+// So this section checks what is DECLARED, not what is available.
+
+// 11a. The pinned ink must clear AA on the hover fill too, not just the rest
+// fill. --accent-hover is where white was worst, and nothing measured it.
+for (const [theme, tokens] of [["Daylight", DAYLIGHT], ["Lamplight", LAMPLIGHT]] as const) {
+  const at = (n: string) => tokens[n] ?? DAYLIGHT[n];
+  for (const fill of ["--accent", "--accent-hover"] as const) {
+    const r = ratio(at("--accent-ink"), at(fill));
+    assert.ok(
+      r >= AA,
+      `${theme}: --accent-ink on ${fill} is ${r.toFixed(2)}:1, below AA.\n` +
+        "  A button's label does not change when you point at it, so the ink has to clear AA on\n" +
+        "  the hover fill as well. Checking only the rest fill is how 1.81:1 went unnoticed.",
+    );
+    checks += 1;
+  }
+}
+
+// 11b. --chip-ink clears AA on every data-driven node fill, read from the source
+// of truth rather than copied here — so adding a node colour is gated by this.
+{
+  const sceneModel = readFileSync(join(ROOT, "src/components/mesh/scene/scene-model.ts"), "utf8");
+  const nodeFills = [...new Set([...sceneModel.matchAll(/color:\s*"(#[0-9a-fA-F]{6})"/g)].map((m) => m[1]))];
+  assert.ok(
+    nodeFills.length >= 6,
+    `parsed only ${nodeFills.length} node colours out of scene-model.ts; expected the branch palette.\n` +
+      "  An assertion that reads an empty palette passes everything, which is worse than none.",
+  );
+  const chipInk = (LAMPLIGHT["--chip-ink"] ?? DAYLIGHT["--chip-ink"]);
+  assert.ok(chipInk, "--chip-ink is not declared in tokens.css");
+  for (const fill of nodeFills) {
+    const r = ratio(chipInk, fill);
+    assert.ok(
+      r >= AA,
+      `--chip-ink on the node fill ${fill} is ${r.toFixed(2)}:1, below AA.\n` +
+        "  These fills are theme-invariant and saturated. White measured 1.92–3.53 on the eight\n" +
+        "  that shipped — it failed on every one. If a new node colour cannot carry --chip-ink,\n" +
+        "  the colour is the thing to change.",
+    );
+    checks += 1;
+  }
+}
+
+// 11c. NO RULE MAY PAINT A KNOWN FILL AND THEN SPELL ITS INK BY HAND.
+// The fill tokens below all have a pinned ink. A `color:` literal in the same
+// rule is the exact defect this section exists for.
+{
+  const globalsCss = readFileSync(join(ROOT, "src/app/globals.css"), "utf8")
+    .replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, " "));
+  const INKED_FILLS = /var\(--accent\)|var\(--accent-hover\)|var\(--brand-gradient\)|var\(--mould-[a-z]+\)/;
+  const LITERAL_INK = /(^|;)\s*color\s*:\s*(#fff\b|#ffffff\b|white\b|#000\b|#000000\b|black\b)/i;
+
+  /**
+   * A fill mixed most of the way to transparent is a WASH over whatever is
+   * beneath it, not the fill — `.mesh-ctl-active` tints dark glass with 34%
+   * accent and white reads ~10:1 there, which is correct and must not be
+   * reported. Strip those before testing. The 60% cut is deliberate: above it
+   * the mix is substantially the fill again and the pinned ink applies.
+   */
+  const stripWashes = (value: string) =>
+    value.replace(/color-mix\(\s*in\s+srgb\s*,\s*var\(--[a-z-]+\)\s*(\d+)%\s*,\s*transparent\s*\)/g,
+      (whole, pct: string) => (Number(pct) <= 60 ? "TRANSPARENT_WASH" : whole));
+
+  const offenders: string[] = [];
+  for (const m of globalsCss.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+    const body = m[2];
+    if (!LITERAL_INK.test(body)) continue;
+    const backgrounds = [...body.matchAll(/(?:^|;)\s*background(?:-color|-image)?\s*:([^;]*)/g)]
+      .map((b) => stripWashes(b[1]))
+      .join(" ");
+    if (!INKED_FILLS.test(backgrounds)) continue;
+    offenders.push(m[1].trim().replace(/\s+/g, " ").slice(0, 110));
+  }
+  assert.deepEqual(
+    offenders,
+    [],
+    "a rule paints a fill that has a pinned ink, then spells the ink by hand:\n" +
+      offenders.map((o) => `    ${o}`).join("\n") +
+      "\n  Use the fill's own ink — var(--accent-contrast) for the accent, var(--mould-*-ink) for a\n" +
+      "  plastic. A literal is correct in exactly one theme and this palette has two, plus five\n" +
+      "  user-selectable presets that redefine the accent underneath it.",
+  );
+  checks += 1;
+}
+
+// 11d. …and neither may the markup.
+{
+  const tsx: string[] = [];
+  const walk = (dir: string) => {
+    for (const entry of readdirSync(join(ROOT, dir), { withFileTypes: true })) {
+      const rel = `${dir}/${entry.name}`;
+      if (entry.isDirectory()) walk(rel);
+      else if (entry.name.endsWith(".tsx")) tsx.push(rel);
+    }
+  };
+  walk("src");
+  const offenders: string[] = [];
+  for (const file of tsx) {
+    const lines = readFileSync(join(ROOT, file), "utf8").split("\n");
+    lines.forEach((line, i) => {
+      if (/^\s*(\/\/|\/\*|\*)/.test(line)) return;            // its own commentary is not a violation
+      if (!/bg-\[var\(--accent\)\]|bg-\[var\(--accent-hover\)\]/.test(line)) return;
+      if (!/\btext-(white|black)\b(?!\/)/.test(line)) return;
+      offenders.push(`${file}:${i + 1}`);
+    });
+  }
+  assert.deepEqual(
+    offenders,
+    [],
+    "markup paints the accent and spells the ink `text-white`/`text-black`:\n" +
+      offenders.map((o) => `    ${o}`).join("\n") +
+      "\n  `text-[var(--accent-contrast)]`. White on the accent is 2.24:1 in the dark theme and\n" +
+      "  fails in all five presets as well — the token is the only spelling that is right in\n" +
+      "  every one of them.",
+  );
+  checks += 1;
+}
+
 console.log(
   `contrast OK — ${checks} ratios measured across both themes: every text ink clears AA on all four\n` +
     "  papers AND on every face/hover/press state, --ink-4 stays decorative, the accent works as\n" +
@@ -336,5 +472,10 @@ console.log(
     "  every surface it can ring, each moulded plastic carries a readable pinned ink, and each is\n" +
     "  visibly thicker than its own plinth. Every structural surface and ink in .dark is a true\n" +
     "  grey (r === g === b); only the accent and the five pigments carry a hue, by name.\n" +
-    "  Does NOT cover: colours hardcoded in components — only the palette itself.",
+    "  The pinned ink also clears AA on the HOVER fill, --chip-ink clears it on every node\n" +
+    "  colour in scene-model.ts, and no rule or className paints an inked fill and then spells\n" +
+    "  its ink `#fff`/`text-white` by hand.\n" +
+    "  Does NOT cover: an ink applied through a prop, a runtime-computed style, or a fill this\n" +
+    "  file does not know is a fill. The browser sweep in the PR is what confirms the rendered\n" +
+    "  result; this keeps the known failures from coming back.",
 );

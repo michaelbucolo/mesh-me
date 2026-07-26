@@ -132,7 +132,7 @@ export function ExternalPostDetail({ post }: { post: FeedCardPost }) {
           <div className="flex flex-wrap items-center gap-2">
             <Link
               href={shareHref}
-              className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white transition hover:brightness-110"
+              className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-[var(--accent-contrast)] transition hover:brightness-110"
             >
               <Send size={15} aria-hidden="true" />
               Share in MeChat
