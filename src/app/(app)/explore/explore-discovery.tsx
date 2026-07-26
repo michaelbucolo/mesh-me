@@ -12,7 +12,6 @@ import {
   BadgeCheck,
   Clock,
   Compass,
-  Flame,
   Hash,
   Heart,
   ImageIcon,
@@ -77,30 +76,57 @@ type SuggestedCommunity = {
 type TrendingTag = { tag: string; count: number };
 
 type ExploreTab = "feed" | "people" | "communities";
-type FeedMode = "foryou" | "trending" | "media";
-type MediaFilter = "all" | "photos" | "videos" | "text";
+type MediaFilter = "all" | "media" | "photos" | "videos" | "text";
 type SortMode = "top" | "latest";
 
-// The discovery feed is the primary Explore surface; For you / Trending / Media
-// are modes of that one feed rather than separate top-level destinations, so
-// People and Communities get their own tabs instead of being buried in it.
+// The discovery feed is the primary Explore surface; content type and order are
+// modes of that one feed rather than separate top-level destinations, so People
+// and Communities get their own tabs instead of being buried in it.
 const TABS: { id: ExploreTab; label: string; icon: typeof Compass }[] = [
   { id: "feed", label: "Feed", icon: Sparkles },
   { id: "people", label: "People", icon: UsersRound },
   { id: "communities", label: "Communities", icon: MessagesSquare },
 ];
 
-const FEED_MODES: { id: FeedMode; label: string; icon: typeof Compass }[] = [
-  { id: "foryou", label: "For you", icon: Sparkles },
-  { id: "trending", label: "Trending", icon: Flame },
+/**
+ * TWO FACTS, TWO ROWS — AND A THIRD ROW THAT WAS NEITHER.
+ *
+ * Explore narrowed its feed with a `FeedMode` row (For you / Trending / Media)
+ * sitting above a collapsed panel holding a `MediaFilter` row and a sort. That
+ * mode row was not a fact of its own; its three values were spread across the
+ * other two, and the seams showed:
+ *
+ *   - `sortMode` defaults to "top", and the sort read
+ *     `if (feedMode === "trending" || sortMode === "top")`. So on load, "For
+ *     you" and "Trending" produced BYTE-IDENTICAL output. Verified in a browser:
+ *     same four posts, same order. Pressing Trending lit the button and changed
+ *     nothing on screen.
+ *   - `feedMode === "media"` kept posts with media; `mediaFilter === "text"`
+ *     kept posts WITHOUT media. Together: the empty set, always. That was
+ *     handled by withdrawing the Text button whenever Media was chosen — a
+ *     control removing another control to avoid contradicting it.
+ *
+ * So the mode row is gone and its meanings went home. "Trending" is the sort
+ * being Top, which it already was. "Media" is a content type, so it is a value
+ * of the content row, where it is mutually exclusive with Text by construction
+ * rather than by withdrawal. "For you" is what you get with neither set.
+ *
+ * The two rows that remain are two genuinely different questions — WHAT kind of
+ * post, and in WHAT order — so both are always visible and every value on each
+ * is one click. Only the platform narrowing, which is a long list and secondary,
+ * still lives behind the Filters disclosure.
+ */
+const MEDIA_FILTERS: { id: MediaFilter; label: string; icon: typeof Compass }[] = [
+  { id: "all", label: "All", icon: Sparkles },
   { id: "media", label: "Media", icon: ImageIcon },
+  { id: "photos", label: "Photos", icon: ImageIcon },
+  { id: "videos", label: "Videos", icon: Play },
+  { id: "text", label: "Text", icon: MessageCircle },
 ];
 
-const MEDIA_FILTERS: { id: MediaFilter; label: string }[] = [
-  { id: "all", label: "All" },
-  { id: "photos", label: "Photos" },
-  { id: "videos", label: "Videos" },
-  { id: "text", label: "Text" },
+const SORT_MODES: { id: SortMode; label: string; icon: typeof Compass }[] = [
+  { id: "top", label: "Top", icon: TrendingUp },
+  { id: "latest", label: "Latest", icon: Clock },
 ];
 
 type ExploreDiscoveryProps = {
@@ -134,7 +160,6 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [tab, setTab] = useState<ExploreTab>("feed");
-  const [feedMode, setFeedMode] = useState<FeedMode>("foryou");
   const [activeTag, setActiveTag] = useState<string | null>(null);
   const [activePlatform, setActivePlatform] = useState<string | null>(null);
   const [mediaFilter, setMediaFilter] = useState<MediaFilter>("all");
@@ -158,10 +183,6 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
   const filteredPosts = useMemo(() => {
     let result = posts;
 
-    if (feedMode === "media") {
-      result = result.filter((post) => post.media.length > 0);
-    }
-
     if (activeTag) {
       const needle = activeTag.toLowerCase();
       result = result.filter(
@@ -175,7 +196,11 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
       result = result.filter((post) => (post.platform || "meshme").toLowerCase() === activePlatform);
     }
 
-    if (mediaFilter === "photos") result = result.filter(isPhotoPost);
+    // One control, so the values are mutually exclusive by construction. "media"
+    // is any attachment; "text" is the absence of one. They can no longer be
+    // asked for together, which is what made the old pair produce nothing.
+    if (mediaFilter === "media") result = result.filter((post) => post.media.length > 0);
+    else if (mediaFilter === "photos") result = result.filter(isPhotoPost);
     else if (mediaFilter === "videos") result = result.filter(isVideoPost);
     else if (mediaFilter === "text") result = result.filter((post) => post.media.length === 0 && post.content.trim().length > 0);
 
@@ -191,14 +216,14 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
       });
     }
 
-    if (feedMode === "trending" || sortMode === "top") {
+    if (sortMode === "top") {
       result = [...result].sort((a, b) => postScore(b) - postScore(a));
     } else {
       result = [...result].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     }
 
     return result;
-  }, [posts, feedMode, activeTag, activePlatform, mediaFilter, sortMode, trimmedQuery]);
+  }, [posts, activeTag, activePlatform, mediaFilter, sortMode, trimmedQuery]);
 
   const filteredUsers = useMemo(() => {
     if (!trimmedQuery) return suggestedUsers;
@@ -221,7 +246,10 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
 
   const hasActiveFilters = Boolean(activeTag || activePlatform || mediaFilter !== "all");
   const isPostTab = tab === "feed";
-  const contentFilters = MEDIA_FILTERS.filter((filter) => feedMode !== "media" || filter.id !== "text");
+  // Only the platform narrowing is behind the disclosure now, so the disclosure
+  // has no reason to exist when there is at most one platform to narrow to.
+  const canNarrowByPlatform = availablePlatforms.length > 1;
+  const activeContentFilter = MEDIA_FILTERS.find((filter) => filter.id === mediaFilter) ?? MEDIA_FILTERS[0];
 
   const clearFilters = () => {
     setActiveTag(null);
@@ -324,7 +352,7 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
               </button>
             );
           })}
-          {isPostTab && (
+          {isPostTab && canNarrowByPlatform && (
             /* Same treatment. The "on" state was --accent ink on nothing; it is
                the cobalt plastic now, and the active-filter dot rides that
                plastic's PINNED ink instead of --accent, which would have been
@@ -353,14 +381,35 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
             transition={{ ...spring, delay: 0.08 }}
             className="glass-card flex items-center gap-1 overflow-x-auto rounded-2xl p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
             role="tablist"
-            aria-label="Discover feed mode"
+            aria-label="Discover content and order"
           >
-            {/* Second strip, identical failure to the first: three faceless
-                buttons and an --accent/12 pill for state. Keys, chip wall — this
-                row is chrome about the chrome, so it stays a step quieter than
-                the section tabs above it (Law 3). */}
-            {FEED_MODES.map((mode) => {
-              const selected = feedMode === mode.id;
+            {/* Two questions, asked once each, both answerable in one click.
+                Keys, chip wall — this row is chrome about the chrome, so it
+                stays a step quieter than the section tabs above it (Law 3). */}
+            {MEDIA_FILTERS.map((filter) => {
+              const selected = mediaFilter === filter.id;
+              const Icon = filter.icon;
+              return (
+                <button
+                  key={filter.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={selected}
+                  onClick={() => setMediaFilter(filter.id)}
+                  className={`key explore-chip inline-flex shrink-0 items-center gap-1.5 px-3 py-1.5 text-xs font-semibold ${
+                    selected
+                      ? "key-lit [--mould:var(--mould-cobalt)] [--mould-ink:var(--mould-cobalt-ink)] [--mould-plinth:var(--mould-cobalt-plinth)]"
+                      : "text-[var(--text-secondary)]"
+                  }`}
+                >
+                  <Icon className="h-3.5 w-3.5" aria-hidden />
+                  <span>{filter.label}</span>
+                </button>
+              );
+            })}
+            <span className="mx-1 h-4 w-px shrink-0 bg-[var(--border-secondary)]" aria-hidden />
+            {SORT_MODES.map((mode) => {
+              const selected = sortMode === mode.id;
               const Icon = mode.icon;
               return (
                 <button
@@ -368,10 +417,7 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
                   type="button"
                   role="tab"
                   aria-selected={selected}
-                  onClick={() => {
-                    setFeedMode(mode.id);
-                    if (mode.id === "media" && mediaFilter === "text") setMediaFilter("all");
-                  }}
+                  onClick={() => setSortMode(mode.id)}
                   className={`key explore-chip inline-flex shrink-0 items-center gap-1.5 px-3 py-1.5 text-xs font-semibold ${
                     selected
                       ? "key-lit [--mould:var(--mould-cobalt)] [--mould-ink:var(--mould-cobalt-ink)] [--mould-plinth:var(--mould-cobalt-plinth)]"
@@ -388,7 +434,7 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
       </div>
 
       <AnimatePresence initial={false}>
-        {isPostTab && showFilters && (
+        {isPostTab && showFilters && canNarrowByPlatform && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
@@ -400,35 +446,7 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
             className="overflow-hidden"
           >
             <div className="glass-card mt-3 space-y-3 rounded-2xl p-4">
-              <div className="mesh-cascade-soft flex flex-wrap items-center gap-2">
-                <span className="text-micro font-semibold mesh-eyebrow text-[var(--text-muted)]" style={{ "--i": 0 } as React.CSSProperties}>Content</span>
-                {contentFilters.map((filter, filterIndex) => (
-                  <FilterChip
-                    key={filter.id}
-                    label={filter.label}
-                    selected={mediaFilter === filter.id}
-                    onClick={() => setMediaFilter(filter.id)}
-                    style={{ "--i": filterIndex + 1 } as React.CSSProperties}
-                  />
-                ))}
-                <span className="mx-1 h-4 w-px bg-[var(--border-secondary)]" aria-hidden style={{ "--i": contentFilters.length + 1 } as React.CSSProperties} />
-                <span className="text-micro font-semibold mesh-eyebrow text-[var(--text-muted)]" style={{ "--i": contentFilters.length + 2 } as React.CSSProperties}>Sort</span>
-                <FilterChip
-                  label="Top"
-                  icon={<TrendingUp className="h-3 w-3" aria-hidden />}
-                  selected={sortMode === "top"}
-                  onClick={() => setSortMode("top")}
-                  style={{ "--i": contentFilters.length + 3 } as React.CSSProperties}
-                />
-                <FilterChip
-                  label="Latest"
-                  icon={<Clock className="h-3 w-3" aria-hidden />}
-                  selected={sortMode === "latest"}
-                  onClick={() => setSortMode("latest")}
-                  style={{ "--i": contentFilters.length + 4 } as React.CSSProperties}
-                />
-              </div>
-              {availablePlatforms.length > 1 && (
+              {canNarrowByPlatform && (
                 <div className="mesh-cascade-soft flex flex-wrap items-center gap-2">
                   <span className="text-micro font-semibold mesh-eyebrow text-[var(--text-muted)]" style={{ "--i": 0 } as React.CSSProperties}>Platform</span>
                   {/* The brand hex stays — it identifies a third party, so it is
@@ -522,11 +540,9 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
         </div>
       )}
 
-      {tab === "feed" && feedMode === "foryou" && (
+      {tab === "feed" && !hasActiveFilters && (
         <>
-          {!trimmedQuery && !hasActiveFilters && (
-            <TrendingHero posts={posts} onSeeAll={() => setFeedMode("trending")} />
-          )}
+          {!trimmedQuery && <TrendingHero posts={posts} />}
           {!trimmedQuery && suggestedUsers.length > 0 && (
             <section className="mt-6" aria-label="People to follow">
               <SectionHeader title="Meshes to explore" action={{ label: "See all", onClick: () => setTab("people") }} />
@@ -554,19 +570,9 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
         <section className="mt-6" aria-label="Discover content">
           <div className="mb-3 flex items-baseline justify-between">
             <h2 className="flex items-center gap-1.5 text-sm font-semibold text-[var(--text-primary)]">
-              {feedMode === "trending" ? (
-                <>
-                  <Flame className="h-3.5 w-3.5 text-[var(--accent)]" aria-hidden /> Trending now
-                </>
-              ) : feedMode === "media" ? (
-                <>
-                  <ImageIcon className="h-3.5 w-3.5 text-[var(--accent)]" aria-hidden /> Media
-                </>
-              ) : activeTag ? (
-                `#${activeTag}`
-              ) : (
-                "For you"
-              )}
+              {/* The heading now says what the one control says, because there
+                  is only one thing left for it to disagree with. */}
+              {activeTag ? `#${activeTag}` : mediaFilter !== "all" ? activeContentFilter.label : sortMode === "top" ? "For you" : "Latest"}
             </h2>
             <span className="text-xs text-[var(--text-muted)]">
               {filteredPosts.length} {filteredPosts.length === 1 ? "post" : "posts"}
@@ -648,29 +654,6 @@ function SectionHeader({ title, action }: { title: string; action?: { label: str
         </button>
       )}
     </div>
-  );
-}
-
-// Six of these render at once (four content filters, two sort modes) and not one
-// of them had a face, an --edge ring or a wall — a 1px --border-secondary hairline
-// is a rule, not a legal boundary. They are keys now, chip wall, and the selected
-// one is moulded from cobalt rather than washed in 15% accent.
-function FilterChip({ label, selected, onClick, icon, style }: { label: string; selected: boolean; onClick: () => void; icon?: React.ReactNode; style?: React.CSSProperties }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      style={style}
-      aria-pressed={selected}
-      className={`key explore-chip inline-flex items-center gap-1 px-3 py-1 text-micro font-semibold ${
-        selected
-          ? "key-lit [--mould:var(--mould-cobalt)] [--mould-ink:var(--mould-cobalt-ink)] [--mould-plinth:var(--mould-cobalt-plinth)]"
-          : "text-[var(--text-secondary)]"
-      }`}
-    >
-      {icon}
-      {label}
-    </button>
   );
 }
 
@@ -915,7 +898,10 @@ function TileMeta({ post, authorName, chip, overlay }: { post: FeedCardPost; aut
 
 // The front door of discovery: the hottest posts right now as big swipeable
 // cards with rank badges — a reason to open Explore every day.
-function TrendingHero({ posts, onSeeAll }: { posts: FeedCardPost[]; onSeeAll: () => void }) {
+// No "See all" here any more: it switched the feed to Trending mode, which
+// sorted by the same score this rail already sorts by, on the grid directly
+// below. The action was a scroll wearing a button.
+function TrendingHero({ posts }: { posts: FeedCardPost[] }) {
   const top = [...posts]
     .filter((post) => post.media.length > 0 || post.content.trim().length > 0)
     .sort((a, b) => postScore(b) - postScore(a))
@@ -924,7 +910,7 @@ function TrendingHero({ posts, onSeeAll }: { posts: FeedCardPost[]; onSeeAll: ()
 
   return (
     <section className="mt-5" aria-label="Trending now">
-      <SectionHeader title="Trending now" action={{ label: "See all", onClick: onSeeAll }} />
+      <SectionHeader title="Trending now" />
       <div className="[scrollbar-width:none] [&::-webkit-scrollbar]:hidden -mx-1 flex snap-x snap-mandatory gap-3 overflow-x-auto px-1 pb-1">
         {top.map((post, index) => {
           const media = post.media.find((item) => item.type.toLowerCase() !== "video") || post.media[0];
