@@ -159,7 +159,7 @@ function ShortcutGroupCard({ group, onAction, index }: { group: ShortcutGroup; o
       initial={{ opacity: 0, y: 14 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ ...OVERLAY_SPRING, delay: 0.05 * index }}
-      className="rounded-xl border border-[var(--border-primary)] bg-[var(--bg-secondary)] p-3 sm:p-4"
+      className="plate p-3 sm:p-4"
     >
       <div className="mb-3 flex items-start gap-3">
         <motion.span

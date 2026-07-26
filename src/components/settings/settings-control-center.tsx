@@ -616,7 +616,7 @@ export function SettingsControlCenter({
 
   return (
     <main className="settings-traditional flex flex-col animate-page-enter">
-      <header className="settings-traditional-header shrink-0 rounded-xl border border-[var(--border-primary)] bg-[var(--bg-secondary)] p-4 md:p-5">
+      <header className="settings-traditional-header plate shrink-0 p-4 md:p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-3">
             <MeshiMascot
@@ -720,7 +720,7 @@ export function SettingsControlCenter({
       )}
 
       <section className="settings-traditional-grid mt-3 grid gap-3 lg:grid-cols-[18rem_minmax(0,1fr)] lg:items-start">
-        <aside className={`settings-traditional-nav flex-col rounded-xl border border-[var(--border-primary)] bg-[var(--bg-secondary)] shadow-[var(--shadow-sm)] lg:sticky lg:top-3 lg:max-h-[calc(100dvh-2rem)] lg:overflow-hidden ${mobileDetailOpen ? "hidden lg:flex" : "block lg:flex"}`}>
+        <aside className={`settings-traditional-nav plate flex-col lg:sticky lg:top-3 lg:max-h-[calc(100dvh-2rem)] lg:overflow-hidden ${mobileDetailOpen ? "hidden lg:flex" : "block lg:flex"}`}>
           <div className="settings-search px-2 pt-2">
             <div className="relative">
               <Search size={15} aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
@@ -761,7 +761,7 @@ export function SettingsControlCenter({
           </nav>
         </aside>
 
-        <section className={`settings-panel rounded-xl border border-[var(--border-primary)] bg-[var(--bg-secondary)] shadow-[var(--shadow-sm)] ${mobileDetailOpen ? "block" : "hidden lg:block"}`}>
+        <section className={`settings-panel plate ${mobileDetailOpen ? "block" : "hidden lg:block"}`}>
           <div className="settings-panel-heading flex shrink-0 items-start justify-between gap-3 border-b border-[var(--border-primary)] px-4 py-3">
             <div className="w-full">
               <button
@@ -2197,7 +2197,7 @@ function MeshiOptionGroup({
 
 function SettingsCard({ title, icon: Icon, children }: { title: string; icon: LucideIcon; children: ReactNode }) {
   return (
-    <section className="settings-card rounded-xl border border-[var(--border-primary)] bg-[var(--bg-primary)] p-3.5">
+    <section className="settings-card plate p-3.5">
       <div className="settings-card-heading">
         <Icon size={14} aria-hidden="true" />
         <h3>{title}</h3>

@@ -121,7 +121,7 @@ export function BugReportWidget() {
   return (
     <div className="bug-report-widget pointer-events-none fixed z-[90] flex flex-col items-end gap-3">
       {open && (
-        <section className="pointer-events-auto w-[min(24rem,calc(100vw-1.5rem))] rounded-3xl border border-[var(--glass-card-border)] bg-[var(--bg-secondary)]/96 p-4 text-[var(--text-primary)] shadow-[var(--shadow-md)] backdrop-blur-xl" aria-label="Report a bug">
+        <section className="plate plate-raised pointer-events-auto w-[min(24rem,calc(100vw-1.5rem))] p-4 text-[var(--text-primary)]" aria-label="Report a bug">
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-center gap-2">
               <span className="grid h-9 w-9 place-items-center rounded-2xl bg-[var(--accent)] text-white">
