@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { ConnectedAccountsClient } from "./connected-accounts-client";
+import { PublicSupplyStatus } from "./public-supply-status";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getConnectedAccountsDashboard } from "@/lib/connected-accounts";
@@ -50,17 +51,26 @@ export default async function ConnectedAccountsPage({
   }));
 
   return (
-    <ConnectedAccountsClient
-      initialDashboard={dashboard}
-      mergeCenter={mergeCenter}
-      initialPersonas={personas}
-      identity={{
-        username: user.username,
-        displayName: user.displayName,
-        avatarUrl: user.avatarUrl ?? null,
-      }}
-      justConnectedPlatform={justConnectedPlatform}
-      connectError={connectError}
-    />
+    <div className="grid gap-6">
+      {/* Answered BEFORE the connect buttons, deliberately. This page's whole
+          job is deciding what to link, and the most useful fact is that
+          several platforms need no linking at all — while a few cannot be read
+          without it, however much anyone wishes otherwise. Someone who learns
+          that here decides in seconds; someone who finds out by connecting an
+          account they never needed has been wasted. */}
+      <PublicSupplyStatus />
+      <ConnectedAccountsClient
+        initialDashboard={dashboard}
+        mergeCenter={mergeCenter}
+        initialPersonas={personas}
+        identity={{
+          username: user.username,
+          displayName: user.displayName,
+          avatarUrl: user.avatarUrl ?? null,
+        }}
+        justConnectedPlatform={justConnectedPlatform}
+        connectError={connectError}
+      />
+    </div>
   );
 }

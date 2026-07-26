@@ -1324,3 +1324,68 @@ CREATE INDEX IF NOT EXISTS "FlowImpression_userId_seenAt_idx" ON "FlowImpression
 
 -- CreateIndex
 CREATE INDEX IF NOT EXISTS "FlowImpression_userId_liked_idx" ON "FlowImpression"("userId", "liked");
+
+-- CreateTable
+-- Public content owned by no mesh.me account: fetched from a platform's
+-- official API with mesh.me's own app credentials. "expiresAt" is a retention
+-- limit from the source platform's terms, not a cache hint — reads filter on
+-- it and a sweep deletes past it.
+CREATE TABLE IF NOT EXISTS "PublicPost" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "platform" TEXT NOT NULL,
+    "platformPostId" TEXT NOT NULL,
+    "lane" TEXT NOT NULL,
+    "title" TEXT,
+    "content" TEXT,
+    "url" TEXT,
+    "postType" TEXT NOT NULL DEFAULT 'video',
+    "thumbnailUrl" TEXT,
+    "mediaUrl" TEXT,
+    "durationSeconds" INTEGER,
+    "lang" TEXT,
+    "authorName" TEXT,
+    "authorUsername" TEXT,
+    "authorAvatarUrl" TEXT,
+    "authorUrl" TEXT,
+    "viewCount" INTEGER NOT NULL DEFAULT 0,
+    "likeCount" INTEGER NOT NULL DEFAULT 0,
+    "commentCount" INTEGER NOT NULL DEFAULT 0,
+    "isNsfw" BOOLEAN NOT NULL DEFAULT false,
+    "contentRating" TEXT NOT NULL DEFAULT 'general',
+    "publishedAt" DATETIME,
+    "fetchedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "expiresAt" DATETIME NOT NULL
+);
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "PublicPost_platform_platformPostId_key" ON "PublicPost"("platform", "platformPostId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "PublicPost_platform_publishedAt_idx" ON "PublicPost"("platform", "publishedAt");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "PublicPost_expiresAt_idx" ON "PublicPost"("expiresAt");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "PublicPost_lane_fetchedAt_idx" ON "PublicPost"("lane", "fetchedAt");
+
+-- CreateTable
+-- One fetch of one lane, so "the Flow is empty" can distinguish "no key
+-- configured" from "the fetch is failing".
+CREATE TABLE IF NOT EXISTS "PublicSupplyRun" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "platform" TEXT NOT NULL,
+    "lane" TEXT NOT NULL,
+    "status" TEXT NOT NULL,
+    "itemsFetched" INTEGER NOT NULL DEFAULT 0,
+    "itemsStored" INTEGER NOT NULL DEFAULT 0,
+    "detail" TEXT,
+    "durationMs" INTEGER NOT NULL DEFAULT 0,
+    "startedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "PublicSupplyRun_platform_startedAt_idx" ON "PublicSupplyRun"("platform", "startedAt");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "PublicSupplyRun_startedAt_idx" ON "PublicSupplyRun"("startedAt");
