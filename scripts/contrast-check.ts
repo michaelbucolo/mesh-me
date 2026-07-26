@@ -519,6 +519,67 @@ for (const [theme, tokens] of [["Daylight", DAYLIGHT], ["Lamplight", LAMPLIGHT]]
   checks += 1;
 }
 
+// 11f. EVERY PLATFORM BRAND FILL CAN CARRY A LEGIBLE GLYPH.
+//
+// These eighteen colours are not ours — #1db954 is Spotify's green whether it
+// suits the palette or not. The component defaulted every glyph to white and
+// carried one hand-written override, for Snapchat, whose yellow made the problem
+// impossible to miss. The other seventeen were decided by whoever noticed:
+// Spotify measured 2.59:1, SoundCloud 3.21:1, Reddit 3.44:1.
+//
+// `readableInkOn` derives the ink instead of listing exceptions. This reads the
+// brand map FROM ITS OWN SOURCE and checks the derived ink on each fill, so
+// adding a platform whose colour cannot carry either black or white fails the
+// build rather than shipping a glyph nobody can read.
+{
+  const clientSrc = readFileSync(
+    join(ROOT, "src/app/(app)/connected-accounts/connected-accounts-client.tsx"),
+    "utf8",
+  );
+  const mapStart = clientSrc.indexOf("const platformBrands");
+  assert.ok(mapStart >= 0, "the platformBrands map has moved out of connected-accounts-client.tsx");
+  const mapBody = clientSrc.slice(mapStart, clientSrc.indexOf("};", mapStart));
+  const brands = [...mapBody.matchAll(/(\w+):\s*\{[^}]*bg:\s*"(#[0-9a-fA-F]{3,6})"/g)]
+    .map((m) => [m[1], m[2]] as const);
+  assert.ok(
+    brands.length >= 15,
+    `parsed only ${brands.length} platform brands out of connected-accounts-client.tsx; expected the full map.\n` +
+      "  An assertion that reads an empty map passes everything.",
+  );
+
+  // WHAT THIS DELIBERATELY DOES NOT ASSERT, AND WHY.
+  //
+  // The obvious check — "every brand fill can carry black or white at AA" — CANNOT
+  // FAIL. Solve it: white on a fill of luminance L is 1.05/(L+0.05), black is
+  // (L+0.05)/0.05, and the two cross at L+0.05 = sqrt(1.05 x 0.05) = 0.2291, where
+  // both are 4.58:1. The worst colour in the entire sRGB cube still clears 4.5 with
+  // one of the two. I wrote that assertion first, mutated a mid-grey into the map
+  // to prove it worked, and it passed — because nothing can make it fail. It is
+  // recorded here so nobody adds it back believing it does something.
+  //
+  // The rule that ACTUALLY broke is that the component stopped deriving the ink and
+  // hardcoded one. That is what this checks.
+  const glyphInk = /color:\s*brand\s*\?\s*readableInkOn\(brand\.bg\)/;
+  assert.match(
+    clientSrc,
+    glyphInk,
+    "the platform glyph no longer derives its ink from the brand fill.\n" +
+      "  It used to read `brand.fg ?? \"#ffffff\"`, with exactly one hand-written override —\n" +
+      "  Snapchat, whose yellow made the problem impossible to miss. The other seventeen were\n" +
+      "  whatever white happened to give: Spotify 2.59:1, SoundCloud 3.21:1, Reddit 3.44:1.\n" +
+      "  Use readableInkOn(fill). A list of exceptions is wrong in the one way that matters —\n" +
+      "  the next platform added gets the default, and nobody measures the default.",
+  );
+  // And the derivation itself has to still pick the better of the two.
+  const inkSrc = readFileSync(join(ROOT, "src/lib/readable-ink.ts"), "utf8");
+  assert.match(
+    inkSrc,
+    /onLight\s*>=\s*onDark\s*\?\s*INK_ON_LIGHT\s*:\s*INK_ON_DARK/,
+    "readableInkOn no longer returns the higher-contrast of the two inks.",
+  );
+  checks += brands.length;
+}
+
 console.log(
   `contrast OK — ${checks} ratios measured across both themes: every text ink clears AA on all four\n` +
     "  papers AND on every face/hover/press state, --ink-4 stays decorative, the accent works as\n" +
