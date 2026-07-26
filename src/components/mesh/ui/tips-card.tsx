@@ -26,17 +26,17 @@ export function MeshTipsCard({
         onPointerDown={(e) => e.stopPropagation()}
       >
         <div className="mb-2 flex items-start justify-between">
-          <p className="text-sm font-semibold text-white">This is your world</p>
+          <p className="text-sm font-semibold text-[var(--text-primary)]">This is your world</p>
           <button
             type="button"
             aria-label="Close"
             onClick={onDismiss}
-            className="rounded-md p-1 text-white/50 transition-colors hover:bg-white/10 hover:text-white"
+            className="rounded-md p-1 text-[var(--text-muted)] transition-colors hover:bg-[var(--paper-hover)] hover:text-[var(--text-primary)]"
           >
             <X size={16} />
           </button>
         </div>
-        <p className="text-xs leading-relaxed text-white/70">
+        <p className="text-xs leading-relaxed text-[var(--text-secondary)]">
           The people and posts you&apos;re closest to sit closest to you.{" "}
           {isCoarsePointer
             ? "Drag to look around, pinch to zoom, tap anything to open it."
