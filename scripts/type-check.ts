@@ -217,6 +217,87 @@ for (const [, rootPx] of rootOverrides) {
   );
 }
 
+// THE NAMED STEPS ARE ON THE SCALE TOO.
+//
+// The section above has banned `text-[13px]` for a while, and the ban held. It
+// was also, on its own, close to cosmetic: `text-[Npx]` is the size nobody
+// writes. `text-sm` is the size everybody writes — 513 sites — and Tailwind's
+// stock value for it is 14px, which is not on this scale and never was. Same
+// for `text-xs` at 12px, 417 sites. A browser sweep of seven signed-in surfaces
+// found 367 of 653 text nodes rendering at a size the system does not contain.
+//
+// A rule called THE SCALE IS THE SCALE that only inspects the rare spelling is
+// the recurring failure in this codebase wearing a different hat: two places
+// state one fact, one of them is taught the rule.
+//
+// globals.css retargets the ten `--text-*` steps that Tailwind compiles into
+// every `text-*` utility. This holds them against the scale itself, parsed from
+// tokens.css — so a new step has to be a real step, and moving the scale moves
+// the assertion with it rather than against it.
+const tokensCss = stripComments(readFileSync(join(ROOT, "src/app/tokens.css"), "utf8"));
+
+/** Every font-size the scale actually contains, in rem, from its own source. */
+const scaleSizes = new Set<string>();
+for (const m of tokensCss.matchAll(/--t-[a-z0-9]+:\s*[^;]*?([0-9.]+)rem\s*\//g)) scaleSizes.add(m[1]);
+for (const m of tokensCss.matchAll(/--fs-[a-z0-9]+:\s*([0-9.]+)rem/g)) scaleSizes.add(m[1]);
+assert.ok(
+  scaleSizes.size >= 10,
+  `parsed only ${scaleSizes.size} sizes out of the --t-*/--fs-* scale in tokens.css; expected the full set.\n` +
+    "  If the scale changed shape, this parse has to change with it — an assertion that silently\n" +
+    "  reads an empty scale passes everything, which is worse than no assertion at all.",
+);
+
+const TAILWIND_STEPS = ["xs", "sm", "base", "lg", "xl", "2xl", "3xl", "4xl", "5xl", "6xl"];
+const offScale: string[] = [];
+for (const step of TAILWIND_STEPS) {
+  const declared = new RegExp(`^\\s*--text-${step}:\\s*([0-9.]+)rem`, "m").exec(globals);
+  assert.ok(
+    declared,
+    `globals.css does not retarget --text-${step}.\n` +
+      "  Tailwind compiles `text-" + step + "` to `font-size: var(--text-" + step + ")`. Leaving one step\n" +
+      "  undeclared hands it back to the framework default, which is how 14px and 12px became the\n" +
+      "  product's two most common text sizes without anyone choosing them.",
+  );
+  if (!scaleSizes.has(declared![1])) {
+    offScale.push(`--text-${step}: ${declared![1]}rem (${Number(declared![1]) * 16}px)`);
+  }
+}
+assert.deepEqual(
+  offScale,
+  [],
+  "Tailwind text steps are set to sizes the scale does not contain:\n" +
+    offScale.map((o) => `    ${o}`).join("\n") +
+    `\n  Scale steps available (rem): ${[...scaleSizes].sort((a, b) => Number(a) - Number(b)).join(", ")}\n` +
+    "  Pick one. Adding a step to the scale to justify a utility is a design decision and belongs\n" +
+    "  in tokens.css with a reason, not here as a number that happens to match.",
+);
+
+// AND THE CSS DOESN'T GET TO SPELL A SIZE EITHER.
+//
+// Retargeting the ten utility steps moved 337 of the 394 off-scale text nodes
+// onto the scale. The 56 that stayed came from five rules in globals.css that
+// spelled `font-size: 0.875rem` by hand — the exact value Tailwind's `text-sm`
+// used to carry, arrived at independently, which is what a default looks like
+// after it has been copied around for a while. They read `var(--text-sm)` now.
+//
+// Fluid `clamp()` headers are deliberately not covered: a hero that scales with
+// the viewport passes through every value between its endpoints, so "is it a
+// scale step" is not a question that has an answer for them. Ten such rules
+// remain and are the known gap in this section.
+const hardcodedRem = [
+  ...stripComments(globals).matchAll(/^\s*font-size:\s*(?!var\()([0-9.]+)rem\s*;/gm),
+]
+  .map((m) => m[1])
+  .filter((rem) => !scaleSizes.has(rem));
+assert.deepEqual(
+  hardcodedRem,
+  [],
+  `globals.css spells font sizes that are not on the scale: ${[...new Set(hardcodedRem)].join("rem, ")}rem.\n` +
+    "  Use `var(--text-*)` — those ten names now resolve to scale steps, so a rule that reads one\n" +
+    "  moves when the scale moves. A literal does not, which is how five rules ended up holding\n" +
+    "  the framework default long after the product stopped using it.",
+);
+
 const arbitrary: string[] = [];
 for (const file of files) {
   if (!file.endsWith(".tsx")) continue;

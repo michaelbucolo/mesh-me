@@ -500,7 +500,11 @@ export function AppShell({ children, user }: AppShellProps) {
             className="group flex items-center gap-2 rounded-lg px-2 py-1.5 text-[var(--mesh-text-muted)] transition-colors hover:bg-[var(--mesh-panel-hover)] hover:text-[var(--mesh-text-secondary)]"
           >
             <ShieldCheck className="h-4 w-4 shrink-0 text-[var(--accent)]" aria-hidden="true" />
-            <span className="min-w-0 flex-1 truncate text-xs font-medium">Privacy first — you own your data</span>
+            {/* `text-micro`, not `text-xs`: this is a persistent quiet badge, which is
+                exactly what the micro step is the floor for. At the caption step the
+                sentence no longer fits the 16rem rail and truncated to "…you own your
+                d…", which is a worse outcome than one step smaller. */}
+            <span className="min-w-0 flex-1 truncate text-micro font-medium">Privacy first — you own your data</span>
             <ChevronRight className="h-3.5 w-3.5 shrink-0 opacity-0 transition-opacity group-hover:opacity-100" aria-hidden="true" />
           </Link>
         </div>
