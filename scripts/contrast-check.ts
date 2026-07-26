@@ -27,6 +27,8 @@
  */
 
 import assert from "node:assert/strict";
+import { BRANCH_PLASTIC, MOULD, inkForFill } from "../src/lib/palette";
+import { INK_ON_DARK, INK_ON_LIGHT, readableInkOn, readableInkRatio } from "../src/lib/readable-ink";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
@@ -368,23 +370,51 @@ for (const [theme, tokens] of [["Daylight", DAYLIGHT], ["Lamplight", LAMPLIGHT]]
 // 11b. --chip-ink clears AA on every data-driven node fill, read from the source
 // of truth rather than copied here — so adding a node colour is gated by this.
 {
-  const sceneModel = readFileSync(join(ROOT, "src/components/mesh/scene/scene-model.ts"), "utf8");
-  const nodeFills = [...new Set([...sceneModel.matchAll(/color:\s*"(#[0-9a-fA-F]{6})"/g)].map((m) => m[1]))];
+  // The mesh used to spell its own six colours here as Tailwind-400 literals, so
+  // this section parsed them out of scene-model.ts. It reads the palette now —
+  // by IMPORT, not by regex, so the thing measured is the thing that ships.
+  const branches = Object.entries(BRANCH_PLASTIC) as [string, keyof typeof MOULD][];
   assert.ok(
-    nodeFills.length >= 6,
-    `parsed only ${nodeFills.length} node colours out of scene-model.ts; expected the branch palette.\n` +
+    branches.length >= 6,
+    `the mesh declares only ${branches.length} branches; expected six.\n` +
       "  An assertion that reads an empty palette passes everything, which is worse than none.",
   );
-  const chipInk = (LAMPLIGHT["--chip-ink"] ?? DAYLIGHT["--chip-ink"]);
-  assert.ok(chipInk, "--chip-ink is not declared in tokens.css");
-  for (const fill of nodeFills) {
-    const r = ratio(chipInk, fill);
+  assert.equal(
+    new Set(branches.map(([, m]) => m)).size,
+    branches.length,
+    "two mesh branches are made of the same plastic — colour is WHICH, so two branches that\n" +
+      "  share one cannot be told apart on the canvas, where there is no label to fall back on.",
+  );
+
+  // A branch chip paints the fill and takes the ink PINNED to it. --chip-ink was
+  // tuned against the old pastel node colours and fails on four of the plastics
+  // (cobalt 3.28, teal 3.47, grape 3.19, crimson 2.90); inkForFill returns the
+  // pinned ink instead. Exercised, not pattern-matched.
+  for (const [branch, mould] of branches) {
+    const { fill, ink } = MOULD[mould];
+    assert.equal(
+      inkForFill(fill),
+      ink,
+      `inkForFill(${fill}) did not return the ink tokens.css pins to --mould-${mould}.`,
+    );
+    const r = ratio(ink, fill);
     assert.ok(
       r >= AA,
-      `--chip-ink on the node fill ${fill} is ${r.toFixed(2)}:1, below AA.\n` +
-        "  These fills are theme-invariant and saturated. White measured 1.92–3.53 on the eight\n" +
-        "  that shipped — it failed on every one. If a new node colour cannot carry --chip-ink,\n" +
-        "  the colour is the thing to change.",
+      `the ${branch} branch chip (--mould-${mould}) measures ${r.toFixed(2)}:1, below AA.`,
+    );
+    checks += 2;
+  }
+
+  // And the ring that makes an orb visible at all. A theme-invariant fill sits on
+  // both mats, so what carries the object boundary is --edge, never the fill: all
+  // eight of the old node colours measured 1.60–2.94 against --paper-0 in
+  // Daylight, every one under the 3:1 floor for a non-text object.
+  for (const [theme, tokens] of [["Daylight", DAYLIGHT], ["Lamplight", LAMPLIGHT]] as const) {
+    const r = ratio(tokens["--edge"], tokens["--paper-0"]);
+    assert.ok(
+      r >= 3,
+      `${theme}: --edge on --paper-0 is ${r.toFixed(2)}:1. The mesh rings every node with it;\n` +
+        "  under 3:1 the orbs stop being objects and become smudges.",
     );
     checks += 1;
   }
@@ -570,14 +600,27 @@ for (const [theme, tokens] of [["Daylight", DAYLIGHT], ["Lamplight", LAMPLIGHT]]
       "  Use readableInkOn(fill). A list of exceptions is wrong in the one way that matters —\n" +
       "  the next platform added gets the default, and nobody measures the default.",
   );
-  // And the derivation itself has to still pick the better of the two.
-  const inkSrc = readFileSync(join(ROOT, "src/lib/readable-ink.ts"), "utf8");
-  assert.match(
-    inkSrc,
-    /onLight\s*>=\s*onDark\s*\?\s*INK_ON_LIGHT\s*:\s*INK_ON_DARK/,
-    "readableInkOn no longer returns the higher-contrast of the two inks.",
-  );
-  checks += brands.length;
+  // And the derivation itself has to still pick the better of the two. This was
+  // a regex over readable-ink.ts's source — which tested the SPELLING of the
+  // implementation, passed for any refactor that kept the words, and left
+  // INK_ON_LIGHT/INK_ON_DARK/readableInkRatio with no importer anywhere (knip
+  // reported all three as dead, correctly, and `npm run check` exited 1 on a
+  // clean tree). Run the function on the real brand fills instead.
+  for (const [name, fill] of brands) {
+    const picked = readableInkOn(fill);
+    const other = picked === INK_ON_LIGHT ? INK_ON_DARK : INK_ON_LIGHT;
+    assert.ok(
+      ratio(picked, fill) >= ratio(other, fill),
+      `readableInkOn picked ${picked} for ${name} (${fill}) at ${ratio(picked, fill).toFixed(2)}:1,\n` +
+        `  when ${other} would have measured ${ratio(other, fill).toFixed(2)}:1.`,
+    );
+    assert.ok(
+      Math.abs(readableInkRatio(fill) - ratio(picked, fill)) < 0.01,
+      `readableInkRatio(${fill}) reports ${readableInkRatio(fill).toFixed(2)} but the ink it picks\n` +
+        `  measures ${ratio(picked, fill).toFixed(2)} — the gate and the component disagree.`,
+    );
+    checks += 2;
+  }
 }
 
 console.log(
@@ -587,9 +630,12 @@ console.log(
     "  every surface it can ring, each moulded plastic carries a readable pinned ink, and each is\n" +
     "  visibly thicker than its own plinth. Every structural surface and ink in .dark is a true\n" +
     "  grey (r === g === b); only the accent and the five pigments carry a hue, by name.\n" +
-    "  The pinned ink also clears AA on the HOVER fill, --chip-ink clears it on every node\n" +
-    "  colour in scene-model.ts, and no rule or className paints an inked fill and then spells\n" +
-    "  its ink `#fff`/`text-white` by hand.\n" +
+    "  The pinned ink also clears AA on the HOVER fill; every mesh branch is a distinct plastic\n" +
+    "  whose chip takes that pinned ink (not --chip-ink, which fails on four of the seven);\n" +
+    "  --edge clears 3:1 on the mat in both themes, which is what makes a node an object; the\n" +
+    "  platform-glyph ink is derived by running readableInkOn on all eighteen real brand fills;\n" +
+    "  and no rule or className paints an inked fill and then spells its ink `#fff`/`text-white`\n" +
+    "  by hand.\n" +
     "  Does NOT cover: an ink applied through a prop, a runtime-computed style, or a fill this\n" +
     "  file does not know is a fill. The browser sweep in the PR is what confirms the rendered\n" +
     "  result; this keeps the known failures from coming back.",

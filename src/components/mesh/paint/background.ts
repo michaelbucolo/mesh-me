@@ -21,7 +21,8 @@
 
 import type { Camera } from "../core/camera";
 import { GradientCache } from "./caches";
-import { atmosphereOf, withAlpha } from "./shared";
+import { atmosphereOf } from "./papers";
+import { withAlpha } from "./shared";
 import { domSurface, type CreateSurface, type OffscreenSurface } from "./types";
 
 export interface BackgroundInputs {

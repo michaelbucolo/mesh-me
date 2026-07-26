@@ -8,6 +8,7 @@
 
 import { X } from "lucide-react";
 import { PlatformLogo } from "@/components/platform/platform-logo";
+import { inkForFill } from "@/lib/palette";
 import { byNewest } from "../sim/layout";
 import type { SceneModel, SceneNode } from "../scene/scene-model";
 import type { MeshCopy } from "./copy";
@@ -48,19 +49,19 @@ export function MeshListView({
       <button
         type="button"
         onClick={() => onOpen(node)}
-        className={`flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left transition-colors hover:bg-white/6 ${indent ? "pl-8" : ""}`}
+        className={`flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left transition-colors hover:bg-[var(--paper-hover)] ${indent ? "pl-8" : ""}`}
       >
         <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: node.color }} />
         <span className="min-w-0 flex-1">
           <span className="flex items-center gap-1.5">
-            <span className="truncate text-sm text-white">{node.label}</span>
+            <span className="truncate text-sm text-[var(--text-primary)]">{node.label}</span>
             {node.isNew && (
               <span className="shrink-0 rounded-full bg-cyan-400/15 px-1.5 py-px text-micro font-semibold mesh-eyebrow text-cyan-200">
                 New
               </span>
             )}
           </span>
-          <span className="block truncate text-micro text-white/45">
+          <span className="block truncate text-micro text-[var(--text-tertiary)]">
             {[timeOf(node), node.sublabel].filter(Boolean).join(" · ") || "Post"}
           </span>
         </span>
@@ -82,16 +83,16 @@ export function MeshListView({
         className="mesh-panel flex h-full w-full max-w-md animate-[sheetIn_.32s_cubic-bezier(0.22,1,0.36,1)] flex-col pt-16 shadow-2xl"
         onPointerDown={(e) => e.stopPropagation()}
       >
-        <div className="flex items-start justify-between border-b border-white/8 px-4 py-3.5">
+        <div className="flex items-start justify-between border-b border-[var(--rule)] px-4 py-3.5">
           <div>
-            <p className="text-sm font-semibold text-white">The same world, as a list</p>
-            <p className="text-micro text-white/50">Closest people first · newest work first</p>
+            <p className="text-sm font-semibold text-[var(--text-primary)]">The same world, as a list</p>
+            <p className="text-micro text-[var(--text-tertiary)]">Closest people first · newest work first</p>
           </div>
           <button
             type="button"
             aria-label="Close list"
             onClick={onClose}
-            className="rounded-md p-1 text-white/50 transition-colors hover:bg-white/10 hover:text-white"
+            className="rounded-md p-1 text-[var(--text-tertiary)] transition-colors hover:bg-[var(--paper-hover)] hover:text-[var(--text-primary)]"
           >
             <X size={16} />
           </button>
@@ -99,7 +100,7 @@ export function MeshListView({
         <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-6 pt-1">
           {people.length > 0 && (
             <>
-              <p className="px-2.5 pb-1 pt-3 text-micro font-semibold mesh-eyebrow text-white/40">
+              <p className="px-2.5 pb-1 pt-3 text-micro font-semibold mesh-eyebrow text-[var(--text-tertiary)]">
                 {copy.listPeopleHeading}
               </p>
               <ul>
@@ -108,22 +109,22 @@ export function MeshListView({
                     <button
                       type="button"
                       onClick={() => onOpen(node)}
-                      className="flex w-full items-start gap-2.5 rounded-xl px-2.5 py-2 text-left transition-colors hover:bg-white/6"
+                      className="flex w-full items-start gap-2.5 rounded-xl px-2.5 py-2 text-left transition-colors hover:bg-[var(--paper-hover)]"
                     >
                       {node.avatarUrl ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img src={node.avatarUrl} alt="" className="mt-0.5 h-7 w-7 shrink-0 rounded-full object-cover" />
                       ) : (
                         <span
-                          className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-micro font-semibold text-[var(--chip-ink)]"
-                          style={{ background: node.color }}
+                          className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-micro font-semibold"
+                          style={{ background: node.color, color: inkForFill(node.color) }}
                         >
                           {node.label.slice(0, 1).toUpperCase()}
                         </span>
                       )}
                       <span className="min-w-0 flex-1">
                         <span className="flex items-center gap-1.5">
-                          <span className="truncate text-sm text-white">{node.label}</span>
+                          <span className="truncate text-sm text-[var(--text-primary)]">{node.label}</span>
                           {node.status === "online" && (
                             <span className="flex items-center gap-1 text-micro font-semibold text-emerald-300">
                               <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
@@ -131,8 +132,8 @@ export function MeshListView({
                             </span>
                           )}
                         </span>
-                        {node.sublabel && <span className="block truncate text-micro text-white/50">{node.sublabel}</span>}
-                        {node.placeReason && <span className="block text-micro leading-snug text-white/40">{node.placeReason}</span>}
+                        {node.sublabel && <span className="block truncate text-micro text-[var(--text-tertiary)]">{node.sublabel}</span>}
+                        {node.placeReason && <span className="block text-micro leading-snug text-[var(--text-tertiary)]">{node.placeReason}</span>}
                       </span>
                     </button>
                     {postsOf(node).length > 0 && <ul>{postsOf(node).map((p) => <PostRow key={p.id} node={p} indent />)}</ul>}
@@ -144,7 +145,7 @@ export function MeshListView({
 
           {nativePosts.length > 0 && (
             <>
-              <p className="px-2.5 pb-1 pt-4 text-micro font-semibold mesh-eyebrow text-white/40">
+              <p className="px-2.5 pb-1 pt-4 text-micro font-semibold mesh-eyebrow text-[var(--text-tertiary)]">
                 {copy.listMadeByHeading}
               </p>
               <ul>
@@ -157,7 +158,7 @@ export function MeshListView({
 
           {platforms.length > 0 && (
             <>
-              <p className="px-2.5 pb-1 pt-4 text-micro font-semibold mesh-eyebrow text-white/40">
+              <p className="px-2.5 pb-1 pt-4 text-micro font-semibold mesh-eyebrow text-[var(--text-tertiary)]">
                 {copy.listPlatformsHeading}
               </p>
               <ul>
@@ -166,12 +167,12 @@ export function MeshListView({
                     <button
                       type="button"
                       onClick={() => onOpen(node)}
-                      className="flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left transition-colors hover:bg-white/6"
+                      className="flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left transition-colors hover:bg-[var(--paper-hover)]"
                     >
                       <PlatformLogo platform={node.label} size={18} className="shrink-0" />
                       <span className="min-w-0 flex-1">
-                        <span className="block truncate text-sm capitalize text-white">{node.label}</span>
-                        {node.sublabel && <span className="block truncate text-micro text-white/50">{node.sublabel}</span>}
+                        <span className="block truncate text-sm capitalize text-[var(--text-primary)]">{node.label}</span>
+                        {node.sublabel && <span className="block truncate text-micro text-[var(--text-tertiary)]">{node.sublabel}</span>}
                       </span>
                     </button>
                     {postsOf(node).length > 0 && <ul>{postsOf(node).map((p) => <PostRow key={p.id} node={p} indent />)}</ul>}
@@ -182,7 +183,7 @@ export function MeshListView({
           )}
 
           {people.length === 0 && nativePosts.length === 0 && platforms.length === 0 && (
-            <p className="px-3 py-6 text-center text-xs text-white/45">This mesh is just its owner for now.</p>
+            <p className="px-3 py-6 text-center text-xs text-[var(--text-tertiary)]">This mesh is just its owner for now.</p>
           )}
         </div>
       </div>

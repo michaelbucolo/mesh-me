@@ -13,7 +13,7 @@
 //
 // It MUST work without a DOM: scripts/mesh-render-parity.ts renders both
 // engines in Node against a recording context, so `read()` falls back to the
-// Lamplight constants rather than throwing. Those fallbacks are the only
+// Worklight constants rather than throwing. Those fallbacks are the only
 // colour literals left in paint/, and they exist so the contract tests have
 // something deterministic to compare.
 
@@ -28,6 +28,17 @@ export interface PaintTheme {
   ink3: string;
   /** Non-text only: hairlines, dividers, disabled marks. */
   ink4: string;
+  /**
+   * THE EDGE. The 1px boundary every pressable object in the DOM carries, and
+   * the reason a theme-invariant plastic is legal on either mat. The canvas
+   * never had it: a node's rim was `tint(node.color, 0.72)`, a LIGHTER version
+   * of its own fill, so on the cream mat a pale orb was outlined in something
+   * paler still. Measured, all eight node colours sat between 1.60 and 2.94
+   * against --paper-0 in Daylight — every one of them under the 3:1 floor WCAG
+   * 1.4.11 sets for a non-text object. tokens.css states the rule outright:
+   * "an object without --edge is a WCAG 1.4.11 bug, not a style choice."
+   */
+  edge: string;
   /** Text sitting ON an accent fill. */
   inkInverse: string;
   accent: string;
@@ -43,43 +54,54 @@ export interface PaintTheme {
   dark: boolean;
 }
 
-/** Lamplight. The fallback, and the values the parity tests compare against. */
-const LAMPLIGHT: PaintTheme = {
-  paper0: "#1a1714",
-  paper1: "#211d19",
-  paper2: "#141210",
-  ink1: "#f2ede4",
-  ink2: "#c0b8ab",
-  ink3: "#948c80",
-  ink4: "#6e6559",
-  inkInverse: "#141210",
-  accent: "#8fb0e0",
-  accentLine: "rgba(143,176,224,.26)",
-  warm: "#e08a5f",
-  success: "#8cbe97",
-  warning: "#e0b252",
-  danger: "#e0827a",
-  shadow: "rgba(0,0,0,.55)",
+/**
+ * Worklight. The fallback, and the values the parity tests compare against.
+ *
+ * These were the OLD WARM RAMP — #1a1714 paper, #8fb0e0 accent, #8cbe97 success
+ * — kept verbatim long after tokens.css went true-neutral black. A fallback
+ * that disagrees with the file it is standing in for is not a fallback, it is a
+ * second palette waiting for a DOM-less render to reveal it, and the mesh
+ * render-parity tests were comparing against the brown the theme no longer is.
+ * Every value below is now the literal that tokens.css declares under `.dark`.
+ */
+const WORKLIGHT: PaintTheme = {
+  paper0: "#0a0a0a",
+  paper1: "#1a1a1a",
+  paper2: "#050505",
+  ink1: "#f5f5f5",
+  ink2: "#c2c2c2",
+  ink3: "#a8a8a8",
+  ink4: "#6a6a6a",
+  edge: "#8e8e8e",
+  inkInverse: "#0a0a0a",
+  accent: "#93a9ff",
+  accentLine: "rgba(147,169,255,.28)",
+  warm: "#f486b0",
+  success: "#5fcb98",
+  warning: "#f3be55",
+  danger: "#f58279",
+  shadow: "rgba(0,0,0,.75)",
   dark: true,
 };
 
-/** Daylight. */
+/** Daylight. Likewise the literals tokens.css declares under `:root, .light`. */
 const DAYLIGHT: PaintTheme = {
-  paper0: "#fbf8f2",
-  paper1: "#fffdf8",
-  paper2: "#f4efe6",
-  ink1: "#1b1a17",
-  ink2: "#4a463f",
-  ink3: "#6b655b",
-  ink4: "#948c7f",
-  inkInverse: "#fffdf8",
-  accent: "#2f4b7c",
-  accentLine: "rgba(47,75,124,.22)",
-  warm: "#b05939",
-  success: "#4a7c59",
-  warning: "#976925",
-  danger: "#a8443a",
-  shadow: "rgba(38,32,24,.22)",
+  paper0: "#efeae1",
+  paper1: "#fdfbf6",
+  paper2: "#e5dfd4",
+  ink1: "#1a1a1d",
+  ink2: "#46454c",
+  ink3: "#57535a",
+  ink4: "#9a948a",
+  edge: "#786f64",
+  inkInverse: "#fdfbf6",
+  accent: "#2b45c4",
+  accentLine: "rgba(43,69,196,.26)",
+  warm: "#992756",
+  success: "#155839",
+  warning: "#754c08",
+  danger: "#9e2c23",
+  shadow: "rgba(40,32,22,.26)",
   dark: false,
 };
 
@@ -91,6 +113,7 @@ const TOKEN_OF: Record<Exclude<keyof PaintTheme, "dark">, string> = {
   ink2: "--ink-2",
   ink3: "--ink-3",
   ink4: "--ink-4",
+  edge: "--edge",
   inkInverse: "--ink-inverse",
   accent: "--accent",
   accentLine: "--accent-line",
@@ -101,7 +124,7 @@ const TOKEN_OF: Record<Exclude<keyof PaintTheme, "dark">, string> = {
   shadow: "--canvas-shadow",
 };
 
-let cached: PaintTheme = LAMPLIGHT;
+let cached: PaintTheme = WORKLIGHT;
 let cachedKey = "";
 
 /**
@@ -116,7 +139,7 @@ export function paintTheme(): PaintTheme {
   if (key === cachedKey) return cached;
 
   const isDark = !root.classList.contains("light");
-  const base = isDark ? LAMPLIGHT : DAYLIGHT;
+  const base = isDark ? WORKLIGHT : DAYLIGHT;
   const cs = getComputedStyle(root);
   const next: PaintTheme = { ...base, dark: isDark };
   for (const [field, token] of Object.entries(TOKEN_OF) as [Exclude<keyof PaintTheme, "dark">, string][]) {

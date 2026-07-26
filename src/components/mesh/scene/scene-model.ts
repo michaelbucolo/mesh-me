@@ -9,6 +9,7 @@
 // separately by sim/layout.ts.
 
 import { bestStillUrl, playableVideoUrl } from "@/lib/external-media";
+import { branchFill } from "@/lib/palette";
 import type { MeshApiResponse } from "../core/domain";
 import { PLATFORM_COLORS } from "../mesh-types";
 
@@ -96,13 +97,17 @@ export interface SceneModel {
   nodes: Map<string, SceneNode>;
 }
 
+// Colour comes from the palette now, not from Tailwind's 400 ramp. See
+// src/lib/palette.ts for which plastic each branch is made of and why — six of
+// these were within 13deg of a plastic the product already owned, which reads
+// as the plastic rendered wrong rather than as a second colour.
 const BRANCH_META: Record<BranchKey, { label: string; color: string }> = {
-  identities: { label: "Identities", color: "#c084fc" },
-  platforms: { label: "Platforms", color: "#f59e0b" },
-  people: { label: "People", color: "#818cf8" },
-  communities: { label: "Communities", color: "#ec4899" },
-  posts: { label: "Posts", color: "#34d399" },
-  activity: { label: "Activity", color: "#38bdf8" },
+  identities: { label: "Identities", color: branchFill("identities") },
+  platforms: { label: "Platforms", color: branchFill("platforms") },
+  people: { label: "People", color: branchFill("people") },
+  communities: { label: "Communities", color: branchFill("communities") },
+  posts: { label: "Posts", color: branchFill("posts") },
+  activity: { label: "Activity", color: branchFill("activity") },
 };
 
 // Kept deliberately lean: the mesh reads as a constellation of the most
@@ -187,7 +192,12 @@ export function buildSceneModel(data: MeshApiResponse, opts?: BuildSceneOptions)
     sublabel: "@" + data.user.username,
     description: data.user.bio || undefined,
     avatarUrl: data.user.avatarUrl,
-    color: "#a5b4fc",
+    // You are not one of the six categories, so you do not get one of the six
+    // plastics. The canvas paints this node from --accent and its strands from
+    // --ink-3 (see paint/nodes.ts and paint/edges.ts); this value is what the
+    // DOM surfaces — list view, search, node detail — put behind it, and as a
+    // custom property it tracks the theme, which the old #a5b4fc could not.
+    color: "var(--accent)",
     parentId: null,
     childIds: [],
     branch: null,
@@ -330,7 +340,13 @@ export function buildSceneModel(data: MeshApiResponse, opts?: BuildSceneOptions)
         label: p.displayName || p.username,
         sublabel: "@" + p.username,
         avatarUrl: p.avatarUrl,
-        color: p.isMutual ? "#a78bfa" : BRANCH_META.people.color,
+        // Mutuality is a STATE, and the design system is explicit that emphasis
+        // is never saturation — it is plinth depth and size. It used to be a
+        // second violet 1.0deg from --mould-grape, i.e. a colour that read as a
+        // rendering error next to the communities branch. It is already said in
+        // words, twice, by `placeReason` and the sublabel above, and said again
+        // by distance: a mutual sits physically closer to you.
+        color: BRANCH_META.people.color,
         parentId: selfId,
         childIds: [],
         branch: "people",

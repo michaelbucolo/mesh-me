@@ -109,21 +109,21 @@ export function NodeDetail({
           />
         )}
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-semibold text-white">{node.label}</p>
-          {node.sublabel && <p className="truncate text-xs text-white/55">{node.sublabel}</p>}
+          <p className="truncate text-sm font-semibold text-[var(--text-primary)]">{node.label}</p>
+          {node.sublabel && <p className="truncate text-xs text-[var(--text-tertiary)]">{node.sublabel}</p>}
         </div>
         <button
           type="button"
           aria-label="Close"
           onClick={onClose}
-          className="rounded-md p-1 text-white/50 transition-colors hover:bg-white/10 hover:text-white"
+          className="rounded-md p-1 text-[var(--text-tertiary)] transition-colors hover:bg-[var(--paper-hover)] hover:text-[var(--text-primary)]"
         >
           <X size={16} />
         </button>
       </div>
 
       {node.placeReason && (
-        <p className="mt-2.5 rounded-lg bg-white/[0.04] px-2.5 py-1.5 text-micro leading-snug text-white/55">
+        <p className="mt-2.5 rounded-lg bg-[var(--paper-2)] px-2.5 py-1.5 text-micro leading-snug text-[var(--text-tertiary)]">
           {node.placeReason}
         </p>
       )}
@@ -134,13 +134,13 @@ export function NodeDetail({
         </p>
       )}
 
-      {node.content && <p className="mt-3 line-clamp-3 text-xs leading-relaxed text-white/70">{node.content}</p>}
+      {node.content && <p className="mt-3 line-clamp-3 text-xs leading-relaxed text-[var(--text-secondary)]">{node.content}</p>}
 
       {node.meta && node.meta.length > 0 && (
         <div className="mt-3 flex flex-wrap gap-2">
           {node.meta.map((m) => (
-            <span key={m.label} className="rounded-lg bg-white/5 px-2.5 py-1 text-micro text-white/70">
-              <span className="font-semibold text-white">{m.value}</span> {m.label}
+            <span key={m.label} className="rounded-lg bg-[var(--paper-2)] px-2.5 py-1 text-micro text-[var(--text-secondary)]">
+              <span className="font-semibold text-[var(--text-primary)]">{m.value}</span> {m.label}
             </span>
           ))}
         </div>
@@ -162,7 +162,7 @@ export function NodeDetail({
                 onClick={onToggleFollow}
                 aria-pressed={following}
                 className={`mesh-bubble-btn ds-focus-ring rounded-full py-2 text-xs font-semibold ${
-                  following ? "mesh-glass mesh-ctl text-white" : "mesh-cta"
+                  following ? "mesh-glass mesh-ctl text-[var(--text-primary)]" : "mesh-cta"
                 }`}
               >
                 {following ? (node.isMutual ? "Friends" : "Following") : "Follow"}
@@ -171,7 +171,7 @@ export function NodeDetail({
             {viewer.canDM && (
               <Link
                 href={`/messages/${node.userId}?new=true`}
-                className="mesh-bubble-btn mesh-glass mesh-ctl ds-focus-ring rounded-full py-2 text-center text-xs font-semibold text-white"
+                className="mesh-bubble-btn mesh-glass mesh-ctl ds-focus-ring rounded-full py-2 text-center text-xs font-semibold text-[var(--text-primary)]"
               >
                 Message
               </Link>
@@ -179,14 +179,14 @@ export function NodeDetail({
             <button
               type="button"
               onClick={onShare}
-              className="mesh-bubble-btn mesh-glass mesh-ctl ds-focus-ring rounded-full py-2 text-xs font-semibold text-white"
+              className="mesh-bubble-btn mesh-glass mesh-ctl ds-focus-ring rounded-full py-2 text-xs font-semibold text-[var(--text-primary)]"
             >
               {shareCopied ? "Copied" : "Share"}
             </button>
             {node.href && (
               <Link
                 href={node.href}
-                className="mesh-bubble-btn mesh-glass mesh-ctl ds-focus-ring rounded-full py-2 text-center text-xs font-semibold text-white"
+                className="mesh-bubble-btn mesh-glass mesh-ctl ds-focus-ring rounded-full py-2 text-center text-xs font-semibold text-[var(--text-primary)]"
               >
                 Profile
               </Link>
@@ -196,7 +196,7 @@ export function NodeDetail({
                 type="button"
                 onClick={onToggleMute}
                 aria-pressed={muted}
-                className="mesh-bubble-btn mesh-glass mesh-ctl ds-focus-ring col-span-2 flex items-center justify-center gap-1.5 rounded-full py-2 text-xs font-semibold text-white"
+                className="mesh-bubble-btn mesh-glass mesh-ctl ds-focus-ring col-span-2 flex items-center justify-center gap-1.5 rounded-full py-2 text-xs font-semibold text-[var(--text-primary)]"
               >
                 {muted ? <Volume2 size={13} /> : <VolumeX size={13} />}
                 {muted ? "Unmute source" : "Mute source"}
@@ -211,7 +211,7 @@ export function NodeDetail({
               <Link
                 href={node.href}
                 target={node.href.startsWith("http") ? "_blank" : undefined}
-                className="mesh-bubble-btn mesh-glass mesh-ctl ds-focus-ring flex-1 rounded-full py-2 text-center text-xs font-semibold text-white"
+                className="mesh-bubble-btn mesh-glass mesh-ctl ds-focus-ring flex-1 rounded-full py-2 text-center text-xs font-semibold text-[var(--text-primary)]"
               >
                 {node.kind === "post" ? "Open post" : node.kind === "platform" ? "Manage account" : "Open"}
               </Link>
@@ -221,7 +221,7 @@ export function NodeDetail({
                 type="button"
                 onClick={onToggleMute}
                 aria-pressed={muted}
-                className="mesh-bubble-btn mesh-glass mesh-ctl ds-focus-ring flex flex-1 items-center justify-center gap-1.5 rounded-full py-2 text-xs font-semibold text-white"
+                className="mesh-bubble-btn mesh-glass mesh-ctl ds-focus-ring flex flex-1 items-center justify-center gap-1.5 rounded-full py-2 text-xs font-semibold text-[var(--text-primary)]"
               >
                 {muted ? <Volume2 size={13} /> : <VolumeX size={13} />}
                 {muted ? "Unmute source" : "Mute source"}

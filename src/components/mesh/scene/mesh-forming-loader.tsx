@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { paintTheme } from "@/components/mesh/paint/theme";
 import { cn } from "@/lib/utils";
 
 // ── The mesh weaving itself into being ────────────────────────────
@@ -203,10 +204,16 @@ export function MeshFormingLoader({
       // ── Background: the scene's own gradient (or transparent for backdrop) ──
       ctx.clearRect(0, 0, width, height);
       if (!backdrop) {
+        // Was a fixed #0c1226 -> #030409 blue-black — outer space, painted while
+        // the page behind it was cream. The loader is the FIRST thing a person
+        // sees on /mesh, so a loader in a different theme from the app is the
+        // first impression the app is not one piece. Same three stops the mesh
+        // itself uses, read live so it follows the theme.
+        const th = paintTheme();
         const bg = ctx.createRadialGradient(cx, cy * 0.82, unit * 0.1, cx, cy, Math.max(width, height) * 0.75);
-        bg.addColorStop(0, "#0c1226");
-        bg.addColorStop(0.55, "#070a16");
-        bg.addColorStop(1, "#030409");
+        bg.addColorStop(0, th.paper1);
+        bg.addColorStop(0.55, th.paper0);
+        bg.addColorStop(1, th.paper2);
         ctx.fillStyle = bg;
         ctx.fillRect(0, 0, width, height);
       }

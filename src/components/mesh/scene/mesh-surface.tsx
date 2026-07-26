@@ -284,7 +284,7 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
         rtRef.current.containerEl = el;
       }}
       data-testid="mesh-scene"
-      className="relative h-full min-h-0 w-full min-w-0 flex-1 touch-none overflow-hidden bg-[#04050c] select-none"
+      className="relative h-full min-h-0 w-full min-w-0 flex-1 touch-none overflow-hidden bg-[var(--paper-0)] select-none"
       onWheel={input.onWheel}
     >
       {/* The canvas draws Meshi at the pointer itself, so it owns the BODY
@@ -319,7 +319,7 @@ export function MeshScene({ viewUserId, viewMode = "mesh" }: MeshSceneProps) {
       {live.liveLink === "paused" && (
         <div
           role="status"
-          className="mesh-glass pointer-events-none absolute bottom-4 left-1/2 z-30 -translate-x-1/2 rounded-full px-3 py-1.5 text-micro font-semibold text-white/75"
+          className="mesh-glass pointer-events-none absolute bottom-4 left-1/2 z-30 -translate-x-1/2 rounded-full px-3 py-1.5 text-micro font-semibold text-[var(--text-secondary)]"
         >
           <span className="mr-1.5 inline-block h-1.5 w-1.5 rounded-full bg-amber-400 align-middle" aria-hidden />
           Live paused — reconnecting…

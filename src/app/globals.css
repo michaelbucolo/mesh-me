@@ -7073,19 +7073,33 @@ body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
    #0a0a0a mat. Re-set to the same neutral black, keeping the alpha and blur —
    the mesh should read as the same material as everything else, lit differently,
    not as a different product. */
+/* THE CANVAS IS NOT ALWAYS DARK ANY MORE, so neither are its controls.
+   `rgba(10, 10, 10, 0.66)` was correct while the mesh painted a fixed dark
+   tabletop — and paint/index.ts never passed `dark` to the sky, so it did. Once
+   the sky follows the theme, a 66%-opaque near-black chip is nine dark blobs on
+   cream paper: measured on the running build, the Mesh/Global switcher and all
+   eight rail buttons came back at rgba(10,10,10,.66) with the DOM in `.light`.
+
+   They are objects resting on the mesh's paper, so they are made of paper: the
+   card surface, the rule, the contact shadow. Opaque, and no backdrop-filter —
+   the blur was the last of the glass on this surface, and a raised object does
+   not smear what is behind it. */
 .mesh-glass {
-  background: rgba(10, 10, 10, 0.66);
-  border: 1px solid rgba(255, 255, 255, 0.10);
-  backdrop-filter: blur(14px) saturate(1.05);
-  -webkit-backdrop-filter: blur(14px) saturate(1.05);
+  background: var(--paper-1);
+  border: 1px solid var(--rule-strong);
+  box-shadow: var(--shadow-rest);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
-/* Denser sibling of .mesh-glass for modals and drawers: near-opaque so dense
-   content stays legible over the busy starfield, same border + accent language. */
+/* Denser sibling of .mesh-glass for modals and drawers. Its FILL is not set
+   here: `.mesh-panel` is one of the fourteen names in the card-vocabulary rule
+   at the end of this file, which paints --paper-1 + --rule + --shadow-rest, and
+   that rule is later so it wins. All this needs to do is drop the blur, which
+   the card rule does not speak to. A second `background` here would be a third
+   place claiming to decide one fact. */
 .mesh-panel {
-  background: rgba(13, 13, 13, 0.95);
-  border: 1px solid rgba(255, 255, 255, 0.10);
-  backdrop-filter: blur(18px) saturate(1.05);
-  -webkit-backdrop-filter: blur(18px) saturate(1.05);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 /* Primary accent action — the mesh's dark-correct equivalent of the app's
    default Button (theme-aware surfaces would go light in light mode, wrong over
@@ -7106,17 +7120,24 @@ body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
 /* Tints are painted with background-IMAGE so they layer OVER the .mesh-glass
    background-color instead of replacing it (a control keeps its dark base on
    hover/active). */
+/* Ink follows the theme for the same reason the fill above does: white-on-glass
+   was right over a permanently dark canvas and is 1.1:1 on paper. */
 .mesh-ctl {
-  color: rgba(255, 255, 255, 0.82);
+  color: var(--text-secondary);
   transition: background-image 0.16s ease, color 0.16s ease, border-color 0.16s ease;
 }
 .mesh-ctl:hover {
-  color: #fff;
-  background-image: linear-gradient(rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.09));
+  color: var(--text-primary);
+  background-image: linear-gradient(
+    color-mix(in srgb, var(--ink-1) 9%, transparent),
+    color-mix(in srgb, var(--ink-1) 9%, transparent)
+  );
 }
-/* The selected/active state uses the accent, like the app's primary controls. */
+/* The selected/active state uses the accent, like the app's primary controls.
+   The tint is a WASH (34%) over --paper-1, not an accent fill, so the ink is the
+   page's own ink rather than --accent-contrast. */
 .mesh-ctl-active {
-  color: #fff;
+  color: var(--text-primary);
   background-image: linear-gradient(
     color-mix(in srgb, var(--accent) 34%, transparent),
     color-mix(in srgb, var(--accent) 34%, transparent)

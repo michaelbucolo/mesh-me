@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { BRANCH_PLASTIC, MOULD } from "@/lib/palette";
 import { rateLimit } from "@/lib/security";
 
 // Your monthly Trail: the literal path you traveled through the mesh — every
@@ -10,13 +11,17 @@ import { rateLimit } from "@/lib/security";
 
 export type TrailStepType = "post" | "like" | "comment" | "follow" | "sync" | "message";
 
+// A THIRD copy of the mesh's old Tailwind-400 palette lived here — #34d399,
+// #38bdf8, #a78bfa, #f59e0b, all within a few degrees of a plastic the product
+// already owned. Each step type now takes the plastic of the mesh branch it
+// belongs to, so a green dot means the same thing on the Trail as on the mesh.
 const STEP_COLORS: Record<TrailStepType, string> = {
-  post: "#34d399",
-  like: "#fb7185",
-  comment: "#38bdf8",
-  follow: "#a78bfa",
-  sync: "#f59e0b",
-  message: "#818cf8",
+  post: MOULD[BRANCH_PLASTIC.posts].fill,
+  like: MOULD[BRANCH_PLASTIC.activity].fill,
+  comment: MOULD[BRANCH_PLASTIC.people].fill,
+  follow: MOULD[BRANCH_PLASTIC.communities].fill,
+  sync: MOULD[BRANCH_PLASTIC.platforms].fill,
+  message: MOULD[BRANCH_PLASTIC.identities].fill,
 };
 
 const MAX_STEPS = 48;

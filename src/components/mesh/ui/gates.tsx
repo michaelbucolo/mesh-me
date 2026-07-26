@@ -56,7 +56,7 @@ export function MeshGates({
             className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(110,139,255,0.32),rgba(4,5,12,0.97)_72%)]"
             style={{ animation: "meshTravelVeil .72s ease-in forwards" }}
           />
-          <p className="relative text-sm font-semibold text-white" style={{ animation: "meshTravelText .72s ease-in forwards" }}>
+          <p className="relative text-sm font-semibold text-[var(--text-primary)]" style={{ animation: "meshTravelText .72s ease-in forwards" }}>
             Entering {traveling.label}&apos;s mesh…
           </p>
         </div>
@@ -67,7 +67,7 @@ export function MeshGates({
 
 function MeshLoadingGate({ viewUserId, isGlobal }: { viewUserId?: string; isGlobal: boolean }) {
   return (
-    <div className="absolute inset-0 z-40 overflow-hidden bg-[#04050c]">
+    <div className="absolute inset-0 z-40 overflow-hidden bg-[var(--paper-0)]">
       {/* The constellation weaves itself into being behind Meshi, so the
           loader dissolves straight into the real scene it precedes. This is
           the mesh's own arrival — the one wait long enough for Meshi to be
@@ -92,12 +92,12 @@ function MeshLoadingGate({ viewUserId, isGlobal }: { viewUserId?: string; isGlob
 
 function MeshErrorGate({ onRetry }: { onRetry: () => void }) {
   return (
-    <div className="absolute inset-0 z-40 flex flex-col items-center justify-center gap-3 bg-[#04050c] text-center">
-      <p className="text-sm text-white/70">Your mesh couldn&apos;t be reached.</p>
+    <div className="absolute inset-0 z-40 flex flex-col items-center justify-center gap-3 bg-[var(--paper-0)] text-center">
+      <p className="text-sm text-[var(--text-secondary)]">Your mesh couldn&apos;t be reached.</p>
       <button
         type="button"
         onClick={onRetry}
-        className="mesh-glass mesh-ctl ds-focus-ring rounded-full px-4 py-2 text-xs text-white"
+        className="mesh-glass mesh-ctl ds-focus-ring rounded-full px-4 py-2 text-xs text-[var(--text-primary)]"
       >
         Try again
       </button>
@@ -154,20 +154,20 @@ function MeshPrivateGate({
   };
 
   return (
-    <div className="absolute inset-0 z-40 flex flex-col items-center justify-center gap-4 bg-[#04050c] px-6 text-center">
+    <div className="absolute inset-0 z-40 flex flex-col items-center justify-center gap-4 bg-[var(--paper-0)] px-6 text-center">
       {user?.avatarUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={user.avatarUrl} alt="" className="h-16 w-16 rounded-full object-cover ring-2 ring-white/15" />
+        <img src={user.avatarUrl} alt="" className="h-16 w-16 rounded-full object-cover ring-2 ring-[var(--rule-strong)]" />
       ) : (
-        <span className="flex h-16 w-16 items-center justify-center rounded-full bg-white/10 text-xl font-semibold text-white">
+        <span className="flex h-16 w-16 items-center justify-center rounded-full bg-[var(--paper-2)] text-xl font-semibold text-[var(--text-primary)]">
           {(user?.displayName || user?.username || "?").slice(0, 1).toUpperCase()}
         </span>
       )}
       <div>
-        <p className="text-base font-semibold text-white">
+        <p className="text-base font-semibold text-[var(--text-primary)]">
           {user?.displayName || `@${user?.username}`}&apos;s mesh is private
         </p>
-        <p className="mx-auto mt-1 max-w-xs text-sm text-white/55">
+        <p className="mx-auto mt-1 max-w-xs text-sm text-[var(--text-tertiary)]">
           Follow each other and their world opens up to you.
         </p>
       </div>
@@ -179,7 +179,7 @@ function MeshPrivateGate({
             disabled={following === null}
             aria-pressed={following === true}
             className={`mesh-bubble-btn ds-focus-ring rounded-full px-5 py-2 text-sm font-semibold disabled:opacity-60 ${
-              following ? "mesh-glass mesh-ctl text-white" : "mesh-cta"
+              following ? "mesh-glass mesh-ctl text-[var(--text-primary)]" : "mesh-cta"
             }`}
           >
             {following ? "Following — waiting for them" : `Follow @${user?.username}`}
@@ -187,7 +187,7 @@ function MeshPrivateGate({
         )}
         <Link
           href={`/profile/${user?.username}`}
-          className="mesh-bubble-btn rounded-full bg-white px-5 py-2 text-sm font-semibold text-black hover:bg-white/90"
+          className="mesh-bubble-btn rounded-full bg-[var(--paper-1)] px-5 py-2 text-sm font-semibold text-black hover:bg-[var(--paper-hover)]"
         >
           View profile
         </Link>
@@ -214,7 +214,7 @@ function MeshEmptyHint({
   return (
     <div className="pointer-events-none absolute inset-x-0 bottom-8 z-30 flex justify-center px-6">
       <div className="mesh-glass pointer-events-auto flex max-w-sm flex-col items-center gap-2.5 rounded-2xl px-5 py-4 text-center">
-        <p className="text-sm text-white/80">
+        <p className="text-sm text-[var(--text-secondary)]">
           {viewedUser
             ? `This mesh is just ${viewedUser.displayName || "@" + viewedUser.username} for now.`
             : viewer.isGlobal
@@ -232,7 +232,7 @@ function MeshEmptyHint({
             </button>
             <Link
               href="/connected-accounts"
-              className="mesh-bubble-btn mesh-glass mesh-ctl ds-focus-ring rounded-full px-4 py-2 text-xs font-medium text-white/85"
+              className="mesh-bubble-btn mesh-glass mesh-ctl ds-focus-ring rounded-full px-4 py-2 text-xs font-medium text-[var(--text-secondary)]"
             >
               Connect accounts
             </Link>

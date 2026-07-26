@@ -41,6 +41,7 @@ import {
 import { getNsfwPolicyForRegion, isAdultVerificationActive, normalizeUsState } from "@/lib/content-safety";
 import { broadcastGhostMode, GHOST_EVENT, readGhostMode } from "@/lib/ghost-mode";
 import { broadcastWhereShare, readWhereShare, WHERE_SHARE_EVENT } from "@/lib/where-share";
+import { MESH_PAPERS } from "@/components/mesh/paint/papers";
 import { isFreeMeshiOption } from "@/lib/mesh-pro";
 
 /* TOYBOX — the two moulded plastics this surface uses.
@@ -203,15 +204,13 @@ const themeColorLabels: Record<string, string> = {
 };
 const meshNodeStyles = ["clean", "soft", "glass", "bold"] as const;
 const meshMotionStyles = ["calm", "lively", "minimal"] as const;
-// Sky palettes for the mesh canvas — ids must match ATMOSPHERES in the scene
-// renderer. Swatch pairs preview each sky (deep base → nebula hue).
-const meshAtmospheres = [
-  { id: "midnight", label: "Midnight", swatch: ["#0c1226", "#7c3aed"] },
-  { id: "aurora", label: "Aurora", swatch: ["#081726", "#22c55e"] },
-  { id: "ember", label: "Ember", swatch: ["#1a0f12", "#f97316"] },
-  { id: "ocean", label: "Ocean", swatch: ["#071224", "#06b6d4"] },
-  { id: "dawn", label: "Dawn", swatch: ["#160f22", "#f59e0b"] },
-] as const;
+// The papers a mesh can be laid out on. This USED to be a second copy of the
+// renderer's table — "ids must match ATMOSPHERES in the scene renderer" was
+// written above it, and they had not matched for a long time. The renderer
+// shipped Daylight / Botanical / Kraft / Blueprint / Sunlit on paper; this list
+// still said Midnight / Aurora / Ember / Ocean / Dawn and previewed them with
+// outer-space swatches. Picking "Midnight" gave you cream. It reads the one
+// list now, and each swatch is derived from the paper it previews.
 const visibilityOptions = ["private", "friends", "public", "partial"];
 const branchKeys = ["people", "communities", "interests", "platforms", "content"] as const;
 const usStates = [
@@ -1824,7 +1823,7 @@ function MeshSection({
             SELECTED is a change of plastic rather than a 12% accent wash: the same
             move the feed's chips made at globals.css:7333. */}
         <PickerGroup label="Atmosphere — your mesh's sky">
-          {meshAtmospheres.map((sky) => (
+          {MESH_PAPERS.map((sky) => (
             <button
               key={sky.id}
               type="button"

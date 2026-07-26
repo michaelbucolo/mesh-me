@@ -28,7 +28,7 @@ function RailButton({
       // A labeled control, not a mystery icon: on touch the label is always
       // shown (no hover to reveal it); with a mouse it stays a tidy icon that
       // expands its label on hover/focus. Comfortable 44px touch target.
-      className="mesh-rail-btn mesh-glass mesh-ctl ds-focus-ring flex h-11 items-center rounded-full px-3 text-white/85"
+      className="mesh-rail-btn mesh-glass mesh-ctl ds-focus-ring flex h-11 items-center rounded-full px-3 text-[var(--text-secondary)]"
     >
       <span className="flex h-5 w-5 shrink-0 items-center justify-center">{children}</span>
       <span className="mesh-rail-label text-xs font-medium">{label}</span>
