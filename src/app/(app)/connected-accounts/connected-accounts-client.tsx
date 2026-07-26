@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
+import { readableInkOn } from "@/lib/readable-ink";
 import {
   AlertCircle,
   CheckCircle2,
@@ -73,7 +74,9 @@ const capabilityLabels: Record<PlatformAdapterCapabilityKey, string> = {
 // Clean, consistent brand monograms. Kept to plain text (no OS symbol glyphs
 // like ♫/▶/𝕏, which render inconsistently and can flip to emoji) so every
 // platform avatar reads uniformly on every device.
-const platformBrands: Record<string, { glyph: string; bg: string; fg?: string }> = {
+// The `fg` override is gone: the ink is derived from the fill now, so Snapchat is
+// not a special case and the next platform added cannot arrive without one.
+const platformBrands: Record<string, { glyph: string; bg: string }> = {
   github: { glyph: "GH", bg: "#24292e" },
   linkedin: { glyph: "in", bg: "#0077b5" },
   medium: { glyph: "M", bg: "#292929" },
@@ -86,7 +89,7 @@ const platformBrands: Record<string, { glyph: string; bg: string; fg?: string }>
   discord: { glyph: "DC", bg: "#5865f2" },
   twitch: { glyph: "TW", bg: "#9146ff" },
   facebook: { glyph: "FB", bg: "#1877f2" },
-  snapchat: { glyph: "SN", bg: "#fffc00", fg: "#0f1419" },
+  snapchat: { glyph: "SN", bg: "#fffc00" },
   reddit: { glyph: "r/", bg: "#ff4500" },
   pinterest: { glyph: "PI", bg: "#e60023" },
   soundcloud: { glyph: "SC", bg: "#ff5500" },
@@ -103,7 +106,7 @@ function PlatformAvatar({ platform, name, size = "md" }: { platform: string; nam
       className={cn("flex shrink-0 items-center justify-center rounded-full font-semibold", dimensions)}
       style={{
         backgroundColor: brand?.bg ?? "var(--accent-subtle)",
-        color: brand ? brand.fg ?? "#ffffff" : "var(--accent)",
+        color: brand ? readableInkOn(brand.bg) : "var(--accent)",
       }}
     >
       {brand?.glyph ?? (name.trim().charAt(0).toUpperCase() || "M")}
@@ -485,7 +488,7 @@ export function ConnectedAccountsClient({
           name: account.platformName,
           glyph: brand?.glyph ?? (account.platformName.trim().charAt(0).toUpperCase() || "M"),
           bg: brand?.bg ?? "var(--accent)",
-          fg: brand?.fg,
+          fg: brand ? readableInkOn(brand.bg) : undefined,
           synced: account.isActive && account.hasCredential && account.health === "ready",
         };
       }),
