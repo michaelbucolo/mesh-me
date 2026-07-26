@@ -12,6 +12,7 @@ import { playSound } from "@/lib/sound";
 import { useToast } from "@/components/ui/toast";
 import { PlatformLogo } from "@/components/platform/platform-logo";
 import { getPlatformCapability, normalizePlatformId } from "@/lib/platform-capabilities";
+import { setFlowStudioWeights } from "@/lib/actions";
 
 export type FlowPost = {
   id: string;
@@ -1418,10 +1419,17 @@ export function FlowClient({
     setStudio(next);
     studioRef.current = next;
     try {
+      // Local copy stays: it is what makes the sliders feel instant and what
+      // survives an offline session. It is now a CACHE, not the record.
       localStorage.setItem(STUDIO_STORAGE_KEY, JSON.stringify(next));
     } catch {
       // storage unavailable — session-only is fine
     }
+    // The account is the record. These weights are what MeshPro sells, and
+    // localStorage alone meant a new phone silently forgot them. Fire and
+    // forget: a failed write leaves the local copy correct and the next change
+    // retries, which is better than blocking a slider on the network.
+    void setFlowStudioWeights(JSON.stringify(next.weights)).catch(() => {});
   }, []);
 
   // Swipe down at the very top (or just reload) to pull fresh content.
