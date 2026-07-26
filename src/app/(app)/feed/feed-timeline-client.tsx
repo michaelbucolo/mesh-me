@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowRight, BarChart3, Bell, Camera, GalleryVerticalEnd, Grid3X3, Image as ImageIcon, LayoutList, Link2, Minimize2, MessageCircle, Play, PlusSquare, Rows3, Search, Sparkles, Type, Video } from "lucide-react";
+import { ArrowRight, Bell, Camera, Grid3X3, Image as ImageIcon, LayoutList, Link2, MessageCircle, Play, PlusSquare, Rows3, Search, Sparkles, Type, Video } from "lucide-react";
 import { FlowReels } from "./flow-reels";
 import { PaperWait } from "@/components/loading/paper-wait";
 import { PostCard } from "@/components/feed/post-card";
@@ -65,7 +65,6 @@ type FeedPresence = {
 };
 
 type FeedLayoutMode = "timeline" | "compact" | "media";
-type AdaptiveFeedMode = "classic" | "text" | "photo" | "video" | "creator" | "clean";
 
 const PAGE_SIZE = 20;
 
@@ -75,34 +74,45 @@ const sourceFilters: Array<{ id: FeedSource; label: string; mobileHidden?: boole
   { id: "discover", label: "Explore", mobileHidden: true },
 ];
 
-const contentFilters: Array<{ id: FeedContentFilter; label: string; icon: typeof Sparkles }> = [
-  { id: "all", label: "All", icon: Sparkles },
-  { id: "mesh", label: "Mesh.me", icon: Grid3X3 },
-  { id: "platforms", label: "Platforms", icon: Rows3 },
-  { id: "media", label: "Media", icon: ImageIcon },
-  { id: "links", label: "Links", icon: Link2 },
-];
-
-const layoutModes: Array<{ id: FeedLayoutMode; label: string; icon: typeof LayoutList }> = [
-  { id: "timeline", label: "Timeline", icon: LayoutList },
-  { id: "compact", label: "Compact", icon: Rows3 },
-  { id: "media", label: "Media", icon: GalleryVerticalEnd },
-];
-
-const adaptiveModes: Array<{
-  id: AdaptiveFeedMode;
+/**
+ * ONE ROW, ONE FACT.
+ *
+ * This was three rows — six "adaptive modes", five "content filters" and three
+ * "layout" buttons — fourteen controls above a feed, and two of the rows wrote
+ * the SAME state with different vocabularies.
+ *
+ * `FeedContentFilter` has eight values. The filter row offered five of them
+ * (all/mesh/platforms/media/links) and the mode presets set three it had no
+ * button for (text/photos/videos). Reproduced in a browser: pressing Photo,
+ * Video or Text left ALL FIVE filter chips at aria-pressed="false" — the row
+ * claimed nothing was selected while a filter was actively narrowing the feed,
+ * which is also a radio-group with no selected member for a screen reader.
+ *
+ * Two of the six modes were duplicates outright. `creator` set the identical
+ * contentFilter and layoutMode as `classic` and only added a stats panel that
+ * /profile?tab=analytics already renders in full. `clean` was `classic` plus
+ * compact cards — exactly the "Compact" layout button sitting next to it —
+ * while its description promised "calm, fewer controls", which it did not do.
+ *
+ * So: one row that owns the whole vocabulary, each value reachable in ONE click,
+ * and the layout implied by the choice rather than set separately. With a single
+ * control writing the state, the desync is not fixed — it is unrepresentable.
+ */
+const feedViews: Array<{
+  id: FeedContentFilter;
   label: string;
   copy: string;
   icon: typeof LayoutList;
-  contentFilter: FeedContentFilter;
   layoutMode: FeedLayoutMode;
 }> = [
-  { id: "classic", label: "Classic", copy: "Balanced social feed", icon: LayoutList, contentFilter: "all", layoutMode: "timeline" },
-  { id: "text", label: "Text", copy: "Fast posts and thoughts", icon: Type, contentFilter: "text", layoutMode: "compact" },
-  { id: "photo", label: "Photo", copy: "Visual browsing", icon: Camera, contentFilter: "photos", layoutMode: "media" },
-  { id: "video", label: "Video", copy: "Watch-first stream", icon: Video, contentFilter: "videos", layoutMode: "media" },
-  { id: "creator", label: "Creator", copy: "Performance context", icon: BarChart3, contentFilter: "all", layoutMode: "timeline" },
-  { id: "clean", label: "Clean", copy: "Calm, fewer controls", icon: Minimize2, contentFilter: "all", layoutMode: "timeline" },
+  { id: "all", label: "All", copy: "Balanced social feed", icon: Sparkles, layoutMode: "timeline" },
+  { id: "text", label: "Text", copy: "Fast posts and thoughts", icon: Type, layoutMode: "compact" },
+  { id: "photos", label: "Photos", copy: "Visual browsing", icon: Camera, layoutMode: "media" },
+  { id: "videos", label: "Video", copy: "Watch-first stream", icon: Video, layoutMode: "media" },
+  { id: "media", label: "Media", copy: "Everything with a picture or a clip", icon: ImageIcon, layoutMode: "media" },
+  { id: "mesh", label: "Mesh.me", copy: "Only what was posted here", icon: Grid3X3, layoutMode: "timeline" },
+  { id: "platforms", label: "Platforms", copy: "Only what came from a connected account", icon: Rows3, layoutMode: "timeline" },
+  { id: "links", label: "Links", copy: "Shared links", icon: Link2, layoutMode: "compact" },
 ];
 
 function getFeedPresenceKey(post: Pick<FeedPost, "id" | "platform" | "sourceId"> | null | undefined) {
@@ -149,7 +159,6 @@ export function FeedTimelineClient({
   const [hasMore, setHasMore] = useState(initialHasMore);
   const [contentFilter, setContentFilter] = useState<FeedContentFilter>(initialContentFilter);
   const [layoutMode, setLayoutMode] = useState<FeedLayoutMode>("timeline");
-  const [adaptiveMode, setAdaptiveMode] = useState<AdaptiveFeedMode>("classic");
   const [loadingMore, setLoadingMore] = useState(false);
   const [loadingFilter, setLoadingFilter] = useState(false);
   const [feedError, setFeedError] = useState("");
@@ -187,20 +196,8 @@ export function FeedTimelineClient({
     }
   }, [flowPostId]);
   const activePresencePostId = getFeedPresenceKey(activePost);
-  const activeModeConfig = adaptiveModes.find((mode) => mode.id === adaptiveMode) || adaptiveModes[0];
+  const activeModeConfig = feedViews.find((view) => view.id === contentFilter) || feedViews[0];
   const ActiveModeIcon = activeModeConfig.icon;
-  const feedStats = useMemo(() => {
-    const nativePosts = posts.filter((post) => (post.platform?.toLowerCase() || "meshme") === "meshme").length;
-    const platformPosts = posts.length - nativePosts;
-    const mediaPosts = posts.filter((post) => post.media.some((item) => {
-      const type = item.type.toLowerCase();
-      return type === "image" || type === "photo" || type === "video" || type === "reel" || type === "short";
-    })).length;
-    const engagement = posts.reduce((total, post) => total + post._count.reactions + post._count.comments + post._count.reposts, 0);
-    const comments = posts.reduce((total, post) => total + post._count.comments, 0);
-
-    return { nativePosts, platformPosts, mediaPosts, engagement, comments };
-  }, [posts]);
 
   useEffect(() => {
     setPosts(initialPosts);
@@ -295,19 +292,6 @@ export function FeedTimelineClient({
     }
   }, [contentFilter, fetchFeedPage, loadingFilter]);
 
-  const applyAdaptiveMode = useCallback(async (nextMode: AdaptiveFeedMode) => {
-    const config = adaptiveModes.find((mode) => mode.id === nextMode) || adaptiveModes[0];
-    setAdaptiveMode(config.id);
-    setLayoutMode(config.layoutMode);
-    try {
-      localStorage.setItem("mesh.feed.layout", config.layoutMode);
-    } catch {
-      /* ignore storage failures */
-    }
-    if (config.contentFilter !== contentFilter) {
-      await applyContentFilter(config.contentFilter);
-    }
-  }, [applyContentFilter, contentFilter]);
 
   useEffect(() => {
     const root = timelineRef.current;
@@ -470,7 +454,7 @@ export function FeedTimelineClient({
   };
 
   return (
-    <main className={`insta-feed-layout feed-x-layout feed-layout-mode-${layoutMode} feed-adaptive-${adaptiveMode} animate-page-enter`} data-meshi-zone="feed">
+    <main className={`insta-feed-layout feed-x-layout feed-layout-mode-${layoutMode} feed-view-${contentFilter} animate-page-enter`} data-meshi-zone="feed">
       <section className="min-w-0">
         <div className="insta-feed-topbar feed-x-topbar">
           <div className="inline-flex min-w-0 items-center gap-2">
@@ -512,66 +496,29 @@ export function FeedTimelineClient({
           ))}
         </nav>
 
-        <div className="feed-control-strip" aria-label="Feed view controls">
-          <div className="feed-mode-strip" role="list" aria-label="Adaptive feed modes">
-            {adaptiveModes.map((mode) => {
-              const Icon = mode.icon;
-              const active = adaptiveMode === mode.id;
+        {/* One row. Each view is one click, and the layout comes with it —
+            see feedViews for why there used to be three rows and why two of
+            them fought over the same state. */}
+        <div className="feed-control-strip" aria-label="Feed view">
+          <div className="feed-mode-strip" role="list" aria-label="Feed view">
+            {feedViews.map((view) => {
+              const Icon = view.icon;
+              const active = contentFilter === view.id;
               return (
                 <button
-                  key={mode.id}
+                  key={view.id}
                   type="button"
-                  onClick={() => void applyAdaptiveMode(mode.id)}
+                  onClick={() => {
+                    setLayoutMode(view.layoutMode);
+                    void applyContentFilter(view.id);
+                  }}
                   disabled={loadingFilter}
                   className={`feed-mode-button ${active ? "feed-mode-button-active" : ""}`}
                   aria-pressed={active}
-                  title={mode.copy}
+                  title={view.copy}
                 >
                   <Icon size={15} aria-hidden="true" />
-                  <span>{mode.label}</span>
-                </button>
-              );
-            })}
-          </div>
-
-          <div className="feed-control-scroll" role="list" aria-label="Content filters">
-            {contentFilters.map((filter) => {
-              const Icon = filter.icon;
-              const active = contentFilter === filter.id;
-              return (
-                <button
-                  key={filter.id}
-                  type="button"
-                  onClick={() => {
-                    setAdaptiveMode("classic");
-                    void applyContentFilter(filter.id);
-                  }}
-                  disabled={loadingFilter}
-                  className={`feed-control-chip ${active ? "feed-control-chip-active" : ""}`}
-                  aria-pressed={active}
-                >
-                  <Icon size={14} aria-hidden="true" />
-                  {filter.label}
-                </button>
-              );
-            })}
-          </div>
-
-          <div className="feed-layout-toggle" aria-label="Layout mode">
-            {layoutModes.map((mode) => {
-              const Icon = mode.icon;
-              const active = layoutMode === mode.id;
-              return (
-                <button
-                  key={mode.id}
-                  type="button"
-                  onClick={() => setLayoutMode(mode.id)}
-                  className={`feed-layout-button ${active ? "feed-layout-button-active" : ""}`}
-                  aria-label={`${mode.label} layout`}
-                  aria-pressed={active}
-                  title={`${mode.label} layout`}
-                >
-                  <Icon size={15} aria-hidden="true" />
+                  <span>{view.label}</span>
                 </button>
               );
             })}
@@ -589,21 +536,7 @@ export function FeedTimelineClient({
             </span>
           </div>
 
-          {adaptiveMode === "creator" && (
-            <div className="feed-creator-dashboard" aria-label="Creator feed snapshot">
-              {[
-                { label: "Visible posts", value: posts.length },
-                { label: "Engagement", value: feedStats.engagement },
-                { label: "Comments", value: feedStats.comments },
-                { label: "Media posts", value: feedStats.mediaPosts },
-              ].map((item) => (
-                <div key={item.label} className="feed-creator-stat">
-                  <span>{item.label}</span>
-                  <strong>{item.value}</strong>
-                </div>
-              ))}
-            </div>
-          )}
+          
 
           <div className={`feed-inline-composer ${isComposing ? "feed-inline-composer-active" : ""}`}>
             <PostComposer
@@ -630,7 +563,7 @@ export function FeedTimelineClient({
                     post={post}
                     currentUserId={user.id}
                     connectedPlatforms={connectedPlatforms}
-                    compact={layoutMode === "compact" || adaptiveMode === "text" || adaptiveMode === "clean"}
+                    compact={layoutMode === "compact"}
                     eager={index < 2}
                   />
                 </div>
