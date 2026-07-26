@@ -6,6 +6,7 @@ import { nsfwHiddenWhere } from "@/lib/content-safety";
 import { getMeshCache, setMeshCache } from "@/lib/mesh-cache";
 import { accountMuteKey, authorMuteKey, parseMutedSources } from "@/lib/muted-sources";
 import { areMutualFollowers, canViewMesh, canSeeMeshBranch, canSeeMeshStats, normalizeMeshVisibility, parseBranchOverrides, type BranchVisibility } from "@/lib/privacy-policy";
+import { hasMeshPro } from "@/lib/mesh-pro";
 
 export async function GET(req: Request) {
   try {
@@ -700,7 +701,11 @@ async function getPublicMesh(targetUserId: string, viewer: Awaited<ReturnType<ty
       avatarUrl: targetUser.avatarUrl,
       bio: targetUser.bio,
       isVerified: targetUser.isVerified,
-      isMeshPro: targetUser.isMeshPro,
+      // The same rule the profile read path already applies (queries.ts:554),
+      // on the OTHER side of the request. This one read the raw column, so a
+      // founder's mesh announced them as non-Pro to every visitor while their
+      // profile announced them as Pro. `username` is already in the select.
+      isMeshPro: hasMeshPro(targetUser),
     },
     following,
     followers,

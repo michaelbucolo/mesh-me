@@ -24,7 +24,7 @@ import { normalizeProfileLink, normalizeProfileLinks, safeLinkHref, MAX_LINKS } 
 const ROOT = process.cwd();
 const read = (p: string) => readFileSync(join(ROOT, p), "utf8");
 const strip = (s: string) =>
-  s.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "").replace(/\{\/\*[\s\S]*?\*\/\}/g, "");
+  s.replace(/^\s*\/\/.*$/gm, "").replace(/\/\*[\s\S]*?\*\//g, "").replace(/\{\/\*[\s\S]*?\*\/\}/g, "");
 
 const failures: string[] = [];
 const fail = (section: string, detail: string) => failures.push(`[${section}] ${detail}`);
