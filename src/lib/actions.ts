@@ -11,7 +11,7 @@ import { revalidatePath } from "next/cache";
 import { normalizeProfileLinks } from "@/lib/profile-links";
 import { slugify } from "./utils";
 import { getBaseUrl, isSupportedPlatform } from "./oauth";
-import { FREE_MESHI_OPTIONS, isFreeMeshiOption } from "./mesh-pro";
+import { FREE_MESHI_OPTIONS, hasMeshPro, isFreeMeshiOption } from "./mesh-pro";
 import { clearMeshCache } from "./mesh-cache";
 import { rateLimit, sanitizeForDisplay, validatePasswordStrength, validatePostContent, validateUrl } from "./security";
 import { canViewNsfw, classifyContentSafety, getNsfwPolicyForRegion, isAdultVerificationActive, normalizeUsState } from "./content-safety";
@@ -803,7 +803,14 @@ export async function completeOnboarding(formData: FormData) {
     if (value === null) return fallback;
     return value === "true" || value === "on" || value === "1";
   };
-  const meshiUpdate = {
+  // Onboarding validated against the FULL 82-value catalogue and never asked
+  // whether the account may hold what it picked — the only write path to
+  // meshiPreference that skipped the MeshPro gate. Every new free account could
+  // take ~30 paid cosmetics on the way in, and then could not change any Meshi
+  // setting afterwards, because the settings form resubmits all eight fields and
+  // the server refused the one it had handed over. Clamped here, so the invalid
+  // state is never written rather than being rejected later.
+  const meshiUpdate = clampMeshiOptionsToFree({
     colorTheme: cleanMeshiOption(String(formData.get("meshiColor") || ""), MESHI_OPTION_VALUES.colors, "blue") ?? "blue",
     hatStyle: cleanMeshiOption(String(formData.get("meshiHat") || ""), MESHI_OPTION_VALUES.hats, "none") ?? "none",
     faceStyle: cleanMeshiOption(String(formData.get("meshiFace") || ""), MESHI_OPTION_VALUES.faces, "happy") ?? "happy",
@@ -812,7 +819,10 @@ export async function completeOnboarding(formData: FormData) {
     eyeStyle: cleanMeshiOption(String(formData.get("meshiEyes") || ""), MESHI_OPTION_VALUES.eyes, "regular") ?? "regular",
     badgeStyle: cleanMeshiOption(String(formData.get("meshiBadge") || ""), MESHI_OPTION_VALUES.badges, "none") ?? "none",
     outfitStyle: cleanMeshiOption(String(formData.get("meshiOutfit") || ""), MESHI_OPTION_VALUES.outfits, "none") ?? "none",
-  };
+    // The username being CLAIMED, not the pre-onboarding one: a founder picks
+    // their handle in this very form, so judging them on the old value would
+    // clamp away the cosmetics they are entitled to on the way in.
+  }, hasMeshPro({ username, isMeshPro: user.isMeshPro }));
 
   if (username.length < 3 || username.length > 30 || !/^[a-z0-9_]+$/.test(username)) {
     return { error: "Username must be 3-30 characters and use letters, numbers, or underscores." };
@@ -2962,22 +2972,56 @@ const DEFAULT_MESHI_PREFERENCE = {
   outfitStyle: "none",
 };
 
-function findLockedMeshiOptionForFreeUser(next: Partial<Record<keyof MeshiPreferenceUpdate, string | undefined>>) {
-  const checks: Array<[keyof MeshiPreferenceUpdate, keyof typeof FREE_MESHI_OPTIONS, string]> = [
-    ["hatStyle", "hats", "hat"],
-    ["faceStyle", "faces", "expression"],
-    ["colorTheme", "colors", "color"],
-    ["hairStyle", "hairs", "hair"],
-    ["accessoryStyle", "accessories", "accessory"],
-    ["eyeStyle", "eyes", "eyes"],
-    ["badgeStyle", "badges", "badge"],
-    ["outfitStyle", "outfits", "outfit"],
-  ];
+const MESHI_LOCK_CHECKS: Array<[keyof MeshiPreferenceUpdate, keyof typeof FREE_MESHI_OPTIONS, string]> = [
+  ["hatStyle", "hats", "hat"],
+  ["faceStyle", "faces", "expression"],
+  ["colorTheme", "colors", "color"],
+  ["hairStyle", "hairs", "hair"],
+  ["accessoryStyle", "accessories", "accessory"],
+  ["eyeStyle", "eyes", "eyes"],
+  ["badgeStyle", "badges", "badge"],
+  ["outfitStyle", "outfits", "outfit"],
+];
 
-  return checks.find(([field, group]) => {
+/**
+ * Which option is a free account NEWLY reaching for that it may not have?
+ *
+ * `current` matters. The Meshi form submits all eight fields every time, so a
+ * check against the submitted values alone rejects a value the account ALREADY
+ * has — and onboarding used to hand those out (see completeOnboarding), which
+ * left those accounts unable to change ANY Meshi setting: every save resubmitted
+ * the locked value and every save was refused, while the picker key for a free
+ * value was disabled. A dead end with no way out from inside the product.
+ *
+ * Comparing against what is stored keeps the gate doing its real job — stopping
+ * a free account from ACQUIRING a paid option — without holding anyone hostage
+ * to a value the server itself wrote.
+ */
+function findLockedMeshiOptionForFreeUser(
+  next: Partial<Record<keyof MeshiPreferenceUpdate, string | undefined>>,
+  current: Partial<Record<keyof MeshiPreferenceUpdate, string | null | undefined>> = {},
+) {
+  return MESHI_LOCK_CHECKS.find(([field, group]) => {
     const value = next[field];
-    return value ? !isFreeMeshiOption(group, value) : false;
+    if (!value) return false;
+    if (isFreeMeshiOption(group, value)) return false;
+    // Unchanged from what is already stored: not an acquisition.
+    const held = current[field];
+    return !held || held.trim().toLowerCase() !== value.trim().toLowerCase();
   })?.[2];
+}
+
+/** Non-Pro accounts get the free default for anything they may not hold yet. */
+function clampMeshiOptionsToFree<T extends Record<string, string>>(next: T, isPro: boolean): T {
+  if (isPro) return next;
+  const clamped = { ...next };
+  for (const [field, group] of MESHI_LOCK_CHECKS) {
+    const value = clamped[field as keyof T] as string | undefined;
+    if (value && !isFreeMeshiOption(group, value)) {
+      (clamped as Record<string, string>)[field] = DEFAULT_MESHI_PREFERENCE[field as keyof typeof DEFAULT_MESHI_PREFERENCE];
+    }
+  }
+  return clamped;
 }
 
 export async function updateMeshiPreference(data: MeshiPreferenceUpdate) {
@@ -2995,10 +3039,17 @@ export async function updateMeshiPreference(data: MeshiPreferenceUpdate) {
     outfitStyle: cleanMeshiOption(data.outfitStyle, MESHI_OPTION_VALUES.outfits),
   };
 
-  if (!user.isMeshPro) {
-    const lockedOption = findLockedMeshiOptionForFreeUser(next);
+  if (!hasMeshPro(user)) {
+    const current = await prisma.meshiPreference.findUnique({
+      where: { userId: user.id },
+      select: {
+        hatStyle: true, faceStyle: true, colorTheme: true, hairStyle: true,
+        accessoryStyle: true, eyeStyle: true, badgeStyle: true, outfitStyle: true,
+      },
+    });
+    const lockedOption = findLockedMeshiOptionForFreeUser(next, current ?? {});
     if (lockedOption) {
-      return { error: `Mesh Pro is required for that Meshi ${lockedOption}.` };
+      return { error: `MeshPro is required for that Meshi ${lockedOption}.` };
     }
   }
 

@@ -2,6 +2,7 @@ import Stripe from "stripe";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getStripeClient, isMeshProSubscriptionStatus, stripeObjectId } from "@/lib/stripe";
+import { hasMeshPro } from "@/lib/mesh-pro";
 
 type SubscriptionWithPeriod = Stripe.Subscription & {
   current_period_end?: number;
@@ -25,18 +26,24 @@ export type MeshProBillingState = {
 };
 
 function billingFallback(user: {
+  username: string;
   isMeshPro: boolean;
   meshProSince: Date | null;
   stripeCustomerId: string | null;
   stripeSubscriptionId: string | null;
 }, overrides: Partial<MeshProBillingState> = {}): MeshProBillingState {
+  // hasMeshPro(), not the column. A founder's entitlement is derived from the
+  // account, so it cannot be read off a field that billing is free to reset:
+  // syncMeshProSubscription writes `isMeshPro: isActive`, which means a founder
+  // who ever subscribed and then lapsed had their column set back to 0.
+  const isPro = hasMeshPro(user);
   return {
     isConfigured: Boolean(getStripeClient()),
-    isMeshPro: user.isMeshPro,
+    isMeshPro: isPro,
     meshProSince: user.meshProSince,
     stripeCustomerId: user.stripeCustomerId,
     stripeSubscriptionId: user.stripeSubscriptionId,
-    status: user.isMeshPro ? "active" : "free",
+    status: isPro ? "active" : "free",
     cancelAtPeriodEnd: false,
     currentPeriodEnd: null,
     planInterval: null,
@@ -146,6 +153,12 @@ export async function getMeshProBillingState(userId: string): Promise<MeshProBil
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: {
+      // `username` is not decoration here: without it `hasMeshPro()` cannot be
+      // CALLED on this row, and the two pages about a person's entitlement fall
+      // back to the raw column. A founder — who has MeshPro for life but whose
+      // column is 0 — was shown the pricing grid and a checkout button on
+      // /meshpro and /billing while every other surface treated them as Pro.
+      username: true,
       isMeshPro: true,
       meshProSince: true,
       stripeCustomerId: true,
@@ -181,7 +194,10 @@ export async function getMeshProBillingState(userId: string): Promise<MeshProBil
 
     return billingFallback(user, {
       isConfigured: true,
-      isMeshPro: isMeshProSubscriptionStatus(subscription.status),
+      // Entitlement, not subscription state: a founder keeps MeshPro whatever
+      // Stripe says. `status` below still reports the SUBSCRIPTION honestly —
+      // that field is about the billing relationship, this one is about access.
+      isMeshPro: hasMeshPro(user) || isMeshProSubscriptionStatus(subscription.status),
       status: subscription.status,
       cancelAtPeriodEnd: Boolean(subscription.cancel_at_period_end),
       currentPeriodEnd,
