@@ -90,7 +90,7 @@ export function MeshContextBar({
           ) : (
             <span
               aria-hidden="true"
-              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--paper-3)] text-[0.625rem] font-bold text-[var(--text-secondary)]"
+              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--paper-3)] text-[0.625rem] font-semibold text-[var(--text-secondary)]"
             >
               {initialsOf(viewedUser.displayName, viewedUser.username)}
             </span>

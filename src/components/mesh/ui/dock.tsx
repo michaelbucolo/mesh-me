@@ -118,7 +118,10 @@ function DockKey({
       {primary && shortLabel && <span className="mesh-dock-label hidden sm:inline">{shortLabel}</span>}
       {badge != null && badge > 0 && (
         <span
-          className="mesh-new-mark mesh-dock-badge absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center px-1 text-[0.625rem] font-bold tabular-nums"
+          // font-semibold, not font-bold: scripts/type-check.ts caps weight at
+          // 600 across the product, and a 4px-tall badge does not get to be the
+          // exception. Its emphasis comes from the amber plastic under it.
+          className="mesh-new-mark mesh-dock-badge absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center px-1 text-[0.625rem] font-semibold tabular-nums"
           aria-hidden="true"
         >
           {badge > 99 ? "99+" : badge}
@@ -326,15 +329,17 @@ export function MeshDock({
         <div className="relative">
           <DockKey
             label={`${unseenTotal} new — see where`}
-            icon={<span className="text-xs font-bold tabular-nums">{unseenTotal > 99 ? "99+" : unseenTotal}</span>}
+            icon={<span className="text-xs font-semibold tabular-nums">{unseenTotal > 99 ? "99+" : unseenTotal}</span>}
             onClick={onToggleNew}
             expanded={newOpen}
           />
           {newOpen && (
             <DockPopover label="What's new, by branch" onDismiss={onCloseNew}>
-              <p className="px-2.5 pb-1 pt-1.5 text-micro font-semibold uppercase tracking-wide text-[var(--text-tertiary)]">
-                New since your last visit
-              </p>
+              {/* `.mesh-eyebrow`, not `uppercase tracking-wide` — small-caps is
+                  this product's ONE labelling device, and hand-rolling a second
+                  one out of transform + tracking is how a HUD voice gets in.
+                  scripts/type-check.ts owns that rule; it caught this. */}
+              <p className="mesh-eyebrow px-2.5 pb-1 pt-1.5">New since your last visit</p>
               {unseen.map(({ branch, count }) => (
                 <PopRow
                   key={branch}
