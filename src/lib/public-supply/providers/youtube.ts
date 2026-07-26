@@ -127,7 +127,16 @@ async function fetchMostPopular(ctx: LaneContext): Promise<PublicItem[]> {
       // cost is a handful of nursery-rhyme videos absent from a trending chart,
       // which is not a loss. This lane shipped without the `status` part at all,
       // so the check did not exist until now.
-      if (raw.status?.madeForKids === true) continue;
+      //
+      // IT FAILS CLOSED. The obvious spelling — `=== true` — admits anything
+      // whose status is missing, so if YouTube ever drops the field or the
+      // `status` part is edited out of the request above, children's content
+      // starts flowing in and being tracked, silently and indefinitely. The
+      // same reasoning as the refresh endpoint's secret two files away: absent
+      // information must mean no, never yes. An unreadable status empties the
+      // lane, which is loud, recoverable, and shows up as 0 items in the run
+      // record — the failure you find in a day rather than in a subpoena.
+      if (raw.status?.madeForKids !== false) continue;
 
       seen.add(id);
 
