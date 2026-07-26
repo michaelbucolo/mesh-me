@@ -970,7 +970,13 @@ function TrendingHero({ posts, onSeeAll }: { posts: FeedCardPost[]; onSeeAll: ()
                 >
                   #{index + 1}
                 </motion.span>
-                <div className="absolute inset-x-0 bottom-0 p-3">
+                {/* The caption block had no ground of its own — white text laid straight
+                    over the thumbnail. That is correct only while the image is there, and
+                    it is not there before it loads, when the post has none, or if the
+                    request fails; the text then lands on the card, which is light paper in
+                    daylight. Measured 1.33:1. The scrim makes white right unconditionally,
+                    which is what the rank badge two elements up already does. */}
+                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/55 to-transparent p-3 pt-8">
                   {!still && <p className="mb-1 line-clamp-2 text-sm font-semibold leading-snug text-white">{post.content}</p>}
                   <p className="truncate text-micro font-semibold text-white/85">{authorName}</p>
                   <p className="mt-0.5 flex items-center gap-2 text-micro text-white/60">

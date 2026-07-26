@@ -4870,15 +4870,28 @@ body,
   --ds-duration-fast: 140ms;
   --ds-duration: 180ms;
   --ds-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
-  --ds-danger: #ef4444;
-  --ds-danger-bg: color-mix(in srgb, #ef4444 12%, var(--bg-secondary));
-  --ds-danger-border: color-mix(in srgb, #ef4444 34%, var(--border-primary));
-  --ds-success: #22c55e;
-  --ds-success-bg: color-mix(in srgb, #22c55e 12%, var(--bg-secondary));
-  --ds-success-border: color-mix(in srgb, #22c55e 34%, var(--border-primary));
-  --ds-warning: #f59e0b;
-  --ds-warning-bg: color-mix(in srgb, #f59e0b 12%, var(--bg-secondary));
-  --ds-warning-border: color-mix(in srgb, #f59e0b 34%, var(--border-primary));
+  /* RETARGETED, like everything else in this block.
+     These three were the only --ds-* entries still holding a literal: #ef4444,
+     #22c55e, #f59e0b, fixed in both themes while --ds-focus-ring and
+     --ds-shadow-card beside them were pointed at real tokens years ago. The
+     comment above says the whole point of the family is that retargeting it
+     fixes every call site at once — these were simply never retargeted.
+
+     A fixed pigment cannot be right in two themes. #22c55e measured 2.20:1 on
+     the light mat (/meshpro, "Save 33%"). tokens.css's --success is #155839 in
+     daylight and #5fcb98 in worklight, and contrast-check proves both clear AA
+     on all four papers — 7.05/8.17/6.37/5.62 and 9.88/8.69/10.17/6.31.
+
+     61 call sites move onto the measured palette without touching one of them. */
+  --ds-danger: var(--danger);
+  --ds-danger-bg: color-mix(in srgb, var(--danger) 12%, var(--bg-secondary));
+  --ds-danger-border: color-mix(in srgb, var(--danger) 34%, var(--border-primary));
+  --ds-success: var(--success);
+  --ds-success-bg: color-mix(in srgb, var(--success) 12%, var(--bg-secondary));
+  --ds-success-border: color-mix(in srgb, var(--success) 34%, var(--border-primary));
+  --ds-warning: var(--warning);
+  --ds-warning-bg: color-mix(in srgb, var(--warning) 12%, var(--bg-secondary));
+  --ds-warning-border: color-mix(in srgb, var(--warning) 34%, var(--border-primary));
 }
 
 .light {

@@ -57,7 +57,7 @@ export function AnalyticsControls() {
   return (
     <div className="space-y-3">
       {status && (
-        <p className={status.type === "success" ? "text-xs text-emerald-400" : "text-xs text-red-400"}>
+        <p className={status.type === "success" ? "text-xs text-emerald-400" : "text-xs text-[var(--danger)]"}>
           {status.message}
         </p>
       )}
@@ -83,12 +83,12 @@ export function AnalyticsControls() {
           disabled={busyAction !== null}
           className="rounded-xl border border-red-500/20 bg-red-500/5 p-4 text-left transition hover:border-red-500/35 disabled:opacity-60"
         >
-          <Trash2 className="mb-3 h-5 w-5 text-red-400" />
+          <Trash2 className="mb-3 h-5 w-5 text-[var(--danger)]" />
           <h3 className="text-sm font-semibold text-[var(--text-primary)]">Delete synced platform data</h3>
           <p className="mt-1 text-xs leading-5 text-[var(--text-secondary)]">
             Remove imported platform content and sync history while keeping your connected-account links intact.
           </p>
-          <span className="mt-3 inline-flex items-center gap-2 text-xs font-semibold text-red-400">
+          <span className="mt-3 inline-flex items-center gap-2 text-xs font-semibold text-[var(--danger)]">
             {busyAction === "delete-synced" && <PaperWait size="sm" />}
             Delete synced data
           </span>
