@@ -31,12 +31,16 @@ import { MeshSearchOverlay } from "../ui/search-overlay";
 import { MeshShortcutsSheet } from "../ui/shortcuts-sheet";
 import { MeshTipsCard } from "../ui/tips-card";
 import { useCatchUp } from "../ui/use-catchup";
-import { MeshWedgeCounts } from "../ui/wedge-counts";
 import { createMeshRuntime, type MeshRuntime, type MeshRuntimeRef } from "./runtime";
 import type { BranchKey, SceneNode } from "./scene-model";
+import type { UnseenBranchCount } from "./seen-marks";
 import { useMeshFrame } from "./use-mesh-frame";
 import { contentListOf, useMeshInput } from "./use-mesh-input";
 import { useMeshWorld } from "./use-mesh-world";
+
+/** Module-level so the gated-off case is referentially stable — a fresh `[]`
+ *  every render would re-run the dock's memo work for no change. */
+const NO_UNSEEN: UnseenBranchCount[] = [];
 
 interface MeshSceneProps {
   viewUserId?: string;
@@ -347,8 +351,8 @@ export function MeshScene({ viewUserId, viewMode = "mesh", viewerIsPro = false }
         viewerIsPro={viewerIsPro}
       />
 
-      {/* Tabs / visiting header / rail / marquee / rewind — the persistent
-          chrome, under the one stacking manager. */}
+      {/* Context bar / dock / marquee / rewind — the persistent chrome, two
+          anchored objects, under the one stacking manager. */}
       <MeshChrome
         viewer={viewer}
         copy={copy}
@@ -361,24 +365,22 @@ export function MeshScene({ viewUserId, viewMode = "mesh", viewerIsPro = false }
         rewindAt={world.rewindAt}
         rewindValue={world.rewindValue}
         marquee={marqueeItem}
+        // "What piled up where" rides the dock's New key now, instead of its
+        // own floating column of chip-pairs bottom-left. SAME gate as before —
+        // own mesh, present time only, because the marks are viewer-side and
+        // Rewind's past has no "new" in it.
+        unseen={
+          viewer.isOwner && world.status === "ready" && world.rewindAt == null ? world.unseen : NO_UNSEEN
+        }
         chrome={chrome}
         onRewindInput={world.onRewindInput}
         onBackToNow={world.backToNow}
         navigate={push}
         onRecenter={world.fitToContent}
         onEmote={canEmote ? openEmoteFromRail : undefined}
+        onFocusBranch={(branch) => setActiveBranch((prev) => (prev === branch ? null : branch))}
+        onMarkSeen={world.markBranchSeen}
       />
-
-      {/* Wedge unseen counts + mark-seen pills — the manage layer's "what's
-          piled up where". Own mesh, present time only (marks are viewer-side
-          and Rewind's past has no "new"). */}
-      {viewer.isOwner && world.status === "ready" && world.rewindAt == null && (
-        <MeshWedgeCounts
-          unseen={world.unseen}
-          onFocusBranch={(branch) => setActiveBranch((prev) => (prev === branch ? null : branch))}
-          onMarkSeen={world.markBranchSeen}
-        />
-      )}
 
       {/* Status gates + travel veil. */}
       <MeshGates

@@ -334,7 +334,12 @@ export function ContentLens({
                 onClick={handleLike}
                 disabled={!postId || likePending}
                 className={`mesh-bubble-btn inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
-                  liked ? "bg-rose-500/15 text-rose-300" : "bg-[var(--paper-2)] text-[var(--text-secondary)] hover:bg-[var(--paper-hover)]"
+                  // Rose is the liked-heart INK, exactly as the Flow draws it
+                  // (flow-client.tsx:965). The `bg-rose-500/15` wash it used to
+                  // ride with was the outlier: pigment here is ink, and the face
+                  // under a liked heart is the same face as under an unliked
+                  // one — the heart changes, not the button.
+                  liked ? "bg-[var(--paper-2)] text-rose-500" : "bg-[var(--paper-2)] text-[var(--text-secondary)] hover:bg-[var(--paper-hover)]"
                 } ${!postId ? "cursor-default opacity-70" : ""}`}
               >
                 <span
@@ -399,14 +404,19 @@ export function ContentLens({
         </div>
 
         {/* Catch-up progress — dots for every unseen stop, pause/resume for
-            the auto-advance. Reading (any touch in the panel) pauses too. */}
+            the auto-advance. Reading (any touch in the panel) pauses too.
+
+            The cyan tint band, the cyan pause glyph and the two cyan dot states
+            are gone. A progress row is position — where am I, how far is left —
+            and position is legible in ink. The hue carried no information:
+            there is nothing else in this row it could contrast with. */}
         {catchup && (
-          <div className="flex items-center justify-center gap-2.5 border-t border-[var(--rule)] bg-cyan-400/[0.06] px-4 py-2">
+          <div className="flex items-center justify-center gap-2.5 border-t border-[var(--rule)] bg-[var(--paper-2)] px-4 py-2">
             <button
               type="button"
               aria-label={catchup.paused ? "Resume catch-up" : "Pause catch-up"}
               onClick={catchup.onTogglePause}
-              className="rounded-full bg-[var(--paper-2)] p-1.5 text-cyan-100 transition-colors hover:bg-[var(--paper-hover)]"
+              className="rounded-full bg-[var(--paper-3)] p-1.5 text-[var(--text-primary)] transition-colors hover:bg-[var(--paper-hover)]"
             >
               {catchup.paused ? <Play size={12} /> : <Pause size={12} />}
             </button>
@@ -417,10 +427,10 @@ export function ContentLens({
                     key={i}
                     className={`rounded-full transition-all ${
                       i === catchup.index
-                        ? "h-2 w-2 bg-cyan-300"
+                        ? "h-2 w-2 bg-[var(--text-primary)]"
                         : i < catchup.index
-                          ? "h-1.5 w-1.5 bg-cyan-300/45"
-                          : "h-1.5 w-1.5 bg-[var(--paper-2)]"
+                          ? "h-1.5 w-1.5 bg-[var(--text-tertiary)]"
+                          : "h-1.5 w-1.5 bg-[var(--paper-3)]"
                     }`}
                   />
                 ))}

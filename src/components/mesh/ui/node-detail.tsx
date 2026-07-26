@@ -129,7 +129,11 @@ export function NodeDetail({
       )}
 
       {muteKey && muted && (
-        <p className="mt-2.5 rounded-lg bg-amber-400/[0.08] px-2.5 py-1.5 text-micro leading-snug text-amber-100/80">
+        // Same note material as the placeReason note six lines up. It was a
+        // faint amber wash with amber-100/80 ink — an unreadable pair whose
+        // colour implied a warning, when "you muted this, only you can see it"
+        // is a plain statement of fact about the viewer's own preference.
+        <p className="mt-2.5 rounded-lg bg-[var(--paper-2)] px-2.5 py-1.5 text-micro leading-snug text-[var(--text-tertiary)]">
           Muted — this source&apos;s posts stay off your mesh and Flow. Only you can see this.
         </p>
       )}

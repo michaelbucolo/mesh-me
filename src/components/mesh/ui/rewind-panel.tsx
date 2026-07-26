@@ -26,9 +26,12 @@ export function MeshRewindPanel({
 }) {
   return (
     <>
-      {/* A whisper of amber over the whole world while viewing the past. */}
+      {/* A whisper of amber over the whole world while viewing the past — the
+          one ambient wash on this surface, and the one place a wash is right,
+          because it describes the world rather than an object in it. Mixed from
+          the amber PLASTIC now, not a raw palette utility. */}
       {rewindAt != null && (
-        <div aria-hidden className="pointer-events-none absolute inset-0 z-[4] bg-amber-400/[0.05]" />
+        <div aria-hidden className="mesh-rewind-veil pointer-events-none absolute inset-0 z-[4]" />
       )}
       <div className="absolute inset-x-0 bottom-5 z-30 flex justify-center px-4">
       <div

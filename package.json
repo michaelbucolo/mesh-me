@@ -10,7 +10,7 @@
     "dead-code:check": "knip --no-progress",
     "prod-schema-parity:check": "node --import tsx scripts/prod-schema-parity-check.ts",
     "schema:check": "prisma migrate diff --exit-code --from-migrations prisma/migrations --to-schema prisma/schema.prisma",
-    "check": "npm run foundation:check && npm run schema:check && npm run prod-schema-parity:check && npm run lint && npm run dead-code:check && npm run privacy:check && npm run contrast:check && npm run palette:check && npm run meshi:singleton && npm run profile-links:check && npm run founder-pro:check && npm run meshpro-name:check && npm run meshpro-claims:check && npm run public-supply:check && npm run platform-allowlist:check && npm run pen:check && npm run studio-reach:check && npm run view-controls:check && npm run silent-selection:check && npm run type:check && npm run consent:check && npm run disconnect:check && npm run second-writer:check && npm run email-claim:check && npm run claim-truth:check && npm run shape:check && npm run surface:check && npm run cursor:check && npm run meshi:cause-check && npm run mesh:layout-check && npm run mesh:seen-contract && npm run flow-form:check && npm run meshi-act:check && npm run reconciliation:check && npm run launch:check && npm run roadmap:check && npm run diagnostics",
+    "check": "npm run foundation:check && npm run schema:check && npm run prod-schema-parity:check && npm run lint && npm run dead-code:check && npm run privacy:check && npm run contrast:check && npm run palette:check && npm run meshi:singleton && npm run profile-links:check && npm run founder-pro:check && npm run meshpro-name:check && npm run meshpro-claims:check && npm run public-supply:check && npm run platform-allowlist:check && npm run mesh-chrome:check && npm run pen:check && npm run studio-reach:check && npm run view-controls:check && npm run silent-selection:check && npm run type:check && npm run consent:check && npm run disconnect:check && npm run second-writer:check && npm run email-claim:check && npm run claim-truth:check && npm run shape:check && npm run surface:check && npm run cursor:check && npm run meshi:cause-check && npm run mesh:layout-check && npm run mesh:seen-contract && npm run flow-form:check && npm run meshi-act:check && npm run reconciliation:check && npm run launch:check && npm run roadmap:check && npm run diagnostics",
     "verify": "npm run foundation:check && npm run schema:check && npm run prod-schema-parity:check && npm run lint && npm run dead-code:check && npm run privacy:check && npm run mesh:layout-check && npm run mesh:seen-contract && npm run reconciliation:check && npm run build && npm run diagnostics",
     "diagnostics": "node scripts/platform-diagnostics.mjs",
     "foundation:check": "node scripts/foundation-check.mjs",
@@ -56,7 +56,8 @@
     "surface:check": "node --import tsx scripts/surface-check.ts",
     "meshpro-claims:check": "node --import tsx scripts/meshpro-claims-check.ts",
     "public-supply:check": "node --import tsx scripts/public-supply-check.ts",
-    "platform-allowlist:check": "node --import tsx scripts/platform-allowlist-check.ts"
+    "platform-allowlist:check": "node --import tsx scripts/platform-allowlist-check.ts",
+    "mesh-chrome:check": "node --import tsx scripts/mesh-chrome-check.ts"
   },
   "dependencies": {
     "@capacitor/app": "^8.1.0",
