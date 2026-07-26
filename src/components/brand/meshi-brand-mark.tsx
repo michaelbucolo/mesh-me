@@ -20,7 +20,9 @@ export function MeshiBrandMark({
       size={size}
       color="blue"
       mood="happy"
-      animate
+      // The wordmark is a logo. A logo that breathes is a second live Meshi
+      // standing next to the real one — see user-meshi.tsx.
+      animate={false}
       className={className}
     />
   );

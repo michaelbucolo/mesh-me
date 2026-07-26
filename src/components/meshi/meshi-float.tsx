@@ -21,6 +21,7 @@ import {
 } from "./meshi-mascot";
 import { MeshiChat } from "./meshi-chat";
 import { MeshiActionsMenu } from "./meshi-actions-menu";
+import { useCanvasHasMeshi } from "@/components/mesh/live/meshi-presence";
 import { askMeshi, runMeshiAction } from "@/lib/meshi-client";
 import type { MeshiAction, MeshiHistoryMessage } from "@/lib/meshi-shared";
 import { getMeshGraphData, type MeshGraphEntity } from "@/lib/queries";
@@ -78,6 +79,13 @@ function getContextualProp(pathname: string): MeshiProp {
 // On the Mesh, the canvas renders the single living Meshi (the user's cursor/avatar
 // inside the world). The floating DOM body must yield to it so only ONE Meshi is ever
 // visible — they are the same entity. Chat/actions stay available as anchored overlays.
+//
+// BEING ON /mesh IS NOT THE SAME AS THE CANVAS HAVING HIM. The pathname flips on
+// the first frame of the navigation; the canvas Meshi does not exist until the
+// mesh request returns. Yielding on the path alone opened a hole that the loading
+// gate filled with a Meshi of its own, so entering your mesh showed three
+// different bodies in a row. The path says WHERE to look; meshi-presence says
+// whether he is actually there, and the handoff waits for that.
 function isMeshSurfacePath(pathname: string) {
   return pathname === "/mesh" || pathname.startsWith("/mesh/");
 }
@@ -699,7 +707,12 @@ export function MeshiFloat() {
   const speechInputRef = useRef<HTMLInputElement>(null);
 
   const pathname = usePathname();
-  const isMeshSurface = isMeshSurfacePath(pathname);
+  const onMeshRoute = isMeshSurfacePath(pathname);
+  // The canvas reports when it is actually drawing you. Until it does, the float
+  // stays — so the walk into your mesh, the wait while it weaves, and the arrival
+  // are one continuous character rather than three that replace each other.
+  const canvasHasMeshi = useCanvasHasMeshi();
+  const isMeshSurface = onMeshRoute && canvasHasMeshi;
   const isMeshSurfaceRef = useRef(isMeshSurface);
   useEffect(() => { isMeshSurfaceRef.current = isMeshSurface; }, [isMeshSurface]);
 

@@ -82,7 +82,9 @@ export function UserMeshiBadge({
       aria-label={`Meshi represents ${name} on Mesh.me`}
     >
       <span className="relative inline-flex shrink-0">
-        <UserMeshi size={size} animate={!compact} />
+        {/* An identity badge is a picture of you, not a second you. Motion is
+            reserved for the one companion — see user-meshi.tsx. */}
+        <UserMeshi size={size} />
         <span className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full border border-[var(--bg-primary)] bg-emerald-400" />
       </span>
       {!compact && (
