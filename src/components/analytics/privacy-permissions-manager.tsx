@@ -118,7 +118,7 @@ export function PrivacyPermissionsManager({ accounts }: { accounts: ConnectedAna
                   <button
                     onClick={() => toggleAccountAccess(account)}
                     disabled={savingKey === `${account.id}:isActive`}
-                    className={`rounded-full px-3 py-1 text-xs font-semibold transition ${account.isActive ? "bg-emerald-500/15 text-emerald-400" : "bg-[var(--bg-tertiary)] text-[var(--text-muted)]"}`}
+                    className={`rounded-full px-3 py-1 text-xs font-semibold transition ${account.isActive ? "bg-emerald-500/15 text-[var(--success)]" : "bg-[var(--bg-tertiary)] text-[var(--text-muted)]"}`}
                   >
                     {savingKey === `${account.id}:isActive` ? "Saving..." : account.isActive ? "Access enabled" : "Access paused"}
                   </button>

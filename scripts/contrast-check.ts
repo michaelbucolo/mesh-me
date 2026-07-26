@@ -465,6 +465,60 @@ for (const [theme, tokens] of [["Daylight", DAYLIGHT], ["Lamplight", LAMPLIGHT]]
   checks += 1;
 }
 
+// 11e. A PIGMENT MAY NOT BE THE INK ON A TINT OF ITS OWN HUE.
+//
+// `text-emerald-400` on `bg-emerald-500/10` looks careful and is correct exactly
+// once: on a dark mat, where the 10% tint stays dark and the saturated ink reads
+// against it. Put the same pair on light paper and the tint goes light while the
+// ink does not move — measured 1.17:1 on /trust, 1.29:1 on /status, 1.70:1 on
+// /profile and /analytics.
+//
+// It is the same defect as the mesh node chips and the /trail labels, and it has
+// now been found four separate times, so it is a rule rather than four fixes.
+// The palette's four pigments are theme-aware and this file already proves each
+// one clears AA on all four papers in both themes; a Tailwind hue proves nothing
+// because it does not know which theme it is in.
+//
+// The mesh canvas is exempt by path: it is dark in BOTH themes, so a pigment on
+// its own tint is genuinely safe there. That exemption is a directory, not a
+// tolerance — moving a component out of it re-arms this check.
+{
+  const HUES = "slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose";
+  const ALWAYS_DARK = /^src\/components\/mesh\//;
+  const offenders: string[] = [];
+  const walkTsx = (dir: string, out: string[] = []): string[] => {
+    for (const entry of readdirSync(join(ROOT, dir), { withFileTypes: true })) {
+      const rel = `${dir}/${entry.name}`;
+      if (entry.isDirectory()) walkTsx(rel, out);
+      else if (entry.name.endsWith(".tsx")) out.push(rel);
+    }
+    return out;
+  };
+  for (const file of walkTsx("src")) {
+    if (ALWAYS_DARK.test(file)) continue;
+    readFileSync(join(ROOT, file), "utf8").split("\n").forEach((line, i) => {
+      if (/^\s*(\/\/|\/\*|\*)/.test(line)) return;   // prose about the rule is not a breach of it
+      const fills = [...line.matchAll(new RegExp(`bg-(${HUES})-\\d{2,3}/(?:\\d+|\\[[^\\]]+\\])`, "g"))];
+      for (const fill of fills) {
+        if (new RegExp(`text-${fill[1]}-\\d{2,3}\\b`).test(line)) {
+          offenders.push(`${file}:${i + 1}  ${fill[0]}`);
+        }
+      }
+    });
+  }
+  assert.deepEqual(
+    offenders,
+    [],
+    "a pigment is the ink on a tint of its own hue:\n" +
+      offenders.slice(0, 15).map((o) => `    ${o}`).join("\n") +
+      (offenders.length > 15 ? `\n    …and ${offenders.length - 15} more` : "") +
+      "\n  Use --success / --danger / --warning / --info. Those four are theme-aware and this\n" +
+      "  file measures them against all four papers in both themes. A Tailwind hue is a fixed\n" +
+      "  colour on a tint that is not, so it is right in one theme by construction.",
+  );
+  checks += 1;
+}
+
 console.log(
   `contrast OK — ${checks} ratios measured across both themes: every text ink clears AA on all four\n` +
     "  papers AND on every face/hover/press state, --ink-4 stays decorative, the accent works as\n" +

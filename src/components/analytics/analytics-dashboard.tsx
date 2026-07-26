@@ -233,16 +233,16 @@ function PlatformRow({ account, index }: { account: AnalyticsDashboardData["plat
         <span
           className={`ml-auto rounded-full px-2 py-0.5 text-micro font-semibold ${
             account.syncStatus === "error"
-              ? "bg-red-500/15 text-red-300"
+              ? "bg-red-500/15 text-[var(--danger)]"
               : account.isActive
-                ? "bg-emerald-500/12 text-emerald-300"
+                ? "bg-emerald-500/12 text-[var(--success)]"
                 : "bg-white/8 text-[var(--text-muted)]"
           }`}
         >
           {account.syncStatus === "error" ? "Sync error" : account.isActive ? "Synced" : "Paused"}
         </span>
         {account.followerGrowth !== 0 && (
-          <span className={`rounded-full px-2 py-0.5 text-micro font-semibold ${account.followerGrowth > 0 ? "bg-emerald-500/12 text-emerald-300" : "bg-red-500/12 text-red-300"}`}>
+          <span className={`rounded-full px-2 py-0.5 text-micro font-semibold ${account.followerGrowth > 0 ? "bg-emerald-500/12 text-[var(--success)]" : "bg-red-500/12 text-[var(--danger)]"}`}>
             {account.followerGrowth > 0 ? "+" : ""}
             {compact(account.followerGrowth)} this month
           </span>
@@ -474,7 +474,7 @@ function StatusPill({ label, ok }: { label: string; ok: boolean }) {
     <span
       className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-micro font-semibold ${
         ok
-          ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-300"
+          ? "border-emerald-500/25 bg-emerald-500/10 text-[var(--success)]"
           : "border-[var(--border-primary)] bg-[var(--bg-secondary)] text-[var(--text-muted)]"
       }`}
     >

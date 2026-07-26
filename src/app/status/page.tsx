@@ -37,19 +37,19 @@ const statusStyles = {
   operational: {
     label: "Operational",
     icon: CheckCircle2,
-    className: "border-emerald-500/30 bg-emerald-500/10 text-emerald-300",
+    className: "border-emerald-500/30 bg-emerald-500/10 text-[var(--success)]",
     dotClassName: "bg-emerald-400 shadow-[0_0_14px_rgba(52,211,153,0.55)]",
   },
   degraded: {
     label: "Degraded",
     icon: CircleAlert,
-    className: "border-rose-500/30 bg-rose-500/10 text-rose-300",
+    className: "border-rose-500/30 bg-rose-500/10 text-[var(--danger)]",
     dotClassName: "bg-rose-400 shadow-[0_0_14px_rgba(251,113,133,0.55)]",
   },
   setup_needed: {
     label: "Setup needed",
     icon: CircleAlert,
-    className: "border-amber-500/30 bg-amber-500/10 text-amber-300",
+    className: "border-amber-500/30 bg-amber-500/10 text-[var(--warning)]",
     dotClassName: "bg-amber-400 shadow-[0_0_14px_rgba(251,191,36,0.55)]",
   },
 } satisfies Record<SystemServiceStatus, { label: string; icon: typeof CheckCircle2; className: string; dotClassName: string }>;

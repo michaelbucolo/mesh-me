@@ -186,14 +186,14 @@ export function SupportTicketForm() {
       </div>
 
       {submission.status === "error" && (
-        <div className="mt-4 flex items-start gap-2 rounded-2xl border border-red-500/30 bg-red-500/10 p-3 text-sm font-semibold text-red-500" role="alert">
+        <div className="mt-4 flex items-start gap-2 rounded-2xl border border-red-500/30 bg-red-500/10 p-3 text-sm font-semibold text-[var(--danger)]" role="alert">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
           {submission.message}
         </div>
       )}
 
       {submission.status === "success" && (
-        <div className="mt-4 flex items-start gap-2 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm font-semibold text-emerald-600" role="status">
+        <div className="mt-4 flex items-start gap-2 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm font-semibold text-[var(--success)]" role="status">
           <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
           Ticket {submission.ticketNumber} was submitted.
         </div>

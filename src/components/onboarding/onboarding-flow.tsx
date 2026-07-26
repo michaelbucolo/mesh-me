@@ -352,7 +352,7 @@ export function OnboardingFlow({
           </header>
 
           {status && (
-            <div className="mt-4 rounded-md border border-red-400/25 bg-red-500/10 px-4 py-3 text-sm font-semibold text-red-100" role="alert">
+            <div className="mt-4 rounded-md border border-red-400/25 bg-red-500/10 px-4 py-3 text-sm font-semibold text-[var(--danger)]" role="alert">
               {status}
             </div>
           )}

@@ -172,7 +172,7 @@ function TrailInner({ isPro }: { isPro: boolean }) {
       {/* Header */}
       <div className="mb-2 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2.5">
-          <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-400/10 text-emerald-300">
+          <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-400/10 text-[var(--success)]">
             <Footprints size={20} />
           </span>
           <div>

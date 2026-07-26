@@ -204,7 +204,7 @@ export function PostDetailClient({ post, currentUserId }: PostDetailClientProps)
               {post.isNsfw && (
                 <>
                   <span>&middot;</span>
-                  <span className="rounded bg-amber-400/10 px-1.5 py-0.5 text-micro font-semibold text-amber-300">NSFW</span>
+                  <span className="rounded bg-amber-400/10 px-1.5 py-0.5 text-micro font-semibold text-[var(--warning)]">NSFW</span>
                 </>
               )}
               {post.community && (

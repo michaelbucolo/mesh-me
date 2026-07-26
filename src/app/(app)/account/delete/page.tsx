@@ -38,7 +38,7 @@ export default async function DeleteAccountPage() {
         </Link>
         <div className="mt-4 flex flex-wrap items-start justify-between gap-4">
           <div>
-            <div className="inline-flex items-center gap-2 rounded-full border border-red-400/25 bg-red-500/10 px-3 py-2 text-xs font-semibold mesh-eyebrow text-red-100">
+            <div className="inline-flex items-center gap-2 rounded-full border border-red-400/25 bg-red-500/10 px-3 py-2 text-xs font-semibold mesh-eyebrow text-[var(--danger)]">
               <ShieldAlert className="h-4 w-4" aria-hidden="true" />
               Permanent account removal
             </div>

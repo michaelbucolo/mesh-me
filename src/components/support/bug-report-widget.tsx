@@ -190,14 +190,14 @@ export function BugReportWidget() {
             )}
 
             {submitState.status === "error" && (
-              <p className="flex items-start gap-2 rounded-2xl border border-red-500/30 bg-red-500/10 p-3 text-sm font-semibold text-red-500" role="alert">
+              <p className="flex items-start gap-2 rounded-2xl border border-red-500/30 bg-red-500/10 p-3 text-sm font-semibold text-[var(--danger)]" role="alert">
                 <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
                 {submitState.message}
               </p>
             )}
 
             {submitState.status === "success" && (
-              <p className="flex items-start gap-2 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm font-semibold text-emerald-600" role="status">
+              <p className="flex items-start gap-2 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm font-semibold text-[var(--success)]" role="status">
                 <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
                 Bug {submitState.reportNumber} was submitted.
               </p>

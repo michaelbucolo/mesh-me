@@ -75,13 +75,26 @@ function platformLabel(platform: string) {
 }
 
 function platformBadgeClass(platform: string): string {
+  // The FILL carries the platform's identity; the INK is theme-aware.
+  //
+  // These were `text-sky-300` on `bg-sky-500/20` and so on — a pigment as ink on a
+  // tint of its own hue, which reads on a dark mat and collapses once that tint
+  // lands on light paper. Neither a fixed dark ink nor white fixes it across all
+  // five: on the -500 fills, #12131c clears AA on four and indigo-500 is 4.04,
+  // while white clears only indigo. There is no one ink for these hues.
+  //
+  // A 20% tint barely moves the paper underneath it, so --text-primary is high
+  // contrast on all five in both themes by construction, and the colour still says
+  // which platform this is. These are identity, not status — YouTube's badge is
+  // not "danger" and WhatsApp's is not "success", which is why they do not use the
+  // semantic pigments even though the hues happen to match.
   const p = platform.toLowerCase();
-  if (p === "twitter" || p === "x") return "bg-sky-500/20 text-sky-300";
-  if (p === "instagram") return "bg-pink-500/20 text-pink-300";
-  if (p === "youtube") return "bg-red-500/20 text-red-300";
-  if (p === "discord") return "bg-indigo-500/20 text-indigo-300";
-  if (p === "whatsapp") return "bg-emerald-500/20 text-emerald-300";
-  return "bg-[var(--accent)]/20 text-[var(--accent)]";
+  if (p === "twitter" || p === "x") return "bg-sky-500/20 text-[var(--text-primary)]";
+  if (p === "instagram") return "bg-pink-500/20 text-[var(--text-primary)]";
+  if (p === "youtube") return "bg-red-500/20 text-[var(--text-primary)]";
+  if (p === "discord") return "bg-indigo-500/20 text-[var(--text-primary)]";
+  if (p === "whatsapp") return "bg-emerald-500/20 text-[var(--text-primary)]";
+  return "bg-[var(--accent)]/20 text-[var(--text-primary)]";
 }
 
 function threadDisplay(thread: MeChatThread) {
