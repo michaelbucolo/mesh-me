@@ -47,6 +47,7 @@ import {
   cursorSpriteOwnsPointerOnServer,
   subscribeToPointerModality,
 } from "@/lib/pointer-modality";
+import { isPrecisePointer } from "@/lib/pen";
 
 /** Sprite box size. The body occupies x ∈ [+4, +32], y ∈ [−34, −6] from the aim dot. */
 const SIZE = 28;
@@ -123,8 +124,13 @@ export function MeshiCursor() {
     };
 
     const onMove = (event: PointerEvent) => {
-      // Only a real mouse/trackpad. A pen or touch contact must not summon it.
-      if (event.pointerType !== "mouse") return;
+      // A mouse, a trackpad, or a PEN — anything that resolves a position
+      // exactly. Touch must still not summon it. Admitting the pen also closes
+      // an asymmetry that was already here: `onOver` below was never
+      // type-gated, so a hovering pen updated gaze and suppression while px/py
+      // stayed frozen at the last mouse position, and Meshi looked at what the
+      // pen was over from wherever the mouse had been.
+      if (!isPrecisePointer(event.pointerType)) return;
       px = event.clientX;
       py = event.clientY;
       if (suppressed) return;

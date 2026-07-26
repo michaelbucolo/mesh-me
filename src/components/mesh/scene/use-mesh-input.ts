@@ -10,6 +10,7 @@
 import { useCallback, useEffect } from "react";
 import type React from "react";
 import { playSound } from "@/lib/sound";
+import { isPrecisePointer, notePenDown, notePenUp, yieldsToPen } from "@/lib/pen";
 import { clampZoom, unprojectPoint, MAX_ZOOM } from "../core/camera";
 import type { MeshRuntime, MeshRuntimeRef } from "./runtime";
 import { catchUpTourIds } from "./seen-marks";
@@ -273,9 +274,30 @@ export function useMeshInput(rtRef: MeshRuntimeRef, deps: MeshInputDeps): MeshIn
     [rtRef],
   );
 
+  /**
+   * Is THIS event too imprecise to trust exactly?
+   *
+   * `rt.coarse` answers "is the device's PRIMARY pointer coarse", set once from
+   * matchMedia("(pointer: coarse)"). On a tablet that is touch, and it stayed
+   * true for every Apple Pencil and S Pen event in the session — so a 1mm tip
+   * got the 22px hit slop, the 12px drag threshold and a cursor pinned to the
+   * screen centre, all of which exist for a fingertip. Precision is a fact about
+   * the EVENT, so it is asked per event and `rt.coarse` only narrows the default.
+   */
+  const imprecise = useCallback(
+    (e: React.PointerEvent) => rtRef.current.coarse && !isPrecisePointer(e.pointerType),
+    [rtRef],
+  );
+
   const onPointerDown = useCallback(
     (e: React.PointerEvent) => {
       const rt = rtRef.current;
+      notePenDown(e.nativeEvent);
+      // A palm landing mid-stroke used to arrive as pointer two and turn a
+      // Pencil line into a pinch-zoom; a palm landing first claimed the gesture
+      // outright. The OS rejects palms eventually and says so with
+      // pointercancel (handled below) — this covers the moment before it does.
+      if (yieldsToPen(e.nativeEvent)) return;
       (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
       rt.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
       const rect = rt.containerEl?.getBoundingClientRect();
@@ -284,7 +306,7 @@ export function useMeshInput(rtRef: MeshRuntimeRef, deps: MeshInputDeps): MeshIn
         const sy = e.clientY - rect.top;
         // On touch the stable viewport anchor is the screen centre — but a TAP
         // is a deliberate point, so it still steers your Meshi on the mesh.
-        if (rt.coarse) {
+        if (imprecise(e)) {
           rt.cursorVp = { vx: 0.5, vy: 0.5 };
         } else {
           rt.cursorVp = { vx: sx / rect.width, vy: sy / rect.height };
@@ -299,7 +321,7 @@ export function useMeshInput(rtRef: MeshRuntimeRef, deps: MeshInputDeps): MeshIn
           t.seen = true;
         }
         rt.lastInputAt = performance.now();
-        if (e.pointerType === "mouse") rt.pointerOnCanvas = true;
+        if (isPrecisePointer(e.pointerType)) rt.pointerOnCanvas = true;
         if (rt.meshiCursorEl) rt.meshiCursorEl.style.opacity = "1";
       }
       const d = rt.drag;
@@ -325,7 +347,7 @@ export function useMeshInput(rtRef: MeshRuntimeRef, deps: MeshInputDeps): MeshIn
       if (rt.pointers.size === 1 && !rt.toys.pluck && rect && rect.width > 0 && rect.height > 0) {
         const sx = e.clientX - rect.left;
         const sy = e.clientY - rect.top;
-        const held = hitTest(sx, sy, rt.coarse ? 22 : 0);
+        const held = hitTest(sx, sy, imprecise(e) ? 22 : 0);
         const holdable =
           held &&
           (held.kind === "post" ||
@@ -382,7 +404,7 @@ export function useMeshInput(rtRef: MeshRuntimeRef, deps: MeshInputDeps): MeshIn
         d.moved = true;
       }
     },
-    [rtRef, hitTest, onPluck, onEmoteHold],
+    [rtRef, hitTest, imprecise, onPluck, onEmoteHold],
   );
 
   const onPointerMove = useCallback(
@@ -407,7 +429,7 @@ export function useMeshInput(rtRef: MeshRuntimeRef, deps: MeshInputDeps): MeshIn
         return;
       }
       if (rect.width > 0 && rect.height > 0) {
-        if (rt.coarse) {
+        if (imprecise(e)) {
           rt.cursorVp = { vx: 0.5, vy: 0.5 };
         } else {
           rt.cursorVp = { vx: sx / rect.width, vy: sy / rect.height };
@@ -435,11 +457,11 @@ export function useMeshInput(rtRef: MeshRuntimeRef, deps: MeshInputDeps): MeshIn
       }
       const cursor = rt.meshiCursorEl;
       if (cursor) cursor.style.opacity = "1";
-      if (!rt.coarse && rt.cursorDotEl) {
+      if (!imprecise(e) && rt.cursorDotEl) {
         rt.cursorDotEl.style.opacity = "1";
         rt.cursorDotEl.style.transform = "translate(" + sx + "px, " + sy + "px) translate(-50%, -50%)";
       }
-      if (e.pointerType === "mouse") {
+      if (isPrecisePointer(e.pointerType)) {
         if (!rt.drag.active) {
           const node = hitTest(sx, sy);
           const id = node?.id ?? null;
@@ -490,7 +512,7 @@ export function useMeshInput(rtRef: MeshRuntimeRef, deps: MeshInputDeps): MeshIn
       // does not. Touch gets a much larger tolerance than a precise mouse — this
       // is the main reason taps "didn't select" before (a few px of wobble was
       // read as a drag).
-      const moveThresh = rt.coarse ? 12 : 3;
+      const moveThresh = imprecise(e) ? 12 : 3;
       const wasMoved = d.moved;
       if (Math.abs(e.clientX - d.startX) + Math.abs(e.clientY - d.startY) > moveThresh) d.moved = true;
       // A confirmed drag is a pan, not a hold — disarm any pending pluck.
@@ -516,12 +538,13 @@ export function useMeshInput(rtRef: MeshRuntimeRef, deps: MeshInputDeps): MeshIn
       d.lastX = e.clientX;
       d.lastY = e.clientY;
     },
-    [rtRef, hitTest, setHoverNode],
+    [rtRef, hitTest, imprecise, setHoverNode],
   );
 
   const onPointerUp = useCallback(
     (e: React.PointerEvent) => {
       const rt = rtRef.current;
+      notePenUp(e.nativeEvent);
       const d = rt.drag;
       // Lifting a plucked node releases the spring (snap-back wobble). The
       // DOM ring resolves its own release-on-action; this lift is never a
@@ -595,7 +618,7 @@ export function useMeshInput(rtRef: MeshRuntimeRef, deps: MeshInputDeps): MeshIn
         // every tap hit-test is forgiving by ~22px — a tap that lands near a
         // node still selects it (and the nearest-centre tiebreak in hitTest picks
         // the right one in a cluster). A mouse click stays pixel-precise (slop 0).
-        const tapSlop = rt.coarse ? 22 : 0;
+        const tapSlop = imprecise(e) ? 22 : 0;
         // Double-tap / double-click on empty space zooms in on that spot.
         const now = performance.now();
         const prevTap = rt.lastTap;
@@ -638,7 +661,7 @@ export function useMeshInput(rtRef: MeshRuntimeRef, deps: MeshInputDeps): MeshIn
         setActiveBranch(null);
       }
     },
-    [rtRef, activateNode, hitTest, push, setActiveBranch, setSelectedNode, onFlick],
+    [rtRef, activateNode, hitTest, imprecise, push, setActiveBranch, setSelectedNode, onFlick],
   );
 
   // A browser-initiated cancel (system gesture, pointer stolen) should ABORT the
@@ -647,6 +670,7 @@ export function useMeshInput(rtRef: MeshRuntimeRef, deps: MeshInputDeps): MeshIn
   const onPointerCancel = useCallback(
     (e: React.PointerEvent) => {
       const rt = rtRef.current;
+      notePenUp(e.nativeEvent);
       const d = rt.drag;
       // An aborted gesture also aborts any pluck — release the spring quietly.
       cancelPluckHold(rt);
@@ -685,9 +709,11 @@ export function useMeshInput(rtRef: MeshRuntimeRef, deps: MeshInputDeps): MeshIn
   const onPointerLeave = useCallback(
     (e: React.PointerEvent) => {
       const rt = rtRef.current;
-      // A lifted finger fires pointerleave too — only a mouse leaving the
-      // canvas should hide Meshi; on touch it stays where you left it.
-      if (e.pointerType !== "mouse") return;
+      // A lifted finger fires pointerleave too — only a PRECISE pointer
+      // leaving the canvas should hide Meshi; on touch it stays where you left
+      // it. A pen lifting away must clear hover, or the reticle sticks to
+      // whatever it was last over.
+      if (!isPrecisePointer(e.pointerType)) return;
       rt.pointerOnCanvas = false;
       rt.hoverId = null;
       setHoverNode(null);
