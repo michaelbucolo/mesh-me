@@ -1,4 +1,5 @@
 import type { PlatformContentAction } from "@/lib/api-validation";
+import { isMeshPlatform, MESH_PLATFORMS } from "@/lib/platforms";
 
 type PlatformActionCapability = {
   supported: boolean;
@@ -61,7 +62,16 @@ const oauthShell = (
   ...extra,
 });
 
-const PLATFORM_CAPABILITIES: PlatformCapability[] = [
+/**
+ * Declared capabilities for platforms mesh.me still offers.
+ *
+ * The array below is the RAW set — it keeps entries for platforms that have
+ * been retired, because deleting them would also delete the notes explaining
+ * what each one does and does not permit, which is the expensive part. The
+ * exported map filters through the allow-list in lib/platforms.ts, so a
+ * retired entry is inert rather than removed.
+ */
+const RAW_PLATFORM_CAPABILITIES: PlatformCapability[] = [
   oauthShell("github", "GitHub", {
     importContent: true,
     developerDocsUrl: "https://docs.github.com/en/rest",
@@ -162,6 +172,19 @@ const PLATFORM_CAPABILITIES: PlatformCapability[] = [
     ["messenger", "Messenger"],
     ["tumblr", "Tumblr"],
   ].map(([id, name]) => manualSource(id, name)),
+];
+
+/**
+ * What mesh.me actually offers: the raw declarations, restricted to the
+ * allow-list, plus a conservative shell for any allowed platform that has no
+ * declaration yet (Kick, and the messengers). A missing declaration must mean
+ * "we claim nothing", never "this platform is absent from the product".
+ */
+const PLATFORM_CAPABILITIES: PlatformCapability[] = [
+  ...RAW_PLATFORM_CAPABILITIES.filter((entry) => isMeshPlatform(entry.id)),
+  ...MESH_PLATFORMS.filter(
+    (allowed) => !RAW_PLATFORM_CAPABILITIES.some((entry) => entry.id === allowed.id),
+  ).map((allowed) => manualSource(allowed.id, allowed.name)),
 ];
 
 const UNSUPPORTED_ACTIONS: Record<PlatformContentAction, PlatformActionCapability> = {

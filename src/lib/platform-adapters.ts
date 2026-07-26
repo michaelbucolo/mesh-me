@@ -62,6 +62,9 @@ export type SupportedPlatformAdapter = {
   };
 };
 
+// Derived from lib/platforms.ts so this cannot drift from what the product
+// offers. The literal map below is retained only for platforms whose category
+// differs from the allow-list's, and is filtered by it at the bottom.
 const CATEGORY_BY_PLATFORM: Record<string, PlatformAdapterCategory> = {
   applemusic: "music",
   behance: "portfolio",
