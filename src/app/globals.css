@@ -1079,33 +1079,47 @@ select:focus-visible {
 
 /* The handle that bridges the two: a quiet pill that dives into the Flow from
    the Mesh, or rises back to the Mesh from the Flow. */
+/* THE MESH↔FLOW GRIP.
+   The markup has carried `.key` for a while, but this rule then re-declared
+   `background`, `border`, `box-shadow` and `backdrop-filter` — and because
+   this file is unlayered and comes after, every one of them WON. So the handle
+   said key and was glass: no --edge ring (the WCAG 1.4.11 boundary), no
+   plinth, a banned blur, a hardcoded black shadow. All four are deleted; .key
+   supplies face, edge, mould line, side wall and contact shadow.
+
+   What stays is only what .key does not speak to: the fixed centring, the pill
+   radius (a grip is a pill), the padding and the small type. */
 .mesh-continuum-handle {
   position: fixed;
   left: 50%;
   z-index: 45;
   display: inline-flex;
   align-items: center;
-  gap: 0.25rem;
+  gap: 0.3rem;
+  /* `transform`, NOT `translate` — `.key:active` presses with `translate`, so
+     the two compose instead of one clobbering the other. */
   transform: translateX(-50%);
   border-radius: 9999px;
-  border: 1px solid var(--mesh-border);
-  background: color-mix(in srgb, var(--mesh-panel) 82%, transparent);
-  padding: 0.34rem 0.85rem;
+  padding: 0.4rem 0.9rem;
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.02em;
-  color: var(--mesh-text-secondary);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  transition: transform var(--mesh-transition-fast), color var(--mesh-transition-fast), background var(--mesh-transition-fast);
+  color: var(--text-secondary);
 }
-.mesh-continuum-handle:hover { color: var(--mesh-text); background: color-mix(in srgb, var(--mesh-panel) 94%, transparent); }
-.mesh-continuum-handle-down { bottom: calc(5.4rem + env(safe-area-inset-bottom)); }
-.mesh-continuum-handle-down:hover { transform: translateX(-50%) translateY(2px); }
+.mesh-continuum-handle:hover { color: var(--text-primary); }
+/* Clears the mobile tab bar from THE token, not from a third magic number.
+   `5.4rem` was the old literal — a guess at 3.5rem of bar plus a gap, sitting
+   in a file that had no way to know when either moved. */
+.mesh-continuum-handle-down {
+  bottom: calc(var(--mobile-nav-h) + env(safe-area-inset-bottom) + 1.25rem);
+}
 .mesh-continuum-handle-up { top: calc(0.7rem + env(safe-area-inset-top)); }
-.mesh-continuum-handle-up:hover { transform: translateX(-50%) translateY(-2px); }
+/* The hover `translateY` drift is gone with the glass. A key does not slide
+   toward the pointer; it presses, which `.key:active` already draws — and a
+   control that moves under the cursor is a control you can miss. */
 @media (min-width: 768px) {
+  /* The tab bar is md:hidden, so there is nothing left to clear. Same
+     breakpoint as `.mesh-dock` for the same reason. */
   .mesh-continuum-handle-down { bottom: 1.35rem; }
 }
 /* Fresh content simply arrives. No sheen is wiped across it — a page that
