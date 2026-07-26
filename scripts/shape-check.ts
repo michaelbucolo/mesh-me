@@ -22,6 +22,15 @@
  * invisible to it. It checks that the CSS keeps its shape and that the obvious
  * misuse is absent — it is not a proof that every plinth in the running app sits
  * on something pressable.
+ *
+ * ── AND ONE THING IT USED TO MISS ENTIRELY ───────────────────────────────────
+ *
+ * Section 1 matched `--radius-(xs|sm|md|lg|xl|2xl|3xl)` and nothing else. A
+ * SECOND radius ladder, `--ds-radius-*`, lived at globals.css:4840 with values
+ * 6.4 / 10.4 / 15.2 / 19.2px against this scale's 8 / 10 / 14 / 20 — every step
+ * disagreeing by 0.8 to 1.2px, too small to see in isolation and exactly large
+ * enough to stop a row of parts reading as one moulding. It was invisible to the
+ * gate whose whole job is keeping shape consistent. Section 4 now holds it.
  */
 
 import assert from "node:assert/strict";
@@ -39,6 +48,55 @@ function stripComments(text: string): string {
   return text
     .replace(/\/\*[\s\S]*?\*\//g, (m) => " ".repeat(m.length))
     .replace(/\/\/[^\n]*/g, (m) => " ".repeat(m.length));
+}
+
+// ── 4. One radius ladder, and a card has a silhouette ───────────────────────
+//
+// 4a. --ds-radius-* must be aliases, never independent numbers. Aliasing rather
+// than deleting keeps the 27 `rounded-[var(--ds-radius-*)]` call sites working;
+// what must not survive is a second place to tune shape.
+{
+  const dsScale = [...globals.matchAll(/--ds-radius-(xs|sm|md|lg):\s*([^;]+);/g)];
+  assert.ok(
+    dsScale.length >= 4,
+    `expected the --ds-radius-* scale in globals.css, found ${dsScale.length}`,
+  );
+  for (const [, name, value] of dsScale) {
+    assert.ok(
+      /var\(--radius-/.test(value),
+      `--ds-radius-${name} is ${value.trim()}, an independent number.\n` +
+        "  There must be ONE radius ladder. A second one disagreeing by under a pixel at every\n" +
+        "  step is invisible in isolation and is exactly what stops a row of parts reading as\n" +
+        "  one moulding. Alias it onto var(--radius-*).",
+    );
+  }
+}
+
+// 4b. The card vocabulary rule must state a corner.
+//
+// It set background, border and box-shadow and left `border-radius` unstated, so
+// the silhouette of a card was whatever `rounded-*` the author happened to type.
+// Eight of the fourteen names it carried declared no radius anywhere in CSS; the
+// six that did disagreed at 16 / 18.4 / 20 / 24px — four corner radii for one
+// object whose other three properties were byte-identical.
+{
+  // Anchored on the FULL selector list, which is unique. `.feed-x-layout
+  // .glass-card {` alone appears twice in this file (globals.css:4090 and the
+  // card rule), and a loose anchor matched the wrong one — the gate passed while
+  // the rule under test had lost its corner.
+  const rule = /\.mesh-panel,\s*\.mesh-stat-card,\s*\.glass,[\s\S]*?\.feed-x-layout \.glass-card \{([\s\S]*?)\n\}/.exec(globals);
+  assert.ok(rule, "the card vocabulary rule could not be found in globals.css; this section proved nothing");
+  const body = rule![1];
+  assert.ok(
+    /border-radius:\s*var\(--radius-/.test(body),
+    "the card vocabulary rule no longer declares a tokenised border-radius.\n" +
+      "  Without it every card falls back to whatever rounded-* its author typed, which is how\n" +
+      "  one object came to have four different corners.",
+  );
+  assert.ok(
+    /background:/.test(body) && /box-shadow:/.test(body),
+    "the card vocabulary rule lost its fill or its contact shadow",
+  );
 }
 
 // ── 1. Nothing is rounder than the cap ───────────────────────────────────────

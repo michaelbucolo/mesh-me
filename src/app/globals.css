@@ -4836,11 +4836,18 @@ body,
   --brand-privacy-green: #22c55e;
   --brand-warning-amber: #f59e0b;
   --brand-danger-red: #ef4444;
-  /* Generous, modern radii to match the reference cards. */
-  --ds-radius-xs: 0.4rem;
-  --ds-radius-sm: 0.65rem;
-  --ds-radius-md: 0.95rem;
-  --ds-radius-lg: 1.2rem;
+  /* ONE RADIUS SCALE. These were an independent ladder — 6.4 / 10.4 / 15.2 /
+     19.2px against --radius-*'s 8 / 10 / 14 / 20 — disagreeing at every step by
+     0.8 to 1.2px. Too small to see in isolation, and exactly large enough to
+     stop a row of parts reading as one moulding. Aliased rather than deleted so
+     the 27 `rounded-[var(--ds-radius-*)]` call sites need no edit; nothing that
+     tunes shape should have two places to do it. shape-check.ts only matched
+     --radius-*, so this second ladder was invisible to the gate meant to keep
+     them in step. */
+  --ds-radius-xs: var(--radius-xs);
+  --ds-radius-sm: var(--radius-sm);
+  --ds-radius-md: var(--radius-md);
+  --ds-radius-lg: var(--radius-lg);
   --ds-radius-pill: 999px;
   --ds-space-1: 0.25rem;
   --ds-space-2: 0.5rem;
@@ -7409,10 +7416,22 @@ body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
 
    This used to name three classes and carry no `!important`, so it lost to the
    de-glassing block above and never painted anything. That block no longer
-   paints, so this governs — and it now names the whole card vocabulary rather
-   than the three someone happened to be looking at. Fourteen class names, one
-   fill. `--paper-1` is the card; the mat is `--paper-0`; a card is lighter than
-   the page it sits on, which is the entire reason it reads as an object. */
+   paints, so this governs. `--paper-1` is the card; the mat is `--paper-0`; a
+   card is lighter than the page it sits on, which is the entire reason it reads
+   as an object.
+
+   Eight of these fourteen have ZERO className call sites anywhere in src —
+   .glass, .glass-panel, .glass-surface, .simple-card, .theme-card,
+   .premium-surface, .app-command-bar, .app-route-guide, .insta-story-rail — so
+   the rule that names the card vocabulary is 57% inventory. They stay named
+   here anyway, and that is not an oversight: surface-check.ts asserts this list
+   is complete, because while a class DEFINITION exists, letting it fall out of
+   the shared fill is precisely how a product ends up with two card systems that
+   differ by a few percent of luminance. Retiring them means deleting the
+   definitions and their ~20 other multi-selector references together, which is a
+   separate sweep with no user-visible effect. One of them, .app-command-bar, is
+   also a DOM selector read by meshi-float.tsx, so that sweep is not mechanical.
+   */
 .mesh-panel,
 .mesh-stat-card,
 .glass,
@@ -7430,6 +7449,13 @@ body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
 .feed-x-layout .glass-card {
   background: var(--paper-1);
   border: var(--border-w) solid var(--rule);
+  /* THE SILHOUETTE. This rule set fill, border and shadow and left the corner
+     to whatever `rounded-*` the author happened to type — so eight of the
+     fourteen names it used to carry had no radius anywhere in CSS, and the six
+     that did disagreed at 16 / 18.4 / 20 / 24px. Four corner radii for one
+     object whose other three properties were byte-identical. A card is a card;
+     it has one shape. */
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow-rest);
 }
 
