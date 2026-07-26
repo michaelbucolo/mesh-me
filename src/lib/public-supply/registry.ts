@@ -1,5 +1,3 @@
-import { blueskyWhatsHot } from "./providers/bluesky";
-import { mastodonShortVideo, mastodonTrending } from "./providers/mastodon";
 import { twitchTopClips } from "./providers/twitch";
 import { youtubeMostPopular } from "./providers/youtube";
 import type { PlatformSupplyStatus, PublicSupplyLane } from "./types";
@@ -35,6 +33,23 @@ import type { PlatformSupplyStatus, PublicSupplyLane } from "./types";
  * When a platform changes its terms, this file is the one place to change —
  * and `reason` is user-facing, so it must stay plain, specific, and free of
  * blame. These companies are not villains for having an API policy.
+ *
+ * ── THE SUPPLY IS NOW CREDENTIAL-GATED, AND THAT IS A REAL COST ─────────────
+ *
+ * mesh.me's platform list is the nine in lib/platforms.ts plus the messengers.
+ * Bluesky and Mastodon are not on it, so their lanes are gone — and they were
+ * the ONLY two that ran without credentials. Measured before removal they were
+ * supplying the entire Flow: 20 short videos with nothing configured.
+ *
+ * What remains is YouTube and Twitch, both of which need keys. Of the rest of
+ * the list, Instagram, Snapchat and Threads publish no discovery API a
+ * third-party reader may use, and X charges per post read. So until
+ * YOUTUBE_API_KEY or TWITCH_CLIENT_ID/SECRET is set, the Flow has no public
+ * supply at all and falls back to whatever mesh.me's own users have posted or
+ * connected.
+ *
+ * That is the direct consequence of the platform list, written down at the
+ * moment it was taken rather than rediscovered as a bug.
  *
  * ── THE ANTI-SUBSTITUTE CLAUSE, AND WHY IT SHAPES THIS WHOLE MODULE ─────────
  *
@@ -82,9 +97,6 @@ import type { PlatformSupplyStatus, PublicSupplyLane } from "./types";
 export const PUBLIC_SUPPLY_LANES: PublicSupplyLane[] = [
   youtubeMostPopular,
   twitchTopClips,
-  blueskyWhatsHot,
-  mastodonTrending,
-  mastodonShortVideo,
 ];
 
 export const PLATFORM_SUPPLY_STATUS: PlatformSupplyStatus[] = [
@@ -105,33 +117,6 @@ export const PLATFORM_SUPPLY_STATUS: PlatformSupplyStatus[] = [
       "Top clips from the biggest categories show up without connecting. Connect Twitch to follow channels and see who is live for you.",
     lanes: [twitchTopClips],
     docsUrl: "https://dev.twitch.tv/docs/api/",
-  },
-  {
-    platform: "bluesky",
-    name: "Bluesky",
-    anonymousRead: "permitted_with_limits",
-    reason:
-      "Bluesky is open, so its public posts appear here with nothing linked. Posts from people who have asked not to be shown to logged-out viewers are left out, as they should be.",
-    lanes: [blueskyWhatsHot],
-    docsUrl: "https://docs.bsky.app/",
-  },
-  {
-    platform: "mastodon",
-    name: "Mastodon",
-    anonymousRead: "permitted_with_limits",
-    reason:
-      "Trending posts and short video from several servers appear without connecting. Each server decides what it shares, so some show more than others.",
-    lanes: [mastodonTrending, mastodonShortVideo],
-    docsUrl: "https://docs.joinmastodon.org/api/",
-  },
-  {
-    platform: "reddit",
-    name: "Reddit",
-    anonymousRead: "unavailable",
-    reason:
-      "Reddit closed public API sign-ups in November 2025 and now requires a signed agreement for apps like this one. Until that changes, Reddit posts cannot appear here — with or without a connected account.",
-    lanes: [],
-    docsUrl: "https://support.reddithelp.com/hc/en-us/articles/16160319875092",
   },
   {
     platform: "instagram",
@@ -161,19 +146,6 @@ export const PLATFORM_SUPPLY_STATUS: PlatformSupplyStatus[] = [
       "Instagram offers no way for another app to browse or search its content, and Meta's developer policies separately forbid an app from existing to display other people's Instagram posts. Connecting your account brings your own Instagram posts onto your mesh — that is the whole of what any third-party app can do here.",
     lanes: [],
     docsUrl: "https://developers.facebook.com/docs/instagram-platform",
-  },
-  {
-    platform: "tiktok",
-    name: "TikTok",
-    // Same shape as Instagram: a known URL renders through the unauthenticated
-    // oEmbed endpoint and TikTok's own player, but there is no anonymous
-    // search, hashtag, trending or creator-videos endpoint. No discovery, no
-    // feed. The Display API gives a connected user their OWN videos.
-    anonymousRead: "requires_connection",
-    reason:
-      "TikTok publishes no way to search or browse its videos from another app. A specific video plays here when someone links it. Connecting your account brings your own TikTok videos onto your mesh.",
-    lanes: [],
-    docsUrl: "https://developers.tiktok.com/doc/embed-videos",
   },
   {
     platform: "twitter",
