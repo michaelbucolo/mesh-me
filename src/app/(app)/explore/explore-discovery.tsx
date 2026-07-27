@@ -343,9 +343,13 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
           animate={{ opacity: 1, y: 0 }}
           transition={{ ...spring, delay: 0.05 }}
           className="glass-card flex items-center gap-1 overflow-x-auto rounded-2xl p-1.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-          role="tablist"
-          aria-label="Explore sections"
         >
+        {/* A TABLIST MAY OWN ONLY TABS. The Filters disclosure sat inside this
+            one, which axe-core flags as aria-required-children and which would
+            have forced any roving-tabindex implementation to special-case a
+            child that is not a tab. It is a sibling now; the tablist wraps only
+            the four tabs. */}
+        <div role="tablist" aria-label="Explore sections" className="flex items-center gap-1">
           {/* Three tabs with no material at all: no face, no --edge ring, no
               wall. The selected one was a translucent `--accent`/12 pill sliding
               underneath on a layoutId — a TINT standing in for state, which is
@@ -354,15 +358,37 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
               the same answer globals.css:3367 records for the feed's four chips:
               "all three selected states are moulded from cobalt … a tint is
               'louder = selected', which is exactly the reading Law 2 forbids." */}
+          {/* ROVING TABINDEX AND ARROW KEYS, because role="tab" promises both.
+              These four were four separate Tab stops with dead arrow keys, so
+              the roles described a widget that was not there — which is worse
+              than plain buttons, since plain buttons behave as announced.
+              APG: one stop for the set, Left/Right to move, Home/End to the
+              ends, and focus follows selection. */}
           {TABS.map((item) => {
             const selected = tab === item.id;
             const Icon = item.icon;
             return (
               <button
                 key={item.id}
+                id={`explore-tab-${item.id}`}
                 type="button"
                 role="tab"
                 aria-selected={selected}
+                aria-controls="explore-tabpanel"
+                tabIndex={selected ? 0 : -1}
+                onKeyDown={(event) => {
+                  const delta = event.key === "ArrowRight" ? 1 : event.key === "ArrowLeft" ? -1 : 0;
+                  let next: ExploreTab | null = null;
+                  if (delta !== 0) {
+                    const at = TABS.findIndex((t) => t.id === tab);
+                    next = TABS[(at + delta + TABS.length) % TABS.length].id;
+                  } else if (event.key === "Home") next = TABS[0].id;
+                  else if (event.key === "End") next = TABS[TABS.length - 1].id;
+                  if (!next) return;
+                  event.preventDefault();
+                  setTab(next);
+                  document.getElementById(`explore-tab-${next}`)?.focus();
+                }}
                 onClick={() => setTab(item.id)}
                 className={`key inline-flex shrink-0 items-center gap-1.5 px-3.5 py-2 text-xs font-semibold ${
                   selected
@@ -375,6 +401,7 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
               </button>
             );
           })}
+          </div>
           {isPostTab && (
             /* Same treatment. The "on" state was --accent ink on nothing; it is
                the cobalt plastic now, and the active-filter dot rides that
@@ -549,7 +576,11 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
         <>
           {!trimmedQuery && <TrendingHero posts={posts} />}
           {!trimmedQuery && suggestedUsers.length > 0 && (
-            <section className="mt-6" aria-label="People to follow">
+            <section className="mt-6" role="tabpanel"
+          id="explore-tabpanel"
+          aria-labelledby={`explore-tab-${tab}`}
+          tabIndex={0}
+          aria-label="People to follow">
               <SectionHeader title="Meshes to explore" action={{ label: "See all", onClick: () => setTab("people") }} />
               <div className="[scrollbar-width:none] [&::-webkit-scrollbar]:hidden -mx-1 flex gap-3 overflow-x-auto px-1 pb-1">
                 {suggestedUsers.slice(0, 8).map((user, index) => (
@@ -559,7 +590,11 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
             </section>
           )}
           {!trimmedQuery && communities.length > 0 && (
-            <section className="mt-6" aria-label="Communities">
+            <section className="mt-6" role="tabpanel"
+          id="explore-tabpanel"
+          aria-labelledby={`explore-tab-${tab}`}
+          tabIndex={0}
+          aria-label="Communities">
               <SectionHeader title="Communities" action={{ label: "See all", onClick: () => setTab("communities") }} />
               <div className="[scrollbar-width:none] [&::-webkit-scrollbar]:hidden -mx-1 flex gap-3 overflow-x-auto px-1 pb-1">
                 {communities.slice(0, 6).map((community, index) => (
@@ -572,7 +607,11 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
       )}
 
       {isPostTab && (
-        <section className="mt-6" aria-label="Discover content">
+        <section className="mt-6" role="tabpanel"
+          id="explore-tabpanel"
+          aria-labelledby={`explore-tab-${tab}`}
+          tabIndex={0}
+          aria-label="Discover content">
           <div className="mb-3 flex items-baseline justify-between">
             <h2 className="flex items-center gap-1.5 text-sm font-semibold text-[var(--text-primary)]">
               {/* The heading now says what the one control says, because there
@@ -848,8 +887,19 @@ function ExploreTile({ post, index }: { post: FeedCardPost; index: number }) {
       onPointerLeave={resetTilt}
       onClick={() => router.push(`/feed?flow=${encodeURIComponent(post.id)}`)}
       className="glass-card group relative block w-full overflow-hidden rounded-2xl text-left transition-all hover:border-[var(--border-primary)]"
-      aria-label={`Open post by ${authorName} in the Flow`}
+      // NO aria-label. It OVERRIDES name-from-contents, so everything inside
+      // this button became unreachable: the media alt built by getPostMediaAlt
+      // below, and — for a text-only tile — the whole post body. Content inside
+      // a button is not separately navigable in NVDA/JAWS browse mode, so a
+      // screen reader user arrowing through this grid heard "Open post by Alex
+      // in the Flow, button" for every tile and could not tell them apart or
+      // read any of them.
+      //
+      // The name comes from the contents now, which is what the contents are
+      // for. The purpose is carried by a visually-hidden prefix instead of by
+      // replacing everything.
     >
+      <span className="sr-only">{`Open post by ${authorName} in the Flow: `}</span>
       {media ? (
         <div className="relative aspect-[4/5]">
           {/* eslint-disable-next-line @next/next/no-img-element */}
