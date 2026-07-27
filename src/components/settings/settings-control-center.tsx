@@ -769,7 +769,12 @@ export function SettingsControlCenter({
           </nav>
         </aside>
 
-        <section className={`settings-panel plate ${mobileDetailOpen ? "block" : "hidden lg:block"}`}>
+        {/* Not a `.plate`. The detail side of a split view is the BACKGROUND
+            that grouped sections sit on — iOS puts the inset cards straight on
+            the grouped background and never wraps them in another card. While
+            this carried `plate`, every section rendered as a card inside a card
+            of the identical fill, 1px rule and 20px radius. */}
+        <section className={`settings-panel ${mobileDetailOpen ? "block" : "hidden lg:block"}`}>
           <div className="settings-panel-heading flex shrink-0 items-start justify-between gap-3 border-b border-[var(--border-primary)] px-4 py-3">
             <div className="w-full">
               <button
@@ -2203,14 +2208,19 @@ function MeshiOptionGroup({
   );
 }
 
+/* An inset grouped section: a plain header on the background, then ONE
+   container holding the rows. The header used to live inside the container,
+   which made this a titled box rather than a section — and since the panel
+   around it was a `.plate` too, the built page showed a white bordered card
+   17px inside another white bordered card. Only the inner one is a card now. */
 function SettingsCard({ title, icon: Icon, children }: { title: string; icon: LucideIcon; children: ReactNode }) {
   return (
-    <section className="settings-card plate p-3.5">
+    <section className="settings-group">
       <div className="settings-card-heading">
         <Icon size={14} aria-hidden="true" />
         <h3>{title}</h3>
       </div>
-      {children}
+      <div className="settings-card plate">{children}</div>
     </section>
   );
 }
