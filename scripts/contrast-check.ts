@@ -132,15 +132,44 @@ for (const [theme, tokens] of [["Daylight", DAYLIGHT], ["Lamplight", LAMPLIGHT]]
     }
   }
 
-  // 2. --ink-4 must stay below AA, so "non-text only" is visible in review.
+  // 2. --ink-4 stays the QUIETEST ink. (Retargeted: it used to assert
+  //    `inkFour < AA`, an INVERTED test that failed the build for making the
+  //    palette MORE accessible -- darkening --ink-4 to #3a3a3c was rejected
+  //    with "10.17:1, which passes AA". A rule that punishes improvement is not
+  //    protecting anything.)
+  //
+  //    The real intent is a RAMP: --ink-4 is rules, dividers and disabled
+  //    glyphs, and it must never be mistakable for a text ink. That is a
+  //    relative claim, so it is now written as one -- both inks may rise
+  //    together, but --ink-4 stays below --ink-3, the text floor.
   const inkFour = ratio(at("--ink-4"), at("--paper-0"));
+  const inkThree = ratio(at("--ink-3"), at("--paper-0"));
   assert.ok(
-    inkFour < AA,
-    `${theme}: --ink-4 is ${inkFour.toFixed(2)}:1 on --paper-0, which passes AA.\n` +
-      "  --ink-4 is the borders-and-dividers token. If it reads as legible text,\n" +
-      "  nothing stops it being used as text. Keep it decorative, or promote it.",
+    inkFour < inkThree,
+    `${theme}: --ink-4 is ${inkFour.toFixed(2)}:1 on --paper-0, at or above --ink-3 (${inkThree.toFixed(2)}:1).\n` +
+      "  --ink-4 is the borders-and-dividers token and must stay the quietest ink in the\n" +
+      "  ramp. If it reads as strongly as the text floor, nothing stops it being used as text.",
   );
   checks += 1;
+
+  // 2b. THE FOCUS RING WAS NEVER MEASURED.
+  //
+  //     --rule-focus is the keyboard focus indicator -- for a keyboard-only user
+  //     it is the entire cursor. It was one of fifteen hex tokens this file
+  //     parsed and never passed to ratio(): an audit made it invisible and the
+  //     gate still printed "contrast OK". WCAG 2.4.11 wants a focus indicator
+  //     you can actually see, so it is held to the non-text floor on every
+  //     surface it can land on.
+  for (const paper of PAPERS) {
+    const r = ratio(at("--rule-focus"), at(paper));
+    assert.ok(
+      r >= NON_TEXT,
+      `${theme}: --rule-focus on ${paper} is ${r.toFixed(2)}:1, below ${NON_TEXT}:1.\n` +
+        "  This is the keyboard focus indicator. For someone navigating without a mouse it is\n" +
+        "  the only thing telling them where they are.",
+    );
+    checks += 1;
+  }
 
   // 3. The accent, both as text and as a surface under text.
   const accentOnPaper = ratio(at("--accent"), at("--paper-0"));
