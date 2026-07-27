@@ -54,7 +54,19 @@ const explore = strip(read(EXPLORE));
     { list: "sourceFilters", type: "FeedSource", file: FEED, code, types: feedTypes },
     // Explore declares its own types locally; the law is the same either way.
     { list: "MEDIA_FILTERS", type: "MediaFilter", file: EXPLORE, code: explore, types: explore },
-    { list: "SORT_MODES", type: "SortMode", file: EXPLORE, code: explore, types: explore },
+    // `SortMode` IS GONE, and this row REPLACES it rather than dropping it.
+    //
+    // Explore's sort was a two-value type with its own row of two keys (Top /
+    // Latest), sitting under a three-tab row. Both rows asked the same question
+    // — which slice of this one feed? — so the sort's two values became two of
+    // the tabs, which is the shape X uses. `sortMode` is derived from `tab` now
+    // and stored nowhere.
+    //
+    // The law is unchanged and still enforced, on the control that inherited
+    // the job: every value of ExploreTab must be one click away. Deleting this
+    // line instead of retargeting it would have quietly stopped checking a
+    // control that still exists — which is how a gate rots.
+    { list: "TABS", type: "ExploreTab", file: EXPLORE, code: explore, types: explore },
   ];
   for (const { list, type, file, code: body, types } of pairs) {
     const typeLine = new RegExp(`(?:export )?type ${type}\\s*=\\s*([^;]+);`).exec(types);
