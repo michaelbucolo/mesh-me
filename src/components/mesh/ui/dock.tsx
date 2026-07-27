@@ -78,6 +78,7 @@ function DockKey({
   expanded,
   badge,
   keyRef,
+  popoverId,
 }: {
   /** The accessible name. Always the full, unambiguous one — "Create on your
    *  mesh", not "Create" — because a screen reader gets no surrounding canvas
@@ -95,6 +96,7 @@ function DockKey({
   expanded?: boolean;
   badge?: number;
   keyRef?: React.Ref<HTMLButtonElement>;
+  popoverId?: string;
 }) {
   return (
     <button
@@ -102,7 +104,16 @@ function DockKey({
       type="button"
       aria-label={label}
       aria-expanded={expanded}
-      aria-haspopup={expanded === undefined ? undefined : "menu"}
+      // NO aria-haspopup="menu". It used to say "menu" while nothing here
+      // implemented the menu keyboard contract, and the role is not decoration:
+      // JAWS and NVDA switch to application mode on a menu and hand the arrow
+      // keys to the app, which did not handle them — so the keys a screen
+      // reader user was told to press did nothing at all.
+      //
+      // What this actually is, is a disclosure: a button that shows a panel,
+      // where Tab moves through the contents. aria-expanded alone says that,
+      // truthfully, and it is what the markup already does.
+      aria-controls={expanded === undefined ? undefined : popoverId}
       onClick={onClick}
       // The canvas listens for pointerdown to pan and to deselect. Without this
       // every dock press also dragged the world a pixel and dropped the
@@ -133,17 +144,46 @@ function DockKey({
 
 /** A popover that hangs above the dock. Its open/closed state belongs to the
  *  chrome stack, not to this file — Esc must close the topmost layer, and a
- *  popover with private state would not be in that ordering. */
+ *  popover with private state would not be in that ordering.
+ *
+ *  IT OWNS ITS FOCUS, THOUGH, because nothing else can. Opening moved no focus,
+ *  so a keyboard user pressed Enter and stayed on the trigger with a panel they
+ *  could not reach without Tabbing back through it. Closing moved none either:
+ *  every row unmounts the button it lives on, dropping focus to <body> so the
+ *  next Tab restarts from the top of the document. Esc, handled globally in
+ *  chrome.tsx, had the same effect.
+ *
+ *  The worst case is the New popover: marking the last unseen branch seen drives
+ *  unseenTotal to 0, which unmounts the popover AND the key that opened it, so
+ *  there is no trigger left to return to. Hence the fallback to the dock. */
 function DockPopover({
+  id,
   label,
   onDismiss,
   children,
 }: {
+  id: string;
   label: string;
   onDismiss: () => void;
   children: React.ReactNode;
 }) {
   const ref = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const opener = document.activeElement as HTMLElement | null;
+    // Move into the panel, so Enter on the trigger lands somewhere.
+    ref.current?.querySelector<HTMLElement>("button")?.focus();
+    return () => {
+      // Back to whatever opened this — unless it has gone with the panel, in
+      // which case the dock itself is the nearest honest home for the cursor.
+      if (opener?.isConnected) {
+        opener.focus();
+        return;
+      }
+      document.querySelector<HTMLElement>('[data-testid="mesh-action-bar"] button')?.focus();
+    };
+  }, []);
+
   useEffect(() => {
     // Pointerdown, not click: the canvas pans on pointerdown, so waiting for
     // click leaves the popover open through the start of a drag.
@@ -160,7 +200,8 @@ function DockPopover({
   return (
     <div
       ref={ref}
-      role="menu"
+      id={id}
+      role="group"
       aria-label={label}
       className="mesh-dock-pop plate absolute bottom-full right-0 mb-2 flex w-56 flex-col gap-0.5 p-1.5"
       onPointerDown={(e) => e.stopPropagation()}
@@ -181,19 +222,31 @@ function PopRow({
   onClick: () => void;
   trailing?: React.ReactNode;
 }) {
+  // THE SECOND CONTROL IS A SIBLING NOW, NOT A CHILD.
+  //
+  // `trailing` used to render INSIDE this button, which put a focusable
+  // role="button" span inside a role="menuitem" button. Invalid HTML — a button
+  // may not contain interactive content — and invalid ARIA. It also poisoned the
+  // row's name: an accessible name computed from contents swept up the trailing
+  // control's aria-label, so the row announced "Your posts · 3 new, Mark Your
+  // posts seen". And Safari does not reliably focus a tabbable descendant of a
+  // button, so on Safari the mark-seen action was unreachable by keyboard.
+  //
+  // Two actions are two buttons. The row is the container.
   return (
-    <button
-      type="button"
-      role="menuitem"
-      onClick={onClick}
-      className="mesh-dock-pop-row ds-focus-ring flex h-10 w-full items-center gap-2.5 px-2.5 text-left text-sm font-medium text-[var(--text-secondary)]"
-    >
-      <span className="flex h-4 w-4 shrink-0 items-center justify-center" aria-hidden="true">
-        {icon}
-      </span>
-      <span className="min-w-0 flex-1 truncate">{label}</span>
+    <div className="mesh-dock-pop-row flex h-10 w-full items-center gap-1 pr-1.5">
+      <button
+        type="button"
+        onClick={onClick}
+        className="ds-focus-ring flex h-full min-w-0 flex-1 items-center gap-2.5 px-2.5 text-left text-sm font-medium text-[var(--text-secondary)]"
+      >
+        <span className="flex h-4 w-4 shrink-0 items-center justify-center" aria-hidden="true">
+          {icon}
+        </span>
+        <span className="min-w-0 flex-1 truncate">{label}</span>
+      </button>
       {trailing}
-    </button>
+    </div>
   );
 }
 
@@ -280,9 +333,10 @@ export function MeshDock({
           onClick={onToggleMore}
           expanded={moreOpen}
           keyRef={moreRef}
+          popoverId="mesh-dock-more"
         />
         {moreOpen && (
-          <DockPopover label="More mesh actions" onDismiss={onCloseMore}>
+          <DockPopover id="mesh-dock-more" label="More mesh actions" onDismiss={onCloseMore}>
             {onEmote && (
               <PopRow
                 label="React"
@@ -332,9 +386,10 @@ export function MeshDock({
             icon={<span className="text-xs font-semibold tabular-nums">{unseenTotal > 99 ? "99+" : unseenTotal}</span>}
             onClick={onToggleNew}
             expanded={newOpen}
+            popoverId="mesh-dock-new"
           />
           {newOpen && (
-            <DockPopover label="What's new, by branch" onDismiss={onCloseNew}>
+            <DockPopover id="mesh-dock-new" label="What's new, by branch" onDismiss={onCloseNew}>
               {/* `.mesh-eyebrow`, not `uppercase tracking-wide` — small-caps is
                   this product's ONE labelling device, and hand-rolling a second
                   one out of transform + tracking is how a HUD voice gets in.
@@ -350,25 +405,19 @@ export function MeshDock({
                     onFocusBranch(branch);
                   }}
                   trailing={
-                    <span
-                      role="button"
-                      tabIndex={0}
+                    // A real <button>. It was a role="button" span with a
+                    // hand-rolled Enter/Space handler, which is what you write
+                    // when the element cannot legally be a button — and it
+                    // could not, because it lived inside one.
+                    <button
+                      type="button"
                       aria-label={`Mark ${BRANCH_LABELS[branch] ?? branch} seen`}
                       title="Mark seen"
                       className="mesh-dock-seen ds-focus-ring flex h-6 w-6 shrink-0 items-center justify-center text-[var(--text-tertiary)]"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onMarkSeen(branch);
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key !== "Enter" && e.key !== " ") return;
-                        e.preventDefault();
-                        e.stopPropagation();
-                        onMarkSeen(branch);
-                      }}
+                      onClick={() => onMarkSeen(branch)}
                     >
                       <Check size={13} />
-                    </span>
+                    </button>
                   }
                 />
               ))}
