@@ -15,7 +15,10 @@ const variantStyles = {
   success: "bg-[var(--ds-success-bg)] text-[var(--ds-success)] border-[var(--ds-success-border)]",
   danger: "bg-[var(--ds-danger-bg)] text-[var(--ds-danger)] border-[var(--ds-danger-border)]",
   warning: "bg-[var(--ds-warning-bg)] text-[var(--ds-warning)] border-[var(--ds-warning-border)]",
-  accent: "bg-[var(--accent-subtle)] text-[var(--accent-text)] border-[var(--accent-muted)]",
+  // Opaque, like its three siblings. --accent-subtle is translucent, so the
+  // colour under this label depended on whatever was behind the badge: measured
+  // in a browser, 49 of these fell below AA at 12px. See --ds-accent-bg.
+  accent: "bg-[var(--ds-accent-bg)] text-[var(--accent-text)] border-[var(--ds-accent-border)]",
 };
 
 export function Badge({ children, variant = "default", className, pop = false }: BadgeProps) {

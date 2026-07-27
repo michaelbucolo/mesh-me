@@ -5078,6 +5078,33 @@ body,
   --ds-warning: var(--warning);
   --ds-warning-bg: color-mix(in srgb, var(--warning) 12%, var(--bg-secondary));
   --ds-warning-border: color-mix(in srgb, var(--warning) 34%, var(--border-primary));
+
+  /* THE ACCENT BADGE WAS THE ONE VARIANT WITH A TRANSLUCENT FILL.
+
+     Its three siblings above mix an OPAQUE fill against a known surface, so
+     their ink is measured once and holds wherever the badge lands. The accent
+     variant used --accent-subtle, which is rgba(…, 0.09-0.14) — genuinely
+     translucent — so the colour under its label depended on whatever happened
+     to be behind the badge, and no token-level gate can know that.
+
+     Browser sweep across /feed, /explore, /profile, /settings, /messages,
+     /connected-accounts and /communities, compositing each label against its
+     real ancestor chain: 49 failing nodes, all of them the capability chips on
+     /connected-accounts, at 12px where AA is 4.5:1 —
+
+         instagram light  4.20:1      ocean  light   4.24:1
+         forest    light  4.39:1      default dark   4.44:1
+
+     — and the DEFAULT dark theme was among them.
+
+     Mixed over --paper-1 rather than --bg-secondary (which is --paper-2, the
+     RECESS) because a badge is a raised chip, not a hole in the page. That is
+     also what makes the numbers work: --paper-2 is already the darker paper and
+     tinting it further left every light preset under AA even once opaque.
+     Measured on this fill, the worst of all twelve preset/theme pairs is
+     4.90:1. */
+  --ds-accent-bg: color-mix(in srgb, var(--accent) 12%, var(--paper-1));
+  --ds-accent-border: color-mix(in srgb, var(--accent) 34%, var(--border-primary));
 }
 
 .light {
