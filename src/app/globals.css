@@ -4695,27 +4695,75 @@ body,
   gap: 0.75rem;
 }
 
-/* A read-only row group is a RECESS with rows in it, not a 6.4px-gapped stack
-   of outlined boxes. `.tray` rides on the element in the markup (:846, :1173,
-   :1299, :1439, :1557, :1667); the rows are `.leaf`, and `.leaf:last-child`
-   closes the group. */
+/* ── THE GROUPED LIST ────────────────────────────────────────────────────────
+   Apple's inset grouped list — the thing Settings.app is made of — is ONE
+   container per section, rows running edge to edge inside it, a hairline
+   between neighbours that starts at the LABEL rather than at the container, and
+   a plain section header sitting on the background ABOVE the container.
+
+   This page had none of those three. Photographed at 1440x900: the rows floated
+   with `border-radius: 0.7rem` and no separator at all, inset from the card on
+   both sides by their own padding — four labels adrift in a white box with
+   nothing telling the eye they were one list. The gap was `0` and the rows had
+   no rule, so "grouped" was expressed by proximity alone.
+
+   `--sp-3` is stated twice below, once as the card's padding and once as the
+   list's negative margin, because that is what full-bleed MEANS: the row must
+   give back exactly what the card took. scripts/grouped-list-check.ts reads
+   both numbers and fails if they stop matching, which is the only way two
+   spellings of one measurement are safe to keep. */
+.settings-card {
+  padding: var(--sp-3);
+}
+
+/* Header + container. The header is the container's SIBLING, not its child —
+   that is the whole difference between "a section of the page" and "a box with
+   a title in it", and putting it inside is how this page ended up with a
+   bordered card nested in a bordered card of the same fill. */
+.settings-group {
+  display: grid;
+  gap: 0.4rem;
+}
+
 .settings-list {
   display: grid;
   gap: 0;
-  padding: var(--sp-1);
+  margin-inline: calc(var(--sp-3) * -1);
+  padding: 0;
 }
 
 .settings-row {
+  position: relative;
   display: flex;
   min-height: 2.75rem;
   align-items: center;
   justify-content: space-between;
   gap: 0.85rem;
-  border-radius: 0.7rem;
-  padding: 0.4rem 0.6rem;
+  padding: 0.5rem var(--sp-3);
   color: var(--text-secondary);
   font-size: 0.8125rem;
   font-weight: 600;
+}
+
+/* The hairline belongs to the row BELOW it, never to the row above. Written
+   `+` rather than `:not(:last-child)` so a list that ends in a paragraph, a
+   button or an empty state closes cleanly without the rule knowing what
+   follows it — and so the last row never has to be found. */
+.settings-row + .settings-row::before {
+  content: "";
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline: var(--sp-3) 0;
+  border-top: var(--border-w) solid var(--rule);
+}
+
+/* Where the rows lead with a tile, the hairline starts at the label instead of
+   at the tile. iOS insets the separator to the text for exactly one reason:
+   the icons then read as a column, and a rule cutting through that column
+   breaks it. 1.9rem is the tile, 0.625rem the gap to the label — both taken
+   from `.settings-icon-tile` and the row's own `gap-2.5`. */
+.settings-row:has(.settings-icon-tile) + .settings-row:has(.settings-icon-tile)::before {
+  inset-inline-start: calc(var(--sp-3) + 1.9rem + 0.625rem);
 }
 
 .settings-row strong {
@@ -4764,10 +4812,15 @@ body,
   color: var(--danger);
 }
 
-.settings-action-danger .settings-icon-tile,
-.settings-action-danger svg {
-  color: var(--danger);
-}
+/* The descendant rule that used to sit here — `.settings-action-danger
+   .settings-icon-tile, .settings-action-danger svg { color: var(--danger) }` —
+   is gone, and it is the whole reason the tile went invisible.
+
+   It restated the row's ink a second time at (0,2,0), which outranked the
+   tile's own (0,1,0) pinning and painted a --danger glyph onto a crimson face.
+   The row already says `color: var(--danger)`; every glyph in it that does not
+   pin its own colour inherits that through currentColor, and the one that DOES
+   pin its own — the tile — now pins the same pigment on a paper it controls. */
 
 .settings-toggle {
   display: flex;
@@ -4867,8 +4920,14 @@ body,
   gap: 0.5rem;
 }
 
-/* A recess by intent at all seven call sites, painted `--paper-0` with a 1px
-   rule at all seven. `.tray` rides on the markup; the padding stays here. */
+/* THIS COMMENT USED TO SAY "`.tray` rides on the markup". It does not, at any
+   of the seven call sites — so the class has been nothing but padding for some
+   time, and the comment was the only place the recess still existed.
+
+   That is left standing deliberately rather than repaired. These seven are
+   sub-groups INSIDE a grouped section; giving them a recess would put a box
+   inside the card, which is the exact shape the header move above just removed
+   one level of. Padding is the whole job. */
 .settings-muted-box {
   padding: 0.7rem;
 }
@@ -4903,11 +4962,24 @@ body,
   color: var(--ink-3);
 }
 
-/* Reserved for what it means: a solid crimson chip, not a 12% wash of a raw
-   `#ef4444`. Three hex literals deleted here, three more at the row rule above. */
+/* A DESTRUCTIVE TILE IS A RED GLYPH, NOT A RED BLOCK — and this is the second
+   half of the fix at `.settings-action-danger`, which only ever got the first.
+
+   That change made the destructive ROW a red label instead of a crimson slab.
+   The tile kept its crimson FACE, and the row's new `color: var(--danger)`
+   cascaded straight through the descendant rule below onto the tile's glyph.
+   Measured on the built page: glyph #9e2c23 on face #b81f3a is 1.16:1 in
+   daylight and 2.53:1 in worklight — the trash icon photographed as a blank
+   crimson square. A pinned pair is only safe while nothing outside repaints
+   half of it, and something did.
+
+   So the tile stops carrying a face of its own. It keeps `--paper-3` from
+   `.settings-icon-tile` and takes the row's own ink, which is the SAME pigment
+   the label wears: --danger, measured by the contrast gate on all four papers
+   (5.89:1 on --paper-3 in daylight, 4.51:1 in worklight). One fact, one
+   definition, and both halves of it are already covered by a gate. */
 .settings-icon-tile-danger {
-  background: var(--mould-crimson);
-  color: var(--mould-crimson-ink);
+  color: var(--danger);
 }
 
 /* Inside a moulded row the tile inverts, so it stays visible without inventing
@@ -4918,12 +4990,15 @@ body,
   color: var(--mould, var(--mould-cobalt));
 }
 
-/* Section headers recede so the accent row tiles carry the hierarchy. */
+/* Section headers recede so the accent row tiles carry the hierarchy. They sit
+   on the background above the group now, so the leading inset has to be added
+   back by hand — it used to come free from the card's padding. Aligning it to
+   `--sp-3` puts the header's first letter over the row labels' first letter. */
 .settings-card-heading {
   display: flex;
   align-items: center;
   gap: 0.45rem;
-  margin-bottom: 0.75rem;
+  padding-inline: var(--sp-3);
   color: var(--text-muted);
 }
 
@@ -5904,9 +5979,8 @@ body {
     height: 16px;
   }
 
-  .settings-panel {
-    border-radius: 0.75rem !important;
-  }
+  /* `.settings-panel { border-radius: 0.75rem !important }` was here. The panel
+     has no fill, rule or shadow to round any more, so it rounded nothing. */
 
   .settings-panel-heading {
     padding: 0.75rem !important;
@@ -5928,10 +6002,19 @@ body {
     font-size: 0.75rem;
   }
 
-  .settings-row,
   .settings-action-row,
   .settings-toggle {
     padding: 0.7rem !important;
+    font-size: var(--text-sm);
+  }
+
+  /* Split out of the group above, which set all four sides to 0.7rem. A list
+     row is FULL-BLEED: its inline padding is the same `--sp-3` the card took
+     and the list gave back, so loosening it here would slide every label 0.8px
+     off the section header above it and leave the separator starting somewhere
+     the text does not. Only the block axis is a free choice on a small screen. */
+  .settings-row {
+    padding-block: 0.7rem;
     font-size: var(--text-sm);
   }
 
