@@ -56,7 +56,10 @@ import { isFreeMeshiOption } from "@/lib/mesh-pro";
 const KEY_COBALT =
   "key-lit [--mould:var(--mould-cobalt)] [--mould-ink:var(--mould-cobalt-ink)] [--mould-plinth:var(--mould-cobalt-plinth)]";
 const KEY_CRIMSON =
-  "key-lit [--mould:var(--mould-crimson)] [--mould-ink:var(--mould-crimson-ink)] [--mould-plinth:var(--mould-crimson-plinth)]";
+  // Red TEXT, not a red fill — see ui/button.tsx's `danger` variant for why, and
+  // for why the ink is --danger (a measured pigment) rather than --mould-crimson
+  // (a fill, only ever measured against its own pinned ink).
+  "text-[var(--danger)]";
 
 type SettingsSnapshot = {
   email: string | null | undefined;
@@ -665,7 +668,13 @@ export function SettingsControlCenter({
               One Account
             </Link>
             <form action={signOut}>
-              <button type="submit" className={`key ${KEY_COBALT} settings-quick-link w-full`}>
+              {/* NOT the page's primary. This was a filled cobalt, competing with
+                  the filled "Send verification email" below it — two fills, and
+                  neither told you which mattered. Signing out is a mundane exit,
+                  not the action Settings wants pressed; the one filled control
+                  on this page is the verification prompt, which is the only
+                  thing here the user is actually being asked to do. */}
+              <button type="submit" className="key settings-quick-link w-full">
                 <LogOut size={15} aria-hidden="true" />
                 Sign out
               </button>
@@ -924,7 +933,7 @@ function AccountSection({
               <span className="text-xs text-[var(--text-muted)]">This device</span>
             </button>
           </form>
-          <Link href="/account/delete" className="key key-lit settings-action-row settings-action-danger">
+          <Link href="/account/delete" className="key settings-action-row settings-action-danger">
             <span className="flex min-w-0 items-center gap-2.5">
               <IconTile icon={Trash2} danger />
               Delete account

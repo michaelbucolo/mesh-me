@@ -4750,10 +4750,23 @@ body,
    moulded from `--mould-crimson` now: the row carries `.key key-lit` and this
    rule pins the triple, exactly as ui/button.tsx does for `variant="danger"`.
    Crimson's ink measures 6.37:1 on its own face. Zero hex literals. */
+/* DESTRUCTIVE IS A LABEL, NOT A SLAB.
+
+   This pinned the crimson plastic, so the row it dressed was a filled crimson
+   button — the same weight the affirmative primary carries. On /settings that
+   put "Delete account" beside "Sign out" as the loudest thing on the page.
+
+   Apple reserves fill for the one action you want pressed and draws destructive
+   actions as red labels in a row. The ink is --danger, a pigment measured on
+   all four papers, not --mould-crimson, which is a fill and is only ever
+   measured against its own pinned ink. */
 .settings-action-danger {
-  --mould: var(--mould-crimson);
-  --mould-ink: var(--mould-crimson-ink);
-  --mould-plinth: var(--mould-crimson-plinth);
+  color: var(--danger);
+}
+
+.settings-action-danger .settings-icon-tile,
+.settings-action-danger svg {
+  color: var(--danger);
 }
 
 .settings-toggle {
