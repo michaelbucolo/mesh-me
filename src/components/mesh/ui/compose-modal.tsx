@@ -26,7 +26,7 @@ export function MeshComposeModal({
       <div className="w-full max-w-xl animate-[bubbleIn_.36s_cubic-bezier(0.22,1,0.36,1)] rounded-2xl mesh-panel p-3 shadow-2xl">
         <div className="mb-2 flex items-start justify-between px-1">
           <div className="flex items-center gap-2">
-            <Sparkles size={15} className="text-[var(--accent)]" />
+            <Sparkles size={15} className="text-[var(--accent-text)]" />
             <div>
               <p className="text-sm font-semibold text-[var(--text-primary)]">Create on your mesh</p>
               <p className="text-micro text-[var(--text-tertiary)]">Watch it weave itself into your web.</p>

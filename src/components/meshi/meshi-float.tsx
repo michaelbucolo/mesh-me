@@ -1668,7 +1668,7 @@ export function MeshiFloat() {
                 transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
                 className="text-2xl"
               >
-                <Search className="h-8 w-8" style={{ color: "var(--accent)" }} />
+                <Search className="h-8 w-8" style={{ color: "var(--accent-text)" }} />
               </motion.div>
               <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
                 className="px-4 py-2 rounded-xl text-sm font-medium shadow-xl flex flex-col items-center gap-1"
@@ -1719,7 +1719,7 @@ export function MeshiFloat() {
                 exit={{ opacity: 0, y: 6, scale: 0.92 }}
                 className="absolute bottom-full right-0 mb-1 flex items-center gap-1 rounded-full border border-[var(--accent)]/20 bg-[var(--bg-elevated)]/72 px-2 py-1 text-micro font-semibold text-[var(--text-primary)] shadow-md backdrop-blur"
               >
-                <span className="text-[var(--accent)]">Check</span>
+                <span className="text-[var(--accent-text)]">Check</span>
                 <button
                   type="button"
                   onPointerDown={(event) => event.stopPropagation()}
@@ -1822,7 +1822,7 @@ export function MeshiFloat() {
                       {bubble.role === "meshi" && (
                         <div className="mb-1 flex items-start gap-1.5">
                           <span className="mt-1 h-1.5 w-1.5 rounded-full bg-[var(--accent)]" aria-hidden="true" />
-                          <span className="text-micro font-medium text-[var(--accent)]">Meshi</span>
+                          <span className="text-micro font-medium text-[var(--accent-text)]">Meshi</span>
                         </div>
                       )}
                       <p className="leading-relaxed">{bubble.text}</p>
@@ -1844,7 +1844,7 @@ export function MeshiFloat() {
                   <motion.div
                     initial={{ opacity: 0, y: 10, scale: 0.9 }} animate={{ opacity: 1, y: 0, scale: 1 }}
                     className="w-full rounded-2xl rounded-bl-sm border border-[var(--accent)]/40 bg-[var(--bg-elevated)] px-3 py-2 shadow-lg">
-                    <p className="mb-2 text-micro font-medium text-[var(--accent)]">Ready to post for you</p>
+                    <p className="mb-2 text-micro font-medium text-[var(--accent-text)]">Ready to post for you</p>
                     <p className="mb-2 max-h-20 overflow-y-auto text-xs leading-relaxed text-[var(--text-primary)]">
                       {pendingSpeechAction.content}
                     </p>

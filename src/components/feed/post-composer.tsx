@@ -528,7 +528,7 @@ export function PostComposer({ user, communityId, startExpanded = false, onPostP
           {selectedPlatforms.size > 0 && !showCrossPost && (
             <button
               onClick={() => setShowCrossPost(true)}
-              className="mt-2 flex items-center gap-1.5 text-micro text-[var(--accent)] hover:underline"
+              className="mt-2 flex items-center gap-1.5 text-micro text-[var(--accent-text)] hover:underline"
             >
               <Share2 className="h-3 w-3" />
               Cross-posting to {selectedPlatforms.size} platform{selectedPlatforms.size !== 1 ? "s" : ""}

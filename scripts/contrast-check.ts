@@ -28,7 +28,7 @@
 
 import assert from "node:assert/strict";
 import { BRANCH_PLASTIC, MOULD, inkForFill } from "../src/lib/palette";
-import { INK_ON_DARK, INK_ON_LIGHT, readableInkOn, readableInkRatio } from "../src/lib/readable-ink";
+import { INK_ON_DARK, INK_ON_LIGHT, readableAccentText, readableInkOn, readableInkRatio } from "../src/lib/readable-ink";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
@@ -105,6 +105,18 @@ const MOULDS = ["cobalt", "tomato", "jade", "amber", "teal", "grape", "crimson"]
  */
 const PLINTH_STEP = 1.4;
 
+/**
+ * A token's value in one theme, for the sections that read globals.css and so
+ * cannot use the per-theme `at()` closure below. `.dark` inherits from `:root`,
+ * so an absent value falls through to the light block — the same rule `at()`
+ * follows, stated once here rather than a second time by hand.
+ */
+function tokenIn(theme: "light" | "dark", name: string): string {
+  const value = (theme === "dark" ? LAMPLIGHT[name] : DAYLIGHT[name]) ?? DAYLIGHT[name];
+  assert.ok(value, `the ${theme} theme is missing ${name}`);
+  return value;
+}
+
 let checks = 0;
 
 for (const [theme, tokens] of [["Daylight", DAYLIGHT], ["Lamplight", LAMPLIGHT]] as const) {
@@ -132,22 +144,79 @@ for (const [theme, tokens] of [["Daylight", DAYLIGHT], ["Lamplight", LAMPLIGHT]]
     }
   }
 
-  // 2. --ink-4 must stay below AA, so "non-text only" is visible in review.
+  // 2. --ink-4 stays the QUIETEST ink. (Retargeted: it used to assert
+  //    `inkFour < AA`, an INVERTED test that failed the build for making the
+  //    palette MORE accessible -- darkening --ink-4 to #3a3a3c was rejected
+  //    with "10.17:1, which passes AA". A rule that punishes improvement is not
+  //    protecting anything.)
+  //
+  //    The real intent is a RAMP: --ink-4 is rules, dividers and disabled
+  //    glyphs, and it must never be mistakable for a text ink. That is a
+  //    relative claim, so it is now written as one -- both inks may rise
+  //    together, but --ink-4 stays below --ink-3, the text floor.
   const inkFour = ratio(at("--ink-4"), at("--paper-0"));
+  const inkThree = ratio(at("--ink-3"), at("--paper-0"));
   assert.ok(
-    inkFour < AA,
-    `${theme}: --ink-4 is ${inkFour.toFixed(2)}:1 on --paper-0, which passes AA.\n` +
-      "  --ink-4 is the borders-and-dividers token. If it reads as legible text,\n" +
-      "  nothing stops it being used as text. Keep it decorative, or promote it.",
+    inkFour < inkThree,
+    `${theme}: --ink-4 is ${inkFour.toFixed(2)}:1 on --paper-0, at or above --ink-3 (${inkThree.toFixed(2)}:1).\n` +
+      "  --ink-4 is the borders-and-dividers token and must stay the quietest ink in the\n" +
+      "  ramp. If it reads as strongly as the text floor, nothing stops it being used as text.",
   );
   checks += 1;
 
-  // 3. The accent, both as text and as a surface under text.
-  const accentOnPaper = ratio(at("--accent"), at("--paper-0"));
-  assert.ok(accentOnPaper >= AA, `${theme}: --accent on --paper-0 is ${accentOnPaper.toFixed(2)}:1`);
+  // 2b. THE FOCUS RING WAS NEVER MEASURED.
+  //
+  //     --rule-focus is the keyboard focus indicator -- for a keyboard-only user
+  //     it is the entire cursor. It was one of fifteen hex tokens this file
+  //     parsed and never passed to ratio(): an audit made it invisible and the
+  //     gate still printed "contrast OK". WCAG 2.4.11 wants a focus indicator
+  //     you can actually see, so it is held to the non-text floor on every
+  //     surface it can land on.
+  for (const paper of PAPERS) {
+    const r = ratio(at("--rule-focus"), at(paper));
+    assert.ok(
+      r >= NON_TEXT,
+      `${theme}: --rule-focus on ${paper} is ${r.toFixed(2)}:1, below ${NON_TEXT}:1.\n` +
+        "  This is the keyboard focus indicator. For someone navigating without a mouse it is\n" +
+        "  the only thing telling them where they are.",
+    );
+    checks += 1;
+  }
+
+  // 3. THE ACCENT AS TEXT AND THE ACCENT AS A FILL ARE DIFFERENT COLOURS.
+  //
+  // This used to be one value doing both jobs, measured on --paper-0 alone.
+  // Two things were wrong with that.
+  //
+  // ONE PAPER IS NOT THE SURFACE. Accent text sits on all four papers — a link
+  // inside an input well is on --paper-2, inside a tray floor on --paper-3. The
+  // dark theme's own shipped accent, #409cff, is 8.82:1 on --paper-0 and
+  // 4.01:1 on --paper-3. Measuring the easiest surface and calling it the
+  // palette is the same half-coverage that hid the preset inks.
+  //
+  // ONE VALUE CANNOT DO BOTH JOBS. A fill is judged by the ink ON it and text
+  // by the paper BEHIND it, and those pull a hue in opposite directions: make
+  // the accent darker and it reads better as text but worse under near-black
+  // ink. The default accent happened to clear both. The ten presets did not —
+  // every one of the five light presets measured under 3.3:1 as text, the
+  // forest green at 2.95:1, on links and on every `Edit`/`See all` control.
+  //
+  // So there are two tokens now. --accent fills; --accent-text paints text, on
+  // every paper.
+  for (const paper of PAPERS) {
+    const r = ratio(at("--accent-text"), at(paper));
+    assert.ok(
+      r >= AA,
+      `${theme}: --accent-text on ${paper} is ${r.toFixed(2)}:1, below AA.\n` +
+        "  Accent text is not confined to --paper-0 — it lands in input wells (--paper-2) and on\n" +
+        "  tray floors (--paper-3). Darken (light) or lighten (dark) --accent-text until it clears\n" +
+        "  on all four; --accent itself stays the colour the fill wants.",
+    );
+    checks += 1;
+  }
   const inkOnAccent = ratio(at("--accent-ink"), at("--accent"));
   assert.ok(inkOnAccent >= AA, `${theme}: --accent-ink on --accent is ${inkOnAccent.toFixed(2)}:1`);
-  checks += 2;
+  checks += 1;
 
   // 4 + 9. Pigments carry meaning, so they must be readable where they are
   // allowed — and that is all FOUR papers, not the two they were measured
@@ -666,3 +735,381 @@ console.log(
     "  file does not know is a fill. The browser sweep in the PR is what confirms the rendered\n" +
     "  result; this keeps the known failures from coming back.",
 );
+
+// ── 12. THE ACCENT PRESETS. THIS GATE COULD NOT SEE THEM. ───────────────────
+//
+// Everything above reads src/app/tokens.css. globals.css then re-points
+// `--accent` eleven times — the five user-selectable accent presets, in both
+// theme blocks — and NOT ONE of them re-pinned `--accent-ink`. So white ink,
+// pinned to the default blue, sat on hues it was never measured against:
+//
+//     #22d3ee cyan     1.81:1   ← text a sighted user cannot read
+//     #22c55e green    2.28:1
+//     #a1a1aa mono     2.56:1
+//     #f97316 orange   2.80:1
+//     #16a34a green    3.30:1
+//     #ea580c orange   3.56:1
+//     #ff2d55 pink     3.65:1
+//     #0891b2 teal     3.68:1
+//
+// Nine of eleven below AA, shipping, on a control a user opts into from
+// Settings. The gate printed "contrast OK" every single time, because a token
+// this file never reads is a token this file cannot protect.
+//
+// A pair is only checked where it is DECLARED. Reading one file and calling it
+// the palette is how this hid.
+{
+  const globals = readFileSync(join(ROOT, "src/app/globals.css"), "utf8");
+  const ACCENT_AA = 4.5;
+  let presets = 0;
+  let hoversMeasured = 0;
+
+  // Each `--accent:` and the `--accent-ink:` that follows it inside the same
+  // rule block. An accent with no ink after it inherits one measured against a
+  // different colour, which is the bug itself.
+  // Split at every --accent: and pair each with the text that follows it up to
+  // the NEXT --accent: (or end of file). A bounded look-ahead found 5 of 11 and
+  // still printed a pass -- half-coverage that reads as coverage, which is the
+  // same failure mode as the hole it was written to close.
+  const marks = [...globals.matchAll(/--accent:\s*(#[0-9a-fA-F]{6})\s*;/g)];
+  // The block's own OFFSET is carried through. Locating it later with
+  // `indexOf(fill)` finds the first occurrence of that hex anywhere in the file
+  // — a comment, or another preset that happens to share the colour — which put
+  // the cyan dark preset in the light theme and measured it at 1.62:1.
+  const blocks: [number, string, string][] = marks.map((m, i) => [
+    m.index!,
+    m[1],
+    globals.slice(m.index! + m[0].length, i + 1 < marks.length ? marks[i + 1].index! : globals.length),
+  ]);
+  assert.ok(
+    blocks.length > 0,
+    "no --accent declarations found in globals.css — this check has lost its subject and is passing vacuously",
+  );
+
+  for (const [offset, fill, tail] of blocks) {
+    const ink = /--accent-ink:\s*(#[0-9a-fA-F]{6})\s*;/.exec(tail)?.[1];
+    assert.ok(
+      ink,
+      `globals.css re-points --accent to ${fill} without pinning --accent-ink beside it.\n` +
+        "  The inherited ink was measured against a different fill, so its contrast here is unknown.\n" +
+        "  Every fill that carries text pins the ink that belongs to it.",
+    );
+
+    // A FILL HAS TWO STATES, AND THIS MEASURED ONE OF THEM.
+    //
+    // Pinning the ink fixed the base fill and the check above proved it. But
+    // every filled control in the product — .brand-button, .app-compose-button,
+    // .mobile-compose-fab, .mesh-entry-primary, .mesh-action-primary, .mesh-cta
+    // — swaps ONLY the background on :hover and keeps var(--accent-contrast).
+    // So --accent-hover is a second fill carrying the same label, and it was
+    // never measured. Three presets shipped a hover shade that moved TOWARD the
+    // near-black ink instead of away from it:
+    //
+    //     ocean   #0e7490   3.70:1
+    //     sunset  #c2410c   3.82:1
+    //     forest  #15803d   3.95:1
+    //
+    // Below AA the moment a pointer lands, on a control the user opts into.
+    // Checking the rest state of a two-state fill is the same half-coverage the
+    // block above was written to close, one level down.
+    const hover = /--accent-hover:\s*(#[0-9a-fA-F]{6})\s*;/.exec(tail)?.[1];
+    const states: [string, string][] = [["--accent", fill]];
+    if (hover) states.push(["--accent-hover", hover]);
+
+    for (const [name, surface] of states) {
+      const r = ratio(ink, surface);
+      assert.ok(
+        r >= ACCENT_AA,
+        `globals.css: --accent-ink ${ink} on ${name} ${surface} is ${r.toFixed(2)}:1, below AA ${ACCENT_AA}:1.\n` +
+          "  Filled controls swap the background on :hover and keep the ink, so the hover shade\n" +
+          "  has to move AWAY from the ink, not toward it. A darker hover under near-black ink\n" +
+          "  makes the label less readable exactly when the pointer is on it.",
+      );
+      checks += 1;
+    }
+    // AND THE SAME FILL USED AS TEXT.
+    //
+    // Everything above measures ink ON the preset. The preset is also painted
+    // as text — links, `Edit`, `See all`, the legal links in the footer — and
+    // as text it is measured against the PAPER, not against its own ink. Every
+    // one of the five light presets failed that, badly:
+    //
+    //     forest     #16a34a   2.63:1   (worst paper)
+    //     sunset     #ea580c   2.84:1
+    //     instagram  #ff2d55   2.90:1
+    //     ocean      #0891b2   2.93:1
+    //     mono       #64748b   3.79:1
+    //
+    // A fill colour and a text colour cannot be the same token, so each preset
+    // pins --accent-text as well, and it is measured on all four papers of
+    // whichever theme the preset lives in.
+    const text = /--accent-text:\s*(#[0-9a-fA-F]{6})\s*;/.exec(tail)?.[1];
+    assert.ok(
+      text,
+      `globals.css re-points --accent to ${fill} without pinning --accent-text beside it.\n` +
+        "  The accent is painted as text in ~170 places. As text it is measured against the paper,\n" +
+        "  not against its own ink, and a fill bright enough to carry near-black ink is almost never\n" +
+        "  dark enough to read on paper.",
+    );
+    // WHICH THEME'S PAPERS? READ THE BLOCK'S OWN SELECTOR.
+    //
+    // The presets used to be spelled `:root[data-theme="X"]` — TWICE each, ten
+    // blocks for five presets, same selector and same specificity. The later
+    // five won outright and the first five were dead CSS that had never applied
+    // to anything. Worse, the surviving five were the LIGHT-suited values and
+    // `:root` applies in both themes, so the dark theme was wearing them too.
+    //
+    // They are `.light[data-theme="X"]` / `.dark[data-theme="X"]` now, which is
+    // both the fix and what makes the theme readable here: the selector says
+    // which papers this block's colours will actually sit on, instead of the
+    // gate inferring it from where the text happens to fall in the file.
+    const head = globals.slice(0, offset);
+    const open = head.lastIndexOf("{");
+    // The selector starts after the nearest PRECEDING brace of either kind. Only
+    // looking for `}` swallows the enclosing at-rule when a block is nested
+    // inside `@media`, which reported the whole `@media (…) { :root:not(…)` line
+    // as the selector.
+    const cut = Math.max(head.lastIndexOf("}", open), head.lastIndexOf("{", open - 1));
+    const selector = head.slice(cut + 1, open).trim();
+    const isPreset = /\[data-theme=/.test(selector);
+    if (isPreset) {
+      assert.ok(
+        /\.(light|dark)\b/.test(selector),
+        `the accent preset at "${selector}" is not scoped to a theme.\n` +
+          "  A bare :root[data-theme=…] applies in BOTH themes from one set of values, so a fill\n" +
+          "  drawn for a dark background ships on white paper. Scope it: .light[data-theme=…] or\n" +
+          "  .dark[data-theme=…].",
+      );
+      checks += 1;
+    }
+    // WHICH SURFACES DOES THIS BLOCK'S TEXT ACTUALLY LAND ON?
+    //
+    // A preset only re-points the accent, so its text sits on the four papers
+    // of its theme. A block that redefines the whole palette — the class-less
+    // `prefers-color-scheme` fallback does — states its own background, and
+    // measuring THAT block against tokens.css's papers would be measuring a
+    // surface it never renders on.
+    // `tail` starts AT the --accent declaration, and a block states its
+    // backgrounds above its accent, so the whole block body is what gets read.
+    const blockEnd = (() => {
+      let depth = 1;
+      for (let i = open + 1; i < globals.length; i += 1) {
+        if (globals[i] === "{") depth += 1;
+        else if (globals[i] === "}" && --depth === 0) return i;
+      }
+      return globals.length;
+    })();
+    const body = globals.slice(open + 1, blockEnd);
+    const surfaces = isPreset
+      ? PAPERS.map((p) => [p, tokenIn(/\.dark\b/.test(selector) ? "dark" : "light", p)] as const)
+      : [...body.matchAll(/(--bg-(?:primary|secondary|card|elevated)):\s*(#[0-9a-fA-F]{6})\s*;/g)]
+          .map((m) => [m[1], m[2]] as const);
+    assert.ok(
+      surfaces.length > 0,
+      `the --accent block at "${selector}" states neither a theme nor a background of its own,\n` +
+        "  so there is no surface to measure --accent-text against. An unmeasurable block is an\n" +
+        "  unchecked one.",
+    );
+    for (const [name, surface] of surfaces) {
+      const r = ratio(text, surface);
+      assert.ok(
+        r >= ACCENT_AA,
+        `globals.css: --accent-text ${text} on ${name} ${surface} is ${r.toFixed(2)}:1, below AA ${ACCENT_AA}:1.`,
+      );
+      checks += 1;
+    }
+
+    presets += 1;
+    checks += 2;
+    hoversMeasured += hover ? 1 : 0;
+  }
+  // A preset that declared no hover would silently drop out of the loop above
+  // and the count would still read like coverage. Every one of them declares
+  // one today; say so, and fail if that stops being true.
+  assert.equal(
+    hoversMeasured,
+    presets,
+    `only ${hoversMeasured} of ${presets} accent presets declare --accent-hover; the rest inherit a\n` +
+      "  hover fill from another block that was measured against a different ink.",
+  );
+  checks += 1;
+  console.log(
+    `  …and ${presets} accent presets in globals.css, each with its own pinned ink, ` +
+      `measured on both the base and hover fill.`,
+  );
+}
+
+// ── 12b. THE ACCENT THE USER PICKS, WHICH NO CSS FILE CONTAINS ──────────────
+//
+// tokens.css states the accent twice and pins the ink beside each. globals.css
+// states it ten more times and pins the ink beside each. Both are now measured
+// above. `applyCustomTheme` in theme-provider.tsx states it an ELEVENTH way —
+// from a colour chosen in Settings, written to `root.style` at runtime — and
+// pinned nothing, so `--accent-ink` stayed whatever the theme underneath had
+// pinned for an entirely different hue (`#ffffff` light, `#00204a` dark). Every
+// filled control paints `color: var(--accent-contrast)`, and
+// `--accent-contrast: var(--accent-ink)`, so a user picking a pale accent got
+// white-on-pale: around 1.1:1 for a yellow.
+//
+// No amount of reading CSS finds this, because the declaration does not exist
+// until a user makes it. The gate has to read the code that writes it.
+//
+// The derived ink cannot fail: black and white cross at 4.58:1 at the worst
+// luminance in the sRGB cube, so `readableInkOn` clears AA for ANY fill —
+// proved in the brand-map section below, and the reason a "does it clear AA"
+// assertion is deliberately absent there. What can fail, and did, is the
+// component not deriving at all.
+{
+  const provider = readFileSync(join(ROOT, "src/components/theme-provider.tsx"), "utf8");
+
+  // Whatever sets --accent must set the ink that belongs to it, in the same
+  // function. Setting one without the other is the bug in every form it took.
+  const setsAccent = /setProperty\("--accent",/.test(provider);
+  assert.ok(
+    setsAccent,
+    "theme-provider no longer sets --accent — this check has lost its subject and is passing vacuously",
+  );
+  for (const token of ["--accent-ink", "--accent-contrast"] as const) {
+    assert.match(
+      provider,
+      new RegExp(`setProperty\\("${token}",`),
+      `theme-provider sets --accent from a user-chosen colour but never sets ${token}.\n` +
+        "  The inherited ink was pinned to a different hue, so its contrast on the chosen accent is\n" +
+        "  unknown — white on a pale custom accent measures about 1.1:1, on every filled control.\n" +
+        "  Derive it: readableInkOn(fill) clears AA for any colour in the sRGB cube.",
+    );
+    checks += 1;
+  }
+  assert.match(
+    provider,
+    /readableInkOn\(customTheme\.accent\)/,
+    "theme-provider is pinning a literal ink for a colour it does not know at build time.\n" +
+      "  The fill is whatever the user picked; the ink has to be derived from it, not chosen\n" +
+      "  in advance. That is exactly the hand-written-exception shape readableInkOn replaced.",
+  );
+  // Clearing the custom theme has to release the ink too, or the derived value
+  // outlives the accent it was derived from and lands on the preset underneath.
+  for (const token of ["--accent", "--accent-ink", "--accent-contrast", "--accent-text"] as const) {
+    assert.match(
+      provider,
+      new RegExp(`removeProperty\\("${token}"\\)`),
+      `theme-provider sets ${token} for a custom theme but never removes it.\n` +
+        "  Clearing the custom theme would leave the derived value on the root element, applied to\n" +
+        "  whichever preset the user falls back to — a fill it was never measured against.",
+    );
+    checks += 1;
+  }
+  assert.match(
+    provider,
+    /readableAccentText\(customTheme\.accent,\s*customTheme\.bgPrimary\)/,
+    "theme-provider sets --accent from a user-chosen colour but not --accent-text.\n" +
+      "  A fill and a label cannot be the same colour: the accent is painted as text in ~170 places,\n" +
+      "  measured against the background rather than against its own ink.",
+  );
+  checks += 1;
+}
+
+// ── 12c. THE COPY OF THAT DERIVATION THAT RUNS BEFORE ANY MODULE EXISTS ─────
+//
+// `themeInitScript` in layout.tsx is beforeInteractive: it paints the saved
+// theme on the first frame so a refresh does not flash the default palette.
+// That is also why it cannot import readable-ink.ts — and why it set --accent
+// from a user-chosen colour while setting no ink at all, leaving the inherited
+// ink on an arbitrary hue for the whole initial render and permanently if the
+// client bundle never runs.
+//
+// The derivation therefore exists twice, which is the shape that caused every
+// bug in this file. What makes two copies survivable is that they are COMPARED:
+// the bootstrap's functions are extracted and EXECUTED here against the module,
+// over a sweep wide enough that any real divergence shows up. A regex asserting
+// the bootstrap "contains inkOn" would pass any refactor that kept the word.
+{
+  const layout = readFileSync(join(ROOT, "src/app/layout.tsx"), "utf8");
+  const start = layout.indexOf("  function lum(hex) {");
+  const end = layout.indexOf("  function applyCustomTheme(root, customTheme) {");
+  assert.ok(
+    start >= 0 && end > start,
+    "the bootstrap's colour derivation has moved or been removed from layout.tsx.\n" +
+      "  This check executes it against src/lib/readable-ink.ts; it cannot do that if it cannot\n" +
+      "  find it, and silently checking nothing is worse than not checking.",
+  );
+
+  const boot = new Function(
+    `${layout.slice(start, end)}\nreturn { inkOn: inkOn, accentText: accentText };`,
+  )() as { inkOn: (f: string) => string; accentText: (a: string, b: string) => string };
+
+  // A sweep, not a handful: every 32nd value per channel plus the exact hues the
+  // presets and the two theme backgrounds use.
+  const sweep: string[] = [];
+  for (let r = 0; r < 256; r += 51) {
+    for (let g = 0; g < 256; g += 51) {
+      for (let b = 0; b < 256; b += 51) {
+        sweep.push(`#${[r, g, b].map((v) => v.toString(16).padStart(2, "0")).join("")}`);
+      }
+    }
+  }
+  sweep.push("#ff2d55", "#0891b2", "#ea580c", "#16a34a", "#64748b", "#0056d6", "#409cff", "#22d3ee");
+  const backgrounds = ["#ffffff", "#f2f2f7", "#000000", "#1c1c1e", "#3a3a3c", "#7f7f7f"];
+
+  let compared = 0;
+  for (const c of sweep) {
+    assert.equal(
+      boot.inkOn(c),
+      readableInkOn(c),
+      `the bootstrap and readable-ink.ts disagree on the ink for ${c}: ` +
+        `${boot.inkOn(c)} vs ${readableInkOn(c)}.`,
+    );
+    compared += 1;
+    for (const bg of backgrounds) {
+      assert.equal(
+        boot.accentText(c, bg),
+        readableAccentText(c, bg),
+        `the bootstrap and readable-ink.ts disagree on the accent text for ${c} on ${bg}: ` +
+          `${boot.accentText(c, bg)} vs ${readableAccentText(c, bg)}.`,
+      );
+      compared += 1;
+    }
+  }
+  // And the derivation the bootstrap agrees with must actually be AA — otherwise
+  // both copies could be identically wrong.
+  for (const c of sweep) {
+    for (const bg of backgrounds) {
+      const r = ratio(readableAccentText(c, bg), bg);
+      assert.ok(
+        r >= 4.5,
+        `readableAccentText(${c}, ${bg}) returns ${readableAccentText(c, bg)} at ${r.toFixed(2)}:1, below AA.`,
+      );
+      compared += 1;
+    }
+  }
+  // AGREEING ON THE ANSWER IS NOT THE SAME AS USING IT.
+  //
+  // Everything above proves the two derivations compute the same thing. It says
+  // nothing about whether the bootstrap CALLS its copy — deleting the call sites
+  // leaves both implementations identical and every comparison above still
+  // passing, which is exactly what a mutation run showed.
+  const applyStart = layout.indexOf("  function applyCustomTheme(root, customTheme) {");
+  const applyEnd = layout.indexOf("\n  }", applyStart);
+  const apply = layout.slice(applyStart, applyEnd);
+  for (const [token, call] of [
+    ["--accent-ink", "inkOn(customTheme.accent)"],
+    ["--accent-contrast", "inkOn(customTheme.accent)"],
+    ["--accent-text", "accentText(customTheme.accent, customTheme.bgPrimary)"],
+  ] as const) {
+    assert.ok(
+      apply.includes(`setProperty("${token}"`),
+      `the bootstrap's applyCustomTheme sets --accent but not ${token}.\n` +
+        "  The initial render — and every render, if the client bundle never runs — would use the\n" +
+        "  ink the underlying theme pinned for a completely different hue.",
+    );
+    assert.ok(
+      apply.includes(call),
+      `the bootstrap's applyCustomTheme sets ${token} without calling ${call}.\n` +
+        "  A literal here is a value chosen in advance for a colour that is not known until a user\n" +
+        "  picks it.",
+    );
+    checks += 2;
+  }
+  checks += 2;
+  console.log(`  …and ${compared} derivations agreed between the bootstrap and readable-ink.ts, all AA.`);
+}

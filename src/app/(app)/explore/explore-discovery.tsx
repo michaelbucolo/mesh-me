@@ -653,7 +653,7 @@ function SectionHeader({ title, action }: { title: string; action?: { label: str
         <button
           type="button"
           onClick={action.onClick}
-          className="text-xs font-medium text-[var(--accent)] transition hover:opacity-80"
+          className="text-xs font-medium text-[var(--accent-text)] transition hover:opacity-80"
         >
           {action.label}
         </button>
@@ -693,7 +693,7 @@ function CommunityCard({ community, index, compact }: { community: SuggestedComm
         <div className="flex items-center gap-3">
           <Avatar src={community.iconUrl} alt={community.name} size="sm" />
           <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-[var(--text-primary)] transition-colors group-hover:text-[var(--accent)]">
+            <p className="truncate text-sm font-semibold text-[var(--text-primary)] transition-colors group-hover:text-[var(--accent-text)]">
               {community.name}
             </p>
             <p className="flex items-center gap-2 text-micro text-[var(--text-muted)]">
@@ -761,9 +761,9 @@ function ExplorePersonCard({
     >
       <Link href={`/profile/${user.username}`} className="block">
         <Avatar src={user.avatarUrl} alt={user.displayName} size="lg" className="mx-auto mb-2.5" />
-        <p className="flex items-center justify-center gap-1 truncate text-sm font-semibold text-[var(--text-primary)] transition-colors group-hover:text-[var(--accent)]">
+        <p className="flex items-center justify-center gap-1 truncate text-sm font-semibold text-[var(--text-primary)] transition-colors group-hover:text-[var(--accent-text)]">
           <span className="truncate">{user.displayName}</span>
-          {user.isVerified && <BadgeCheck className="h-3.5 w-3.5 shrink-0 text-[var(--accent)]" aria-label="Verified" />}
+          {user.isVerified && <BadgeCheck className="h-3.5 w-3.5 shrink-0 text-[var(--accent-text)]" aria-label="Verified" />}
         </p>
         <p className="truncate text-xs text-[var(--text-muted)]">@{user.username}</p>
         {user.interests.length > 0 && (
@@ -971,7 +971,7 @@ function TrendingHero({ posts }: { posts: FeedCardPost[] }) {
                   {!still && <p className="mb-1 line-clamp-2 text-sm font-semibold leading-snug text-white">{post.content}</p>}
                   <p className="truncate text-micro font-semibold text-white/85">{authorName}</p>
                   <p className="mt-0.5 flex items-center gap-2 text-micro text-white/60">
-                    <span className="inline-flex items-center gap-1"><Heart size={11} className="text-[var(--accent)]" /> {formatCount(post._count.reactions)}</span>
+                    <span className="inline-flex items-center gap-1"><Heart size={11} className="text-[var(--accent-text)]" /> {formatCount(post._count.reactions)}</span>
                     <span className="inline-flex items-center gap-1"><MessageCircle size={11} /> {formatCount(post._count.comments)}</span>
                     {post.platform && post.platform !== "meshme" && post.platform !== "mesh" && (
                       <span className="mesh-eyebrow ">{post.platform}</span>

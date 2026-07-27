@@ -2,6 +2,8 @@
 
 import { createContext, useContext, useEffect, useState, useCallback } from "react";
 
+import { readableAccentText, readableInkOn } from "@/lib/readable-ink";
+
 type ThemeMode = "light" | "dark" | "system";
 type ResolvedTheme = "light" | "dark";
 type ThemePreset = "default" | "instagram" | "ocean" | "sunset" | "forest" | "mono";
@@ -97,11 +99,31 @@ function applyPreset(preset: ThemePreset) {
   document.documentElement.setAttribute("data-theme", preset);
 }
 
+/**
+ * THE THIRD PLACE THE ACCENT IS SET, AND THE ONE NO CSS GATE CAN SEE.
+ *
+ * tokens.css states the accent for the two themes and pins `--accent-ink`
+ * beside it. globals.css re-states it for the ten presets and pins the ink
+ * beside each. This function states it a third time — from a colour the USER
+ * picks, at runtime — and pinned nothing, so the ink stayed whatever the
+ * underlying theme had pinned for a completely different hue: `#ffffff` in
+ * light, `#00204a` in dark. A user choosing a yellow accent got white text on
+ * yellow, about 1.1:1.
+ *
+ * `--accent-contrast` is `var(--accent-ink)`, and every filled control paints
+ * `color: var(--accent-contrast)`, so the ink has to be derived from the fill
+ * that is actually being set. `readableInkOn` is the same derivation the
+ * eighteen platform brand chips use, for the same reason: an arbitrary colour
+ * cannot have its ink decided in advance by whoever noticed.
+ */
 function applyCustomTheme(customTheme: ThemeCustomization | null) {
   const root = document.documentElement;
   if (!customTheme) {
     root.removeAttribute("data-custom-theme");
     root.style.removeProperty("--accent");
+    root.style.removeProperty("--accent-ink");
+    root.style.removeProperty("--accent-contrast");
+    root.style.removeProperty("--accent-text");
     root.style.removeProperty("--accent-hover");
     root.style.removeProperty("--accent-muted");
     root.style.removeProperty("--accent-subtle");
@@ -117,6 +139,13 @@ function applyCustomTheme(customTheme: ThemeCustomization | null) {
 
   root.setAttribute("data-custom-theme", "true");
   root.style.setProperty("--accent", customTheme.accent);
+  // Derived from the fill being set, never inherited from the theme underneath.
+  // --accent-hover is the same colour here, so one ink covers both states.
+  const ink = readableInkOn(customTheme.accent);
+  root.style.setProperty("--accent-ink", ink);
+  root.style.setProperty("--accent-contrast", ink);
+  // And the accent AS TEXT, measured against the background this theme states.
+  root.style.setProperty("--accent-text", readableAccentText(customTheme.accent, customTheme.bgPrimary));
   root.style.setProperty("--accent-hover", customTheme.accent);
   root.style.setProperty("--accent-muted", `${customTheme.accent}33`);
   root.style.setProperty("--accent-subtle", `${customTheme.accent}1f`);

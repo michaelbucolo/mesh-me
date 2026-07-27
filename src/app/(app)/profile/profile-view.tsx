@@ -179,7 +179,7 @@ export async function InstagramProfileView({ username, tab }: { username: string
                 <div className="flex flex-wrap items-center gap-2.5">
                   <h1 className="profile-name text-2xl font-semibold text-[var(--mesh-text)]">{profile.displayName}</h1>
                   {profile.isVerified && (
-                    <ShieldCheck className="h-5 w-5 shrink-0 text-[var(--accent)]" aria-label="Verified" />
+                    <ShieldCheck className="h-5 w-5 shrink-0 text-[var(--accent-text)]" aria-label="Verified" />
                   )}
                   {!isOwnProfile && !profile.isPublic && (
                     <span className="inline-flex items-center rounded-lg bg-amber-500/10 px-2.5 py-0.5 text-xs font-semibold text-[var(--warning)]">
@@ -473,7 +473,7 @@ export async function InstagramProfileView({ username, tab }: { username: string
                       <div className="mt-3 flex items-center gap-5 text-xs text-[var(--mesh-text-muted)]">
                         <span className="flex items-center gap-1.5"><Heart size={14} /> {formatCount(post._count.reactions)}</span>
                         <span className="flex items-center gap-1.5"><MessageCircle size={14} /> {formatCount(post._count.comments)}</span>
-                        <span className="ml-auto flex items-center gap-1.5 text-[var(--accent)]"><Bookmark size={14} /> Saved</span>
+                        <span className="ml-auto flex items-center gap-1.5 text-[var(--accent-text)]"><Bookmark size={14} /> Saved</span>
                       </div>
                     </div>
                   </div>
@@ -497,7 +497,7 @@ export async function InstagramProfileView({ username, tab }: { username: string
               <p className="max-w-md text-sm text-[var(--mesh-text-secondary)]">
                 Your privacy rules say Mesh.me may not process your activity into analytics, so we are not building this dashboard. Change the Analytics rule to turn it back on.
               </p>
-              <Link href="/privacy-controls" className="text-sm font-semibold text-[var(--accent)] underline underline-offset-4">
+              <Link href="/privacy-controls" className="text-sm font-semibold text-[var(--accent-text)] underline underline-offset-4">
                 Open privacy controls
               </Link>
             </section>
@@ -598,7 +598,7 @@ export async function InstagramProfileView({ username, tab }: { username: string
         <section className="rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] p-5">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-semibold text-[var(--mesh-text)]">Communities</h3>
-            <Link href="/communities" className="text-xs font-medium text-[var(--accent)] hover:underline">View all</Link>
+            <Link href="/communities" className="text-xs font-medium text-[var(--accent-text)] hover:underline">View all</Link>
           </div>
           <div className="space-y-3">
             {communityCount > 0 ? (
@@ -624,7 +624,7 @@ export async function InstagramProfileView({ username, tab }: { username: string
         <section className="rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] p-5">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-semibold text-[var(--mesh-text)]">Collections</h3>
-            <Link href="?tab=collections" className="text-xs font-medium text-[var(--accent)] hover:underline">View all</Link>
+            <Link href="?tab=collections" className="text-xs font-medium text-[var(--accent-text)] hover:underline">View all</Link>
           </div>
           <div className="space-y-3">
             {collectionCount > 0 ? (
@@ -648,7 +648,7 @@ export async function InstagramProfileView({ username, tab }: { username: string
           <section className="rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] p-5">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-sm font-semibold text-[var(--mesh-text)]">Creator Links</h3>
-              <Link href="?tab=links" className="text-xs text-[var(--accent)] hover:underline">View all</Link>
+              <Link href="?tab=links" className="text-xs text-[var(--accent-text)] hover:underline">View all</Link>
             </div>
             <div className="space-y-2.5">
               {links.map((link) => (
@@ -707,7 +707,7 @@ function ProfileTab({ label, count, href, active = false }: { label: string; cou
     >
       {label}
       {count !== undefined && (
-        <span className={`rounded-md px-1.5 py-0.5 text-xs ${active ? "bg-[var(--accent)]/10 text-[var(--accent)]" : "bg-[var(--mesh-panel)] text-[var(--mesh-text-muted)]"}`}>
+        <span className={`rounded-md px-1.5 py-0.5 text-xs ${active ? "bg-[var(--accent)]/10 text-[var(--accent-text)]" : "bg-[var(--mesh-panel)] text-[var(--mesh-text-muted)]"}`}>
           {count}
         </span>
       )}

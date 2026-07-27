@@ -126,55 +126,80 @@ for (let i = 1; i < order.length; i += 1) {
   assert.ok(cur >= prev, `--radius-${order[i]} (${cur}rem) is smaller than --radius-${order[i - 1]} (${prev}rem)`);
 }
 
-// ── 2. The press conserves total height ──────────────────────────────────────
+// ── 2. THE PRESS IS A FILL CHANGE, NOT A JOURNEY ────────────────────────────
 //
-// The side wall goes to zero AND the face travels down by exactly one wall, so
-// the bottom edge never moves. That is the whole difference between a key
-// bottoming out and a jiggle.
+// RETARGETED. This asserted three things about a moulded press: the face
+// travels down by exactly one wall-height, the wall collapses to zero, and both
+// use `translate` rather than `transform` so they compose with the legacy scale
+// rules. All three were about conserving total height as an object bottoms out.
+//
+// There is no wall now. Apple's press on a control is a fill change -- depth
+// does not move, because depth is layering and material rather than a moulded
+// step. So height conservation is trivially satisfied and the old assertions
+// had nothing left to protect.
+//
+// WORSE THAN THAT, THEY WENT ON PASSING. The Apple foundation zeroed
+// --plinth-h-* from the token side and left the declarations in place, so the
+// wall resolved to `0 0px 0 0` -- invisible, but still matching every regex
+// here. This file reads class strings, so for one commit it asserted that a
+// wall existed while guarding nothing at all. That is the failure mode this
+// section now exists to prevent.
 const keyActive = /\.key:active\s*\{([\s\S]*?)\}/.exec(globals)?.[1];
 assert.ok(keyActive, ".key:active not found in globals.css");
 assert.match(
   keyActive,
-  /translate:\s*0 var\(--plinth-h\)/,
-  ".key:active must translate down by exactly one wall-height, `translate: 0 var(--plinth-h)`.\n" +
-    "  Anything else breaks height conservation and the press stops feeling like a key.",
+  /background:\s*var\(--face-press\)/,
+  ".key:active must answer with a fill: `background: var(--face-press)`.\n" +
+    "  A press has to be visible, and the fill is the only thing left that carries it.",
 );
-assert.match(
-  keyActive,
-  /0 0 0 0 var\(--plinth-1\)/,
-  ".key:active must collapse the side wall to zero. A face that moves down while the wall stays\n" +
-    "  is an object getting taller as you press it.",
-);
-// `transform` here would force rewriting every existing
-// `:active { transform: ... scale(var(--mesh-press-scale)) }` rule in the same
-// commit. The individual `translate` property composes with them instead.
-assert.ok(
-  !/transform:/.test(keyActive),
-  ".key:active must use the individual `translate` property, never `transform`.\n" +
-    "  globals.css already ships `:active { transform: translateY(0) scale(var(--mesh-press-scale)) }`\n" +
-    "  rules elsewhere; transform is ONE property, so using it here silently overrides them.",
-);
+// A press must never move layout, and must never claim a depth change.
+for (const [prop, why] of [
+  ["translate", "the face travelling down was the moulded press; there is no wall to travel into"],
+  ["transform", "same, and transform is one property that would silently override the scale rules elsewhere"],
+  ["box-shadow", "depth does not change on press -- that was the wall collapsing, and it is gone"],
+  ["border-width", "a border change relayouts on every click"],
+  ["padding", "a padding change relayouts on every click"],
+  ["height", "a height change relayouts on every click"],
+] as const) {
+  assert.ok(
+    !new RegExp(`(^|[;{\\s])${prop}\\s*:`).test(keyActive),
+    `.key:active must not set \`${prop}\`.\n  ${why}.`,
+  );
+}
 
-// ── 3. The wall is a wall, not a glow ────────────────────────────────────────
+// ── 3. THE PLINTH MODEL IS OFF, AND OFF EVERYWHERE ──────────────────────────
+//
+// The one thing that must not happen again is a HALF state: tokens zeroed while
+// the declarations survive, so the gate reads a wall that does not render. So
+// this asserts the two halves agree.
 const keyBlock = /\n\.key\s*\{([\s\S]*?)\n\}/.exec(globals)?.[1];
 assert.ok(keyBlock, ".key not found in globals.css");
-assert.match(
-  keyBlock,
-  /0 var\(--plinth-h\) 0 0 var\(--plinth-1\)/,
-  ".key's side wall must be `0 var(--plinth-h) 0 0 var(--plinth-1)` — offset down, BLUR ZERO.\n" +
-    "  A blurred plinth is a drop shadow, and this system's whole claim is that depth comes from\n" +
-    "  the object's own side rather than from light.",
+
+const plinthHeight = /--plinth-h-object:\s*([^;]+);/.exec(read("src/app/tokens.css"))?.[1]?.trim();
+assert.ok(plinthHeight, "--plinth-h-object not found in tokens.css");
+const plinthIsOff = /^0(px|rem|em)?$/.test(plinthHeight);
+assert.ok(
+  plinthIsOff,
+  `--plinth-h-object is ${plinthHeight}, but the product is on Apple's language, which has no side wall.\n` +
+    "  If the plinth model is being brought back, bring back the assertions with it — do not\n" +
+    "  leave a token that draws a wall no gate is checking.",
+);
+assert.ok(
+  !/var\(--plinth-1\)|var\(--plinth-h\)/.test(keyBlock),
+  ".key still declares a side wall while --plinth-h-object is 0.\n" +
+    "  That is the half-migrated state: the declaration matches a regex, renders nothing, and\n" +
+    "  lets a string-reading gate report coverage it does not have. Delete the layer or restore\n" +
+    "  the token — not one without the other.",
 );
 assert.match(
   keyBlock,
   /inset 0 0 0 var\(--edge-w\) var\(--edge\)/,
-  ".key must carry the --edge ring. The plinth darkens in both themes, so on a dark mat it\n" +
-    "  cannot be the legal boundary — --edge is. An object without it is a WCAG 1.4.11 bug.",
+  ".key must carry the --edge ring. Apple leans on a control's FILL as its boundary, but a\n" +
+    "  plain or gray control has no fill to lean on — --edge is what keeps WCAG 1.4.11 met there.",
 );
-// A border would relayout on every press; the plinth must be a shadow.
 assert.ok(
   !/border-bottom/.test(keyBlock),
-  ".key must not use border-bottom for the plinth — a border relayouts on every click.",
+  ".key must not use border-bottom — a border relayouts on every click.",
 );
 
 // ── 4. Information does not get a side wall ──────────────────────────────────

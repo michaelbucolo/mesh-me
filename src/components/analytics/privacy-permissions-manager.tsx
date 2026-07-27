@@ -92,7 +92,7 @@ export function PrivacyPermissionsManager({ accounts }: { accounts: ConnectedAna
 
       <section className="mesh-section rounded-3xl p-5">
         <div className="mb-4 flex items-center gap-2">
-          <ShieldCheck className="h-5 w-5 text-[var(--accent)]" />
+          <ShieldCheck className="h-5 w-5 text-[var(--accent-text)]" />
           <h2 className="text-lg font-semibold text-[var(--text-primary)]">Privacy tab: app access + data inventory</h2>
         </div>
         <p className="text-xs leading-5 text-[var(--text-secondary)]">
@@ -181,7 +181,7 @@ function Stat({ label, value }: { label: string; value: number }) {
 function MiniStat({ icon: Icon, label, value }: { icon: typeof Eye; label: string; value: number }) {
   return (
     <div className="plate p-3">
-      <Icon className="mb-2 h-4 w-4 text-[var(--accent)]" />
+      <Icon className="mb-2 h-4 w-4 text-[var(--accent-text)]" />
       <p className="text-lg font-semibold text-[var(--text-primary)]">{value.toLocaleString()}</p>
       <p className="text-micro text-[var(--text-muted)]">{label}</p>
     </div>

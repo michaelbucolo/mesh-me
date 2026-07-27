@@ -41,7 +41,7 @@ export default async function CommunityDetailPage({ params }: { params: Promise<
     return (
       <main className="mx-auto grid min-h-[70vh] w-full max-w-xl place-items-center px-4 py-8">
         <section className="mesh-surface rounded-[28px] border border-[var(--ds-border)] p-8 text-center shadow-[var(--shadow-soft)]">
-          <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-[var(--accent-subtle)] text-[var(--accent)]">
+          <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-[var(--accent-subtle)] text-[var(--accent-text)]">
             <Lock className="h-7 w-7" />
           </div>
           <h1 className="mt-4 text-2xl font-semibold tracking-[0] text-[var(--text-primary)]">Private community</h1>

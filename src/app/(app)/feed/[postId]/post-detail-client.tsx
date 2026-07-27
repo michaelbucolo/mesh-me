@@ -190,7 +190,7 @@ export function PostDetailClient({ post, currentUserId }: PostDetailClientProps)
                 {post.author.displayName}
               </Link>
               {post.author.isVerified && (
-                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor" style={{ color: "var(--accent)" }}>
+                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor" style={{ color: "var(--accent-text)" }}>
                   <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               )}
@@ -210,7 +210,7 @@ export function PostDetailClient({ post, currentUserId }: PostDetailClientProps)
               {post.community && (
                 <>
                   <span>&middot;</span>
-                  <Link href={`/communities/${post.community.slug}`} style={{ color: "var(--accent)" }}>
+                  <Link href={`/communities/${post.community.slug}`} style={{ color: "var(--accent-text)" }}>
                     {post.community.name}
                   </Link>
                 </>
@@ -315,7 +315,7 @@ export function PostDetailClient({ post, currentUserId }: PostDetailClientProps)
                 setReplyingTo(null);
                 commentInputRef.current?.focus();
               }}
-              className="flex items-center gap-1.5 px-2 py-2 rounded-lg text-sm text-[var(--text-muted)] hover:text-[var(--accent)] transition-colors sm:px-3"
+              className="flex items-center gap-1.5 px-2 py-2 rounded-lg text-sm text-[var(--text-muted)] hover:text-[var(--accent-text)] transition-colors sm:px-3"
             >
               <MessageCircle className="h-5 w-5" />
               Comment
@@ -335,7 +335,7 @@ export function PostDetailClient({ post, currentUserId }: PostDetailClientProps)
             </button>
             <button
               onClick={handleSave}
-              className={cn("p-2 rounded-lg transition-colors", saved ? "text-[var(--accent)]" : "text-[var(--text-muted)] hover:text-[var(--accent)]")}
+              className={cn("p-2 rounded-lg transition-colors", saved ? "text-[var(--accent-text)]" : "text-[var(--text-muted)] hover:text-[var(--accent-text)]")}
             >
               <Bookmark className={cn("h-5 w-5", saved && "fill-current")} />
             </button>
@@ -349,7 +349,7 @@ export function PostDetailClient({ post, currentUserId }: PostDetailClientProps)
           {replyingTo && (
             <div className="flex items-center gap-2 mb-2 text-xs text-[var(--text-muted)]">
               <span>Replying to a comment</span>
-              <button onClick={() => setReplyingTo(null)} className="text-[var(--accent)] hover:underline">Cancel</button>
+              <button onClick={() => setReplyingTo(null)} className="text-[var(--accent-text)] hover:underline">Cancel</button>
             </div>
           )}
           <div className="flex gap-3">
@@ -420,7 +420,7 @@ export function PostDetailClient({ post, currentUserId }: PostDetailClientProps)
                     setReplyingTo(comment.id);
                     commentInputRef.current?.focus();
                   }}
-                  className="text-xs text-[var(--text-muted)] hover:text-[var(--accent)] mt-1 transition-colors"
+                  className="text-xs text-[var(--text-muted)] hover:text-[var(--accent-text)] mt-1 transition-colors"
                 >
                   Reply
                 </button>

@@ -190,7 +190,7 @@ export function OneMeshHub({
             >
               {acct.glyph}
             </span>
-            <span className={`max-w-[5rem] truncate text-micro font-semibold ${isNew ? "text-[var(--accent)]" : "text-[var(--text-muted)]"}`}>
+            <span className={`max-w-[5rem] truncate text-micro font-semibold ${isNew ? "text-[var(--accent-text)]" : "text-[var(--text-muted)]"}`}>
               {acct.name}
             </span>
           </motion.div>
@@ -211,14 +211,14 @@ export function OneMeshHub({
           {identity.avatarUrl ? (
             <Avatar src={identity.avatarUrl} alt={identity.username} size="lg" />
           ) : (
-            <span className="flex h-16 w-16 items-center justify-center rounded-full bg-[var(--accent)]/15 text-xl font-semibold text-[var(--accent)]">
+            <span className="flex h-16 w-16 items-center justify-center rounded-full bg-[var(--accent)]/15 text-xl font-semibold text-[var(--accent-text)]">
               {initials}
             </span>
           )}
         </div>
         <div className="mt-2 flex flex-col items-center">
           <span className="text-sm font-semibold text-[var(--text-primary)]">@{identity.username}</span>
-          <span className="text-micro font-semibold mesh-eyebrow text-[var(--accent)]">
+          <span className="text-micro font-semibold mesh-eyebrow text-[var(--accent-text)]">
             one mesh.me account
           </span>
         </div>

@@ -657,7 +657,7 @@ export function OnboardingFlow({
                       >
                         <span className="flex items-center justify-between gap-2">
                           <span className="block text-sm font-semibold">{platform.name}</span>
-                          {active && <Check size={15} className="animate-mesh-pop text-[var(--accent)]" aria-hidden="true" />}
+                          {active && <Check size={15} className="animate-mesh-pop text-[var(--accent-text)]" aria-hidden="true" />}
                         </span>
                         <span className="mt-1 block text-xs text-[var(--text-muted)]">
                           {platform.connected ? "Already connected" : platform.authType === "oauth" ? "One-tap connect" : "Add manually"}

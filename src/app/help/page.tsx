@@ -56,7 +56,7 @@ export default function HelpCenterPage() {
           return (
             <div key={category} className="rounded-2xl border border-[var(--glass-card-border)] bg-[var(--glass-card-bg)] p-4 shadow-[var(--shadow-sm)]">
               <div className="mb-3 flex items-center justify-between gap-3">
-                <Icon className="h-5 w-5 text-[var(--accent)]" aria-hidden="true" />
+                <Icon className="h-5 w-5 text-[var(--accent-text)]" aria-hidden="true" />
                 <span className="rounded-full border border-[var(--border-primary)] px-2 py-0.5 text-xs font-semibold text-[var(--text-muted)]">
                   {count}
                 </span>

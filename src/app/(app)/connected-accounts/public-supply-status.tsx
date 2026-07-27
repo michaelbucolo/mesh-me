@@ -56,7 +56,7 @@ export function PublicSupplyStatus() {
   return (
     <section className="plate p-5">
       <header className="flex items-start gap-3">
-        <Sparkles size={18} className="mt-0.5 shrink-0 text-[var(--accent)]" aria-hidden="true" />
+        <Sparkles size={18} className="mt-0.5 shrink-0 text-[var(--accent-text)]" aria-hidden="true" />
         <div className="min-w-0">
           <h2 className="text-sm font-semibold text-[var(--text-primary)]">What you can see without connecting</h2>
           <p className="mt-1 text-xs leading-5 text-[var(--text-secondary)]">

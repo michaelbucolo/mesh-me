@@ -111,7 +111,7 @@ function OrbitSparkle({ size = 12 }: { size?: number }) {
       <motion.span className="absolute inset-0" animate={{ rotate: 360 }} transition={{ duration: 2.2, ease: "linear", repeat: Infinity }}>
         <span className="absolute left-1/2 top-0 h-1 w-1 -translate-x-1/2 rounded-full" style={{ background: "var(--mesh-cyan)", boxShadow: "0 0 6px var(--mesh-cyan)" }} />
       </motion.span>
-      <Sparkles size={size} className="text-[var(--accent)]" style={{ filter: "drop-shadow(0 0 3px var(--accent))" }} />
+      <Sparkles size={size} className="text-[var(--accent-text)]" style={{ filter: "drop-shadow(0 0 3px var(--accent))" }} />
     </span>
   );
 }

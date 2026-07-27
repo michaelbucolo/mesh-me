@@ -39,7 +39,7 @@ const routes = [
     icon: Lock,
     title: "Privacy policy",
     description: "Read the user-facing explanation of data collection, storage, export, deletion, and rights.",
-    accent: "text-[var(--accent)]",
+    accent: "text-[var(--accent-text)]",
   },
   {
     href: "/terms",
@@ -178,7 +178,7 @@ export function SiteRouteMap({
         transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
       >
         <div className="flex items-start gap-3">
-          <MessageCircle className="mt-1 h-5 w-5 text-[var(--accent)]" />
+          <MessageCircle className="mt-1 h-5 w-5 text-[var(--accent-text)]" />
           <div>
             <h3 className="text-sm font-semibold text-[var(--text-primary)]">Launch UX rule</h3>
             <p className="mt-1 text-sm leading-6 text-[var(--text-secondary)]">

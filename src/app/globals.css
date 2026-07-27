@@ -97,7 +97,7 @@
   --radius-xs: 0.5rem;    /*  8px */
   --radius-sm: 0.625rem;  /* 10px — unchanged */
   --radius-md: 0.875rem;  /* 14px — unchanged */
-  --radius-lg: 1.25rem;   /* 20px — was 18.4 */
+  --radius-lg: 1.1875rem;   /* 20px — was 18.4 */
   --radius-xl: 1.75rem;   /* 28px — was 24 */
   --radius-2xl: 1.75rem;  /* 28px — was 32, capped */
   --radius-3xl: 1.75rem;  /* 28px — collapses rounded-3xl into the cap */
@@ -134,16 +134,16 @@
      Every value below is an existing `--t-*` step from tokens.css, not a new
      decision. `6xl` collapses into `display` exactly as `rounded-3xl` collapses
      into the radius cap: the top of a scale is the top. */
-  --text-xs:   0.78125rem;  /* 12.5px — --t-caption   (was 12) */
-  --text-sm:   0.84375rem;  /* 13.5px — --t-small     (was 14) */
-  --text-base: 0.9375rem;   /* 15px   — --t-body      (was 16) */
-  --text-lg:   1.0625rem;   /* 17px   — --t-title     (was 18) */
-  --text-xl:   1.25rem;     /* 20px   — --t-h4        (unchanged) */
-  --text-2xl:  1.5rem;      /* 24px   — --t-h3        (unchanged) */
-  --text-3xl:  1.9375rem;   /* 31px   — --t-h2        (was 30) */
-  --text-4xl:  2.5rem;      /* 40px   — --t-h1        (was 36) */
-  --text-5xl:  3.25rem;     /* 52px   — --t-display   (was 48) */
-  --text-6xl:  3.25rem;     /* 52px   — --t-display, collapsed (was 60) */
+  --text-xs:   0.75rem;     /* 12px   — --t-micro    (Apple caption2/caption1) */
+  --text-sm:   0.8125rem;   /* 13px   — --t-caption  (Apple footnote) */
+  --text-base: 1rem;        /* 16px   — --t-body */
+  --text-lg:   1.0625rem;   /* 17px   — --t-lead / --t-title (Apple body/headline) */
+  --text-xl:   1.1875rem;   /* 19px   — --t-h4 */
+  --text-2xl:  1.375rem;    /* 22px   — --t-h3       (Apple title2) */
+  --text-3xl:  1.75rem;     /* 28px   — --t-h2       (Apple title1) */
+  --text-4xl:  2.125rem;    /* 34px   — --t-h1       (Apple largeTitle) */
+  --text-5xl:  2.75rem;     /* 44px   — --t-display (Apple has no step above this) */
+  --text-6xl:  2.75rem;     /* 44px   — collapses into --t-display, same as 5xl */
 
   /* Each step's paired leading, from the same `--t-*` entry. Tailwind's stock
      pairings are computed against ITS sizes, so leaving them would put the right
@@ -172,8 +172,19 @@
 }
 
 
-:root[data-theme="instagram"] {
+.dark[data-theme="instagram"] {
   --accent: #ff2d55;
+  /* The accent AS TEXT. The fill above is lightened here because a
+     colour that carries ink is not the same colour that reads on paper: #ff2d55
+     measures below AA on all four dark papers as text. */
+  --accent-text: #ff7b94;  /* 4.60 worst case across all four dark papers */
+  /* PINNED. Every preset re-pointed --accent onto a new hue and left
+     --accent-ink inherited, so white sat on it: 3.65:1 here, and 1.81:1 on
+     the cyan preset -- text a sighted user cannot read. The ink that belongs
+     to THIS fill, measured: 5.43:1 on the base fill and
+     6.77:1 on --accent-hover. BOTH states carry the label, so the hover
+     shade moves AWAY from the ink, never toward it. */
+  --accent-ink: #0a0a0a;
   --accent-hover: #ff5f7d;
   --accent-muted: rgba(255, 45, 85, 0.22);
   --accent-subtle: rgba(255, 45, 85, 0.14);
@@ -181,32 +192,76 @@
   --brand-gradient-vibrant: linear-gradient(135deg, #fd1d1d 0%, #f77737 35%, #c13584 70%, #5851db 100%);
 }
 
-:root[data-theme="ocean"] {
+.dark[data-theme="ocean"] {
   --accent: #22d3ee;
+  /* The accent AS TEXT. The fill above is lightened here because a
+     colour that carries ink is not the same colour that reads on paper: #22d3ee
+     measures below AA on all four dark papers as text. */
+  --accent-text: #22d3ee;  /* 6.28 worst case across all four dark papers */
+  /* PINNED. Every preset re-pointed --accent onto a new hue and left
+     --accent-ink inherited, so white sat on it: 1.81:1 here, and 1.81:1 on
+     the cyan preset -- text a sighted user cannot read. The ink that belongs
+     to THIS fill, measured: 10.96:1 on the base fill and
+     13.66:1 on --accent-hover. BOTH states carry the label, so the hover
+     shade moves AWAY from the ink, never toward it. */
+  --accent-ink: #0a0a0a;
   --accent-hover: #67e8f9;
   --accent-muted: rgba(34, 211, 238, 0.2);
   --accent-subtle: rgba(34, 211, 238, 0.12);
   --brand-gradient: linear-gradient(135deg, #06b6d4 0%, #0ea5e9 45%, #2563eb 100%);
 }
 
-:root[data-theme="sunset"] {
+.dark[data-theme="sunset"] {
   --accent: #f97316;
+  /* The accent AS TEXT. The fill above is lightened here because a
+     colour that carries ink is not the same colour that reads on paper: #f97316
+     measures below AA on all four dark papers as text. */
+  --accent-text: #fa8635;  /* 4.61 worst case across all four dark papers */
+  /* PINNED. Every preset re-pointed --accent onto a new hue and left
+     --accent-ink inherited, so white sat on it: 2.80:1 here, and 1.81:1 on
+     the cyan preset -- text a sighted user cannot read. The ink that belongs
+     to THIS fill, measured: 7.06:1 on the base fill and
+     13.66:1 on --accent-hover. BOTH states carry the label, so the hover
+     shade moves AWAY from the ink, never toward it. */
+  --accent-ink: #0a0a0a;
   --accent-hover: #fb923c;
   --accent-muted: rgba(249, 115, 22, 0.22);
   --accent-subtle: rgba(249, 115, 22, 0.12);
   --brand-gradient: linear-gradient(135deg, #f97316 0%, #f43f5e 52%, #8b5cf6 100%);
 }
 
-:root[data-theme="forest"] {
+.dark[data-theme="forest"] {
   --accent: #22c55e;
+  /* The accent AS TEXT. The fill above is lightened here because a
+     colour that carries ink is not the same colour that reads on paper: #22c55e
+     measures below AA on all four dark papers as text. */
+  --accent-text: #22c55e;  /* 4.98 worst case across all four dark papers */
+  /* PINNED. Every preset re-pointed --accent onto a new hue and left
+     --accent-ink inherited, so white sat on it: 2.28:1 here, and 1.81:1 on
+     the cyan preset -- text a sighted user cannot read. The ink that belongs
+     to THIS fill, measured: 8.69:1 on the base fill and
+     8.75:1 on --accent-hover. BOTH states carry the label, so the hover
+     shade moves AWAY from the ink, never toward it. */
+  --accent-ink: #0a0a0a;
   --accent-hover: #4ade80;
   --accent-muted: rgba(34, 197, 94, 0.2);
   --accent-subtle: rgba(34, 197, 94, 0.12);
   --brand-gradient: linear-gradient(135deg, #22c55e 0%, #14b8a6 50%, #0ea5e9 100%);
 }
 
-:root[data-theme="mono"] {
+.dark[data-theme="mono"] {
   --accent: #a1a1aa;
+  /* The accent AS TEXT. The fill above is lightened here because a
+     colour that carries ink is not the same colour that reads on paper: #a1a1aa
+     measures below AA on all four dark papers as text. */
+  --accent-text: #a5a5ad;  /* 4.64 worst case across all four dark papers */
+  /* PINNED. Every preset re-pointed --accent onto a new hue and left
+     --accent-ink inherited, so white sat on it: 2.56:1 here, and 1.81:1 on
+     the cyan preset -- text a sighted user cannot read. The ink that belongs
+     to THIS fill, measured: 7.72:1 on the base fill and
+     11.36:1 on --accent-hover. BOTH states carry the label, so the hover
+     shade moves AWAY from the ink, never toward it. */
+  --accent-ink: #0a0a0a;
   --accent-hover: #d4d4d8;
   --accent-muted: rgba(161, 161, 170, 0.25);
   --accent-subtle: rgba(161, 161, 170, 0.12);
@@ -260,7 +315,7 @@ h1, h2, h3, .font-display {
   letter-spacing: 0;
 }
 
-.brand-wordmark-accent { color: var(--accent); }
+.brand-wordmark-accent { color: var(--accent-text); }
 
 /* ─── Scrollbar ─── */
 ::-webkit-scrollbar { width: 5px; }
@@ -1121,7 +1176,7 @@ select:focus-visible {
    `5.4rem` was the old literal — a guess at 3.5rem of bar plus a gap, sitting
    in a file that had no way to know when either moved. */
 .mesh-continuum-handle-down {
-  bottom: calc(var(--mobile-nav-h) + env(safe-area-inset-bottom) + 1.25rem);
+  bottom: calc(var(--mobile-nav-h) + env(safe-area-inset-bottom) + 1.1875rem);
 }
 .mesh-continuum-handle-up { top: calc(0.7rem + env(safe-area-inset-top)); }
 /* The hover `translateY` drift is gone with the glass. A key does not slide
@@ -1947,7 +2002,7 @@ body[data-meshi-panel="open"] .bug-report-widget {
   justify-content: center;
   border-bottom: 2px solid transparent;
   color: var(--text-muted);
-  font-size: 0.78125rem;
+  font-size: 0.75rem;
   font-weight: 600;
   letter-spacing: 0.01em;
   transition:
@@ -2667,7 +2722,7 @@ html {
   text-transform: none;
   color: var(--ink-3);
 }
-.mesh-kicker { color: var(--accent); }
+.mesh-kicker { color: var(--accent-text); }
 
 .mesh-title {
   color: var(--text-primary);
@@ -2729,7 +2784,7 @@ html {
 }
 
 .mesh-stat-card {
-  border-radius: 1.25rem;
+  border-radius: 1.1875rem;
   border: 1px solid var(--glass-card-border);
   background: var(--glass-card-bg);
   padding: 1rem;
@@ -2836,7 +2891,7 @@ html {
 
 /* Headset UX: Apple Vision Pro, Meta Quest, and generic spatial browsers */
 .platform-spatial {
-  --spatial-radius: 1.25rem;
+  --spatial-radius: 1.1875rem;
   --spatial-panel-bg: color-mix(in srgb, var(--bg-secondary) 88%, transparent);
   --spatial-panel-border: color-mix(in srgb, var(--border-primary) 78%, rgba(155, 232, 255, 0.18));
   text-rendering: optimizeLegibility;
@@ -2868,7 +2923,7 @@ html {
   }
 
   .platform-spatial .public-site-nav {
-    padding-inline: 1.25rem;
+    padding-inline: 1.1875rem;
   }
 
   .platform-spatial .auth-shell-grid {
@@ -2909,8 +2964,8 @@ html {
   }
 
   .platform-spatial .mesh-action-bar {
-    bottom: 1.25rem;
-    left: 1.25rem;
+    bottom: 1.1875rem;
+    left: 1.1875rem;
     gap: 0.65rem;
   }
 }
@@ -3037,8 +3092,19 @@ html {
    palette instead of to this one: --ink-3 on --paper-0 is 6.28:1. */
 
 
-:root[data-theme="instagram"] {
+.light[data-theme="instagram"] {
   --accent: #ff2d55;
+  /* The accent AS TEXT. The fill above is darkened here because a
+     colour that carries ink is not the same colour that reads on paper: #ff2d55
+     measures below AA on all four light papers as text. */
+  --accent-text: #cd0027;  /* 4.61 worst case across all four papers */
+  /* PINNED. Every preset re-pointed --accent onto a new hue and left
+     --accent-ink inherited, so white sat on it: 3.65:1 here, and 1.81:1 on
+     the cyan preset -- text a sighted user cannot read. The ink that belongs
+     to THIS fill, measured: 5.43:1 on the base fill and
+     6.77:1 on --accent-hover. BOTH states carry the label, so the hover
+     shade moves AWAY from the ink, never toward it. */
+  --accent-ink: #0a0a0a;
   --accent-hover: #ff5f7d;
   --accent-muted: rgba(255, 45, 85, 0.18);
   --accent-subtle: rgba(255, 45, 85, 0.1);
@@ -3047,9 +3113,20 @@ html {
   --brand-gradient-vibrant: linear-gradient(135deg, #fd1d1d 0%, #f77737 35%, #c13584 70%, #5851db 100%);
 }
 
-:root[data-theme="ocean"] {
+.light[data-theme="ocean"] {
   --accent: #0891b2;
-  --accent-hover: #0e7490;
+  /* The accent AS TEXT. The fill above is darkened here because a
+     colour that carries ink is not the same colour that reads on paper: #0891b2
+     measures below AA on all four light papers as text. */
+  --accent-text: #066e88;  /* 4.65 worst case across all four papers */
+  /* PINNED. Every preset re-pointed --accent onto a new hue and left
+     --accent-ink inherited, so white sat on it: 3.68:1 here, and 1.81:1 on
+     the cyan preset -- text a sighted user cannot read. The ink that belongs
+     to THIS fill, measured: 5.38:1 on the base fill and
+     6.77:1 on --accent-hover. BOTH states carry the label, so the hover
+     shade moves AWAY from the ink, never toward it. */
+  --accent-ink: #0a0a0a;
+  --accent-hover: #0aa2c4;
   --accent-muted: rgba(8, 145, 178, 0.16);
   --accent-subtle: rgba(8, 145, 178, 0.09);
   --accent-glow: rgba(8, 145, 178, 0.14);
@@ -3057,9 +3134,20 @@ html {
   --brand-gradient-vibrant: linear-gradient(135deg, #22d3ee 0%, #38bdf8 50%, #2563eb 100%);
 }
 
-:root[data-theme="sunset"] {
+.light[data-theme="sunset"] {
   --accent: #ea580c;
-  --accent-hover: #c2410c;
+  /* The accent AS TEXT. The fill above is darkened here because a
+     colour that carries ink is not the same colour that reads on paper: #ea580c
+     measures below AA on all four light papers as text. */
+  --accent-text: #b04209;  /* 4.61 worst case across all four papers */
+  /* PINNED. Every preset re-pointed --accent onto a new hue and left
+     --accent-ink inherited, so white sat on it: 3.56:1 here, and 1.81:1 on
+     the cyan preset -- text a sighted user cannot read. The ink that belongs
+     to THIS fill, measured: 5.56:1 on the base fill and
+     6.58:1 on --accent-hover. BOTH states carry the label, so the hover
+     shade moves AWAY from the ink, never toward it. */
+  --accent-ink: #0a0a0a;
+  --accent-hover: #f26a1c;
   --accent-muted: rgba(234, 88, 12, 0.16);
   --accent-subtle: rgba(234, 88, 12, 0.09);
   --accent-glow: rgba(234, 88, 12, 0.14);
@@ -3067,9 +3155,20 @@ html {
   --brand-gradient-vibrant: linear-gradient(135deg, #fb923c 0%, #fb7185 50%, #a78bfa 100%);
 }
 
-:root[data-theme="forest"] {
+.light[data-theme="forest"] {
   --accent: #16a34a;
-  --accent-hover: #15803d;
+  /* The accent AS TEXT. The fill above is darkened here because a
+     colour that carries ink is not the same colour that reads on paper: #16a34a
+     measures below AA on all four light papers as text. */
+  --accent-text: #107535;  /* 4.62 worst case across all four papers */
+  /* PINNED. Every preset re-pointed --accent onto a new hue and left
+     --accent-ink inherited, so white sat on it: 3.30:1 here, and 1.81:1 on
+     the cyan preset -- text a sighted user cannot read. The ink that belongs
+     to THIS fill, measured: 6.01:1 on the base fill and
+     6.46:1 on --accent-hover. BOTH states carry the label, so the hover
+     shade moves AWAY from the ink, never toward it. */
+  --accent-ink: #0a0a0a;
+  --accent-hover: #1cb857;
   --accent-muted: rgba(22, 163, 74, 0.16);
   --accent-subtle: rgba(22, 163, 74, 0.09);
   --accent-glow: rgba(22, 163, 74, 0.14);
@@ -3077,8 +3176,19 @@ html {
   --brand-gradient-vibrant: linear-gradient(135deg, #4ade80 0%, #2dd4bf 50%, #38bdf8 100%);
 }
 
-:root[data-theme="mono"] {
+.light[data-theme="mono"] {
   --accent: #64748b;
+  /* The accent AS TEXT. The fill above is darkened here because a
+     colour that carries ink is not the same colour that reads on paper: #64748b
+     measures below AA on all four light papers as text. */
+  --accent-text: #58667b;  /* 4.64 worst case across all four papers */
+  /* PINNED. Every preset re-pointed --accent onto a new hue and left
+     --accent-ink inherited, so white sat on it: 4.76:1 here, and 1.81:1 on
+     the cyan preset -- text a sighted user cannot read. The ink that belongs
+     to THIS fill, measured: 4.76:1 on the base fill and
+     6.46:1 on --accent-hover. BOTH states carry the label, so the hover
+     shade moves AWAY from the ink, never toward it. */
+  --accent-ink: #ffffff;
   --accent-hover: #475569;
   --accent-muted: rgba(100, 116, 139, 0.16);
   --accent-subtle: rgba(100, 116, 139, 0.09);
@@ -3110,7 +3220,7 @@ body {
 }
 
 .mobile-mesh-slot {
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 .mobile-mesh-slot-active {
@@ -3436,7 +3546,7 @@ body {
   border-radius: 999px;
   color: var(--text-muted);
   background: transparent;
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
   font-weight: 600;
   white-space: nowrap;
   transition:
@@ -3526,7 +3636,7 @@ body {
   width: 2rem;
   height: 2rem;
   border-radius: 999px;
-  color: var(--accent);
+  color: var(--accent-text);
   background: var(--accent-subtle);
 }
 
@@ -3547,7 +3657,7 @@ body {
 
 .feed-creator-stat span {
   color: var(--text-muted);
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
   font-weight: 600;
   font-variant-caps: all-small-caps;
 }
@@ -3584,7 +3694,7 @@ body {
   gap: 0.5rem;
   min-height: 3.5rem;
   color: var(--text-muted);
-  font-size: 0.78125rem;
+  font-size: 0.75rem;
   font-weight: 600;
 }
 
@@ -3668,7 +3778,7 @@ body {
   height: 2.5rem;
   border-radius: 0.75rem;
   background: var(--accent-subtle);
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 .feed-post-pending {
@@ -3878,13 +3988,13 @@ body {
   .feed-mode-button {
     min-height: 2rem;
     padding-inline: 0.68rem;
-    font-size: 0.6875rem;
+    font-size: 0.75rem;
   }
 
   .feed-control-chip {
     min-height: 2rem;
     padding-inline: 0.62rem;
-    font-size: 0.6875rem;
+    font-size: 0.75rem;
   }
 
   .feed-layout-toggle {
@@ -3984,7 +4094,7 @@ body {
 
   .feed-like-count {
     color: var(--text-muted);
-    font-size: 0.78125rem;
+    font-size: 0.75rem;
   }
 
   .mobile-bottom-nav {
@@ -4050,8 +4160,6 @@ html[data-mesh-locked="true"] body {
   --mesh-press-scale: 0.985;
 }
 
-:root.light,
-
 @media (prefers-color-scheme: light) {
   :root:not(.dark):not(.light) {
     --bg-primary: #f7f8fa;
@@ -4071,6 +4179,18 @@ html[data-mesh-locked="true"] body {
     --text-muted: #8a95a5;
     --text-inverse: #ffffff;
     --accent: #2563eb;
+    /* The accent AS TEXT. This block states its own light palette, so the text
+       value is measured against the --bg-* it declares here rather than against
+       the paper tokens: 5.07:1 on --bg-primary, 5.17:1 on --bg-secondary. This
+       accent was already dark enough to do both jobs; the presets are not. */
+    --accent-text: #2563eb;
+    /* PINNED. Every preset re-pointed --accent onto a new hue and left
+       --accent-ink inherited, so white sat on it: 5.17:1 here, and 1.81:1 on
+       the cyan preset -- text a sighted user cannot read. The ink that belongs
+       to THIS fill, measured: 5.17:1 on the base fill and
+     6.70:1 on --accent-hover. BOTH states carry the label, so the hover
+     shade moves AWAY from the ink, never toward it. */
+    --accent-ink: #ffffff;
     --accent-hover: #1d4ed8;
     --accent-contrast: #ffffff;
     --accent-muted: rgba(37, 99, 235, 0.12);
@@ -4550,7 +4670,7 @@ body,
   border-radius: 0.5rem;
   padding-inline: 0.75rem;
   color: var(--text-secondary);
-  font-size: 0.78125rem;
+  font-size: 0.75rem;
   font-weight: 600;
   transition: background-color 120ms ease, color 120ms ease;
 }
@@ -4586,7 +4706,7 @@ body,
   border-radius: 0.7rem;
   padding: 0.4rem 0.6rem;
   color: var(--text-secondary);
-  font-size: 0.84375rem;
+  font-size: 0.8125rem;
   font-weight: 600;
 }
 
@@ -4608,7 +4728,7 @@ body,
   border-radius: 0.7rem;
   padding: 0.5rem 0.65rem;
   color: var(--text-primary);
-  font-size: 0.84375rem;
+  font-size: 0.8125rem;
   font-weight: 600;
 }
 
@@ -4694,12 +4814,12 @@ body,
    applied at the end of this file, after `.plate`. */
 .settings-status-toast {
   position: fixed;
-  bottom: 1.25rem;
+  bottom: 1.1875rem;
   left: 50%;
   transform: translateX(-50%);
   z-index: 60;
   padding: 0.7rem 1.1rem;
-  font-size: 0.84375rem;
+  font-size: 0.8125rem;
   font-weight: 600;
   animation: settings-toast-in 0.2s ease;
 }
@@ -4735,7 +4855,7 @@ body,
 .settings-mini-label {
   display: block;
   color: var(--text-muted);
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
   font-weight: 600;
   letter-spacing: 0.02em;
   font-variant-caps: all-small-caps;
@@ -4788,7 +4908,7 @@ body,
 
 .settings-card-heading h3 {
   color: var(--text-secondary);
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
   font-weight: 600;
   letter-spacing: 0.02em;
   font-variant-caps: all-small-caps;
@@ -4807,7 +4927,7 @@ body,
   border-radius: 0.5rem;
   padding: 0.25rem 0.4rem;
   color: var(--text-muted);
-  font-size: 0.78125rem;
+  font-size: 0.75rem;
   font-weight: 600;
   cursor: pointer;
   list-style: none;
@@ -4838,7 +4958,7 @@ body,
 .settings-hint-body {
   padding: 0 0.4rem 0.4rem;
   color: var(--text-secondary);
-  font-size: 0.78125rem;
+  font-size: 0.75rem;
   line-height: 1.55;
 }
 
@@ -4912,7 +5032,7 @@ body,
   --ds-space-2: 0.5rem;
   --ds-space-3: 0.75rem;
   --ds-space-4: 1rem;
-  --ds-space-5: 1.25rem;
+  --ds-space-5: 1.1875rem;
   --ds-space-6: 1.5rem;
   --ds-space-8: 2rem;
   --ds-control-height-sm: 2rem;
@@ -5088,18 +5208,23 @@ body,
   background: var(--face);
   border: 0;
   border-radius: var(--radius-md);
-  --plinth-h: var(--plinth-h-object);
+  /* THE SIDE WALL AND THE MOULD SEAM ARE GONE.
+     They were still declared here after the Apple foundation landed, resolving
+     to `0 0px 0 0` and `none` -- invisible, but present as text. That is worse
+     than either state: scripts/shape-check.ts reads class strings, so it went
+     on asserting "the wall exists" and passing, while the wall it was guarding
+     had been zeroed out from the token side. A gate cannot protect a feature
+     that is only still there as a string.
+     What remains is what Apple actually uses: the --edge ring (kept, because it
+     is the WCAG 1.4.11 boundary on controls that have no fill of their own) and
+     a very subtle contact shadow. */
   box-shadow:
-    inset 0 0 0 var(--edge-w) var(--edge),   /* the legal boundary — see the Separation Law */
-    var(--mould-line),                       /* the tooling seam; dark theme only */
-    0 var(--plinth-h) 0 0 var(--plinth-1),   /* THE SIDE WALL. blur 0, always. */
-    var(--shadow-rest);                      /* contact with the mat */
+    inset 0 0 0 var(--edge-w) var(--edge),
+    var(--shadow-rest);
   /* Owns its own transitions — a .key must NOT also carry .ds-interactive,
      which is the old paper model and lifts on hover. See .key + .ds-interactive
      below, and scripts/shape-check.ts, which forbids the pair. */
   transition:
-    translate var(--dur-press) var(--ease-give),
-    box-shadow var(--dur-press) var(--ease-give),
     background-color var(--dur-tap) var(--ease-settle),
     color var(--dur-tap) var(--ease-settle);
 }
@@ -5118,13 +5243,13 @@ body,
 }
 .key:hover { background: var(--face-hover); }
 .key:active {
+  /* Apple's press is a FILL change, not a journey. The old rule travelled the
+     face down by one wall-height and collapsed the wall to zero, so total height
+     was conserved -- a moulded object bottoming out. With no wall there is
+     nothing to travel into, and `translate: 0 var(--plinth-h)` now resolves to
+     `0 0px`: a transition animating to where it already is.
+     Depth does not change on press. Only the fill does. */
   background: var(--face-press);
-  box-shadow:
-    inset 0 0 0 var(--edge-w) var(--edge),
-    var(--mould-line),
-    0 0 0 0 var(--plinth-1),
-    var(--shadow-press);
-  translate: 0 var(--plinth-h);
 }
 .key:disabled,
 .key[aria-disabled="true"] {
@@ -5297,7 +5422,7 @@ body,
   border: 1px solid var(--border-primary);
   border-radius: 0.7rem;
   background: var(--bg-secondary);
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 .command-palette-badge {
@@ -5313,7 +5438,7 @@ body,
   border-top: 1px solid var(--border-primary);
   padding-top: 0.75rem;
   color: var(--text-muted);
-  font-size: 0.78125rem;
+  font-size: 0.75rem;
   font-weight: 600;
 }
 
@@ -5558,7 +5683,7 @@ body {
   .mesh-topbar-owner {
     padding: 0;
     gap: 0.25rem;
-    font-size: 0.78125rem;
+    font-size: 0.75rem;
   }
 
   .mesh-topbar-icon {
@@ -5703,7 +5828,7 @@ body {
   }
 
   .settings-traditional-header h1 {
-    font-size: 1.25rem;
+    font-size: 1.1875rem;
   }
 
   .settings-traditional-grid {
@@ -5720,7 +5845,7 @@ body {
   .settings-nav-item {
     min-height: 2.75rem;
     scroll-snap-align: start;
-    font-size: 0.78125rem;
+    font-size: 0.75rem;
     padding: 0.5rem 0.65rem;
     gap: 0.4rem;
     white-space: nowrap;
@@ -5752,7 +5877,7 @@ body {
     align-items: flex-start;
     gap: 0.25rem;
     padding: 0.6rem 0.65rem;
-    font-size: 0.78125rem;
+    font-size: 0.75rem;
   }
 
   .settings-row,
@@ -5799,7 +5924,7 @@ body {
   }
 
   .profile-header-card .profile-name {
-    font-size: 1.25rem;
+    font-size: 1.1875rem;
   }
 
   .profile-header-card .profile-actions {
@@ -5808,7 +5933,7 @@ body {
   }
 
   .profile-header-card .profile-actions > * {
-    font-size: 0.78125rem;
+    font-size: 0.75rem;
     padding: 0.45rem 0.75rem;
   }
 
@@ -5851,7 +5976,7 @@ body {
   }
 
   .simple-page header p {
-    font-size: 0.78125rem;
+    font-size: 0.75rem;
   }
 
   .simple-page .mesh-surface {
@@ -6093,7 +6218,7 @@ body {
   /* THE LEGIBILITY FLOOR DOES NOT SCALE WITH THE LAYOUT.
      The rule above deliberately shrinks the rem base so a cover screen fits
      more, and every rem-sized thing follows it — which is correct for layout
-     and wrong for the smallest text in the product. --fs-micro is 0.6875rem
+     and wrong for the smallest text in the product. --fs-micro is 0.75rem
      precisely because 11px is the floor for meta text; at a 13.5px root it
      computes to 9.28px, BELOW several of the fixed values it was introduced to
      replace. The token would have been claiming a floor it did not hold, on the
@@ -6754,20 +6879,20 @@ body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
 .mesh-gate-peek:hover { color: #f3f5fb; }
 
 .mesh-gate-hint {
-  font-size: 0.78125rem;
+  font-size: 0.75rem;
   font-weight: 500;
   letter-spacing: 0.02em;
   color: rgba(154, 163, 188, 0.55);
 }
 .mesh-gate-msg {
-  font-size: 0.84375rem;
+  font-size: 0.8125rem;
   font-weight: 600;
   color: #fecaca;
   max-width: 26rem;
 }
 
 .mesh-gate-textlink {
-  font-size: 0.84375rem;
+  font-size: 0.8125rem;
   font-weight: 600;
   color: rgba(179, 190, 220, 0.82);
   transition: color 150ms ease;
@@ -6845,7 +6970,7 @@ body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
   flex-direction: column;
   gap: 0.2rem;
   text-align: left;
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
   font-weight: 600;
   letter-spacing: 0.02em;
   color: rgba(154, 163, 188, 0.72);
@@ -6879,7 +7004,7 @@ body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
   flex-direction: column;
   align-items: center;
   gap: 0.55rem;
-  padding: 0.9rem 1.25rem max(1rem, env(safe-area-inset-bottom));
+  padding: 0.9rem 1.1875rem max(1rem, env(safe-area-inset-bottom));
   text-align: center;
 }
 .mesh-gate-shield {
@@ -6999,14 +7124,14 @@ body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
 .mesh-owner-zzz:nth-of-type(2) {
   top: -18px;
   right: -14px;
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
   opacity: 0.8;
   animation-delay: 0.7s;
 }
 .mesh-owner-zzz:nth-of-type(3) {
   top: -25px;
   right: -21px;
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
   opacity: 0.65;
   animation-delay: 1.4s;
 }
@@ -7504,7 +7629,7 @@ body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
 }
 
 .watch-muted {
-  font-size: 0.78125rem;
+  font-size: 0.75rem;
   line-height: 1.35;
   color: rgba(255, 255, 255, 0.6);
 }
@@ -7529,7 +7654,7 @@ body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
 
 .watch-item-title {
   overflow: hidden;
-  font-size: 0.78125rem;
+  font-size: 0.75rem;
   font-weight: 600;
   line-height: 1.3;
   display: -webkit-box;
@@ -7541,7 +7666,7 @@ body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
   color: rgba(255, 255, 255, 0.55);
 }
 
@@ -7550,7 +7675,7 @@ body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
   align-items: center;
   background: #fff;
   color: #000;
-  font-size: 0.84375rem;
+  font-size: 0.8125rem;
   font-weight: 600;
 }
 
@@ -8172,3 +8297,220 @@ button, [role="button"] {
 /* The one utility for meta text. `text-[10px]` and its seven siblings all
    resolve here now, so a page reports one small size instead of eight. */
 .text-micro { font-size: var(--fs-micro); }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   §L  LIQUID GLASS. See the token block in tokens.css for what does and does
+   not port, and for where every alpha below comes from.
+
+   NAMESPACE. `.glass`, `.glass-card`, `.glass-panel`, `.glass-surface` and
+   `.glass-dropdown` are not reusable: they are named in the card-vocabulary
+   rule, in CARD_CLASSES in surface-check.ts, and in three
+   `backdrop-filter: none !important` sweeps in this file. Reviving blur on
+   those names means deleting a sweep a gate requires to exist, or losing an
+   !important fight. `.lg-*` is a new namespace; the de-glassing blocks stay
+   exactly as they are and keep protecting the legacy names.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── §L1  REGULAR — the workhorse ────────────────────────────────────────────
+   Apple: "the most versatile and the one you will be using the most… provides
+   legibility regardless of context." Legal anywhere in the functional layer.
+
+   ADDITIVE, NOT SUBTRACTIVE, and that ordering is a correctness requirement
+   rather than a preference. The OPAQUE form is the base declaration;
+   translucency is opted into inside `prefers-reduced-transparency:
+   no-preference`. Safari does not implement that query at all, so a `reduce`
+   override would silently never fire — and the people who switched Reduce
+   Transparency on are disproportionately the iOS users who found Liquid Glass
+   unreadable in the first place. Written the other way round this ships
+   translucency to exactly the people who asked for none. A browser that has
+   never heard of the query does not match `no-preference`, so it lands on the
+   opaque base, which is the safe answer. */
+.lg-regular {
+  position: relative;
+  isolation: isolate;
+  background: var(--lg-fill);
+  color: var(--lg-ink);
+  border-radius: var(--radius-lg);
+  box-shadow:
+    inset 0 0 0 var(--lg-rim-w) var(--lg-rim-in),
+    0 0 0 var(--lg-rim-w) var(--lg-rim-out),
+    var(--shadow-float);
+}
+
+@media (prefers-reduced-transparency: no-preference) {
+  .lg-regular {
+    background: color-mix(in srgb, var(--lg-fill) calc(var(--lg-alpha) * 100%), transparent);
+    -webkit-backdrop-filter: blur(var(--lg-blur)) saturate(var(--lg-sat));
+    backdrop-filter: blur(var(--lg-blur)) saturate(var(--lg-sat));
+  }
+}
+
+/* Apple's size adaptivity — the one axis of it that is honest to fake. "When
+   glass flexes and morphs to larger sizes… its material characteristics change
+   to simulate a thicker, more substantial material," and the HIG's own rule:
+   "Liquid Glass appears more opaque in larger elements like sidebars to
+   preserve legibility over complex backgrounds."
+
+   Note what does NOT happen on the small step: alpha does not drop. A floor is
+   a floor, and a smaller control is not a more readable one. */
+.lg-regular.lg-lg { --lg-blur: 30px; --lg-alpha: 0.9; }
+.lg-regular.lg-sm { --lg-blur: 14px; }
+
+/* ── §L2  CLEAR — media only ─────────────────────────────────────────────────
+   Gated on all three of Apple's conditions: over media-rich content, the
+   content layer tolerates a dimming layer, and the content above is bold and
+   bright. The two variants "should never be mixed."
+
+   The dimming layer is NOT optional and not decoration. Apple: "To provide
+   enough legibility for symbols or labels, it needs a dimming layer to darken
+   the underlying content. Without it, legibility gets noticeably worse." Note
+   what that concession is — where the material cannot adapt, the vendor's own
+   answer is a scrim.
+
+   CLEAR CARRIES NO BODY TEXT. Icons and >=17px semibold labels only. At dim
+   0.48 / alpha 0.26 --media-ink measures 5.11:1 over a white frame, which
+   clears AA, but the margin is thin enough that a 14px caption here is a bug
+   waiting for a brighter upload. */
+.lg-clear {
+  position: relative;
+  isolation: isolate;
+  background: var(--media-chip);
+  color: var(--media-ink);
+  border-radius: var(--radius-lg);
+  box-shadow:
+    inset 0 0 0 var(--lg-rim-w) rgba(255, 255, 255, 0.5),
+    0 0 0 var(--lg-rim-w) var(--lg-rim-out);
+}
+
+@media (prefers-reduced-transparency: no-preference) {
+  .lg-clear {
+    background: color-mix(in srgb, var(--media-chip) 26%, transparent);
+    -webkit-backdrop-filter: blur(12px) saturate(1.25);
+    backdrop-filter: blur(12px) saturate(1.25);
+  }
+}
+
+/* The dimming layer sits between the media and the Clear element, and is
+   positioned by the surface that OWNS the media — never by the glass itself. A
+   dim layer inside the glass would be dimming the glass, not the content. */
+.lg-dim-layer {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, var(--lg-dim));
+  pointer-events: none;
+}
+
+/* ── §L3  NO GLASS ON GLASS ──────────────────────────────────────────────────
+   Apple, verbatim: "always avoid glass on glass… When placing elements on top
+   of Liquid Glass, avoid applying the material to both layers. Instead, use
+   fills, transparency, and vibrancy for the top elements to make them feel like
+   a thin overlay that is part of the material."
+
+   Enforced in CSS as well as in the gate, because the gate reads class strings
+   and a nested glass can arrive through a prop. Stacking two 0.86 fills gives
+   0.98 — visually a smeared double-blur, and the reason Apple names it. */
+.lg-regular .lg-regular,
+.lg-regular .lg-clear,
+.lg-clear .lg-regular,
+.lg-clear .lg-clear {
+  background: color-mix(in srgb, var(--lg-ink) 10%, transparent);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--lg-ink) 18%, transparent);
+}
+
+/* ── §L4  SPECULAR RIM AND POINTER SHEEN ─────────────────────────────────────
+   Apple: "the material illuminates from within as a form of feedback. Starting
+   right under your fingertips, the glow spreads throughout the element."
+
+   Done in CSS rather than with feSpecularLighting, and that is a correctness
+   choice rather than a shortcut: feSpecularLighting reads ONLY THE ALPHA
+   CHANNEL as its height field, so a map authored at a=255 is a perfectly flat
+   surface and produces a uniform, invisible highlight. CSS is both right and,
+   unlike the SVG route, works in WebKit. */
+.lg-regular::before,
+.lg-clear::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: var(--lg-rim-w);
+  background: conic-gradient(
+    from calc(var(--lg-ang, 135) * 1deg),
+    rgb(255 255 255 / 0.55),
+    rgb(255 255 255 / 0.04) 25%,
+    rgb(255 255 255 / 0.28) 50%,
+    rgb(255 255 255 / 0.04) 75%,
+    rgb(255 255 255 / 0.55)
+  );
+  /* The only correct way to get a gradient hairline on a rounded translucent
+     box: border-image cannot follow border-radius, and a gradient background
+     would fill the interior. Two masks — one clipped to content-box, one to the
+     border-box — combined so only the padding-width ring survives. */
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.lg-regular::after,
+.lg-clear::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(
+    140px 140px at var(--lg-mx, 50%) var(--lg-my, 0%),
+    rgb(255 255 255 / 0.3),
+    transparent 70%
+  );
+  mix-blend-mode: screen;
+  opacity: var(--lg-sheen, 0);
+  transition: opacity var(--dur-item) var(--ease-settle);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.lg-regular > *,
+.lg-clear > * {
+  position: relative;
+  z-index: 2;
+}
+
+/* The sheen is light, not motion, so it is the one part of this that survives
+   reduced motion. The elastic morph does not. */
+@media (prefers-reduced-motion: reduce) {
+  .lg-regular::after,
+  .lg-clear::after {
+    transition: none;
+  }
+}
+
+/* ── §L5  SCROLL EDGE EFFECT ─────────────────────────────────────────────────
+   Apple's own mechanism for separating the functional layer from content:
+   "Scroll edge effects reinforce that boundary, replacing hard dividers with
+   subtle blur… they are not decorative. They don't block or darken like
+   overlays." One per view; never mix soft and hard.
+
+   This costs nothing, works in every engine including WebKit, and is the
+   highest-value part of the whole system — it is what stops content colliding
+   with a translucent bar, which is the single most common Liquid Glass
+   complaint. */
+.lg-scroll-soft {
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    #000 var(--lg-edge-top, 56px),
+    #000 calc(100% - var(--lg-edge-bot, 56px)),
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    #000 var(--lg-edge-top, 56px),
+    #000 calc(100% - var(--lg-edge-bot, 56px)),
+    transparent 100%
+  );
+}

@@ -19,7 +19,7 @@
   --paper-0: #f2f2f7;      /* THE MAT. Warm grey-beige, deliberately not white —
                               a white page cannot host a white object. */
   --paper-1: #ffffff;      /* card / sheet / panel */
-  --paper-2: #f2f2f7;      /* RECESS: input wells, trays, sunken groups */
+  --paper-2: #e9e9ee;      /* RECESS: input wells, trays, sunken groups */
   --paper-3: #e5e5ea;      /* track, disabled body, tray floor */
   --paper-hover: #fafafa;  /* a surface brightens ~1% under the pointer */
   --paper-press: #ebebf0;
@@ -64,6 +64,14 @@
         domain — globals.css:108-146 ships five persisted accent presets
         (instagram/ocean/sunset/forest/mono) that already own this name. ── */
   --accent: #0056d6;       /* 6.37 on --paper-0 · 7.38 on --paper-1 */
+  /* THE ACCENT AS TEXT IS A DIFFERENT COLOUR FROM THE ACCENT AS A FILL.
+     A fill is judged by the ink ON it; text is judged against the paper BEHIND
+     it, and the two pull a hue in opposite directions. This theme's accent was
+     chosen to clear both, so --accent-text is the same value here — but the ten
+     presets re-point --accent to hues that cannot do both, and every one of the
+     five light presets measured below 3.3:1 as text. Anything that PAINTS TEXT
+     uses this token; anything that fills a surface uses --accent. */
+  --accent-text: #0056d6;  /* 5.07 worst case across all four papers */
   --accent-hover: #0062ea;
   --accent-press: #00449f;
   --accent-ink: #ffffff;   /* 7.63 ON the accent */
@@ -210,6 +218,9 @@
   --rule-focus: #409cff;   /* solid hex */
 
   --accent: #409cff;       /* 8.82 on --paper-0 · 7.76 on --paper-1 */
+  /* Lighter than the fill: 4.01:1 on --paper-3 (#3a3a3c) is below AA, and the
+     old gate only ever measured --paper-0. See the light block. */
+  --accent-text: #58a9ff;  /* 4.61 worst case across all four papers */
   --accent-hover: #5aa9ff;
   --accent-press: #2b8bff;
   --accent-ink: #00204a;   /* 8.24 ON the accent */
@@ -497,3 +508,102 @@
 /* --canvas-shadow MOVED OUT of this block into both theme blocks: it is
    theme-dependent now, and paint/theme.ts:101 reads it off the root, so a
    theme-invariant value would have painted a light shadow in Worklight. */
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   LIQUID GLASS — the functional layer.
+
+   Apple, WWDC25 #219: Liquid Glass "defines a new functional layer in the UI,
+   floating above your content." It is navigation and controls. It is never the
+   content layer, never stacked on itself, never tinted at large sizes.
+
+   ── WHAT DOES NOT PORT, STATED PLAINLY ──────────────────────────────────────
+
+   Apple names LENSING as the whole distinction from the old frosted materials:
+   "Where as previous materials scattered light, this new set of materials
+   dynamically bends, shapes, and concentrates light in real time." On the web
+   that needs `backdrop-filter: url(#svg-filter)`, which WebKit has not
+   implemented (bug 245510, open since 2022). capacitor.config.ts points the iOS
+   app at the hosted site with `server.url`, so the primary mobile platform IS
+   WebKit. Refraction would exist for desktop-Chromium users and nobody else, so
+   it is not part of this system. Blur and saturation are; those ship everywhere.
+
+   The second thing that does not port is the one that matters more. Apple's
+   Regular variant is legible "regardless of context" because it SAMPLES the
+   composited backdrop at runtime and re-decides its own fill and its ink. CSS
+   cannot read its own backdrop — deliberately, it is the same restriction that
+   stops a canvas reading the DOM. So the part of Liquid Glass that makes it
+   ACCESSIBLE is precisely the part that cannot be built here.
+
+   What replaces adaptation is an OPACITY FLOOR, measured per ink against every
+   possible backdrop and asserted by scripts/glass-check.ts. A fill that cannot
+   adapt has to be opaque enough that it never needs to.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+:root,
+.light,
+.dark {
+  /* Geometry — theme-invariant. */
+  --lg-blur: 20px;
+  --lg-sat: 1.5;
+  --lg-rim-w: 1px;
+
+  /* THE RIM IS TWO-TONE, AND IT IS LOAD-BEARING RATHER THAN DECORATIVE.
+     One colour cannot carry this boundary: a white hairline over a white video
+     frame is 1.00:1 and a black one over a black frame is 1.10:1, so whichever
+     single tone is chosen disappears against half of all content. Two rings at
+     opposite ends of the ramp, and any frame luminance lies between them — the
+     better of the pair can never vanish. WCAG 1.4.11 lives here, because the
+     translucent FILL provably cannot carry the silhouette.
+
+     This is also exactly the correction Apple shipped after a year of
+     legibility complaints — a darkened edge plus brighter speculars. Start
+     there rather than arriving there. */
+  --lg-rim-out: rgba(0, 0, 0, 0.55);
+  --lg-rim-in: rgba(255, 255, 255, 0.42);
+
+  /* THE DIMMING LAYER for Clear. Apple's HIG specifies ~35% dark over bright
+     content. 35% IS NOT ENOUGH HERE and the arithmetic says so: dim 0.35 under
+     a 0.28 clear fill puts --media-ink at 3.78:1 over a white frame. Apple can
+     afford 35% because Clear still sits inside a system that adapts around it.
+     Ours does not. 0.48 measures 5.11:1. */
+  --lg-dim: 0.48;
+}
+
+/* ── REGULAR, LIGHT GROUND ───────────────────────────────────────────────────
+   LIGHT GLASS IS FAR MORE EXPENSIVE THAN DARK GLASS, and this is the finding
+   that should change how it gets used. A dark ink over a bright backdrop barely
+   moves; a MID-GREY ink over a bright backdrop has nowhere to go. Minimum alpha
+   on a #ffffff fill for AA over ANY backdrop:
+
+       --ink-1  #000000   0.460   usable
+       --ink-2  #48484a   0.720   usable
+       --ink-3  #636366   0.880   past the shipped alpha — BANNED on glass
+       accent   #0056d6   0.850   clears at 0.86 by 0.09, with no margin to spend
+
+   So --ink-3 is not legal on light glass at any alpha this system ships, and
+   the accent belongs on glass as a FILL, not as ink — which is Apple's rule
+   too: "To emphasize primary actions, apply color to the background rather
+   than to symbols or text." */
+:root,
+.light {
+  --lg-fill: #ffffff;
+  --lg-alpha: 0.86;
+  --lg-ink: var(--ink-1);   /* 15.17:1 worst case over any backdrop */
+  --lg-ink-2: var(--ink-2); /*  6.59:1 worst case over any backdrop */
+}
+
+/* ── REGULAR, DARK GROUND ────────────────────────────────────────────────────
+   The fill is --media-chip's colour on purpose: that hex is already proven
+   against a fully white video frame by the media contract above. Glass extends
+   that contract rather than competing with it.
+
+   The SECONDARY ink is the binding constraint, not the primary — #f5f5f5 needs
+   0.610 and #b8b8b8 needs 0.775. Every published treatment of this quotes ~0.60
+   because it only ever checks white-on-glass; a toolbar with a subtitle needs
+   0.78. Shipped at 0.82. */
+.dark {
+  --lg-fill: #141414;
+  --lg-alpha: 0.82;
+  --lg-ink: var(--media-ink);    /* 9.81:1 worst case over any backdrop */
+  --lg-ink-2: var(--media-ink-2);/* 5.39:1 worst case over any backdrop */
+}

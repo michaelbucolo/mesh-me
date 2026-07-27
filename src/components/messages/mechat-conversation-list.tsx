@@ -512,7 +512,7 @@ export function MeChatConversationList({
                         <span className={`truncate text-sm ${unread ? "font-semibold text-[var(--mesh-text)]" : "font-semibold text-[var(--mesh-text)]"}`}>
                           {threadDisplay(thread)}
                         </span>
-                        {isVerified && <BadgeCheck size={14} className="shrink-0 self-center text-[var(--accent)]" />}
+                        {isVerified && <BadgeCheck size={14} className="shrink-0 self-center text-[var(--accent-text)]" />}
                         {isSyncedThread(thread) && (
                           <span className={`shrink-0 self-center rounded px-1 py-0.5 text-micro font-semibold ${platformBadgeClass(thread.platform)}`}>
                             {platformLabel(thread.platform)}
@@ -597,7 +597,7 @@ export function MeChatConversationList({
                 {selectedMembers.map((member) => (
                   <span
                     key={member.id}
-                    className="inline-flex items-center gap-1 rounded-full bg-[var(--accent)]/10 px-2 py-0.5 text-xs font-medium text-[var(--accent)]"
+                    className="inline-flex items-center gap-1 rounded-full bg-[var(--accent)]/10 px-2 py-0.5 text-xs font-medium text-[var(--accent-text)]"
                   >
                     {member.displayName}
                     <button type="button" onClick={() => toggleMember(member)}>
@@ -624,7 +624,7 @@ export function MeChatConversationList({
                         <p className="truncate text-sm font-semibold text-[var(--mesh-text)]">{recipient.displayName}</p>
                         <p className="truncate text-xs text-[var(--mesh-text-secondary)]">@{recipient.username}</p>
                       </div>
-                      {selected && <Check size={16} className="text-[var(--accent)]" />}
+                      {selected && <Check size={16} className="text-[var(--accent-text)]" />}
                     </button>
                   );
                 })
@@ -730,7 +730,7 @@ export function MeChatConversationList({
           </div>
           <p className="text-sm leading-6 text-[var(--mesh-text-secondary)]">{activeNote.text || "No note text"}</p>
           {activeNote.songTitle && (
-            <p className="mt-3 text-xs font-medium text-[var(--accent)]">{activeNote.songTitle}</p>
+            <p className="mt-3 text-xs font-medium text-[var(--accent-text)]">{activeNote.songTitle}</p>
           )}
         </Modal>
       )}

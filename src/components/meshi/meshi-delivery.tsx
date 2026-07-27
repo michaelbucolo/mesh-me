@@ -143,7 +143,7 @@ export function MeshiDelivery() {
             className="mb-2 rounded-2xl rounded-bl-sm border border-[var(--border-primary)] bg-[var(--bg-elevated)] px-3.5 py-2.5 shadow-xl"
           >
             <div className="mb-1 flex items-center justify-between gap-3">
-              <p className="text-micro font-semibold text-[var(--accent)]">
+              <p className="text-micro font-semibold text-[var(--accent-text)]">
                 {current.fromUser}&apos;s Meshi has a message for you
               </p>
               <button

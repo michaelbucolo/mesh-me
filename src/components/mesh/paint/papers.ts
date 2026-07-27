@@ -44,7 +44,7 @@ export interface AtmosphereSpec {
 // below are deliberately NOT tokens — Kraft is meant to be brown and Botanical
 // green; those are materials somebody chose, not the app disagreeing with itself.
 const ATMOSPHERES: Record<string, AtmosphereSpec> = {
-  midnight: { id: "midnight", label: "Daylight", pro: false, bg: ["#fdfbf6", "#efeae1", "#e5dfd4"], ink: "#57535a", grain: 0.035 },
+  midnight: { id: "midnight", label: "Daylight", pro: false, bg: ["#ffffff", "#f2f2f7", "#e9e9ee"], ink: "#636366", grain: 0.035 },
   aurora: { id: "aurora", label: "Botanical", pro: true, bg: ["#f4f6ee", "#e9eee0", "#dce4cf"], ink: "#5f6b52", grain: 0.04 },
   ember: { id: "ember", label: "Kraft", pro: true, bg: ["#f2e6d2", "#e8d9be", "#dbc8a6"], ink: "#7a6244", grain: 0.055 },
   ocean: { id: "ocean", label: "Blueprint", pro: true, bg: ["#e8eef4", "#dae3ee", "#c7d4e4"], ink: "#4e637a", grain: 0.03 },
@@ -58,7 +58,7 @@ const ATMOSPHERES_DARK: Record<string, AtmosphereSpec> = {
   // mode be black and not brown. r=31 g=27 b=23 is brown by any measure, and it
   // covered the hero surface of the product while every DOM pixel around it was
   // #0a0a0a. --paper-1 / --paper-0 / --paper-2 and --ink-3, gated like the rest.
-  midnight: { id: "midnight", label: "Daylight", pro: false, bg: ["#1a1a1a", "#0a0a0a", "#050505"], ink: "#a8a8a8", grain: 0.05 },
+  midnight: { id: "midnight", label: "Daylight", pro: false, bg: ["#1c1c1e", "#000000", "#2c2c2e"], ink: "#a8a8a8", grain: 0.05 },
   aurora: { id: "aurora", label: "Botanical", pro: true, bg: ["#1b1f18", "#171a14", "#0d0f0b"], ink: "#8a9680", grain: 0.055 },
   ember: { id: "ember", label: "Kraft", pro: true, bg: ["#281f16", "#221a12", "#110c08"], ink: "#b09472", grain: 0.07 },
   ocean: { id: "ocean", label: "Blueprint", pro: true, bg: ["#181f26", "#141a20", "#0b0e11"], ink: "#8fa6bd", grain: 0.045 },

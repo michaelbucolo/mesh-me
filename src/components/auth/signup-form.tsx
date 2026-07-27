@@ -60,7 +60,7 @@ export function SignupForm() {
 
       <div className="text-center text-sm text-[var(--text-muted)]">
         Already have an account?{" "}
-        <Link href="/login" className="font-semibold text-[var(--accent)] hover:opacity-90">
+        <Link href="/login" className="font-semibold text-[var(--accent-text)] hover:opacity-90">
           Log in
         </Link>
       </div>

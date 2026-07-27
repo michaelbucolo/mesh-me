@@ -1,0 +1,112 @@
+# THE GATES RUN ON EVERY PULL REQUEST NOW.
+#
+# Until this file existed there was NO CI in this repository. The 37 contract
+# gates wired into `npm run check` -- contrast, privacy, the platform
+# allow-list, prod-schema parity, palette, shape, surface, and the rest, well
+# over seven hundred assertions -- ran only when somebody remembered to run
+# them on their own machine. The single automated signal on a pull request was
+# Vercel, and Vercel only proves the app BUILDS.
+#
+# That gap is not hypothetical. A palette change shipped to main having passed
+# tsc, lint, knip, build and the contrast gate, while `palette:check` failed the
+# whole time, because three other files also state the palette and only one was
+# updated. Vercel went green. The PR was merged. main stayed red until someone
+# happened to run the suite by hand.
+#
+# A gate nobody runs is a comment.
+name: check
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  # A newer push to the same branch supersedes this run.
+  group: check-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      # These exist so the gates can RUN, not to configure a deployment.
+      # launch:check asserts NEXT_PUBLIC_APP_URL is set; in CI the value is
+      # irrelevant, and leaving it unset would fail every run on a P0 that is
+      # really "a production domain has not been bought yet".
+      NEXT_PUBLIC_APP_URL: http://localhost:3000
+      # A local file database. No remote is contacted: the build script skips
+      # the remote schema sync when DATABASE_URL is a file: URL.
+      DATABASE_URL: file:./ci.db
+      # Not a secret. A throwaway that satisfies the >=32-character assertion.
+      AUTH_SECRET: ci-placeholder-not-a-secret-000000000000
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      # `npm run check` reads the generated client in several gates.
+      - run: npx prisma generate
+
+      # A real schema in the file database, so the app can actually boot below.
+      # No `--skip-generate`: Prisma 7's `db push` does not accept that flag and
+      # exits 1 on it. `prisma generate` ran in the step above, so there is
+      # nothing left to skip.
+      - run: npx prisma db push
+
+      - run: npm run build
+
+      # THE SUITE ENDS IN `diagnostics`, WHICH DRIVES A LIVE SERVER.
+      #
+      # The first CI run skipped eight checks with "Server not reachable" and
+      # failed. Four of those eight are the security ones -- anonymous users get
+      # redirected off protected pages, protected APIs reject anonymous access,
+      # mutations require same-origin proof. Skipping them in CI would leave the
+      # checks that matter most as the only ones nobody runs, which is the exact
+      # hole this workflow exists to close.
+      #
+      # So the app is started and waited for, and only then does the suite run.
+      - name: Start the app
+        run: |
+          # setsid, so the server outlives the shell this step runs in.
+          setsid nohup npx next start -p 3000 > /tmp/server.log 2>&1 &
+          for i in $(seq 1 60); do
+            if curl -fsS http://localhost:3000/api/health > /dev/null 2>&1; then
+              echo "server up after ${i}s"; exit 0
+            fi
+            sleep 1
+          done
+          echo "server never became healthy:"; tail -40 /tmp/server.log; exit 1
+
+      # The whole suite. If this fails, the pull request is not mergeable --
+      # which is the entire point, and was not true before this file.
+      - run: npm run check
+
+      # AND THE NON-P0 CONTRACTS, WHICH `npm run check` LETS THROUGH.
+      #
+      # `check` ends in `npm run diagnostics`, and platform-diagnostics.mjs exits
+      # nonzero for an ordinary failure ONLY with --strict (line 685). So every
+      # P1 contract -- the Mesh testability markers, the onboarding surface, the
+      # platform authorization catalog -- could break and this workflow would
+      # stay green and the pull request stay mergeable.
+      #
+      # That was demonstrated on this very branch: the mesh-testability check had
+      # been reading two files deleted in the dock rebuild, reported a failure for
+      # weeks, and blocked nothing.
+      #
+      # A seeded user is a prerequisite rather than a convenience: `auth-fixture-user`
+      # is a P1, the CI database is created empty by `db push`, and under --strict an
+      # empty database would fail every run for a reason that is not a defect.
+      - run: npm run seed
+
+      - run: npm run diagnostics -- --strict
+
+      - name: Server log on failure
+        if: failure()
+        run: tail -60 /tmp/server.log || true

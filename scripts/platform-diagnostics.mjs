@@ -331,14 +331,28 @@ const checks = [
     description: "The Mesh has stable testability/accessibility hooks",
     fix: "Keep the Mesh canvas, controls, and diagnostics-visible states accessible to browser tests.",
     run: async () => {
-      const source =
-        read("src/components/mesh/scene/mesh-surface.tsx") +
-        read("src/components/mesh/ui/rail.tsx") +
-        read("src/components/mesh/mesh-desktop-chrome.tsx");
+      // THE FILE LIST IS PART OF THE ASSERTION.
+      //
+      // This read three files. Two of them — ui/rail.tsx and
+      // mesh-desktop-chrome.tsx — were deleted when the eight-disc rail became
+      // one dock, and `read()` returns "" for a missing path, so the check went
+      // on scanning a third of what it named and reported the action bar as
+      // missing when it had simply moved to ui/dock.tsx.
+      //
+      // A gate that keeps running while its subject disappears is worse than no
+      // gate, so a named file that no longer exists is now a failure in itself.
+      const files = [
+        "src/components/mesh/scene/mesh-surface.tsx",
+        "src/components/mesh/ui/dock.tsx",
+        "src/components/mesh/ui/chrome.tsx",
+      ];
+      const absent = files.filter((f) => !fs.existsSync(path.join(root, f)));
+      assert(absent.length === 0, `Mesh source files this check names no longer exist: ${absent.join(", ")}`);
+      const source = files.map(read).join("");
       const required = ['data-testid="mesh-scene"', 'data-testid="mesh-canvas"', 'data-testid="mesh-action-bar"', "aria-label", "MeshScene"];
       const missing = required.filter((token) => !source.includes(token));
       assert(missing.length === 0, `Missing Mesh testability markers: ${missing.join(", ")}`);
-      return { evidence: "Mesh component exposes stable diagnostics markers" };
+      return { evidence: `${files.length} Mesh source files scanned; all diagnostics markers present` };
     },
   },
   {
@@ -383,7 +397,15 @@ const checks = [
         // validating the returned state against the flow cookie we issued.
         const oauthStateValidated = source.includes("identity_state_") && source.includes("expectedState !== params.state");
         if (oauthStateValidated) continue;
-        if (!source.includes("isSameOriginRequest")) missingGuard.push(rel);
+        // THE IMPORT LINE IS NOT THE GUARD.
+        //
+        // This was `source.includes("isSameOriginRequest")`, which the import
+        // statement alone satisfies. Deleting the actual `if (!isSameOriginRequest(request))`
+        // from a route left the import untouched and the check still passed —
+        // verified by mutation on public-supply/refresh. So the import is
+        // stripped first and the guard must appear as a CALL in the body.
+        const body = source.replace(/^\s*import[^;]+;\s*$/gm, "");
+        if (!/isSameOriginRequest\s*\(/.test(body)) missingGuard.push(rel);
       }
 
       assert(missingGuard.length === 0, `Missing same-origin guards: ${missingGuard.join(", ")}`);

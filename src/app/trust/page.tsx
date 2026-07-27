@@ -81,7 +81,7 @@ export default function TrustCenterPage() {
         {trustPillars.map((pillar) => (
           <article key={pillar.title} className="mesh-section p-5">
             <div className="mb-3 flex items-center gap-2">
-              <pillar.icon className="h-5 w-5 text-[var(--accent)]" />
+              <pillar.icon className="h-5 w-5 text-[var(--accent-text)]" />
               <h2 className="text-base font-semibold text-[var(--text-primary)]">{pillar.title}</h2>
             </div>
             <p className="text-sm leading-6 text-[var(--text-secondary)]">{pillar.description}</p>
@@ -92,14 +92,14 @@ export default function TrustCenterPage() {
       <section className="mt-12 grid gap-4 lg:grid-cols-[1.05fr_0.95fr]">
         <article className="rounded-3xl border border-[var(--glass-card-border)] bg-[var(--glass-card-bg)] p-6">
           <div className="mb-4 flex items-center gap-2">
-            <FileCheck2 className="h-5 w-5 text-[var(--accent)]" />
+            <FileCheck2 className="h-5 w-5 text-[var(--accent-text)]" />
             <h2 className="text-lg font-semibold text-[var(--text-primary)]">How the trust model shows up in product</h2>
           </div>
           <div className="space-y-3">
             {controlRows.map((row) => (
               <div key={row.title} className="rounded-2xl border border-[var(--border-primary)] p-4">
                 <div className="mb-2 flex items-center gap-2">
-                  <row.icon className="h-4 w-4 text-[var(--accent)]" />
+                  <row.icon className="h-4 w-4 text-[var(--accent-text)]" />
                   <h3 className="text-sm font-semibold text-[var(--text-primary)]">{row.title}</h3>
                 </div>
                 <p className="text-sm leading-6 text-[var(--text-secondary)]">{row.copy}</p>
@@ -128,7 +128,7 @@ export default function TrustCenterPage() {
 
       <section className="mt-12 rounded-2xl border border-[var(--glass-card-border)] bg-[var(--glass-card-bg)] p-5">
         <div className="mb-4 flex items-center gap-2">
-          <FileCheck2 className="h-5 w-5 text-[var(--accent)]" />
+          <FileCheck2 className="h-5 w-5 text-[var(--accent-text)]" />
           <h2 className="text-base font-semibold text-[var(--text-primary)]">Policy and launch references</h2>
         </div>
         <div className="flex flex-wrap gap-2">

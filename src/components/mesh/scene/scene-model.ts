@@ -197,7 +197,7 @@ export function buildSceneModel(data: MeshApiResponse, opts?: BuildSceneOptions)
     // --ink-3 (see paint/nodes.ts and paint/edges.ts); this value is what the
     // DOM surfaces — list view, search, node detail — put behind it, and as a
     // custom property it tracks the theme, which the old #a5b4fc could not.
-    color: "var(--accent)",
+    color: "var(--accent-text)",
     parentId: null,
     childIds: [],
     branch: null,

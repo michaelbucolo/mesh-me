@@ -15,7 +15,7 @@ export default function TermsPage() {
       title: "1. Acceptance, eligibility, and accounts",
       content: (
         <>
-          <p>These Terms of Service (the &quot;Terms&quot;) are a binding agreement between you and Mesh.me (&quot;Mesh.me,&quot; &quot;we,&quot; &quot;us&quot;) governing your access to and use of the Mesh.me websites, apps, and services (the &quot;Service&quot;). By accessing or using the Service, you agree to these Terms and to our <Link href="/privacy" className="text-[var(--accent)] underline">Privacy Policy</Link>. If you do not agree, do not use the Service.</p>
+          <p>These Terms of Service (the &quot;Terms&quot;) are a binding agreement between you and Mesh.me (&quot;Mesh.me,&quot; &quot;we,&quot; &quot;us&quot;) governing your access to and use of the Mesh.me websites, apps, and services (the &quot;Service&quot;). By accessing or using the Service, you agree to these Terms and to our <Link href="/privacy" className="text-[var(--accent-text)] underline">Privacy Policy</Link>. If you do not agree, do not use the Service.</p>
           <p>You must be at least 13 years old to use Mesh.me. If you are under the age of majority where you live, you may use the Service only with the involvement of a parent or legal guardian. Access to age-restricted (NSFW) content is limited to users who are at least 18 and have completed age verification, as described in Section 7.</p>
           <p>You are responsible for the accuracy of your account information, for keeping your credentials secure, and for all activity that occurs under your account. Mesh.me may use email, phone-number, or similar verification during signup to help prevent abuse and strengthen account security. Notify us promptly at <a href="mailto:security@meshs.me">security@meshs.me</a> if you suspect unauthorized use of your account.</p>
         </>
@@ -59,7 +59,7 @@ export default function TermsPage() {
         <>
           <p>Mesh.me lets you connect third-party platforms — including GitHub, Discord, Spotify, X (Twitter), Twitch, YouTube, Instagram, Facebook, LinkedIn, Reddit, TikTok, Pinterest, Snapchat, Threads, SoundCloud, Patreon, Dribbble, and others — through user-authorized OAuth flows and official APIs. We request only the scopes you explicitly authorize and use the minimum permissions necessary for each feature.</p>
           <p>Your use of each connected platform remains subject to that provider&apos;s own terms, policies, API rules, rate limits, and approval status. Cross-platform actions (such as posting, liking, or following) are carried out on your behalf through your authorized connection and require the relevant account to be connected. Mesh.me does not bypass or circumvent any provider&apos;s API restrictions, and we are not responsible for third-party services or their availability.</p>
-          <p>You can disconnect any platform at any time from <Link href="/connected-accounts" className="text-[var(--accent)] underline">Connected accounts</Link>; doing so deletes the stored tokens for that platform and, where the provider supports it, revokes our access. See the <Link href="/trust" className="text-[var(--accent)] underline">Trust Center</Link> for each platform&apos;s integration status.</p>
+          <p>You can disconnect any platform at any time from <Link href="/connected-accounts" className="text-[var(--accent-text)] underline">Connected accounts</Link>; doing so deletes the stored tokens for that platform and, where the provider supports it, revokes our access. See the <Link href="/trust" className="text-[var(--accent-text)] underline">Trust Center</Link> for each platform&apos;s integration status.</p>
         </>
       ),
     },
@@ -99,7 +99,7 @@ export default function TermsPage() {
       title: "9. Termination and data deletion",
       content: (
         <>
-          <p>You may stop using the Service and delete your account at any time from product settings. See the <Link href="/data-deletion" className="text-[var(--accent)] underline">Data Deletion</Link> page for how to delete your entire account, remove a single connected platform, or submit a platform-initiated deletion request. Deletion is handled as described in our <Link href="/privacy" className="text-[var(--accent)] underline">Privacy Policy</Link>.</p>
+          <p>You may stop using the Service and delete your account at any time from product settings. See the <Link href="/data-deletion" className="text-[var(--accent-text)] underline">Data Deletion</Link> page for how to delete your entire account, remove a single connected platform, or submit a platform-initiated deletion request. Deletion is handled as described in our <Link href="/privacy" className="text-[var(--accent-text)] underline">Privacy Policy</Link>.</p>
           <p>We may suspend or terminate your access if you violate these Terms, create risk or legal exposure for Mesh.me or others, or if we discontinue the Service. Sections that by their nature should survive termination — including content licenses you granted, disclaimers, limitations of liability, indemnification, and dispute terms — survive.</p>
         </>
       ),

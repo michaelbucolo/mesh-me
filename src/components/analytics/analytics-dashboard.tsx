@@ -198,7 +198,7 @@ function SectionTitle({ icon: Icon, title, sub, action }: { icon: LucideIcon; ti
     <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
       <div>
         <h2 className="flex items-center gap-2 text-base font-semibold text-[var(--text-primary)]">
-          <Icon size={16} className="text-[var(--accent)]" aria-hidden="true" />
+          <Icon size={16} className="text-[var(--accent-text)]" aria-hidden="true" />
           {title}
         </h2>
         {sub && <p className="mt-0.5 text-xs text-[var(--text-secondary)]">{sub}</p>}
@@ -284,7 +284,7 @@ function TopContentRow({ post, rank }: { post: AnalyticsDashboardData["bestConte
       </div>
       <div className="flex shrink-0 items-center gap-3 text-micro text-[var(--text-secondary)]">
         {post.views > 0 && <span className="inline-flex items-center gap-1"><Eye size={12} /> {compact(post.views)}</span>}
-        <span className="inline-flex items-center gap-1"><Heart size={12} className="text-[var(--accent)]" /> {compact(post.likes)}</span>
+        <span className="inline-flex items-center gap-1"><Heart size={12} className="text-[var(--accent-text)]" /> {compact(post.likes)}</span>
         <span className="inline-flex items-center gap-1"><MessageCircle size={12} /> {compact(post.comments)}</span>
       </div>
     </div>
