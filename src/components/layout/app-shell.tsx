@@ -368,6 +368,12 @@ export function AppShell({ children, user }: AppShellProps) {
   const isMeshSurface = isOnMesh(pathname);
   // The Flow is a full-bleed reel stage: no top bar, no ambient background.
   const isFlowSurface = isOnFlow(pathname);
+  // Explore OWNS search. Its own field filters the results in place and works at
+  // every width; this top bar's field is desktop-only and goes to /search. Both
+  // were on screen at once, 90px apart, both labelled with a magnifier and the
+  // word Mesh — two places stating one fact, rendered as two boxes. The page's
+  // one stays; this one steps aside there.
+  const isExploreSurface = pathname === "/explore" || pathname.startsWith("/explore/");
   const userInitials = useMemo(() => {
     const fromName = user.displayName
       .split(/\s+/)
@@ -463,7 +469,7 @@ export function AppShell({ children, user }: AppShellProps) {
   }, [isMeshSurface, pathname]);
 
   return (
-    <div className={`mesh-shell h-dvh max-h-dvh min-h-0 overflow-hidden text-[var(--mesh-text)] md:grid md:grid-cols-[var(--mesh-sidebar-width)_1fr] ${isFeedSurface ? "mesh-shell-feed" : ""} ${isMeshSurface || isFlowSurface ? "mesh-shell-mesh" : ""} ${isFlowSurface ? "mesh-shell-flow" : ""}`}>
+    <div className={`mesh-shell h-dvh max-h-dvh min-h-0 overflow-hidden text-[var(--mesh-text)] md:grid md:grid-cols-[var(--mesh-sidebar-width)_1fr] ${isFeedSurface ? "mesh-shell-feed" : ""} ${isMeshSurface || isFlowSurface ? "mesh-shell-mesh" : ""} ${isFlowSurface ? "mesh-shell-flow" : ""} ${isExploreSurface ? "mesh-shell-explore" : ""}`}>
 
       {/* The per-item static active bar is superseded by the shared morphing
           indicator rendered inside the active SidebarNavItem. */}

@@ -768,6 +768,16 @@ select:focus-visible {
   min-height: var(--mesh-topbar-h);
 }
 
+/* ONE SEARCH PER SCREEN.
+   Explore ships its own search field, which filters the results in place and is
+   present at every width; this bar's field is desktop-only and submits to
+   /search. Photographed on the running build at 1440×900 they were 90px apart,
+   both a magnifier next to the word "Mesh", and nothing on screen told a person
+   which one did what. The field that belongs to the page wins there. */
+.mesh-shell-explore .mesh-topbar form {
+  display: none;
+}
+
 .mesh-topbar-icon {
   position: relative;
   display: inline-flex;

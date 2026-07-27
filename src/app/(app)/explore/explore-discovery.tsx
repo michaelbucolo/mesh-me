@@ -21,7 +21,6 @@ import {
   Search,
   SlidersHorizontal,
   Sparkles,
-  TrendingUp,
   UserCheck,
   UserPlus,
   UsersRound,
@@ -75,15 +74,37 @@ type SuggestedCommunity = {
 
 type TrendingTag = { tag: string; count: number };
 
-type ExploreTab = "feed" | "people" | "communities";
+type ExploreTab = "foryou" | "latest" | "people" | "communities";
 type MediaFilter = "all" | "media" | "photos" | "videos" | "text";
-type SortMode = "top" | "latest";
 
-// The discovery feed is the primary Explore surface; content type and order are
-// modes of that one feed rather than separate top-level destinations, so People
-// and Communities get their own tabs instead of being buried in it.
+/**
+ * ONE ROW. IT WAS FOUR.
+ *
+ * Photographed on the running build at 1440×900, Explore put roughly 520px of
+ * chrome above the first piece of content, and 23 controls in the top 340px:
+ *
+ *   a second search field, 90px under the top bar's own "Search your Mesh"
+ *   Feed · People · Communities
+ *   All · Media · Photos · Videos · Text   |   Top · Latest
+ *   eleven topic chips, overflowing off the right edge mid-word
+ *
+ * Three of those rows are the same question asked three ways — how should this
+ * one feed be narrowed? — and X, which the brief names, asks it once: a row of
+ * tabs, then posts. No media-type filter. No sort toggle. No chip cloud.
+ *
+ * So the sort's two values ARE two of the tabs now, which is exactly the
+ * For-you / Trending shape, and they are two genuinely different rankings
+ * rather than one ranking twice. (That distinction is not theoretical: the row
+ * this replaces once shipped a Trending button producing byte-identical output
+ * to For you, because both resolved to the same sort.)
+ *
+ * Content type and topic are NARROWINGS, not destinations, so they move in
+ * beside the platform narrowing behind the Filters disclosure — where nothing
+ * is lost and nothing is in the way.
+ */
 const TABS: { id: ExploreTab; label: string; icon: typeof Compass }[] = [
-  { id: "feed", label: "Feed", icon: Sparkles },
+  { id: "foryou", label: "For you", icon: Sparkles },
+  { id: "latest", label: "Latest", icon: Clock },
   { id: "people", label: "People", icon: UsersRound },
   { id: "communities", label: "Communities", icon: MessagesSquare },
 ];
@@ -124,11 +145,6 @@ const MEDIA_FILTERS: { id: MediaFilter; label: string; icon: typeof Compass }[] 
   { id: "text", label: "Text", icon: MessageCircle },
 ];
 
-const SORT_MODES: { id: SortMode; label: string; icon: typeof Compass }[] = [
-  { id: "top", label: "Top", icon: TrendingUp },
-  { id: "latest", label: "Latest", icon: Clock },
-];
-
 type ExploreDiscoveryProps = {
   currentUserId: string;
   posts: FeedCardPost[];
@@ -159,14 +175,22 @@ function getPostMediaAlt(post: FeedCardPost, authorName: string) {
 export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggestedUsers, communities, signedOut = false }: ExploreDiscoveryProps) {
   const router = useRouter();
   const [query, setQuery] = useState("");
-  const [tab, setTab] = useState<ExploreTab>("feed");
+  const [tab, setTab] = useState<ExploreTab>("foryou");
   const [activeTag, setActiveTag] = useState<string | null>(null);
   const [activePlatform, setActivePlatform] = useState<string | null>(null);
   const [mediaFilter, setMediaFilter] = useState<MediaFilter>("all");
-  const [sortMode, setSortMode] = useState<SortMode>("top");
+  // Derived, never stored: the tab IS the order. A second piece of state
+  // saying the same thing is how "Trending" and "For you" ended up rendering
+  // the same list — two places stating one fact, again.
   const [showFilters, setShowFilters] = useState(false);
 
   const trimmedQuery = query.trim().toLowerCase();
+
+  // Both DERIVED from the tab, and declared before the memo that reads them —
+  // a `const` used above its declaration is a temporal-dead-zone crash, not a
+  // hoisted convenience.
+  const isPostTab = tab === "foryou" || tab === "latest";
+  const sortMode: "top" | "latest" = tab === "latest" ? "latest" : "top";
 
   const availablePlatforms = useMemo(() => {
     const counts = new Map<string, number>();
@@ -245,7 +269,6 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
   }, [communities, trimmedQuery]);
 
   const hasActiveFilters = Boolean(activeTag || activePlatform || mediaFilter !== "all");
-  const isPostTab = tab === "feed";
   // Only the platform narrowing is behind the disclosure now, so the disclosure
   // has no reason to exist when there is at most one platform to narrow to.
   const canNarrowByPlatform = availablePlatforms.length > 1;
@@ -352,7 +375,7 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
               </button>
             );
           })}
-          {isPostTab && canNarrowByPlatform && (
+          {isPostTab && (
             /* Same treatment. The "on" state was --accent ink on nothing; it is
                the cobalt plastic now, and the active-filter dot rides that
                plastic's PINNED ink instead of --accent, which would have been
@@ -374,67 +397,10 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
             </button>
           )}
         </motion.div>
-        {tab === "feed" && (
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ ...spring, delay: 0.08 }}
-            className="glass-card flex items-center gap-1 overflow-x-auto rounded-2xl p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-            role="tablist"
-            aria-label="Discover content and order"
-          >
-            {/* Two questions, asked once each, both answerable in one click.
-                Keys, chip wall — this row is chrome about the chrome, so it
-                stays a step quieter than the section tabs above it (Law 3). */}
-            {MEDIA_FILTERS.map((filter) => {
-              const selected = mediaFilter === filter.id;
-              const Icon = filter.icon;
-              return (
-                <button
-                  key={filter.id}
-                  type="button"
-                  role="tab"
-                  aria-selected={selected}
-                  onClick={() => setMediaFilter(filter.id)}
-                  className={`key explore-chip inline-flex shrink-0 items-center gap-1.5 px-3 py-1.5 text-xs font-semibold ${
-                    selected
-                      ? "key-lit [--mould:var(--mould-cobalt)] [--mould-ink:var(--mould-cobalt-ink)] [--mould-plinth:var(--mould-cobalt-plinth)]"
-                      : "text-[var(--text-secondary)]"
-                  }`}
-                >
-                  <Icon className="h-3.5 w-3.5" aria-hidden />
-                  <span>{filter.label}</span>
-                </button>
-              );
-            })}
-            <span className="mx-1 h-4 w-px shrink-0 bg-[var(--border-secondary)]" aria-hidden />
-            {SORT_MODES.map((mode) => {
-              const selected = sortMode === mode.id;
-              const Icon = mode.icon;
-              return (
-                <button
-                  key={mode.id}
-                  type="button"
-                  role="tab"
-                  aria-selected={selected}
-                  onClick={() => setSortMode(mode.id)}
-                  className={`key explore-chip inline-flex shrink-0 items-center gap-1.5 px-3 py-1.5 text-xs font-semibold ${
-                    selected
-                      ? "key-lit [--mould:var(--mould-cobalt)] [--mould-ink:var(--mould-cobalt-ink)] [--mould-plinth:var(--mould-cobalt-plinth)]"
-                      : "text-[var(--text-secondary)]"
-                  }`}
-                >
-                  <Icon className="h-3.5 w-3.5" aria-hidden />
-                  <span>{mode.label}</span>
-                </button>
-              );
-            })}
-          </motion.div>
-        )}
       </div>
 
       <AnimatePresence initial={false}>
-        {isPostTab && showFilters && canNarrowByPlatform && (
+        {isPostTab && showFilters && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
@@ -446,6 +412,35 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
             className="overflow-hidden"
           >
             <div className="glass-card mt-3 space-y-3 rounded-2xl p-4">
+              {/* CONTENT TYPE, which used to be a permanent second row of five
+                  keys at the top of the page. It is a narrowing, like platform
+                  and topic, so it lives with them. Note `media` is the union of
+                  `photos` and `videos` — five buttons for three facts, kept as
+                  they were because collapsing them is a behaviour change and
+                  this pass is about where they live, not what they do. */}
+              <div className="mesh-cascade-soft flex flex-wrap items-center gap-2">
+                <span className="text-micro font-semibold mesh-eyebrow text-[var(--text-muted)]" style={{ "--i": 0 } as React.CSSProperties}>Content</span>
+                {MEDIA_FILTERS.map((filter) => {
+                  const selected = mediaFilter === filter.id;
+                  const Icon = filter.icon;
+                  return (
+                    <button
+                      key={filter.id}
+                      type="button"
+                      aria-pressed={selected}
+                      onClick={() => setMediaFilter(filter.id)}
+                      className={`key explore-chip inline-flex shrink-0 items-center gap-1.5 px-3 py-1.5 text-xs font-semibold ${
+                        selected
+                          ? "key-lit [--mould:var(--mould-cobalt)] [--mould-ink:var(--mould-cobalt-ink)] [--mould-plinth:var(--mould-cobalt-plinth)]"
+                          : "text-[var(--text-secondary)]"
+                      }`}
+                    >
+                      <Icon className="h-3.5 w-3.5" aria-hidden />
+                      <span>{filter.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
               {canNarrowByPlatform && (
                 <div className="mesh-cascade-soft flex flex-wrap items-center gap-2">
                   <span className="text-micro font-semibold mesh-eyebrow text-[var(--text-muted)]" style={{ "--i": 0 } as React.CSSProperties}>Platform</span>
@@ -498,8 +493,13 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
         )}
       </AnimatePresence>
 
-      {isPostTab && trendingTags.length > 0 && (
-        <div className="[scrollbar-width:none] [&::-webkit-scrollbar]:hidden -mx-1 mt-4 flex gap-2 overflow-x-auto px-1 pb-1">
+      {/* TOPICS. Eleven of these used to sit above the content as a row that
+          ran off the right edge mid-word ("music-productio…"). They are a
+          narrowing, so they are behind Filters with the other two now, wrapping
+          instead of overflowing. */}
+      {isPostTab && showFilters && trendingTags.length > 0 && (
+        <div className="glass-card mt-3 flex flex-wrap items-center gap-2 rounded-2xl p-4">
+          <span className="text-micro font-semibold mesh-eyebrow text-[var(--text-muted)]">Topics</span>
           {trendingTags.map((tag, index) => {
             const selected = activeTag === tag.tag;
             return (
@@ -530,17 +530,22 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
                 }`}
               >
                 <Hash className="h-3 w-3" aria-hidden />
-                {tag.tag}
+                <span>{tag.tag}</span>
                 {/* On the cobalt face the count inherits the plastic's pinned ink;
                     on --face it drops to --text-muted, which clears AA there. */}
-                <span className={selected ? "text-micro" : "text-micro text-[var(--text-muted)]"}>{formatCount(tag.count)}</span>
+                {/* "clean-code1" — the count was rendered flush against the tag
+                    with no separator, so every topic read as a hashtag ending in
+                    a digit. */}
+                <span className={selected ? "ml-0.5 text-micro" : "ml-0.5 text-micro text-[var(--text-muted)]"}>
+                  {formatCount(tag.count)}
+                </span>
               </motion.button>
             );
           })}
         </div>
       )}
 
-      {tab === "feed" && !hasActiveFilters && (
+      {isPostTab && !hasActiveFilters && (
         <>
           {!trimmedQuery && <TrendingHero posts={posts} />}
           {!trimmedQuery && suggestedUsers.length > 0 && (
