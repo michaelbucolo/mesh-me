@@ -140,13 +140,36 @@ const uiFiles = readdirSync(join(ROOT, UI_DIR)).filter((f) => f.endsWith(".tsx")
 // The rail was `.mesh-glass` paper pills while every other control in the app
 // is a moulded `.key`. That single mismatch is most of why the mesh read as an
 // embedded widget rather than a screen of mesh.me.
+//
+// RETARGETED, because the material changed by design rather than by accident.
+// This asserted `.tray` on both, with the reason "a recess is what holds keys".
+// A recess is a hole in the page, and neither of these is in the page: they
+// float above a live canvas with nodes and edges moving behind them. That is
+// exactly the layer Apple describes — "Liquid Glass defines a new functional
+// layer in the UI, floating above your content" — so they are `.lg-regular`.
+//
+// The assertion is not weakened, it is moved: they must now BE the functional
+// material, and must not also claim to be a recess, because an element wearing
+// both states two different things about the same surface and only source order
+// decides which one renders.
 {
   const dock = strip(read(`${UI_DIR}/dock.tsx`));
   const context = strip(read(`${UI_DIR}/context-bar.tsx`));
 
   for (const [name, src] of [["dock", dock], ["context bar", context]] as const) {
-    if (!/\btray\b/.test(src)) {
-      fail("4 material", `the ${name} is not a .tray — a recess is what holds keys`);
+    if (!/\blg-regular\b/.test(src)) {
+      fail(
+        "4 material",
+        `the ${name} is not .lg-regular — it floats above the canvas, so it is the functional layer`,
+      );
+    } else ok();
+    if (/\btray\b/.test(src)) {
+      fail(
+        "4 material",
+        `the ${name} still carries .tray alongside the glass. A recess and a floating material are\n` +
+          `  two different claims about one surface, and .lg-regular only wins because it is declared\n` +
+          `  later in globals.css — which is not a rule, just an ordering.`,
+      );
     } else ok();
     if (!/\bkey\b/.test(src)) {
       fail("4 material", `the ${name} has no .key — its controls are made of something other than the app's controls`);
@@ -158,6 +181,33 @@ const uiFiles = readdirSync(join(ROOT, UI_DIR)).filter((f) => f.endsWith(".tsx")
       fail("4 material", `the ${name} pairs .key with .ds-interactive — a key presses, it does not lift`);
     } else ok();
   }
+
+  // CONCENTRICITY, which the material change could silently have broken.
+  //
+  // Apple's rule is innerRadius = outerRadius - padding, and this dock already
+  // satisfied it by construction: .tray was --radius-lg (20px), the padding is
+  // p-1.5 (6px), and .key is --radius-md (14px). 20 - 6 = 14, exactly.
+  // .lg-regular also sets --radius-lg, so the relationship survives — but only
+  // as long as all three keep their values, which is what this measures.
+  const css = read("src/app/globals.css");
+  const radius = (name: string) => {
+    const m = new RegExp(`--radius-${name}:\\s*([\\d.]+)rem`).exec(css);
+    return m ? Number(m[1]) * 16 : null;
+  };
+  const [lg, md] = [radius("lg"), radius("md")];
+  const padded = /className="mesh-dock lg-regular[^"]*\bp-1\.5\b/.test(dock);
+  if (lg === null || md === null) {
+    fail("4 material", "the radius ladder has moved out of globals.css; concentricity is no longer measurable");
+  } else if (!padded) {
+    fail("4 material", "the dock's padding is no longer p-1.5, so the concentric radii no longer follow");
+  } else if (Math.round(lg - 6) !== Math.round(md)) {
+    fail(
+      "4 material",
+      `the dock is not concentric: outer ${lg}px minus 6px padding is ${lg - 6}px, but .key is ${md}px.\n` +
+        "  Apple's ConcentricRectangle rule is innerRadius = outerRadius - padding; break it and the\n" +
+        "  keys sit in a tray whose corners do not follow theirs.",
+    );
+  } else ok();
 }
 
 // ── 5. Pigment is ink, never a fill ──────────────────────────────────────────

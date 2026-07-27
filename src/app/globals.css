@@ -97,7 +97,15 @@
   --radius-xs: 0.5rem;    /*  8px */
   --radius-sm: 0.625rem;  /* 10px — unchanged */
   --radius-md: 0.875rem;  /* 14px — unchanged */
-  --radius-lg: 1.1875rem;   /* 20px — was 18.4 */
+  /* 20px, which is what this line has claimed since it was written — the value
+     was 1.1875rem, or 19px. The 1px mattered: it is the only rung that broke
+     Apple's concentric rule, innerRadius = outerRadius - padding. The dock is a
+     --radius-lg tray with p-1.5 (6px) holding --radius-md (14px) keys, and
+     19 - 6 = 13, so the keys' corners did not follow their container's.
+
+     At 20px the whole ladder is concentric, with the paddings the layouts
+     already use:  xl 28 -8-> lg 20 -6-> md 14 -4-> sm 10 -2-> xs 8. */
+  --radius-lg: 1.25rem;   /* 20px */
   --radius-xl: 1.75rem;   /* 28px — was 24 */
   --radius-2xl: 1.75rem;  /* 28px — was 32, capped */
   --radius-3xl: 1.75rem;  /* 28px — collapses rounded-3xl into the cap */
@@ -8325,6 +8333,22 @@ button, [role="button"] {
    resolve here now, so a page reports one small size instead of eight. */
 .text-micro { font-size: var(--fs-micro); }
 
+/* THE MATERIAL IS A COMPONENT, SO A UTILITY CAN STILL OVERRIDE IT.
+
+   `.lg-regular` sets `position: relative` to give its ::before rim and ::after
+   sheen a containing block. Unlayered, that beat Tailwind's `absolute` utility
+   outright — unlayered styles win over layered ones regardless of order — and
+   the mesh dock, which is `absolute` and pinned bottom-right, fell out of
+   position: measured in a browser at y=944 in a 900px viewport and 1139px wide
+   instead of 313px. Off-screen, at four times its width, with every gate green.
+
+   `.tray` never hit this only because it never set `position`.
+
+   @layer components puts the material below @layer utilities in Tailwind v4's
+   order, which is the whole point of that order: a component states a sensible
+   default and a utility on the element overrides it. */
+@layer components {
+
 /* ═══════════════════════════════════════════════════════════════════════════
    §L  LIQUID GLASS. See the token block in tokens.css for what does and does
    not port, and for where every alpha below comes from.
@@ -8540,4 +8564,6 @@ button, [role="button"] {
     #000 calc(100% - var(--lg-edge-bot, 56px)),
     transparent 100%
   );
+}
+
 }

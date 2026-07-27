@@ -554,6 +554,50 @@ function resolve(css: string, theme: "light" | "dark", value: string | null): st
   }
 }
 
+// ── 6c. THE MATERIAL IS LAYERED, SO A UTILITY CAN STILL OVERRIDE IT ─────────
+//
+// `.lg-regular` sets `position: relative` so its ::before rim and ::after sheen
+// have a containing block. Declared OUTSIDE a cascade layer, that beats
+// Tailwind's `absolute` utility outright — unlayered styles win over layered
+// ones no matter the order — and the mesh dock, which is `absolute` and pinned
+// bottom-right, silently fell out of position. Measured in a browser: y=944 in
+// a 900px viewport, 1139px wide instead of 313px. Off-screen, at four times its
+// width, with all 36 assertions in this file green and the whole suite green.
+//
+// No gate here can see layout. What a gate CAN see is the cascade rule that
+// made it possible, so that is what this checks: the material sits in
+// @layer components, below utilities, which is exactly what that ordering is
+// for — a component states a default and a utility on the element overrides it.
+{
+  const layered = /@layer\s+components\s*\{/.test(globals);
+  const blockAt = globals.indexOf(".lg-regular {");
+  const layerAt = globals.lastIndexOf("@layer components {", blockAt);
+  if (!layered || blockAt < 0 || layerAt < 0) {
+    fail(
+      "6c layering",
+      "the Liquid Glass material is not inside @layer components.\n" +
+        "    It sets `position: relative`, and unlayered that outranks every Tailwind positioning\n" +
+        "    utility — which put the mesh dock off-screen while every gate stayed green.",
+    );
+  } else {
+    checks += 1;
+  }
+
+  // And the property that made it dangerous is still there, so the rule above
+  // is not quietly guarding nothing.
+  const base = /\n\.lg-regular\s*\{([^{}]*)\}/.exec(globals)?.[1] ?? "";
+  if (!/position:\s*relative/.test(base)) {
+    fail(
+      "6c layering",
+      "`.lg-regular` no longer establishes a containing block. Its ::before rim and ::after sheen\n" +
+        "    are `position: absolute; inset: 0`, so without it they escape to the nearest positioned\n" +
+        "    ancestor and paint over unrelated UI.",
+    );
+  } else {
+    checks += 1;
+  }
+}
+
 // ── 7. REFRACTION IS NOT SHIPPED, AND THE REASON IS RECORDED ────────────────
 //
 // Lensing is what Apple names as the entire distinction from the old frosted
