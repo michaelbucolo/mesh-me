@@ -694,7 +694,7 @@ export function ConnectedAccountsClient({
             Every platform, threading back to one mesh.me identity. One tap to connect — you approve every permission, and Mesh.me never sees your passwords.
           </p>
           <p className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--text-muted)]">
-            <ShieldCheck className="h-4 w-4 text-[var(--accent)]" aria-hidden="true" />
+            <ShieldCheck className="h-4 w-4 text-[var(--accent-text)]" aria-hidden="true" />
             Official APIs only · disconnect anytime
           </p>
         </div>

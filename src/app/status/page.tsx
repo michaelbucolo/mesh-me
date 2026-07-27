@@ -83,7 +83,7 @@ function ServiceCard({ check }: { check: SystemStatusCheck }) {
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3">
           <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-[var(--border-primary)] bg-[var(--bg-primary)]">
-            <Icon className="h-5 w-5 text-[var(--accent)]" aria-hidden="true" />
+            <Icon className="h-5 w-5 text-[var(--accent-text)]" aria-hidden="true" />
           </span>
           <div>
             <h2 className="text-base font-semibold text-[var(--text-primary)]">{check.label}</h2>
@@ -134,7 +134,7 @@ export default async function StatusPage() {
       <section className="mt-5 grid gap-3 rounded-3xl border border-[var(--glass-card-border)] bg-[var(--glass-card-bg)] p-5 md:grid-cols-[1fr_auto] md:items-center">
         <div>
           <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-[var(--text-primary)]">
-            <Clock3 className="h-4 w-4 text-[var(--accent)]" aria-hidden="true" />
+            <Clock3 className="h-4 w-4 text-[var(--accent-text)]" aria-hidden="true" />
             Public monitoring endpoint
           </div>
           <p className="text-sm leading-6 text-[var(--text-secondary)]">

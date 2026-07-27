@@ -15,7 +15,7 @@ const variantStyles = {
   success: "bg-[var(--ds-success-bg)] text-[var(--ds-success)] border-[var(--ds-success-border)]",
   danger: "bg-[var(--ds-danger-bg)] text-[var(--ds-danger)] border-[var(--ds-danger-border)]",
   warning: "bg-[var(--ds-warning-bg)] text-[var(--ds-warning)] border-[var(--ds-warning-border)]",
-  accent: "bg-[var(--accent-subtle)] text-[var(--accent)] border-[var(--accent-muted)]",
+  accent: "bg-[var(--accent-subtle)] text-[var(--accent-text)] border-[var(--accent-muted)]",
 };
 
 export function Badge({ children, variant = "default", className, pop = false }: BadgeProps) {

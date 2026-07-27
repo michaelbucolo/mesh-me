@@ -155,7 +155,7 @@ function PerPostBar({ platform, epp, maxEpp, index }: { platform: string; epp: n
 function CrossPlatformFans({ overlap }: { overlap: AnalyticsDashboardData["audienceOverlap"] }) {
   return (
     <div className="mt-4 rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-primary)]/40 p-4">
-      <p className="flex items-center gap-1.5 text-micro font-semibold mesh-eyebrow text-[var(--accent)]">
+      <p className="flex items-center gap-1.5 text-micro font-semibold mesh-eyebrow text-[var(--accent-text)]">
         <Fingerprint size={12} aria-hidden="true" />
         Your true fans
       </p>
@@ -282,7 +282,7 @@ export function CrossPlatformCommand({ data }: { data: AnalyticsDashboardData })
     <section className="plate p-4 md:p-5">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <p className="flex items-center gap-1.5 text-micro font-semibold mesh-eyebrow text-[var(--accent)]">
+          <p className="flex items-center gap-1.5 text-micro font-semibold mesh-eyebrow text-[var(--accent-text)]">
             <Layers size={12} aria-hidden="true" />
             Only on mesh.me
           </p>

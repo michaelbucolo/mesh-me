@@ -494,7 +494,7 @@ export function CommandPalette({ username }: { username: string }) {
         style={{ transformOrigin: "top center" }}
       >
         <div className="command-palette-search">
-          <Command className="h-5 w-5 shrink-0 text-[var(--accent)]" aria-hidden />
+          <Command className="h-5 w-5 shrink-0 text-[var(--accent-text)]" aria-hidden />
           <label htmlFor="mesh-command-palette-input" className="sr-only">Search commands</label>
           <input
             id="mesh-command-palette-input"

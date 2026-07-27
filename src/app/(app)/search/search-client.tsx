@@ -172,7 +172,7 @@ function platformLabel(value: string | null | undefined) {
 function ResultEmpty({ query }: { query: string }) {
   return (
     <div className="mesh-surface rounded-2xl p-8 text-center">
-      <Search className="mx-auto h-7 w-7 text-[var(--accent)]" aria-hidden="true" />
+      <Search className="mx-auto h-7 w-7 text-[var(--accent-text)]" aria-hidden="true" />
       <h2 className="mt-3 text-xl font-semibold text-[var(--text-primary)]">
         {query.length > 1 ? "No results yet" : "Search your connected internet"}
       </h2>
@@ -281,7 +281,7 @@ export function SearchClient({ initialQuery }: { initialQuery: string }) {
       `}</style>
       <header className="sticky top-0 z-20 bg-[var(--bg-primary)]/92 pb-2 pt-1 backdrop-blur md:top-3">
         <form onSubmit={submit} className="flex min-h-12 items-center gap-3 rounded-xl border border-[var(--border-primary)] bg-[var(--bg-input)] px-4">
-          <Search className="h-5 w-5 shrink-0 text-[var(--accent)]" aria-hidden="true" />
+          <Search className="h-5 w-5 shrink-0 text-[var(--accent-text)]" aria-hidden="true" />
           <label htmlFor="mesh-search-input" className="sr-only">Search Mesh.me</label>
           <input
             id="mesh-search-input"
@@ -363,7 +363,7 @@ export function SearchClient({ initialQuery }: { initialQuery: string }) {
             <div className="mesh-cascade-soft grid gap-0 md:grid-cols-2">
               {results.sourceIndex.map((source, index) => (
                 <div key={source.id} style={rowStyle(index)} className="search-result-row search-row-magnetic">
-                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md border border-[var(--border-primary)] bg-[var(--accent-subtle)] text-sm font-semibold text-[var(--accent)]">
+                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md border border-[var(--border-primary)] bg-[var(--accent-subtle)] text-sm font-semibold text-[var(--accent-text)]">
                     {source.name.slice(0, 2)}
                   </span>
                   <span className="min-w-0 flex-1">
@@ -445,10 +445,10 @@ export function SearchClient({ initialQuery }: { initialQuery: string }) {
               const content = (
                 <>
                   <span className="relative h-16 w-16 shrink-0 overflow-hidden rounded-md border border-[var(--border-primary)] bg-[var(--bg-tertiary)]">
-                    {thumbnail ? <Image src={thumbnail} alt="" fill sizes="64px" className="object-cover" /> : <Globe2 className="m-auto mt-5 h-6 w-6 text-[var(--accent)]" aria-hidden="true" />}
+                    {thumbnail ? <Image src={thumbnail} alt="" fill sizes="64px" className="object-cover" /> : <Globe2 className="m-auto mt-5 h-6 w-6 text-[var(--accent-text)]" aria-hidden="true" />}
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block text-xs font-semibold mesh-eyebrow text-[var(--accent)]">
+                    <span className="block text-xs font-semibold mesh-eyebrow text-[var(--accent-text)]">
                       {platformLabel(post.connectedAccount.platform)} - @{post.connectedAccount.platformUsername || "connected"}
                     </span>
                     {post.connectedAccount.user && (
@@ -489,7 +489,7 @@ export function SearchClient({ initialQuery }: { initialQuery: string }) {
                     <span className="block truncate text-xs text-[var(--text-muted)]">
                       {platformLabel(person.connectedAccount.platform)} · @{person.username || person.connectedAccount.platformUsername || "connected"} · {formatCount(person.followerCount || 0)}
                     </span>
-                    <span className="mt-1 block text-xs font-semibold text-[var(--accent)]">{person.relationshipType}</span>
+                    <span className="mt-1 block text-xs font-semibold text-[var(--accent-text)]">{person.relationshipType}</span>
                   </span>
                 </>
               );
@@ -510,7 +510,7 @@ export function SearchClient({ initialQuery }: { initialQuery: string }) {
           <ResultSection title="Communities" icon={Hash}>
             {results.communities.map((community, index) => (
               <Link key={community.id} style={rowStyle(index)} href={`/communities/${community.slug}`} className="search-result-row search-row-magnetic">
-                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-[var(--accent-subtle)] text-lg font-semibold text-[var(--accent)]">#</span>
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-[var(--accent-subtle)] text-lg font-semibold text-[var(--accent-text)]">#</span>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm font-semibold text-[var(--text-primary)]">{community.name}</span>
                   <span className="block truncate text-xs text-[var(--text-muted)]">/{community.slug} · {formatCount(community._count?.members || 0)} members</span>
@@ -541,10 +541,10 @@ export function SearchClient({ initialQuery }: { initialQuery: string }) {
             {results.wikipedia.map((page, index) => (
               <a key={page.id} style={rowStyle(index)} href={safeHref(page.url)} target="_blank" rel="noreferrer" className="search-result-row search-row-magnetic">
                 <span className="relative h-14 w-14 shrink-0 overflow-hidden rounded-md border border-[var(--border-primary)] bg-[var(--bg-tertiary)]">
-                  {page.thumbnailUrl ? <Image src={page.thumbnailUrl} alt="" fill sizes="56px" className="object-cover" /> : <Globe2 className="m-auto mt-4 h-6 w-6 text-[var(--accent)]" aria-hidden="true" />}
+                  {page.thumbnailUrl ? <Image src={page.thumbnailUrl} alt="" fill sizes="56px" className="object-cover" /> : <Globe2 className="m-auto mt-4 h-6 w-6 text-[var(--accent-text)]" aria-hidden="true" />}
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block text-xs font-semibold mesh-eyebrow text-[var(--accent)]">{page.source}</span>
+                  <span className="block text-xs font-semibold mesh-eyebrow text-[var(--accent-text)]">{page.source}</span>
                   <span className="mt-1 block truncate text-sm font-semibold text-[var(--text-primary)]">{page.title}</span>
                   <span className="mt-1 block line-clamp-2 text-sm text-[var(--text-secondary)]">{page.extract}</span>
                 </span>
@@ -574,7 +574,7 @@ function ResultSection({
       className="mesh-surface overflow-hidden rounded-2xl"
     >
       <header className="flex items-center gap-2 border-b border-[var(--border-primary)] px-4 py-3">
-        <Icon className="h-4 w-4 text-[var(--accent)]" aria-hidden="true" />
+        <Icon className="h-4 w-4 text-[var(--accent-text)]" aria-hidden="true" />
         <h2 className="text-sm font-semibold text-[var(--text-primary)]">{title}</h2>
       </header>
       <div className="mesh-cascade-soft divide-y divide-[var(--border-primary)]">

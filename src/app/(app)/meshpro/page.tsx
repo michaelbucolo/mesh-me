@@ -157,7 +157,7 @@ export default async function MeshProPage({ searchParams }: MeshProPageProps) {
       )}
 
       <header className="pt-4 text-center">
-        <p className="text-xs font-semibold mesh-eyebrow text-[var(--accent)]">MeshPro</p>
+        <p className="text-xs font-semibold mesh-eyebrow text-[var(--accent-text)]">MeshPro</p>
         <h1 className="mx-auto mt-3 max-w-xl text-3xl font-semibold leading-tight md:text-4xl">
           Real controls, not decorations
         </h1>
@@ -191,7 +191,7 @@ export default async function MeshProPage({ searchParams }: MeshProPageProps) {
             href={href}
             className="mesh-choice group rounded-xl p-5 transition hover:-translate-y-0.5"
           >
-            <Icon className="h-5 w-5 text-[var(--accent)]" aria-hidden="true" />
+            <Icon className="h-5 w-5 text-[var(--accent-text)]" aria-hidden="true" />
             <p className="mt-3 text-sm font-semibold text-[var(--text-primary)]">{title}</p>
             <p className="mt-1 text-[0.78125rem] leading-5 text-[var(--text-secondary)]">{body}</p>
           </Link>

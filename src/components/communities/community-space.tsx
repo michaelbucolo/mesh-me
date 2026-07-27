@@ -51,7 +51,7 @@ function CommunityHero({ data }: { data: CommunityReadyData }) {
               {community.iconUrl ? (
                 <Image src={community.iconUrl} alt="" fill sizes="80px" className="object-cover" />
               ) : (
-                <span className="grid h-full w-full place-items-center text-3xl font-semibold text-[var(--accent)]">
+                <span className="grid h-full w-full place-items-center text-3xl font-semibold text-[var(--accent-text)]">
                   {community.name.charAt(0).toUpperCase()}
                 </span>
               )}
@@ -121,7 +121,7 @@ function CommunityChat({ data }: { data: CommunityReadyData }) {
   return (
     <section className="mesh-surface rounded-[24px] border border-[var(--ds-border)] p-4">
       <h2 className="flex items-center gap-2 text-lg font-semibold text-[var(--text-primary)]">
-        <MessageCircle className="h-5 w-5 text-[var(--accent)]" />
+        <MessageCircle className="h-5 w-5 text-[var(--accent-text)]" />
         Community chat
       </h2>
       <div className="mt-4 max-h-[360px] space-y-3 overflow-y-auto pr-1">
@@ -168,7 +168,7 @@ function MembersPanel({ data }: { data: CommunityReadyData }) {
   return (
     <section className="mesh-surface rounded-[24px] border border-[var(--ds-border)] p-4">
       <h2 className="flex items-center gap-2 text-lg font-semibold text-[var(--text-primary)]">
-        <Users className="h-5 w-5 text-[var(--accent)]" />
+        <Users className="h-5 w-5 text-[var(--accent-text)]" />
         Members
       </h2>
       <div className="mt-4 space-y-3">
@@ -223,7 +223,7 @@ function ModerationPanel({ data }: { data: CommunityReadyData }) {
   return (
     <section className="mesh-surface rounded-[24px] border border-[var(--ds-border)] p-4">
       <h2 className="flex items-center gap-2 text-lg font-semibold text-[var(--text-primary)]">
-        <Shield className="h-5 w-5 text-[var(--accent)]" />
+        <Shield className="h-5 w-5 text-[var(--accent-text)]" />
         Moderation
       </h2>
       <div className="mt-4 grid gap-3">
@@ -344,7 +344,7 @@ export function CommunitySpace({ data }: { data: CommunityReadyData }) {
             ))
           ) : (
             <div className="mesh-surface rounded-[24px] border border-dashed border-[var(--ds-border)] p-8 text-center">
-              <MessageCircle className="mx-auto h-8 w-8 text-[var(--accent)]" />
+              <MessageCircle className="mx-auto h-8 w-8 text-[var(--accent-text)]" />
               <h3 className="mt-3 text-lg font-semibold text-[var(--text-primary)]">No posts yet</h3>
               <p className="mt-1 text-sm text-[var(--text-secondary)]">Start the conversation with a post or link.</p>
             </div>
@@ -358,7 +358,7 @@ export function CommunitySpace({ data }: { data: CommunityReadyData }) {
           <ol className="mt-4 space-y-3">
             {rulesList(data.community.rules).map((rule, index) => (
               <li key={`${rule}-${index}`} className="flex gap-3 text-sm text-[var(--text-secondary)]">
-                <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-[var(--accent-subtle)] text-xs font-semibold text-[var(--accent)]">
+                <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-[var(--accent-subtle)] text-xs font-semibold text-[var(--accent-text)]">
                   {index + 1}
                 </span>
                 <span>{rule}</span>

@@ -625,7 +625,7 @@ export function FeedTimelineClient({
               <span className="block truncate text-xs text-[var(--text-muted)]">{user.displayName}</span>
             </span>
           </Link>
-          <Link href="/settings" className="text-xs font-semibold text-[var(--accent)]">Edit</Link>
+          <Link href="/settings" className="text-xs font-semibold text-[var(--accent-text)]">Edit</Link>
         </div>
 
         <div className="mt-6 grid gap-3">

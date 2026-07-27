@@ -184,7 +184,7 @@ export function AccountMergePanel({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="max-w-2xl">
           <h2 className="inline-flex items-center gap-2 text-lg font-semibold">
-            <Combine className="h-5 w-5 text-[var(--accent)]" aria-hidden="true" />
+            <Combine className="h-5 w-5 text-[var(--accent-text)]" aria-hidden="true" />
             Merge another mesh.me account
           </h2>
           <p className="mt-1 text-sm leading-6 text-[var(--text-secondary)]">

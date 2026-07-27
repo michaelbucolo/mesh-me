@@ -38,7 +38,7 @@ const buttonVariants = cva(
         destructive: "key key-lit [--mould:var(--mould-crimson)] [--mould-ink:var(--mould-crimson-ink)] [--mould-plinth:var(--mould-crimson-plinth)]",
         success: "key key-lit [--mould:var(--mould-jade)] [--mould-ink:var(--mould-jade-ink)] [--mould-plinth:var(--mould-jade-plinth)]",
         warning: "key key-lit [--mould:var(--mould-amber)] [--mould-ink:var(--mould-amber-ink)] [--mould-plinth:var(--mould-amber-plinth)]",
-        link: "ds-focus-ring h-auto rounded-[var(--radius-xs)] border-transparent bg-transparent p-0 text-[var(--accent)] underline-offset-4 hover:underline",
+        link: "ds-focus-ring h-auto rounded-[var(--radius-xs)] border-transparent bg-transparent p-0 text-[var(--accent-text)] underline-offset-4 hover:underline",
         // No gradients in a moulded system — a plastic is one colour through.
         // The brand plastic is tomato.
         gradient: "key key-lit [--mould:var(--mould-tomato)] [--mould-ink:var(--mould-tomato-ink)] [--mould-plinth:var(--mould-tomato-plinth)]",

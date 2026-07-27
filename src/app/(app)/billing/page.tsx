@@ -87,7 +87,7 @@ export default async function BillingPage() {
 
         <aside className="mesh-surface rounded-lg p-4 md:p-5">
           <h2 className="flex items-center gap-2 text-lg font-semibold">
-            <Sparkles className="h-5 w-5 text-[var(--accent)]" aria-hidden="true" />
+            <Sparkles className="h-5 w-5 text-[var(--accent-text)]" aria-hidden="true" />
             Billing safety
           </h2>
           <ul className="mt-4 grid gap-3 text-sm leading-6 text-[var(--text-secondary)]">
@@ -112,7 +112,7 @@ function BillingStat({ icon: Icon, label, value, detail }: { icon: LucideIcon; l
     <section className="mesh-surface rounded-lg p-4">
       <div className="flex items-center justify-between gap-3">
         <p className="text-xs font-semibold mesh-eyebrow text-[var(--text-muted)]">{label}</p>
-        <Icon className="h-4 w-4 text-[var(--accent)]" aria-hidden="true" />
+        <Icon className="h-4 w-4 text-[var(--accent-text)]" aria-hidden="true" />
       </div>
       <p className="mt-3 truncate text-xl font-semibold text-[var(--text-primary)]">{value}</p>
       <p className="mt-1 truncate text-xs capitalize text-[var(--text-secondary)]">{detail}</p>

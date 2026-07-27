@@ -53,7 +53,7 @@ export default async function ConnectionsPage({
         <div className="min-w-0">
           <h1 className="flex items-center gap-1.5 truncate text-lg font-semibold text-[var(--mesh-text)]">
             {profile.displayName}
-            {profile.isVerified && <ShieldCheck size={16} className="shrink-0 text-[var(--accent)]" aria-label="Verified" />}
+            {profile.isVerified && <ShieldCheck size={16} className="shrink-0 text-[var(--accent-text)]" aria-label="Verified" />}
           </h1>
           <p className="truncate text-xs text-[var(--mesh-text-muted)]">@{profile.username}</p>
         </div>
@@ -83,7 +83,7 @@ export default async function ConnectionsPage({
                   <div className="min-w-0">
                     <p className="flex items-center gap-1.5 truncate text-sm font-semibold text-[var(--mesh-text)]">
                       {person.displayName}
-                      {person.isVerified && <ShieldCheck size={14} className="shrink-0 text-[var(--accent)]" aria-label="Verified" />}
+                      {person.isVerified && <ShieldCheck size={14} className="shrink-0 text-[var(--accent-text)]" aria-label="Verified" />}
                     </p>
                     <p className="truncate text-xs text-[var(--mesh-text-muted)]">@{person.username}</p>
                     {person.bio && <p className="mt-0.5 truncate text-xs text-[var(--mesh-text-secondary)]">{person.bio}</p>}
@@ -125,7 +125,7 @@ function ConnectionTab({ label, count, href, active }: { label: string; count: n
       }`}
     >
       {label}
-      <span className={`rounded-md px-1.5 py-0.5 text-xs ${active ? "bg-[var(--accent)]/10 text-[var(--accent)]" : "bg-[var(--mesh-panel)] text-[var(--mesh-text-muted)]"}`}>
+      <span className={`rounded-md px-1.5 py-0.5 text-xs ${active ? "bg-[var(--accent)]/10 text-[var(--accent-text)]" : "bg-[var(--mesh-panel)] text-[var(--mesh-text-muted)]"}`}>
         {count}
       </span>
     </Link>

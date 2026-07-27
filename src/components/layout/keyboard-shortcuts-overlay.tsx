@@ -166,7 +166,7 @@ function ShortcutGroupCard({ group, onAction, index }: { group: ShortcutGroup; o
           initial={{ scale: 0.5, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ type: "spring", stiffness: 480, damping: 20, delay: 0.05 * index + 0.05 }}
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--accent-subtle)] text-[var(--accent)]"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--accent-subtle)] text-[var(--accent-text)]"
         >
           <Icon className="h-4 w-4" aria-hidden />
         </motion.span>
@@ -354,7 +354,7 @@ export function KeyboardShortcutsOverlay({ username }: { username: string }) {
         <div className="grid gap-4">
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--border-primary)] bg-[var(--bg-primary)] p-3">
             <div className="flex min-w-0 items-center gap-3">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--accent-subtle)] text-[var(--accent)]">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--accent-subtle)] text-[var(--accent-text)]">
                 <Keyboard className="h-5 w-5" aria-hidden />
               </span>
               <div className="min-w-0">
@@ -388,7 +388,7 @@ export function KeyboardShortcutsOverlay({ username }: { username: string }) {
         role="status"
         aria-live="polite"
       >
-        <span className="mr-2 text-[var(--accent)]">G</span>
+        <span className="mr-2 text-[var(--accent-text)]">G</span>
         <span className="text-[var(--text-muted)]">then H, M, S, I, N, P, or ,</span>
       </motion.div>
     </>

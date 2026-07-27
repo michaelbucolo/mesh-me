@@ -55,7 +55,7 @@ export function CommunityCreateForm() {
       <section className="mesh-surface rounded-[28px] border border-[var(--ds-border)] p-4 shadow-[var(--shadow-soft)] sm:p-6">
         <div className="mb-5 flex items-center justify-between gap-3">
           <div>
-            <p className="text-sm font-semibold text-[var(--accent)]">New space</p>
+            <p className="text-sm font-semibold text-[var(--accent-text)]">New space</p>
             <h1 className="text-2xl font-semibold tracking-[0] text-[var(--text-primary)]">Create a community</h1>
           </div>
           <Badge variant="accent">Private by design</Badge>
@@ -152,7 +152,7 @@ export function CommunityCreateForm() {
                   : "border-[var(--ds-border)] bg-[var(--ds-surface)]"
               )}
             >
-              <Users className="mb-3 h-5 w-5 text-[var(--accent)]" />
+              <Users className="mb-3 h-5 w-5 text-[var(--accent-text)]" />
               <span className="block text-sm font-semibold text-[var(--text-primary)]">Public discovery</span>
               <span className="mt-1 block text-xs text-[var(--text-secondary)]">Anyone can find and join.</span>
             </motion.button>
@@ -171,7 +171,7 @@ export function CommunityCreateForm() {
                   : "border-[var(--ds-border)] bg-[var(--ds-surface)]"
               )}
             >
-              <Lock className="mb-3 h-5 w-5 text-[var(--accent)]" />
+              <Lock className="mb-3 h-5 w-5 text-[var(--accent-text)]" />
               <span className="block text-sm font-semibold text-[var(--text-primary)]">Private space</span>
               <span className="mt-1 block text-xs text-[var(--text-secondary)]">Only members can open it.</span>
             </motion.button>

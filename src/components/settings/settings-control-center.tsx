@@ -766,7 +766,7 @@ export function SettingsControlCenter({
               <button
                 type="button"
                 onClick={showMobileSectionList}
-                className="mb-2 inline-flex min-h-10 items-center gap-1 text-sm font-semibold text-[var(--accent)] lg:hidden"
+                className="mb-2 inline-flex min-h-10 items-center gap-1 text-sm font-semibold text-[var(--accent-text)] lg:hidden"
               >
                 <ChevronLeft size={16} aria-hidden="true" />
                 Settings
@@ -1049,7 +1049,7 @@ function ProfileSection({
                 <IconTile icon={PlugZap} />
                 Connected platforms
               </span>
-              <Link href="/connected-accounts" className="text-xs font-semibold text-[var(--accent)]">Manage</Link>
+              <Link href="/connected-accounts" className="text-xs font-semibold text-[var(--accent-text)]">Manage</Link>
             </div>
             <div className="mt-2 flex flex-wrap gap-1.5">
               {settings.connectedAccounts.length > 0 ? settings.connectedAccounts.map((account) => (
@@ -1788,7 +1788,7 @@ function MeshSection({
             return (
               <label key={key} className="settings-muted-box grid gap-1.5 text-xs font-semibold capitalize">
                 <span className="inline-flex items-center gap-1.5">
-                  <BranchIcon size={13} className="text-[var(--accent)]" aria-hidden="true" />
+                  <BranchIcon size={13} className="text-[var(--accent-text)]" aria-hidden="true" />
                   {key}
                 </span>
                 <select
@@ -1814,7 +1814,7 @@ function MeshSection({
               <Crown size={15} aria-hidden="true" />
               MeshPro customization
             </span>
-            <Link href="/meshpro" className="text-xs font-semibold text-[var(--accent)]">Upgrade</Link>
+            <Link href="/meshpro" className="text-xs font-semibold text-[var(--accent-text)]">Upgrade</Link>
           </div>
         )}
         {/* `.mesh-choice` (globals.css:2338) is a 1px outline on a fill one step from
@@ -2046,7 +2046,7 @@ function AppearanceSection({
             <p className="text-xs text-[var(--text-muted)]">
               MeshPro unlocks full color tuning — light/dark mode stays available to everyone.
             </p>
-            {!isMeshPro && <Link href="/meshpro" className="text-xs font-semibold text-[var(--accent)]">Upgrade</Link>}
+            {!isMeshPro && <Link href="/meshpro" className="text-xs font-semibold text-[var(--accent-text)]">Upgrade</Link>}
           </div>
           <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {Object.entries(themeDraft).map(([key, value]) => (
@@ -2257,7 +2257,7 @@ function Field({ label, icon: Icon, children, wide = false }: { label: string; i
   return (
     <label className={`grid gap-1.5 text-sm font-semibold ${wide ? "md:col-span-2" : ""}`}>
       <span className="inline-flex items-center gap-1.5">
-        {Icon && <Icon size={13} className="text-[var(--accent)]" aria-hidden="true" />}
+        {Icon && <Icon size={13} className="text-[var(--accent-text)]" aria-hidden="true" />}
         {label}
       </span>
       {children}

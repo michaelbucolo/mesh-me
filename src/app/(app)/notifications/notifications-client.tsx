@@ -365,7 +365,7 @@ function NotificationGroupCard({
    a fill. Used as a background it is #f58279 in the dark theme, and the white
    glyph on it measured ~1.6:1. The crimson plastic is the danger FILL and ships
    its own pinned ink at 6.37:1, theme-independent by design. */
-group.priority === "high" ? "bg-[var(--mould-crimson)] text-[var(--mould-crimson-ink)]" : "bg-[var(--bg-primary)] text-[var(--accent)]"}`}>
+group.priority === "high" ? "bg-[var(--mould-crimson)] text-[var(--mould-crimson-ink)]" : "bg-[var(--bg-primary)] text-[var(--accent-text)]"}`}>
               <Icon size={13} aria-hidden="true" />
             </span>
           </div>

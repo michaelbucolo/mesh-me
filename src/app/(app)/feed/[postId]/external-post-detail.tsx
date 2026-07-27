@@ -91,7 +91,7 @@ export function ExternalPostDetail({ post }: { post: FeedCardPost }) {
               <p className="flex items-center gap-1.5 truncate text-sm font-semibold">
                 {author.name}
                 {!post.externalAuthor && post.author.isVerified && (
-                  <BadgeCheck size={14} className="shrink-0 text-[var(--accent)]" aria-hidden="true" />
+                  <BadgeCheck size={14} className="shrink-0 text-[var(--accent-text)]" aria-hidden="true" />
                 )}
               </p>
               <p className="truncate text-xs text-[var(--mesh-text-secondary)]">
@@ -99,7 +99,7 @@ export function ExternalPostDetail({ post }: { post: FeedCardPost }) {
                 {formatRelativeTime(String(post.createdAt))}
               </p>
             </div>
-            <span className="shrink-0 rounded-full bg-[var(--accent)]/12 px-2.5 py-1 text-micro font-semibold mesh-eyebrow text-[var(--accent)]">
+            <span className="shrink-0 rounded-full bg-[var(--accent)]/12 px-2.5 py-1 text-micro font-semibold mesh-eyebrow text-[var(--accent-text)]">
               {source}
             </span>
             {post.visibility && post.visibility !== "public" && (

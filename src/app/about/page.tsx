@@ -51,7 +51,7 @@ export default function AboutPage() {
           { icon: Sparkles, title: "Useful", copy: "Power comes from simplifying the user experience, not increasing noise." },
         ].map((item) => (
           <article key={item.title} className="rounded-2xl border border-[var(--glass-card-border)] bg-[var(--glass-card-bg)] p-5">
-            <item.icon className="mb-4 h-5 w-5 text-[var(--accent)]" />
+            <item.icon className="mb-4 h-5 w-5 text-[var(--accent-text)]" />
             <h2 className="text-base font-semibold text-[var(--text-primary)]">{item.title}</h2>
             <p className="mt-2 text-sm leading-6 text-[var(--text-secondary)]">{item.copy}</p>
           </article>

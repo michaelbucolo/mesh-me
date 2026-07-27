@@ -172,8 +172,12 @@
 }
 
 
-:root[data-theme="instagram"] {
+.dark[data-theme="instagram"] {
   --accent: #ff2d55;
+  /* The accent AS TEXT. The fill above is lightened here because a
+     colour that carries ink is not the same colour that reads on paper: #ff2d55
+     measures below AA on all four dark papers as text. */
+  --accent-text: #ff7b94;  /* 4.60 worst case across all four dark papers */
   /* PINNED. Every preset re-pointed --accent onto a new hue and left
      --accent-ink inherited, so white sat on it: 3.65:1 here, and 1.81:1 on
      the cyan preset -- text a sighted user cannot read. The ink that belongs
@@ -188,8 +192,12 @@
   --brand-gradient-vibrant: linear-gradient(135deg, #fd1d1d 0%, #f77737 35%, #c13584 70%, #5851db 100%);
 }
 
-:root[data-theme="ocean"] {
+.dark[data-theme="ocean"] {
   --accent: #22d3ee;
+  /* The accent AS TEXT. The fill above is lightened here because a
+     colour that carries ink is not the same colour that reads on paper: #22d3ee
+     measures below AA on all four dark papers as text. */
+  --accent-text: #22d3ee;  /* 6.28 worst case across all four dark papers */
   /* PINNED. Every preset re-pointed --accent onto a new hue and left
      --accent-ink inherited, so white sat on it: 1.81:1 here, and 1.81:1 on
      the cyan preset -- text a sighted user cannot read. The ink that belongs
@@ -203,8 +211,12 @@
   --brand-gradient: linear-gradient(135deg, #06b6d4 0%, #0ea5e9 45%, #2563eb 100%);
 }
 
-:root[data-theme="sunset"] {
+.dark[data-theme="sunset"] {
   --accent: #f97316;
+  /* The accent AS TEXT. The fill above is lightened here because a
+     colour that carries ink is not the same colour that reads on paper: #f97316
+     measures below AA on all four dark papers as text. */
+  --accent-text: #fa8635;  /* 4.61 worst case across all four dark papers */
   /* PINNED. Every preset re-pointed --accent onto a new hue and left
      --accent-ink inherited, so white sat on it: 2.80:1 here, and 1.81:1 on
      the cyan preset -- text a sighted user cannot read. The ink that belongs
@@ -218,8 +230,12 @@
   --brand-gradient: linear-gradient(135deg, #f97316 0%, #f43f5e 52%, #8b5cf6 100%);
 }
 
-:root[data-theme="forest"] {
+.dark[data-theme="forest"] {
   --accent: #22c55e;
+  /* The accent AS TEXT. The fill above is lightened here because a
+     colour that carries ink is not the same colour that reads on paper: #22c55e
+     measures below AA on all four dark papers as text. */
+  --accent-text: #22c55e;  /* 4.98 worst case across all four dark papers */
   /* PINNED. Every preset re-pointed --accent onto a new hue and left
      --accent-ink inherited, so white sat on it: 2.28:1 here, and 1.81:1 on
      the cyan preset -- text a sighted user cannot read. The ink that belongs
@@ -233,8 +249,12 @@
   --brand-gradient: linear-gradient(135deg, #22c55e 0%, #14b8a6 50%, #0ea5e9 100%);
 }
 
-:root[data-theme="mono"] {
+.dark[data-theme="mono"] {
   --accent: #a1a1aa;
+  /* The accent AS TEXT. The fill above is lightened here because a
+     colour that carries ink is not the same colour that reads on paper: #a1a1aa
+     measures below AA on all four dark papers as text. */
+  --accent-text: #a5a5ad;  /* 4.64 worst case across all four dark papers */
   /* PINNED. Every preset re-pointed --accent onto a new hue and left
      --accent-ink inherited, so white sat on it: 2.56:1 here, and 1.81:1 on
      the cyan preset -- text a sighted user cannot read. The ink that belongs
@@ -295,7 +315,7 @@ h1, h2, h3, .font-display {
   letter-spacing: 0;
 }
 
-.brand-wordmark-accent { color: var(--accent); }
+.brand-wordmark-accent { color: var(--accent-text); }
 
 /* ─── Scrollbar ─── */
 ::-webkit-scrollbar { width: 5px; }
@@ -2702,7 +2722,7 @@ html {
   text-transform: none;
   color: var(--ink-3);
 }
-.mesh-kicker { color: var(--accent); }
+.mesh-kicker { color: var(--accent-text); }
 
 .mesh-title {
   color: var(--text-primary);
@@ -3072,8 +3092,12 @@ html {
    palette instead of to this one: --ink-3 on --paper-0 is 6.28:1. */
 
 
-:root[data-theme="instagram"] {
+.light[data-theme="instagram"] {
   --accent: #ff2d55;
+  /* The accent AS TEXT. The fill above is darkened here because a
+     colour that carries ink is not the same colour that reads on paper: #ff2d55
+     measures below AA on all four light papers as text. */
+  --accent-text: #cd0027;  /* 4.61 worst case across all four papers */
   /* PINNED. Every preset re-pointed --accent onto a new hue and left
      --accent-ink inherited, so white sat on it: 3.65:1 here, and 1.81:1 on
      the cyan preset -- text a sighted user cannot read. The ink that belongs
@@ -3089,8 +3113,12 @@ html {
   --brand-gradient-vibrant: linear-gradient(135deg, #fd1d1d 0%, #f77737 35%, #c13584 70%, #5851db 100%);
 }
 
-:root[data-theme="ocean"] {
+.light[data-theme="ocean"] {
   --accent: #0891b2;
+  /* The accent AS TEXT. The fill above is darkened here because a
+     colour that carries ink is not the same colour that reads on paper: #0891b2
+     measures below AA on all four light papers as text. */
+  --accent-text: #066e88;  /* 4.65 worst case across all four papers */
   /* PINNED. Every preset re-pointed --accent onto a new hue and left
      --accent-ink inherited, so white sat on it: 3.68:1 here, and 1.81:1 on
      the cyan preset -- text a sighted user cannot read. The ink that belongs
@@ -3106,8 +3134,12 @@ html {
   --brand-gradient-vibrant: linear-gradient(135deg, #22d3ee 0%, #38bdf8 50%, #2563eb 100%);
 }
 
-:root[data-theme="sunset"] {
+.light[data-theme="sunset"] {
   --accent: #ea580c;
+  /* The accent AS TEXT. The fill above is darkened here because a
+     colour that carries ink is not the same colour that reads on paper: #ea580c
+     measures below AA on all four light papers as text. */
+  --accent-text: #b04209;  /* 4.61 worst case across all four papers */
   /* PINNED. Every preset re-pointed --accent onto a new hue and left
      --accent-ink inherited, so white sat on it: 3.56:1 here, and 1.81:1 on
      the cyan preset -- text a sighted user cannot read. The ink that belongs
@@ -3123,8 +3155,12 @@ html {
   --brand-gradient-vibrant: linear-gradient(135deg, #fb923c 0%, #fb7185 50%, #a78bfa 100%);
 }
 
-:root[data-theme="forest"] {
+.light[data-theme="forest"] {
   --accent: #16a34a;
+  /* The accent AS TEXT. The fill above is darkened here because a
+     colour that carries ink is not the same colour that reads on paper: #16a34a
+     measures below AA on all four light papers as text. */
+  --accent-text: #107535;  /* 4.62 worst case across all four papers */
   /* PINNED. Every preset re-pointed --accent onto a new hue and left
      --accent-ink inherited, so white sat on it: 3.30:1 here, and 1.81:1 on
      the cyan preset -- text a sighted user cannot read. The ink that belongs
@@ -3140,8 +3176,12 @@ html {
   --brand-gradient-vibrant: linear-gradient(135deg, #4ade80 0%, #2dd4bf 50%, #38bdf8 100%);
 }
 
-:root[data-theme="mono"] {
+.light[data-theme="mono"] {
   --accent: #64748b;
+  /* The accent AS TEXT. The fill above is darkened here because a
+     colour that carries ink is not the same colour that reads on paper: #64748b
+     measures below AA on all four light papers as text. */
+  --accent-text: #58667b;  /* 4.64 worst case across all four papers */
   /* PINNED. Every preset re-pointed --accent onto a new hue and left
      --accent-ink inherited, so white sat on it: 4.76:1 here, and 1.81:1 on
      the cyan preset -- text a sighted user cannot read. The ink that belongs
@@ -3180,7 +3220,7 @@ body {
 }
 
 .mobile-mesh-slot {
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 .mobile-mesh-slot-active {
@@ -3596,7 +3636,7 @@ body {
   width: 2rem;
   height: 2rem;
   border-radius: 999px;
-  color: var(--accent);
+  color: var(--accent-text);
   background: var(--accent-subtle);
 }
 
@@ -3738,7 +3778,7 @@ body {
   height: 2.5rem;
   border-radius: 0.75rem;
   background: var(--accent-subtle);
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 .feed-post-pending {
@@ -4120,8 +4160,6 @@ html[data-mesh-locked="true"] body {
   --mesh-press-scale: 0.985;
 }
 
-:root.light,
-
 @media (prefers-color-scheme: light) {
   :root:not(.dark):not(.light) {
     --bg-primary: #f7f8fa;
@@ -4141,6 +4179,11 @@ html[data-mesh-locked="true"] body {
     --text-muted: #8a95a5;
     --text-inverse: #ffffff;
     --accent: #2563eb;
+    /* The accent AS TEXT. This block states its own light palette, so the text
+       value is measured against the --bg-* it declares here rather than against
+       the paper tokens: 5.07:1 on --bg-primary, 5.17:1 on --bg-secondary. This
+       accent was already dark enough to do both jobs; the presets are not. */
+    --accent-text: #2563eb;
     /* PINNED. Every preset re-pointed --accent onto a new hue and left
        --accent-ink inherited, so white sat on it: 5.17:1 here, and 1.81:1 on
        the cyan preset -- text a sighted user cannot read. The ink that belongs
@@ -5379,7 +5422,7 @@ body,
   border: 1px solid var(--border-primary);
   border-radius: 0.7rem;
   background: var(--bg-secondary);
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 .command-palette-badge {

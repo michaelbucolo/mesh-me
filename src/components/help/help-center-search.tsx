@@ -62,7 +62,7 @@ export function HelpCenterSearch({ articles }: HelpCenterSearchProps) {
           Search help
         </label>
         <div className="mt-3 flex min-h-11 items-center gap-2 rounded-xl border border-[var(--border-primary)] bg-[var(--bg-input)] px-3">
-          <Search className="h-4 w-4 shrink-0 text-[var(--accent)]" aria-hidden="true" />
+          <Search className="h-4 w-4 shrink-0 text-[var(--accent-text)]" aria-hidden="true" />
           <input
             id="help-search"
             value={query}
@@ -140,7 +140,7 @@ export function HelpCenterSearch({ articles }: HelpCenterSearchProps) {
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0">
                       <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border-primary)] bg-[var(--bg-primary)] px-2.5 py-1 text-micro font-semibold mesh-eyebrow text-[var(--text-muted)]">
-                        <Icon className="h-3.5 w-3.5 text-[var(--accent)]" aria-hidden="true" />
+                        <Icon className="h-3.5 w-3.5 text-[var(--accent-text)]" aria-hidden="true" />
                         {meta.label}
                       </span>
                       <h2 className="mt-3 text-lg font-semibold text-[var(--text-primary)]">{article.title}</h2>
@@ -154,7 +154,7 @@ export function HelpCenterSearch({ articles }: HelpCenterSearchProps) {
                     <ol className="mt-3 grid gap-2">
                       {article.steps.map((step, index) => (
                         <li key={step} className="grid grid-cols-[1.5rem_minmax(0,1fr)] gap-2 text-sm leading-6 text-[var(--text-secondary)]">
-                          <span className="mt-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-[var(--accent-subtle)] text-xs font-semibold text-[var(--accent)]">
+                          <span className="mt-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-[var(--accent-subtle)] text-xs font-semibold text-[var(--accent-text)]">
                             {index + 1}
                           </span>
                           <span>{step}</span>
@@ -177,7 +177,7 @@ export function HelpCenterSearch({ articles }: HelpCenterSearchProps) {
           </div>
         ) : (
           <div className="mesh-section p-6 text-center">
-            <Search className="mx-auto h-8 w-8 text-[var(--accent)]" aria-hidden="true" />
+            <Search className="mx-auto h-8 w-8 text-[var(--accent-text)]" aria-hidden="true" />
             <h2 className="mt-3 text-lg font-semibold text-[var(--text-primary)]">No help articles found</h2>
             <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[var(--text-secondary)]">
               Try a different word like password, billing, data, Meshi, platform, or error.

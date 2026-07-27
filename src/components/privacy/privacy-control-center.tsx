@@ -601,7 +601,7 @@ function MetricCard({ icon: Icon, label, value, detail }: { icon: typeof Server;
   return (
     <div className="mesh-surface rounded-lg p-4">
       <div className="flex items-center gap-2 text-xs font-semibold mesh-eyebrow text-[var(--text-muted)]">
-        <Icon className="h-4 w-4 text-[var(--accent)]" aria-hidden="true" />
+        <Icon className="h-4 w-4 text-[var(--accent-text)]" aria-hidden="true" />
         {label}
       </div>
       <p className="mt-3 text-3xl font-semibold text-[var(--text-primary)]">{value}</p>
@@ -624,7 +624,7 @@ function Panel({
   return (
     <section className="mesh-surface rounded-lg p-4 md:p-5">
       <div className="flex items-start gap-3">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-[var(--border-primary)] bg-[var(--bg-primary)]/62 text-[var(--accent)]">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-[var(--border-primary)] bg-[var(--bg-primary)]/62 text-[var(--accent-text)]">
           <Icon className="h-5 w-5" aria-hidden="true" />
         </div>
         <div>
@@ -735,7 +735,7 @@ function GlobalMeshCard({
   return (
     <div className="mt-3 rounded-lg border border-[var(--border-primary)] bg-[var(--bg-primary)]/55 p-3">
       <div className="flex items-start gap-3">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-[var(--border-primary)] bg-[var(--bg-primary)]/62 text-[var(--accent)]">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-[var(--border-primary)] bg-[var(--bg-primary)]/62 text-[var(--accent-text)]">
           <Globe className="h-5 w-5" aria-hidden="true" />
         </div>
         <div className="min-w-0">
@@ -757,7 +757,7 @@ function GlobalMeshCard({
       {isActive ? (
         <>
           <div className="mt-3 flex items-center gap-2 rounded-md border border-[var(--accent-muted)] bg-[var(--accent-subtle)] px-3 py-2 text-xs font-semibold text-[var(--text-primary)]">
-            <CheckCircle2 className="h-4 w-4 shrink-0 text-[var(--accent)]" aria-hidden="true" />
+            <CheckCircle2 className="h-4 w-4 shrink-0 text-[var(--accent-text)]" aria-hidden="true" />
             You&rsquo;re on the Global Mesh
           </div>
           <Button type="button" variant="secondary" className="mt-3 w-full" onClick={leave} disabled={isPending}>
@@ -816,13 +816,13 @@ function GlobalMeshCard({
                 <div className="grid max-h-48 gap-2 overflow-y-auto rounded-md border border-[var(--border-primary)] bg-[var(--bg-primary)]/40 p-2">
                   {preview.posts.map((post) => (
                     <div key={post.id} className="flex items-center gap-2 text-xs text-[var(--text-primary)]">
-                      <span className="rounded bg-[var(--accent-subtle)] px-1.5 py-0.5 text-micro font-semibold mesh-eyebrow text-[var(--accent)]">Post</span>
+                      <span className="rounded bg-[var(--accent-subtle)] px-1.5 py-0.5 text-micro font-semibold mesh-eyebrow text-[var(--accent-text)]">Post</span>
                       <span className="truncate">{post.content || "Media post"}</span>
                     </div>
                   ))}
                   {preview.platforms.map((platform) => (
                     <div key={platform.id} className="flex items-center gap-2 text-xs text-[var(--text-primary)]">
-                      <span className="rounded bg-[var(--accent-subtle)] px-1.5 py-0.5 text-micro font-semibold mesh-eyebrow capitalize text-[var(--accent)]">{platform.platform}</span>
+                      <span className="rounded bg-[var(--accent-subtle)] px-1.5 py-0.5 text-micro font-semibold mesh-eyebrow capitalize text-[var(--accent-text)]">{platform.platform}</span>
                       <span className="truncate">{platform.title}</span>
                     </div>
                   ))}
@@ -1017,7 +1017,7 @@ function MiniStat({ label, value, tone }: { label: string; value: number; tone?:
       <p className="text-micro font-semibold mesh-eyebrow text-[var(--text-muted)]">
         {label.replace(/([A-Z])/g, " $1").trim()}
       </p>
-      <p className={cn("mt-1 text-sm font-semibold text-[var(--text-primary)]", tone === "imported" && "text-[var(--accent)]")}>
+      <p className={cn("mt-1 text-sm font-semibold text-[var(--text-primary)]", tone === "imported" && "text-[var(--accent-text)]")}>
         {formatCount(value)}
       </p>
     </div>

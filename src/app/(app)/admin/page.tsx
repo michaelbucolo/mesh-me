@@ -72,7 +72,7 @@ function MetricCard({
     <section className="mesh-surface rounded-[24px] border border-[var(--ds-border)] p-4 shadow-[var(--shadow-soft)]">
       <div className="flex items-center justify-between gap-3">
         <p className="text-xs font-semibold mesh-eyebrow text-[var(--text-tertiary)]">{label}</p>
-        <Icon className="h-5 w-5 text-[var(--accent)]" />
+        <Icon className="h-5 w-5 text-[var(--accent-text)]" />
       </div>
       <p className="mt-3 text-3xl font-semibold tracking-[0] text-[var(--text-primary)]">{formatCount(value)}</p>
       <p className="mt-1 text-xs text-[var(--text-secondary)]">{detail}</p>
@@ -166,7 +166,7 @@ export default async function AdminPage() {
             <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h2 className="flex items-center gap-2 text-xl font-semibold tracking-[0] text-[var(--text-primary)]">
-                  <MessageSquareWarning className="h-5 w-5 text-[var(--accent)]" />
+                  <MessageSquareWarning className="h-5 w-5 text-[var(--accent-text)]" />
                   Moderation queue
                 </h2>
                 <p className="text-sm text-[var(--text-secondary)]">Review reports across users, posts, comments, and communities.</p>
@@ -235,7 +235,7 @@ export default async function AdminPage() {
             <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h2 className="flex items-center gap-2 text-xl font-semibold tracking-[0] text-[var(--text-primary)]">
-                  <Users className="h-5 w-5 text-[var(--accent)]" />
+                  <Users className="h-5 w-5 text-[var(--accent-text)]" />
                   User management
                 </h2>
                 <p className="text-sm text-[var(--text-secondary)]">Suspend abusive users, inspect account activity, and confirm admin status.</p>
@@ -271,7 +271,7 @@ export default async function AdminPage() {
           <section className="mesh-surface rounded-[28px] border border-[var(--ds-border)] p-4 shadow-[var(--shadow-soft)] sm:p-5">
             <div className="mb-4">
               <h2 className="flex items-center gap-2 text-xl font-semibold tracking-[0] text-[var(--text-primary)]">
-                <RadioTower className="h-5 w-5 text-[var(--accent)]" />
+                <RadioTower className="h-5 w-5 text-[var(--accent-text)]" />
                 Community moderation
               </h2>
               <p className="text-sm text-[var(--text-secondary)]">Review public/private status, community reports, admins, and activity.</p>
@@ -313,7 +313,7 @@ export default async function AdminPage() {
         <aside className="space-y-5 xl:sticky xl:top-24 xl:self-start">
           <section id="launch" className="mesh-surface rounded-[28px] border border-[var(--ds-border)] p-4 shadow-[var(--shadow-soft)]">
             <h2 className="flex items-center gap-2 text-lg font-semibold text-[var(--text-primary)]">
-              <Activity className="h-5 w-5 text-[var(--accent)]" />
+              <Activity className="h-5 w-5 text-[var(--accent-text)]" />
               Launch readiness
             </h2>
             <div className="mt-4 grid gap-3">
@@ -325,7 +325,7 @@ export default async function AdminPage() {
 
           <section id="security" className="mesh-surface rounded-[28px] border border-[var(--ds-border)] p-4 shadow-[var(--shadow-soft)]">
             <h2 className="flex items-center gap-2 text-lg font-semibold text-[var(--text-primary)]">
-              <ShieldAlert className="h-5 w-5 text-[var(--accent)]" />
+              <ShieldAlert className="h-5 w-5 text-[var(--accent-text)]" />
               Security alerts
             </h2>
             <div className="mt-4 grid gap-3">
@@ -351,7 +351,7 @@ export default async function AdminPage() {
 
           <section className="mesh-surface rounded-[28px] border border-[var(--ds-border)] p-4 shadow-[var(--shadow-soft)]">
             <h2 className="flex items-center gap-2 text-lg font-semibold text-[var(--text-primary)]">
-              <BarChart3 className="h-5 w-5 text-[var(--accent)]" />
+              <BarChart3 className="h-5 w-5 text-[var(--accent-text)]" />
               Platform analytics
             </h2>
             <div className="mt-4 grid gap-3">
@@ -373,7 +373,7 @@ export default async function AdminPage() {
 
           <section className="mesh-surface rounded-[28px] border border-[var(--ds-border)] p-4 shadow-[var(--shadow-soft)]">
             <h2 className="flex items-center gap-2 text-lg font-semibold text-[var(--text-primary)]">
-              <Clock className="h-5 w-5 text-[var(--accent)]" />
+              <Clock className="h-5 w-5 text-[var(--accent-text)]" />
               Admin activity
             </h2>
             <div className="mt-4 max-h-[340px] space-y-3 overflow-y-auto pr-1">
@@ -397,7 +397,7 @@ export default async function AdminPage() {
 
           <section className="mesh-surface rounded-[28px] border border-[var(--ds-border)] p-4 shadow-[var(--shadow-soft)]">
             <h2 className="flex items-center gap-2 text-lg font-semibold text-[var(--text-primary)]">
-              <LockKeyhole className="h-5 w-5 text-[var(--accent)]" />
+              <LockKeyhole className="h-5 w-5 text-[var(--accent-text)]" />
               Security actions
             </h2>
             <div className="mt-4 grid gap-2">

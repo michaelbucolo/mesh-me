@@ -67,12 +67,12 @@ export function AnalyticsControls() {
           disabled={busyAction !== null}
           className="rounded-xl border border-[var(--glass-card-border)] bg-[var(--glass-card-bg)] p-4 text-left transition hover:border-[var(--accent-muted)] disabled:opacity-60"
         >
-          <Download className="mb-3 h-5 w-5 text-[var(--accent)]" />
+          <Download className="mb-3 h-5 w-5 text-[var(--accent-text)]" />
           <h3 className="text-sm font-semibold text-[var(--text-primary)]">Export your Mesh data</h3>
           <p className="mt-1 text-xs leading-5 text-[var(--text-secondary)]">
             Download a JSON copy of your profile, posts, messages, privacy settings, connected-account metadata, and synced platform data.
           </p>
-          <span className="mt-3 inline-flex items-center gap-2 text-xs font-semibold text-[var(--accent)]">
+          <span className="mt-3 inline-flex items-center gap-2 text-xs font-semibold text-[var(--accent-text)]">
             {busyAction === "export" && <PaperWait size="sm" />}
             Export
           </span>

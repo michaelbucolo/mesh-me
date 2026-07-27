@@ -482,9 +482,9 @@ export default async function ThreadDetailPage({ params, searchParams }: ThreadP
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1.5 md:gap-2">
                   <h1 className="truncate text-base font-semibold text-[var(--mesh-text)] md:text-2xl">{conversationTitle}</h1>
-                  {!isGroupThread && recipient?.isVerified && <BadgeCheck size={16} className="shrink-0 text-[var(--accent)]" />}
+                  {!isGroupThread && recipient?.isVerified && <BadgeCheck size={16} className="shrink-0 text-[var(--accent-text)]" />}
                   {(isExternalThread || threadPlatform !== "mesh") && (
-                    <span className="shrink-0 rounded-full bg-[var(--accent)]/15 px-2 py-0.5 text-micro font-semibold mesh-eyebrow text-[var(--accent)]">
+                    <span className="shrink-0 rounded-full bg-[var(--accent)]/15 px-2 py-0.5 text-micro font-semibold mesh-eyebrow text-[var(--accent-text)]">
                       {sourceLabel(threadPlatform)}
                     </span>
                   )}
@@ -503,7 +503,7 @@ export default async function ThreadDetailPage({ params, searchParams }: ThreadP
 
           <div className="hidden border-b border-[var(--mesh-border)] px-4 py-3 text-sm text-[var(--mesh-text-secondary)] md:block">
             <div className="flex items-center gap-2">
-              <LockKeyhole size={15} aria-hidden="true" className="text-[var(--accent)]" />
+              <LockKeyhole size={15} aria-hidden="true" className="text-[var(--accent-text)]" />
               <span>
                 {isExternalThread
                   ? `This conversation lives on ${sourceLabel(threadPlatform)}. Replies you send here deliver there through your connected account.`

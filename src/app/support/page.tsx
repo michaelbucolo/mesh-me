@@ -32,7 +32,7 @@ export default function SupportPage() {
 
           <div className="mt-5 grid gap-3">
             <div className="flex gap-3 rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-primary)]/60 p-3">
-              <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-[var(--accent)]" aria-hidden="true" />
+              <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-[var(--accent-text)]" aria-hidden="true" />
               <div>
                 <p className="text-sm font-semibold text-[var(--text-primary)]">Do not send secrets.</p>
                 <p className="mt-1 text-sm leading-6 text-[var(--text-secondary)]">
@@ -41,7 +41,7 @@ export default function SupportPage() {
               </div>
             </div>
             <div className="flex gap-3 rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-primary)]/60 p-3">
-              <Clock className="mt-0.5 h-5 w-5 shrink-0 text-[var(--accent)]" aria-hidden="true" />
+              <Clock className="mt-0.5 h-5 w-5 shrink-0 text-[var(--accent-text)]" aria-hidden="true" />
               <div>
                 <p className="text-sm font-semibold text-[var(--text-primary)]">Send enough context.</p>
                 <p className="mt-1 text-sm leading-6 text-[var(--text-secondary)]">

@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, useCallback } from "react";
 
-import { readableInkOn } from "@/lib/readable-ink";
+import { readableAccentText, readableInkOn } from "@/lib/readable-ink";
 
 type ThemeMode = "light" | "dark" | "system";
 type ResolvedTheme = "light" | "dark";
@@ -123,6 +123,7 @@ function applyCustomTheme(customTheme: ThemeCustomization | null) {
     root.style.removeProperty("--accent");
     root.style.removeProperty("--accent-ink");
     root.style.removeProperty("--accent-contrast");
+    root.style.removeProperty("--accent-text");
     root.style.removeProperty("--accent-hover");
     root.style.removeProperty("--accent-muted");
     root.style.removeProperty("--accent-subtle");
@@ -143,6 +144,8 @@ function applyCustomTheme(customTheme: ThemeCustomization | null) {
   const ink = readableInkOn(customTheme.accent);
   root.style.setProperty("--accent-ink", ink);
   root.style.setProperty("--accent-contrast", ink);
+  // And the accent AS TEXT, measured against the background this theme states.
+  root.style.setProperty("--accent-text", readableAccentText(customTheme.accent, customTheme.bgPrimary));
   root.style.setProperty("--accent-hover", customTheme.accent);
   root.style.setProperty("--accent-muted", `${customTheme.accent}33`);
   root.style.setProperty("--accent-subtle", `${customTheme.accent}1f`);

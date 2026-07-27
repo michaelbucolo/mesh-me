@@ -505,7 +505,7 @@ export function AppShell({ children, user }: AppShellProps) {
             href="/settings#privacy"
             className="group flex items-center gap-2 rounded-lg px-2 py-1.5 text-[var(--mesh-text-muted)] transition-colors hover:bg-[var(--mesh-panel-hover)] hover:text-[var(--mesh-text-secondary)]"
           >
-            <ShieldCheck className="h-4 w-4 shrink-0 text-[var(--accent)]" aria-hidden="true" />
+            <ShieldCheck className="h-4 w-4 shrink-0 text-[var(--accent-text)]" aria-hidden="true" />
             {/* `text-micro`, not `text-xs`: this is a persistent quiet badge, which is
                 exactly what the micro step is the floor for. At the caption step the
                 sentence no longer fits the 16rem rail and truncated to "…you own your

@@ -152,7 +152,7 @@ function ExpandablePostText({
         <button
           type="button"
           onClick={() => setExpanded((value) => !value)}
-          className="mt-1 text-xs font-semibold text-[var(--text-primary)] transition hover:text-[var(--accent)]"
+          className="mt-1 text-xs font-semibold text-[var(--text-primary)] transition hover:text-[var(--accent-text)]"
         >
           {expanded ? "Show less" : "Show more"}
         </button>
@@ -423,7 +423,7 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
     >
       <div className={cn("px-3 pt-3 pb-2 sm:px-4", compact && "p-3")}>
         {post.isPinned && (
-          <div className="mb-2 flex items-center gap-1.5 text-xs" style={{ color: "var(--accent)" }}>
+          <div className="mb-2 flex items-center gap-1.5 text-xs" style={{ color: "var(--accent-text)" }}>
             <Pin className="h-3 w-3" />
             <span>Pinned post</span>
           </div>
@@ -458,7 +458,7 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
                   </Link>
                 )}
                 {post.author.isVerified && (
-                  <BadgeCheck className="h-4 w-4" style={{ color: "var(--accent)" }} />
+                  <BadgeCheck className="h-4 w-4" style={{ color: "var(--accent-text)" }} />
                 )}
               </div>
               <div className="flex items-center gap-1 text-[0.78125rem] flex-wrap" style={{ color: "var(--text-muted)" }}>
@@ -512,7 +512,7 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
                 {post.community && (
                   <>
                     <span>&middot;</span>
-                    <Link href={`/communities/${post.community.slug}`} className="hover:opacity-80" style={{ color: "var(--accent)" }}>
+                    <Link href={`/communities/${post.community.slug}`} className="hover:opacity-80" style={{ color: "var(--accent-text)" }}>
                       {post.community.name}
                     </Link>
                   </>
@@ -520,7 +520,7 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
                 {isOptimistic && (
                   <>
                     <span>&middot;</span>
-                    <span className="inline-flex items-center gap-1 rounded-full border border-[var(--accent-muted)] bg-[var(--accent-subtle)] px-2 py-0.5 text-micro font-semibold text-[var(--accent)]">
+                    <span className="inline-flex items-center gap-1 rounded-full border border-[var(--accent-muted)] bg-[var(--accent-subtle)] px-2 py-0.5 text-micro font-semibold text-[var(--accent-text)]">
                       <PaperWait size="sm" />
                       Posting
                     </span>

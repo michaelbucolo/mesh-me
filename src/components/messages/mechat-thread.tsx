@@ -721,7 +721,7 @@ export function MeChatThread({
                     className="my-4 flex scroll-mt-3 items-center gap-3"
                   >
                     <span className="h-px flex-1 bg-[var(--accent)]/40" aria-hidden="true" />
-                    <span className="rounded-full border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-3 py-1 text-micro font-semibold mesh-eyebrow text-[var(--accent)]">
+                    <span className="rounded-full border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-3 py-1 text-micro font-semibold mesh-eyebrow text-[var(--accent-text)]">
                       New
                     </span>
                     <span className="h-px flex-1 bg-[var(--accent)]/40" aria-hidden="true" />
@@ -962,7 +962,7 @@ export function MeChatThread({
                           href={safeHref(message.sourceUrl)}
                           target="_blank"
                           rel="noreferrer"
-                          className={`mt-2 inline-flex items-center gap-1 text-xs font-semibold underline-offset-4 hover:underline ${isMine ? "" : "text-[var(--accent)]"}`}
+                          className={`mt-2 inline-flex items-center gap-1 text-xs font-semibold underline-offset-4 hover:underline ${isMine ? "" : "text-[var(--accent-text)]"}`}
                         >
                           <Link2 size={13} aria-hidden="true" />
                           Open source

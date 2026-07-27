@@ -118,7 +118,7 @@ export default function FeaturesPage() {
       <section className="mt-12 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {productAreas.map((area) => (
           <article key={area.title} className="mesh-section p-5">
-            <area.icon className="mb-4 h-5 w-5 text-[var(--accent)]" />
+            <area.icon className="mb-4 h-5 w-5 text-[var(--accent-text)]" />
             <h2 className="text-base font-semibold text-[var(--text-primary)]">{area.title}</h2>
             <p className="mt-2 text-sm leading-6 text-[var(--text-secondary)]">{area.description}</p>
           </article>
@@ -133,7 +133,7 @@ export default function FeaturesPage() {
           <div className="grid gap-4 md:grid-cols-2">
             {capabilityRows.map((capability) => (
               <article key={capability.title} className="rounded-2xl border border-[var(--border-primary)] p-4">
-                <capability.icon className="mb-3 h-5 w-5 text-[var(--accent)]" />
+                <capability.icon className="mb-3 h-5 w-5 text-[var(--accent-text)]" />
                 <h3 className="text-sm font-semibold text-[var(--text-primary)]">{capability.title}</h3>
                 <p className="mt-2 text-sm leading-6 text-[var(--text-secondary)]">{capability.copy}</p>
               </article>
@@ -143,7 +143,7 @@ export default function FeaturesPage() {
 
         <div className="rounded-3xl border border-[var(--glass-card-border)] bg-[var(--glass-card-bg)] p-6">
           <div className="mb-5 flex items-center gap-2">
-            <Palette className="h-5 w-5 text-[var(--accent)]" />
+            <Palette className="h-5 w-5 text-[var(--accent-text)]" />
             <h2 className="text-lg font-semibold text-[var(--text-primary)]">Interface adaptability</h2>
           </div>
           <div className="space-y-3">
@@ -167,7 +167,7 @@ export default function FeaturesPage() {
       <section className="mt-12 grid gap-4 lg:grid-cols-[1fr_1fr]">
         <article className="mesh-section p-6">
           <div className="mb-4 flex items-center gap-2">
-            <Users className="h-5 w-5 text-[var(--accent)]" />
+            <Users className="h-5 w-5 text-[var(--accent-text)]" />
             <h2 className="text-lg font-semibold text-[var(--text-primary)]">Built for different kinds of people</h2>
           </div>
           <p className="text-sm leading-6 text-[var(--text-secondary)]">
@@ -177,7 +177,7 @@ export default function FeaturesPage() {
 
         <article className="mesh-section p-6">
           <div className="mb-4 flex items-center gap-2">
-            <Compass className="h-5 w-5 text-[var(--accent)]" />
+            <Compass className="h-5 w-5 text-[var(--accent-text)]" />
             <h2 className="text-lg font-semibold text-[var(--text-primary)]">Cross-platform philosophy</h2>
           </div>
           <p className="text-sm leading-6 text-[var(--text-secondary)]">
@@ -188,7 +188,7 @@ export default function FeaturesPage() {
 
       <section className="mt-12 rounded-3xl border border-[var(--accent)]/20 bg-[var(--accent)]/5 p-6">
         <div className="mb-4 flex items-center gap-2">
-          <Crown className="h-5 w-5 text-[var(--accent)]" />
+          <Crown className="h-5 w-5 text-[var(--accent-text)]" />
           <h2 className="text-lg font-semibold text-[var(--text-primary)]">MeshPro</h2>
         </div>
         <div className="grid gap-3 md:grid-cols-2">

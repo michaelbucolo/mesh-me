@@ -38,7 +38,7 @@ export function LegalDocumentPage({
       <section className="mt-10 grid gap-6 lg:grid-cols-[16rem_1fr]">
         <aside className="h-fit rounded-2xl border border-[var(--glass-card-border)] bg-[var(--glass-card-bg)] p-4 lg:sticky lg:top-24">
           <div className="mb-4 flex items-center gap-2">
-            <FileCheck2 className="h-4 w-4 text-[var(--accent)]" />
+            <FileCheck2 className="h-4 w-4 text-[var(--accent-text)]" />
             <p className="text-sm font-semibold text-[var(--text-primary)]">On this page</p>
           </div>
           <nav className="grid gap-1.5">

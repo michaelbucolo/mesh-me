@@ -64,6 +64,14 @@
         domain — globals.css:108-146 ships five persisted accent presets
         (instagram/ocean/sunset/forest/mono) that already own this name. ── */
   --accent: #0056d6;       /* 6.37 on --paper-0 · 7.38 on --paper-1 */
+  /* THE ACCENT AS TEXT IS A DIFFERENT COLOUR FROM THE ACCENT AS A FILL.
+     A fill is judged by the ink ON it; text is judged against the paper BEHIND
+     it, and the two pull a hue in opposite directions. This theme's accent was
+     chosen to clear both, so --accent-text is the same value here — but the ten
+     presets re-point --accent to hues that cannot do both, and every one of the
+     five light presets measured below 3.3:1 as text. Anything that PAINTS TEXT
+     uses this token; anything that fills a surface uses --accent. */
+  --accent-text: #0056d6;  /* 5.07 worst case across all four papers */
   --accent-hover: #0062ea;
   --accent-press: #00449f;
   --accent-ink: #ffffff;   /* 7.63 ON the accent */
@@ -210,6 +218,9 @@
   --rule-focus: #409cff;   /* solid hex */
 
   --accent: #409cff;       /* 8.82 on --paper-0 · 7.76 on --paper-1 */
+  /* Lighter than the fill: 4.01:1 on --paper-3 (#3a3a3c) is below AA, and the
+     old gate only ever measured --paper-0. See the light block. */
+  --accent-text: #58a9ff;  /* 4.61 worst case across all four papers */
   --accent-hover: #5aa9ff;
   --accent-press: #2b8bff;
   --accent-ink: #00204a;   /* 8.24 ON the accent */
