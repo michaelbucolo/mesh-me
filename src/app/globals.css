@@ -177,7 +177,9 @@
   /* PINNED. Every preset re-pointed --accent onto a new hue and left
      --accent-ink inherited, so white sat on it: 3.65:1 here, and 1.81:1 on
      the cyan preset -- text a sighted user cannot read. The ink that belongs
-     to THIS fill, measured: 5.43:1. */
+     to THIS fill, measured: 5.43:1 on the base fill and
+     6.77:1 on --accent-hover. BOTH states carry the label, so the hover
+     shade moves AWAY from the ink, never toward it. */
   --accent-ink: #0a0a0a;
   --accent-hover: #ff5f7d;
   --accent-muted: rgba(255, 45, 85, 0.22);
@@ -191,7 +193,9 @@
   /* PINNED. Every preset re-pointed --accent onto a new hue and left
      --accent-ink inherited, so white sat on it: 1.81:1 here, and 1.81:1 on
      the cyan preset -- text a sighted user cannot read. The ink that belongs
-     to THIS fill, measured: 10.96:1. */
+     to THIS fill, measured: 10.96:1 on the base fill and
+     13.66:1 on --accent-hover. BOTH states carry the label, so the hover
+     shade moves AWAY from the ink, never toward it. */
   --accent-ink: #0a0a0a;
   --accent-hover: #67e8f9;
   --accent-muted: rgba(34, 211, 238, 0.2);
@@ -204,7 +208,9 @@
   /* PINNED. Every preset re-pointed --accent onto a new hue and left
      --accent-ink inherited, so white sat on it: 2.80:1 here, and 1.81:1 on
      the cyan preset -- text a sighted user cannot read. The ink that belongs
-     to THIS fill, measured: 7.06:1. */
+     to THIS fill, measured: 7.06:1 on the base fill and
+     13.66:1 on --accent-hover. BOTH states carry the label, so the hover
+     shade moves AWAY from the ink, never toward it. */
   --accent-ink: #0a0a0a;
   --accent-hover: #fb923c;
   --accent-muted: rgba(249, 115, 22, 0.22);
@@ -217,7 +223,9 @@
   /* PINNED. Every preset re-pointed --accent onto a new hue and left
      --accent-ink inherited, so white sat on it: 2.28:1 here, and 1.81:1 on
      the cyan preset -- text a sighted user cannot read. The ink that belongs
-     to THIS fill, measured: 8.69:1. */
+     to THIS fill, measured: 8.69:1 on the base fill and
+     8.75:1 on --accent-hover. BOTH states carry the label, so the hover
+     shade moves AWAY from the ink, never toward it. */
   --accent-ink: #0a0a0a;
   --accent-hover: #4ade80;
   --accent-muted: rgba(34, 197, 94, 0.2);
@@ -230,7 +238,9 @@
   /* PINNED. Every preset re-pointed --accent onto a new hue and left
      --accent-ink inherited, so white sat on it: 2.56:1 here, and 1.81:1 on
      the cyan preset -- text a sighted user cannot read. The ink that belongs
-     to THIS fill, measured: 7.72:1. */
+     to THIS fill, measured: 7.72:1 on the base fill and
+     11.36:1 on --accent-hover. BOTH states carry the label, so the hover
+     shade moves AWAY from the ink, never toward it. */
   --accent-ink: #0a0a0a;
   --accent-hover: #d4d4d8;
   --accent-muted: rgba(161, 161, 170, 0.25);
@@ -3067,7 +3077,9 @@ html {
   /* PINNED. Every preset re-pointed --accent onto a new hue and left
      --accent-ink inherited, so white sat on it: 3.65:1 here, and 1.81:1 on
      the cyan preset -- text a sighted user cannot read. The ink that belongs
-     to THIS fill, measured: 5.43:1. */
+     to THIS fill, measured: 5.43:1 on the base fill and
+     6.77:1 on --accent-hover. BOTH states carry the label, so the hover
+     shade moves AWAY from the ink, never toward it. */
   --accent-ink: #0a0a0a;
   --accent-hover: #ff5f7d;
   --accent-muted: rgba(255, 45, 85, 0.18);
@@ -3082,9 +3094,11 @@ html {
   /* PINNED. Every preset re-pointed --accent onto a new hue and left
      --accent-ink inherited, so white sat on it: 3.68:1 here, and 1.81:1 on
      the cyan preset -- text a sighted user cannot read. The ink that belongs
-     to THIS fill, measured: 5.38:1. */
+     to THIS fill, measured: 5.38:1 on the base fill and
+     6.77:1 on --accent-hover. BOTH states carry the label, so the hover
+     shade moves AWAY from the ink, never toward it. */
   --accent-ink: #0a0a0a;
-  --accent-hover: #0e7490;
+  --accent-hover: #0aa2c4;
   --accent-muted: rgba(8, 145, 178, 0.16);
   --accent-subtle: rgba(8, 145, 178, 0.09);
   --accent-glow: rgba(8, 145, 178, 0.14);
@@ -3097,9 +3111,11 @@ html {
   /* PINNED. Every preset re-pointed --accent onto a new hue and left
      --accent-ink inherited, so white sat on it: 3.56:1 here, and 1.81:1 on
      the cyan preset -- text a sighted user cannot read. The ink that belongs
-     to THIS fill, measured: 5.56:1. */
+     to THIS fill, measured: 5.56:1 on the base fill and
+     6.58:1 on --accent-hover. BOTH states carry the label, so the hover
+     shade moves AWAY from the ink, never toward it. */
   --accent-ink: #0a0a0a;
-  --accent-hover: #c2410c;
+  --accent-hover: #f26a1c;
   --accent-muted: rgba(234, 88, 12, 0.16);
   --accent-subtle: rgba(234, 88, 12, 0.09);
   --accent-glow: rgba(234, 88, 12, 0.14);
@@ -3112,9 +3128,11 @@ html {
   /* PINNED. Every preset re-pointed --accent onto a new hue and left
      --accent-ink inherited, so white sat on it: 3.30:1 here, and 1.81:1 on
      the cyan preset -- text a sighted user cannot read. The ink that belongs
-     to THIS fill, measured: 6.01:1. */
+     to THIS fill, measured: 6.01:1 on the base fill and
+     6.46:1 on --accent-hover. BOTH states carry the label, so the hover
+     shade moves AWAY from the ink, never toward it. */
   --accent-ink: #0a0a0a;
-  --accent-hover: #15803d;
+  --accent-hover: #1cb857;
   --accent-muted: rgba(22, 163, 74, 0.16);
   --accent-subtle: rgba(22, 163, 74, 0.09);
   --accent-glow: rgba(22, 163, 74, 0.14);
@@ -3127,7 +3145,9 @@ html {
   /* PINNED. Every preset re-pointed --accent onto a new hue and left
      --accent-ink inherited, so white sat on it: 4.76:1 here, and 1.81:1 on
      the cyan preset -- text a sighted user cannot read. The ink that belongs
-     to THIS fill, measured: 4.76:1. */
+     to THIS fill, measured: 4.76:1 on the base fill and
+     6.46:1 on --accent-hover. BOTH states carry the label, so the hover
+     shade moves AWAY from the ink, never toward it. */
   --accent-ink: #ffffff;
   --accent-hover: #475569;
   --accent-muted: rgba(100, 116, 139, 0.16);
@@ -4124,7 +4144,9 @@ html[data-mesh-locked="true"] body {
     /* PINNED. Every preset re-pointed --accent onto a new hue and left
        --accent-ink inherited, so white sat on it: 5.17:1 here, and 1.81:1 on
        the cyan preset -- text a sighted user cannot read. The ink that belongs
-       to THIS fill, measured: 5.17:1. */
+       to THIS fill, measured: 5.17:1 on the base fill and
+     6.70:1 on --accent-hover. BOTH states carry the label, so the hover
+     shade moves AWAY from the ink, never toward it. */
     --accent-ink: #ffffff;
     --accent-hover: #1d4ed8;
     --accent-contrast: #ffffff;

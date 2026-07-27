@@ -722,6 +722,7 @@ console.log(
   const globals = readFileSync(join(ROOT, "src/app/globals.css"), "utf8");
   const ACCENT_AA = 4.5;
   let presets = 0;
+  let hoversMeasured = 0;
 
   // Each `--accent:` and the `--accent-ink:` that follows it inside the same
   // rule block. An accent with no ink after it inherits one measured against a
@@ -749,13 +750,118 @@ console.log(
         "  The inherited ink was measured against a different fill, so its contrast here is unknown.\n" +
         "  Every fill that carries text pins the ink that belongs to it.",
     );
-    const r = ratio(ink, fill);
-    assert.ok(
-      r >= ACCENT_AA,
-      `globals.css: --accent-ink ${ink} on --accent ${fill} is ${r.toFixed(2)}:1, below AA ${ACCENT_AA}:1.`,
-    );
+
+    // A FILL HAS TWO STATES, AND THIS MEASURED ONE OF THEM.
+    //
+    // Pinning the ink fixed the base fill and the check above proved it. But
+    // every filled control in the product — .brand-button, .app-compose-button,
+    // .mobile-compose-fab, .mesh-entry-primary, .mesh-action-primary, .mesh-cta
+    // — swaps ONLY the background on :hover and keeps var(--accent-contrast).
+    // So --accent-hover is a second fill carrying the same label, and it was
+    // never measured. Three presets shipped a hover shade that moved TOWARD the
+    // near-black ink instead of away from it:
+    //
+    //     ocean   #0e7490   3.70:1
+    //     sunset  #c2410c   3.82:1
+    //     forest  #15803d   3.95:1
+    //
+    // Below AA the moment a pointer lands, on a control the user opts into.
+    // Checking the rest state of a two-state fill is the same half-coverage the
+    // block above was written to close, one level down.
+    const hover = /--accent-hover:\s*(#[0-9a-fA-F]{6})\s*;/.exec(tail)?.[1];
+    const states: [string, string][] = [["--accent", fill]];
+    if (hover) states.push(["--accent-hover", hover]);
+
+    for (const [name, surface] of states) {
+      const r = ratio(ink, surface);
+      assert.ok(
+        r >= ACCENT_AA,
+        `globals.css: --accent-ink ${ink} on ${name} ${surface} is ${r.toFixed(2)}:1, below AA ${ACCENT_AA}:1.\n` +
+          "  Filled controls swap the background on :hover and keep the ink, so the hover shade\n" +
+          "  has to move AWAY from the ink, not toward it. A darker hover under near-black ink\n" +
+          "  makes the label less readable exactly when the pointer is on it.",
+      );
+      checks += 1;
+    }
     presets += 1;
-    checks += 2;
+    checks += 1;
+    hoversMeasured += hover ? 1 : 0;
   }
-  console.log(`  …and ${presets} accent presets in globals.css, each with its own pinned ink.`);
+  // A preset that declared no hover would silently drop out of the loop above
+  // and the count would still read like coverage. Every one of them declares
+  // one today; say so, and fail if that stops being true.
+  assert.equal(
+    hoversMeasured,
+    presets,
+    `only ${hoversMeasured} of ${presets} accent presets declare --accent-hover; the rest inherit a\n` +
+      "  hover fill from another block that was measured against a different ink.",
+  );
+  checks += 1;
+  console.log(
+    `  …and ${presets} accent presets in globals.css, each with its own pinned ink, ` +
+      `measured on both the base and hover fill.`,
+  );
+}
+
+// ── 12b. THE ACCENT THE USER PICKS, WHICH NO CSS FILE CONTAINS ──────────────
+//
+// tokens.css states the accent twice and pins the ink beside each. globals.css
+// states it ten more times and pins the ink beside each. Both are now measured
+// above. `applyCustomTheme` in theme-provider.tsx states it an ELEVENTH way —
+// from a colour chosen in Settings, written to `root.style` at runtime — and
+// pinned nothing, so `--accent-ink` stayed whatever the theme underneath had
+// pinned for an entirely different hue (`#ffffff` light, `#00204a` dark). Every
+// filled control paints `color: var(--accent-contrast)`, and
+// `--accent-contrast: var(--accent-ink)`, so a user picking a pale accent got
+// white-on-pale: around 1.1:1 for a yellow.
+//
+// No amount of reading CSS finds this, because the declaration does not exist
+// until a user makes it. The gate has to read the code that writes it.
+//
+// The derived ink cannot fail: black and white cross at 4.58:1 at the worst
+// luminance in the sRGB cube, so `readableInkOn` clears AA for ANY fill —
+// proved in the brand-map section below, and the reason a "does it clear AA"
+// assertion is deliberately absent there. What can fail, and did, is the
+// component not deriving at all.
+{
+  const provider = readFileSync(join(ROOT, "src/components/theme-provider.tsx"), "utf8");
+
+  // Whatever sets --accent must set the ink that belongs to it, in the same
+  // function. Setting one without the other is the bug in every form it took.
+  const setsAccent = /setProperty\("--accent",/.test(provider);
+  assert.ok(
+    setsAccent,
+    "theme-provider no longer sets --accent — this check has lost its subject and is passing vacuously",
+  );
+  for (const token of ["--accent-ink", "--accent-contrast"] as const) {
+    assert.match(
+      provider,
+      new RegExp(`setProperty\\("${token}",`),
+      `theme-provider sets --accent from a user-chosen colour but never sets ${token}.\n` +
+        "  The inherited ink was pinned to a different hue, so its contrast on the chosen accent is\n" +
+        "  unknown — white on a pale custom accent measures about 1.1:1, on every filled control.\n" +
+        "  Derive it: readableInkOn(fill) clears AA for any colour in the sRGB cube.",
+    );
+    checks += 1;
+  }
+  assert.match(
+    provider,
+    /readableInkOn\(customTheme\.accent\)/,
+    "theme-provider is pinning a literal ink for a colour it does not know at build time.\n" +
+      "  The fill is whatever the user picked; the ink has to be derived from it, not chosen\n" +
+      "  in advance. That is exactly the hand-written-exception shape readableInkOn replaced.",
+  );
+  // Clearing the custom theme has to release the ink too, or the derived value
+  // outlives the accent it was derived from and lands on the preset underneath.
+  for (const token of ["--accent", "--accent-ink", "--accent-contrast"] as const) {
+    assert.match(
+      provider,
+      new RegExp(`removeProperty\\("${token}"\\)`),
+      `theme-provider sets ${token} for a custom theme but never removes it.\n` +
+        "  Clearing the custom theme would leave the derived value on the root element, applied to\n" +
+        "  whichever preset the user falls back to — a fill it was never measured against.",
+    );
+    checks += 1;
+  }
+  checks += 1;
 }

@@ -55,7 +55,10 @@ jobs:
       - run: npx prisma generate
 
       # A real schema in the file database, so the app can actually boot below.
-      - run: npx prisma db push --skip-generate
+      # No `--skip-generate`: Prisma 7's `db push` does not accept that flag and
+      # exits 1 on it. `prisma generate` ran in the step above, so there is
+      # nothing left to skip.
+      - run: npx prisma db push
 
       - run: npm run build
 
@@ -71,7 +74,8 @@ jobs:
       # So the app is started and waited for, and only then does the suite run.
       - name: Start the app
         run: |
-          nohup npx next start -p 3000 > /tmp/server.log 2>&1 &
+          # setsid, so the server outlives the shell this step runs in.
+          setsid nohup npx next start -p 3000 > /tmp/server.log 2>&1 &
           for i in $(seq 1 60); do
             if curl -fsS http://localhost:3000/api/health > /dev/null 2>&1; then
               echo "server up after ${i}s"; exit 0
