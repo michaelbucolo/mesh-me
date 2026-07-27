@@ -199,7 +199,7 @@ function ShellTopBar({
   ).toUpperCase();
 
   return (
-    <header className="mesh-topbar sticky top-0 z-30 flex min-h-[54px] items-center gap-3 border-b border-[var(--mesh-border)] bg-[var(--mesh-bg)]/95 px-4 backdrop-blur-xl lg:min-h-[72px] lg:gap-4 lg:px-6">
+    <header className="mesh-topbar lg-scroll-edge sticky top-0 z-30 flex min-h-[54px] items-center gap-3 border-b border-[var(--mesh-border)] bg-[var(--mesh-bg)]/95 px-4 backdrop-blur-xl lg:min-h-[72px] lg:gap-4 lg:px-6">
       {/* Account dropdown: top-right spring reveal + quick top-down item
           stagger. Bespoke keyframes scoped here; self-guards reduced motion. */}
       <style>{`

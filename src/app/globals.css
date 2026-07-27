@@ -8545,25 +8545,46 @@ button, [role="button"] {
    subtle blur… they are not decorative. They don't block or darken like
    overlays." One per view; never mix soft and hard.
 
-   This costs nothing, works in every engine including WebKit, and is the
-   highest-value part of the whole system — it is what stops content colliding
-   with a translucent bar, which is the single most common Liquid Glass
-   complaint. */
-.lg-scroll-soft {
-  -webkit-mask-image: linear-gradient(
-    to bottom,
-    transparent 0,
-    #000 var(--lg-edge-top, 56px),
-    #000 calc(100% - var(--lg-edge-bot, 56px)),
-    transparent 100%
-  );
-  mask-image: linear-gradient(
-    to bottom,
-    transparent 0,
-    #000 var(--lg-edge-top, 56px),
-    #000 calc(100% - var(--lg-edge-bot, 56px)),
-    transparent 100%
-  );
+   IT ATTACHES TO THE BAR, NOT TO THE SCROLL CONTAINER, and that is a
+   correctness requirement rather than a preference.
+
+   The first version of this masked the scrolling element itself. A CSS mask
+   creates a containing block, which breaks `position: sticky` and
+   `position: fixed` in every descendant. `.mesh-content` is the whole app's
+   scroll container, and eight files render sticky elements inside it —
+   settings, explore, search, admin, both community surfaces, the legal pages.
+   Masking it would have silently unstuck all of them, on every route, to fix
+   the edge of one bar.
+
+   So the effect is a strip that belongs to the bar: it hangs below the bar's
+   own edge, blurs what passes under it, and the BLUR is what fades — the mask
+   is on this small strip, which has no positioned descendants to break. That
+   is also what Apple's effect actually is. It does not darken; there is no
+   fill, only a falloff in the blur. */
+.lg-scroll-edge {
+  position: relative;
 }
 
+/* ADDITIVE, like the rest of this material. The strip exists only where
+   translucency is welcome: `reduce` is the wrong guard because Safari does not
+   implement the query at all, so a `reduce` override never fires and the blur
+   would ship to precisely the people who switched it off. glass-check section 3
+   caught this here, having been written for exactly this mistake one rule up. */
+@media (prefers-reduced-transparency: no-preference) {
+  .lg-scroll-edge::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    height: var(--lg-edge-h, 28px);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    /* The falloff. Solid where it meets the bar, gone by the bottom, so content
+       emerges rather than crossing a line. */
+    -webkit-mask-image: linear-gradient(to bottom, #000, transparent);
+    mask-image: linear-gradient(to bottom, #000, transparent);
+    pointer-events: none;
+  }
+}
 }

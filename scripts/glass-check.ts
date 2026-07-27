@@ -598,6 +598,76 @@ function resolve(css: string, theme: "light" | "dark", value: string | null): st
   }
 }
 
+// ── 6d. THE SCROLL EDGE BELONGS TO THE BAR, NEVER TO THE SCROLLER ───────────
+//
+// A CSS mask creates a containing block, which breaks `position: sticky` and
+// `position: fixed` in every descendant. The first version of the scroll edge
+// masked the scrolling element itself — `.mesh-content`, the whole app's scroll
+// container — and eight files render sticky elements inside it: settings,
+// explore, search, admin, both community surfaces and the legal pages. It would
+// have unstuck all of them, on every route, to soften the edge of one bar.
+//
+// The effect belongs to the bar: a strip hanging below its edge, where the BLUR
+// fades and the mask sits on a small element with no positioned descendants.
+// That is also what Apple's effect is — a falloff in blur, not a fill.
+{
+  const edge = /\.lg-scroll-edge::after\s*\{([^{}]*)\}/.exec(globals)?.[1];
+  if (!edge) {
+    fail("6d scroll edge", "the scroll edge is gone; this check has lost its subject");
+  } else {
+    if (!/top:\s*100%/.test(edge)) {
+      fail(
+        "6d scroll edge",
+        "the scroll edge no longer hangs BELOW its bar (`top: 100%`).\n" +
+          "    Inside the bar it would blur the bar's own contents; on the scroller it would break\n" +
+          "    every sticky descendant.",
+      );
+    } else {
+      checks += 1;
+    }
+    // BOTH spellings. Requiring the substring once was satisfied by the
+    // -webkit- copy alone, so the standard property could be dropped and this
+    // stayed green — shown by mutation. WebKit still needs the prefix and every
+    // other engine needs the standard name, so neither is optional.
+    const fades = (edge.match(/mask-image:\s*linear-gradient\(to bottom, #000, transparent\)/g) ?? []).length;
+    if (fades < 2) {
+      fail(
+        "6d scroll edge",
+        `the scroll edge declares the falloff ${fades} time(s); it needs both -webkit-mask-image\n` +
+          "    and mask-image, or it is a hard line in half the browsers that matter.",
+      );
+    } else {
+      checks += 1;
+    }
+    // "They don't block or darken like overlays" — so no fill, ever.
+    if (/background:/.test(edge)) {
+      fail(
+        "6d scroll edge",
+        "the scroll edge paints a background. Apple: scroll edge effects \"don't block or darken\n" +
+          "    like overlays\" — the separation comes from blur falling off, not from a scrim.",
+      );
+    } else {
+      checks += 1;
+    }
+  }
+
+  // And the mask must never land back on a scroll container.
+  for (const m of globals.matchAll(/([^{}]*)\{([^{}]*)\}/g)) {
+    const selector = m[1].trim();
+    const body = m[2];
+    if (!/mask-image/.test(body)) continue;
+    if (/overflow(-y)?:\s*(auto|scroll)/.test(body)) {
+      fail(
+        "6d scroll edge",
+        `${selector} sets both a mask and overflow: a masked scroll container becomes a containing\n` +
+          "    block, which silently unsticks every sticky child inside it.",
+      );
+    } else {
+      checks += 1;
+    }
+  }
+}
+
 // ── 7. REFRACTION IS NOT SHIPPED, AND THE REASON IS RECORDED ────────────────
 //
 // Lensing is what Apple names as the entire distinction from the old frosted
