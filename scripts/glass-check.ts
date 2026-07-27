@@ -452,6 +452,108 @@ function resolve(css: string, theme: "light" | "dark", value: string | null): st
   }
 }
 
+// ── 6b. A CHIP THAT CARRIES TEXT DOES NOT GET A TRANSLUCENT FILL ────────────
+//
+// Same law as the glass above, applied where it is much cheaper to obey. Glass
+// earns its translucency by proving an opacity floor over every backdrop. A
+// badge earns nothing: it is 12px text on a small tinted pill, and if its fill
+// is translucent then the colour under the label is whatever happened to be
+// behind it.
+//
+// Badge's accent variant was `bg-[var(--accent-subtle)]`, an rgba at 0.09-0.14,
+// while its three siblings all mix an OPAQUE fill. Browser sweep across seven
+// routes, compositing every label against its real ancestor chain: 49 nodes
+// below AA, worst 4.20:1, and the default dark theme among them.
+//
+// The rule is about the SHAPE, not the value: a text-bearing chip's fill has to
+// be opaque, because that is what makes its ink checkable at all.
+{
+  const badge = readFileSync(join(ROOT, "src/components/ui/badge.tsx"), "utf8");
+  const variants = [...badge.matchAll(/^\s{2}(\w+):\s*"([^"]*)"/gm)].map((m) => [m[1], m[2]] as const);
+  assert.ok(
+    variants.length >= 4,
+    `parsed only ${variants.length} badge variants; an assertion that reads an empty list passes everything`,
+  );
+
+  // MEASURE, DO NOT PATTERN-MATCH ON ALPHA.
+  //
+  // The first version of this failed any fill containing rgba() or transparent,
+  // and immediately flagged the `secondary` variant, whose --ds-surface is
+  // `color-mix(… --bg-secondary 82%, transparent)`. 82% of the recess colour
+  // with 18% of the backdrop showing through is not the same defect as a 12%
+  // accent wash, and calling it one would have taught the next reader that this
+  // gate cries wolf. Alpha is not the bug; an unmeasurable ink is. So this
+  // resolves the fill and runs the same floor that section 1 runs on glass.
+  //
+  // A fill with no alpha at all needs no sweep: the ink sits on exactly one
+  // known colour, and the palette gate already measures that.
+  // Follow `var()` indirection before deciding anything. --accent-subtle is
+  // declared in tokens.css as `var(--accent-wash)`, so a parser that only looked
+  // for rgba()/color-mix() at the first hop saw no alpha, called it opaque, and
+  // waved the exact regression it exists to catch straight through — proved by
+  // mutation, twice.
+  const declaredAnywhere = (token: string): string | null => {
+    let name = token;
+    for (let hop = 0; hop < 5; hop += 1) {
+      let raw: string | null = null;
+      for (const css of [tokens, globals]) {
+        const m = new RegExp(`${name}:\\s*([^;]+);`).exec(css);
+        if (m) { raw = m[1].trim(); break; }
+      }
+      if (!raw) return null;
+      const ref = /^var\((--[a-z0-9-]+)\)$/.exec(raw);
+      if (!ref) return raw;
+      name = ref[1];
+    }
+    return null;
+  };
+
+  /** A fill's opaque base and its alpha, or null when it is fully opaque. */
+  const translucency = (token: string, theme: "light" | "dark") => {
+    const raw = declaredAnywhere(token);
+    if (!raw) return null;
+    const mix = /color-mix\(in srgb,\s*(?:var\((--[a-z0-9-]+)\)|(#[0-9a-fA-F]{3,6}))\s*(\d+)%\s*,\s*transparent\s*\)/.exec(raw);
+    if (mix) {
+      const base = mix[1] ? resolve(tokens, theme, `var(${mix[1]})`) : mix[2];
+      return base && /^#/.test(base) ? { base, alpha: Number(mix[3]) / 100 } : null;
+    }
+    const rgba = /rgba\(\s*(\d+)[,\s]+(\d+)[,\s]+(\d+)[,\s]+([\d.]+)\s*\)/.exec(raw);
+    if (rgba) {
+      return { base: toHex([+rgba[1], +rgba[2], +rgba[3]]), alpha: Number(rgba[4]) };
+    }
+    return null;
+  };
+
+  for (const [name, classes] of variants) {
+    const ink = /\btext-\[var\((--[a-z0-9-]+)\)\]/.exec(classes)?.[1];
+    const fill = /\bbg-\[var\((--[a-z0-9-]+)\)\]/.exec(classes)?.[1];
+    if (!ink || !fill) continue;
+
+    for (const theme of ["light", "dark"] as const) {
+      const wash = translucency(fill, theme);
+      if (!wash) {
+        checks += 1;
+        continue;
+      }
+      const inkHex = resolve(tokens, theme, `var(${ink})`);
+      if (!inkHex || !/^#/.test(inkHex)) continue;
+      const { r, backdrop } = worstOverAnyBackdrop(inkHex, wash.base, wash.alpha);
+      if (r < AA) {
+        fail(
+          "6b chip fill",
+          `the "${name}" badge paints ${ink} (${inkHex}) on ${fill}, a ${Math.round(wash.alpha * 100)}% ` +
+            `wash of ${wash.base}: ${r.toFixed(2)}:1 over a ${backdrop} backdrop in the ${theme} theme.\n` +
+            "    A translucent chip's label sits on whatever is behind the chip, which no token-level\n" +
+            "    gate can see — 49 of these shipped below AA at 12px. Mix an OPAQUE fill, the way the\n" +
+            "    danger/success/warning variants already do, so the ink is measurable at all.",
+        );
+      } else {
+        checks += 1;
+      }
+    }
+  }
+}
+
 // ── 7. REFRACTION IS NOT SHIPPED, AND THE REASON IS RECORDED ────────────────
 //
 // Lensing is what Apple names as the entire distinction from the old frosted
