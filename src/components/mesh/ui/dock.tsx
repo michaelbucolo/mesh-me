@@ -267,7 +267,7 @@ export function MeshDock({
       data-testid="mesh-action-bar"
       role="toolbar"
       aria-label="Mesh actions"
-      className="mesh-dock tray absolute z-30 flex items-center gap-1.5 p-1.5"
+      className="mesh-dock lg-regular lg-sm absolute z-30 flex items-center gap-1.5 p-1.5"
     >
       <DockKey label={copy.searchLabel} icon={<Search size={17} />} onClick={onSearch} />
       <DockKey label="Explore as a list" icon={<LayoutList size={17} />} onClick={onList} />
