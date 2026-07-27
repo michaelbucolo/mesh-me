@@ -1,0 +1,59 @@
+# THE GATES RUN ON EVERY PULL REQUEST NOW.
+#
+# Until this file existed there was NO CI in this repository. The 37 contract
+# gates wired into `npm run check` -- contrast, privacy, the platform
+# allow-list, prod-schema parity, palette, shape, surface, and the rest, well
+# over seven hundred assertions -- ran only when somebody remembered to run
+# them on their own machine. The single automated signal on a pull request was
+# Vercel, and Vercel only proves the app BUILDS.
+#
+# That gap is not hypothetical. A palette change shipped to main having passed
+# tsc, lint, knip, build and the contrast gate, while `palette:check` failed the
+# whole time, because three other files also state the palette and only one was
+# updated. Vercel went green. The PR was merged. main stayed red until someone
+# happened to run the suite by hand.
+#
+# A gate nobody runs is a comment.
+name: check
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  # A newer push to the same branch supersedes this run.
+  group: check-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      # These exist so the gates can RUN, not to configure a deployment.
+      # launch:check asserts NEXT_PUBLIC_APP_URL is set; in CI the value is
+      # irrelevant, and leaving it unset would fail every run on a P0 that is
+      # really "a production domain has not been bought yet".
+      NEXT_PUBLIC_APP_URL: http://localhost:3000
+      # A local file database. No remote is contacted: the build script skips
+      # the remote schema sync when DATABASE_URL is a file: URL.
+      DATABASE_URL: file:./ci.db
+      # Not a secret. A throwaway that satisfies the >=32-character assertion.
+      AUTH_SECRET: ci-placeholder-not-a-secret-000000000000
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      # `npm run check` reads the generated client in several gates.
+      - run: npx prisma generate
+
+      # The whole suite. If this fails, the pull request is not mergeable --
+      # which is the entire point, and was not true before this file.
+      - run: npm run check
