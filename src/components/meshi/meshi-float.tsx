@@ -100,6 +100,28 @@ const MESHI_FOLLOW_RELEASE_MS = 2600;
 const MESHI_UI_PADDING = 10;
 const MESHI_VIEWPORT_GAP = 12;
 
+/* THIS LIST SAID "DON'T COVER WHAT YOU CAN CLICK". IT NEEDED TO SAY "DON'T
+   COVER WHAT YOU CAN READ".
+
+   Everything below the chrome block is an INTERACTIVE role — button, link,
+   input, textbox. Read-only content appears nowhere, so Meshi treated it as
+   free space. Photographed on /settings at 1440x900 in both themes: the float
+   parked at (696, 466), 48x48, fully inside the Email verification row at
+   (608, 461, 791x44), with its "Tap" badge over the word "verification". The
+   row is a <div> holding a <span> and a <strong> — nothing clickable in it, so
+   nothing here matched it.
+
+   Adding `.settings-row` would fix that page and leave every other one broken,
+   which is how this list got this long in the first place. Avoiding `.plate`
+   — the design system's word for "INFORMATION. Cards, feed posts, panels." —
+   was tried and is not enough either: measured across ten authenticated routes
+   it moved the float off the settings row and left it sitting on the page
+   titles of /notifications, /billing and /privacy-controls, because a heading
+   on the mat is in no card at all.
+
+   Rendered text is not a class, so it is measured instead — see
+   `getReadableTextRects`. This list keeps its job of naming CHROME, which
+   genuinely is a fixed set. */
 const MESHI_AVOID_SELECTOR = [
   "[data-meshi-avoid]",
   "[data-sidebar]",
@@ -366,6 +388,46 @@ function isAvoidElementVisible(element: Element, rect: MeshiRect) {
   return !((coversMostViewport || isBroadPageZone) && !isStructuralChrome);
 }
 
+/* THE OTHER HALF OF THE AVOID SET: WHAT YOU CAN READ.
+ *
+ * Only LEAF elements are measured — one with element children is a layout box
+ * whose rect is the union of its parts, and covering the gaps between those
+ * parts covers nothing. That single condition is what keeps this from
+ * blacklisting whole columns and leaving the float nowhere to stand.
+ *
+ * Cost: this walks the document, and it is worth being precise about when.
+ * Every hot path already caches — a drag samples the avoid set once at
+ * pointerdown (`dragAvoidRectsRef`) and reuses it for every pointermove. What
+ * is left is route change, resize and settle, where one walk over a rendered
+ * page is not a cost worth optimising away.
+ */
+const MESHI_TEXT_SELECTOR =
+  "p, h1, h2, h3, h4, h5, h6, li, td, th, dd, dt, blockquote, figcaption, label, strong, em, b, i, span, a, button, time, small";
+const MESHI_MIN_TEXT_CHARS = 2;
+
+function getReadableTextRects(): MeshiRect[] {
+  const rects: MeshiRect[] = [];
+  const viewWidth = window.innerWidth;
+  const viewHeight = window.innerHeight;
+
+  document.querySelectorAll(MESHI_TEXT_SELECTOR).forEach((element) => {
+    if (element.childElementCount > 0) return;
+    if ((element.textContent ?? "").trim().length < MESHI_MIN_TEXT_CHARS) return;
+    if (element.closest("[data-meshi-owned], [data-meshi-primary]")) return;
+
+    const rect = element.getBoundingClientRect();
+    if (rect.width < 4 || rect.height < 4) return;
+    if (rect.bottom <= 0 || rect.right <= 0 || rect.top >= viewHeight || rect.left >= viewWidth) return;
+
+    const style = window.getComputedStyle(element);
+    if (style.visibility === "hidden" || style.display === "none" || Number(style.opacity) === 0) return;
+
+    rects.push(toMeshiRect(rect));
+  });
+
+  return rects;
+}
+
 function getMeshiAvoidRects(): MeshiRect[] {
   if (typeof document === "undefined") return [];
 
@@ -379,6 +441,8 @@ function getMeshiAvoidRects(): MeshiRect[] {
     if (!isAvoidElementVisible(element, rect)) return;
     rects.push(rect);
   });
+
+  rects.push(...getReadableTextRects());
 
   return rects;
 }
@@ -454,12 +518,11 @@ function findSafeMeshiPosition(candidate: MeshiPoint, avoidRects = getMeshiAvoid
     const distanceFromDock = Math.hypot(point.x - bounds.maxX, point.y - bounds.maxY);
     const score = area * 2000 + distanceFromTarget + distanceFromDock * 0.05;
 
-    if (area === 0 && score < bestScore) {
-      best = point;
-      bestScore = score;
-      return;
-    }
-
+    // There used to be an `if (area === 0 && score < bestScore)` branch above
+    // this one with a byte-identical body. Both arms assigned the same two
+    // values under the same comparison, so the zero-overlap case was never
+    // actually preferred by it — `area * 2000` was doing that work alone, as
+    // it still is.
     if (score < bestScore) {
       best = point;
       bestScore = score;
