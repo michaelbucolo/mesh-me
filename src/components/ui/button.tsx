@@ -31,11 +31,27 @@ const buttonVariants = cva(
         // this system — backdrop-filter is banned everywhere but the modal scrim.
         // It is a plain secondary key.
         glass: "key",
-        // Destruction is crimson, not a paler tomato. The old --mould-red sat 27°
-        // from the brand plastic and read as a washed-out danger; crimson is
-        // unmistakable next to it. Both names kept: 2 variants, many call sites.
-        danger: "key key-lit [--mould:var(--mould-crimson)] [--mould-ink:var(--mould-crimson-ink)] [--mould-plinth:var(--mould-crimson-plinth)]",
-        destructive: "key key-lit [--mould:var(--mould-crimson)] [--mould-ink:var(--mould-crimson-ink)] [--mould-plinth:var(--mould-crimson-plinth)]",
+        // DESTRUCTIVE IS RED TEXT, NOT A RED FILL.
+        //
+        // This was `key-lit` crimson — a filled plastic, the same weight the
+        // affirmative primary gets. Photographed on /settings: "Delete account"
+        // rendered as a full-width crimson slab beside a plain "Sign out",
+        // making the most dangerous action the loudest thing on the page. Apple
+        // is explicit that fill marks the ONE action you want pressed, and that
+        // destructive actions are red LABELS in a row; iOS has never drawn Delete
+        // as a filled button in a settings list.
+        //
+        // The ink is --danger, not --mould-crimson. --mould-crimson is a FILL:
+        // it is measured against its own pinned ink, never against paper.
+        // --danger is one of the five pigments contrast-check measures on all
+        // four papers, which is exactly what a label needs.
+        danger: "key text-[var(--danger)]",
+        // One definition, not two. These were byte-identical strings under two
+        // names — the same fact stated twice, which is how they would have
+        // drifted the moment one was edited.
+        get destructive() {
+          return this.danger;
+        },
         success: "key key-lit [--mould:var(--mould-jade)] [--mould-ink:var(--mould-jade-ink)] [--mould-plinth:var(--mould-jade-plinth)]",
         warning: "key key-lit [--mould:var(--mould-amber)] [--mould-ink:var(--mould-amber-ink)] [--mould-plinth:var(--mould-amber-plinth)]",
         link: "ds-focus-ring h-auto rounded-[var(--radius-xs)] border-transparent bg-transparent p-0 text-[var(--accent-text)] underline-offset-4 hover:underline",
