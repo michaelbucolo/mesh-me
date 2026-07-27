@@ -88,6 +88,25 @@ jobs:
       # which is the entire point, and was not true before this file.
       - run: npm run check
 
+      # AND THE NON-P0 CONTRACTS, WHICH `npm run check` LETS THROUGH.
+      #
+      # `check` ends in `npm run diagnostics`, and platform-diagnostics.mjs exits
+      # nonzero for an ordinary failure ONLY with --strict (line 685). So every
+      # P1 contract -- the Mesh testability markers, the onboarding surface, the
+      # platform authorization catalog -- could break and this workflow would
+      # stay green and the pull request stay mergeable.
+      #
+      # That was demonstrated on this very branch: the mesh-testability check had
+      # been reading two files deleted in the dock rebuild, reported a failure for
+      # weeks, and blocked nothing.
+      #
+      # A seeded user is a prerequisite rather than a convenience: `auth-fixture-user`
+      # is a P1, the CI database is created empty by `db push`, and under --strict an
+      # empty database would fail every run for a reason that is not a defect.
+      - run: npm run seed
+
+      - run: npm run diagnostics -- --strict
+
       - name: Server log on failure
         if: failure()
         run: tail -60 /tmp/server.log || true

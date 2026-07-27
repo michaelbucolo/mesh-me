@@ -46,7 +46,7 @@ function FeaturedCard({ community }: { community: Community }) {
             <CommunityAvatar name={community.name} iconUrl={community.iconUrl} size="lg" />
           </div>
         )}
-        <span className={`absolute top-3 left-3 rounded-md px-2 py-0.5 text-micro font-semibold ${community.isPublic ? "bg-[var(--accent)]/20 text-[var(--accent-text)]" : "bg-white/10 text-white/70"}`}>
+        <span className={`absolute top-3 left-3 rounded-md px-2 py-0.5 text-micro font-semibold ${community.isPublic ? "bg-[var(--media-chip)] text-[var(--media-ink)]" : "bg-[var(--media-chip)] text-[var(--media-ink-2)]"}`}>
           {community.isPublic ? "Public" : "Private"}
         </span>
       </div>
@@ -264,7 +264,7 @@ export function CommunityHub({ data }: { data: CommunitiesHubData }) {
                 {selectedCommunity.iconUrl && (
                   <Image src={selectedCommunity.iconUrl} alt="" fill sizes="380px" className="object-cover opacity-50" />
                 )}
-                <span className={`absolute top-3 right-3 rounded-md px-2 py-0.5 text-micro font-semibold ${selectedCommunity.isPublic ? "bg-[var(--accent)]/20 text-[var(--accent-text)]" : "bg-white/10 text-white/70"}`}>
+                <span className={`absolute top-3 right-3 rounded-md px-2 py-0.5 text-micro font-semibold ${selectedCommunity.isPublic ? "bg-[var(--media-chip)] text-[var(--media-ink)]" : "bg-[var(--media-chip)] text-[var(--media-ink-2)]"}`}>
                   {selectedCommunity.isPublic ? "Public" : "Private"}
                 </span>
                 <div className="absolute -bottom-8 left-5">
