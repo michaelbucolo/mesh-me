@@ -666,3 +666,67 @@ console.log(
     "  file does not know is a fill. The browser sweep in the PR is what confirms the rendered\n" +
     "  result; this keeps the known failures from coming back.",
 );
+
+// ── 12. THE ACCENT PRESETS. THIS GATE COULD NOT SEE THEM. ───────────────────
+//
+// Everything above reads src/app/tokens.css. globals.css then re-points
+// `--accent` eleven times — the five user-selectable accent presets, in both
+// theme blocks — and NOT ONE of them re-pinned `--accent-ink`. So white ink,
+// pinned to the default blue, sat on hues it was never measured against:
+//
+//     #22d3ee cyan     1.81:1   ← text a sighted user cannot read
+//     #22c55e green    2.28:1
+//     #a1a1aa mono     2.56:1
+//     #f97316 orange   2.80:1
+//     #16a34a green    3.30:1
+//     #ea580c orange   3.56:1
+//     #ff2d55 pink     3.65:1
+//     #0891b2 teal     3.68:1
+//
+// Nine of eleven below AA, shipping, on a control a user opts into from
+// Settings. The gate printed "contrast OK" every single time, because a token
+// this file never reads is a token this file cannot protect.
+//
+// A pair is only checked where it is DECLARED. Reading one file and calling it
+// the palette is how this hid.
+{
+  const globals = readFileSync(join(ROOT, "src/app/globals.css"), "utf8");
+  const ACCENT_AA = 4.5;
+  let presets = 0;
+
+  // Each `--accent:` and the `--accent-ink:` that follows it inside the same
+  // rule block. An accent with no ink after it inherits one measured against a
+  // different colour, which is the bug itself.
+  // Split at every --accent: and pair each with the text that follows it up to
+  // the NEXT --accent: (or end of file). A bounded look-ahead found 5 of 11 and
+  // still printed a pass -- half-coverage that reads as coverage, which is the
+  // same failure mode as the hole it was written to close.
+  const marks = [...globals.matchAll(/--accent:\s*(#[0-9a-fA-F]{6})\s*;/g)];
+  const blocks: [string, string, string][] = marks.map((m, i) => [
+    m[0],
+    m[1],
+    globals.slice(m.index! + m[0].length, i + 1 < marks.length ? marks[i + 1].index! : globals.length),
+  ]);
+  assert.ok(
+    blocks.length > 0,
+    "no --accent declarations found in globals.css — this check has lost its subject and is passing vacuously",
+  );
+
+  for (const [, fill, tail] of blocks) {
+    const ink = /--accent-ink:\s*(#[0-9a-fA-F]{6})\s*;/.exec(tail)?.[1];
+    assert.ok(
+      ink,
+      `globals.css re-points --accent to ${fill} without pinning --accent-ink beside it.\n` +
+        "  The inherited ink was measured against a different fill, so its contrast here is unknown.\n" +
+        "  Every fill that carries text pins the ink that belongs to it.",
+    );
+    const r = ratio(ink, fill);
+    assert.ok(
+      r >= ACCENT_AA,
+      `globals.css: --accent-ink ${ink} on --accent ${fill} is ${r.toFixed(2)}:1, below AA ${ACCENT_AA}:1.`,
+    );
+    presets += 1;
+    checks += 2;
+  }
+  console.log(`  …and ${presets} accent presets in globals.css, each with its own pinned ink.`);
+}
