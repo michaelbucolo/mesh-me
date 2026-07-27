@@ -33,6 +33,7 @@
     "seed": "node --import tsx prisma/seed.ts",
     "test:smoke": "node scripts/platform-diagnostics.mjs --strict",
     "test:browser": "node scripts/browser-smoke.mjs",
+    "drive:smoke": "node scripts/drive-smoke.mjs",
     "test:stress": "node scripts/live-stress.mjs",
     "troubleshoot": "node scripts/platform-diagnostics.mjs --strict",
     "cap:sync": "npx cap sync ios",
