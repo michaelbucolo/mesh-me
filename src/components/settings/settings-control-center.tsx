@@ -1631,7 +1631,7 @@ function RecoveryMethods() {
       <div className="settings-list mt-3">
         {loading ? <p className="text-sm text-[var(--text-muted)]">Loading recovery methods...</p> : null}
         {[...emails.map((item) => ({ ...item, kind: "email" as const, label: item.email })), ...phones.map((item) => ({ ...item, kind: "phone" as const, label: item.phone }))].map((item) => (
-          <div key={`${item.kind}-${item.id}`} className="settings-row">
+          <div key={`${item.kind}-${item.id}`} className="settings-row leaf">
             <span className="flex min-w-0 items-center gap-2.5">
               <IconTile icon={item.kind === "email" ? Mail : Phone} />
               <span className="min-w-0 truncate">{item.label}</span>
@@ -1745,7 +1745,7 @@ function TwoFactorMethods() {
       <div className="settings-list mt-3">
         {loading ? <p className="text-sm text-[var(--text-muted)]">Loading 2FA methods...</p> : null}
         {methods.length > 0 ? methods.map((item) => (
-          <div key={item.id} className="settings-row">
+          <div key={item.id} className="settings-row leaf">
             <span className="flex min-w-0 items-center gap-2.5">
               <IconTile icon={twoFactorIcons[item.method] ?? ShieldCheck} />
               <span className="min-w-0 truncate capitalize">{item.label || item.method}</span>
@@ -2262,7 +2262,7 @@ function SummaryPill({ label, value, icon: Icon }: { label: string; value: strin
 
 function SettingsRow({ label, value, icon }: { label: string; value: string; icon?: LucideIcon }) {
   return (
-    <div className="settings-row">
+    <div className="settings-row leaf">
       <span className="flex min-w-0 items-center gap-2.5">
         {icon && <IconTile icon={icon} />}
         <span className="min-w-0 truncate">{label}</span>

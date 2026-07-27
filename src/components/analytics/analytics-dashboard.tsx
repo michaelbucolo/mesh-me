@@ -399,8 +399,14 @@ const ACTIVITY_STYLE: Record<string, { icon: LucideIcon; tone: string }> = {
 function ActivityRow({ item }: { item: AnalyticsDashboardData["recentActivity"][number] }) {
   const style = ACTIVITY_STYLE[item.type] ?? { icon: Activity, tone: "#94a3b8" };
   const Icon = style.icon;
-  const inner = (
-    <div className="flex items-center gap-3 rounded-xl px-2 py-2 transition hover:bg-[var(--bg-secondary)]">
+  /* `.leaf` draws its hairline with `.leaf + .leaf`, so it has to sit on the
+     element that IS the sibling. This row used to build an inner <div class=leaf>
+     and wrap it in a <Link>, which put a <Link> between every pair of leaves and
+     drew no line at all — measured on the built page as 18 leaves and 7
+     hairlines. The old `divide-y` on the parent had not cared about the wrapper;
+     this does, and silently. */
+  const body = (
+    <>
       <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full" style={{ backgroundColor: `color-mix(in srgb, ${style.tone} 16%, transparent)` }}>
         <Icon size={13} style={{ color: style.tone }} aria-hidden="true" />
       </span>
@@ -409,13 +415,14 @@ function ActivityRow({ item }: { item: AnalyticsDashboardData["recentActivity"][
         <p className="truncate text-micro text-[var(--text-muted)]">{item.detail}</p>
       </div>
       <span className="shrink-0 text-micro text-[var(--text-muted)]">{formatRelativeTime(item.timestamp)}</span>
-    </div>
+    </>
   );
-  if (!item.href) return inner;
+  const row = "leaf flex items-center gap-3 px-2 py-2 transition hover:bg-[var(--bg-secondary)]";
+  if (!item.href) return <div className={row}>{body}</div>;
   return item.href.startsWith("/") ? (
-    <Link href={item.href}>{inner}</Link>
+    <Link href={item.href} className={row}>{body}</Link>
   ) : (
-    <a href={item.href} target="_blank" rel="noreferrer">{inner}</a>
+    <a href={item.href} target="_blank" rel="noreferrer" className={row}>{body}</a>
   );
 }
 
@@ -455,7 +462,7 @@ function VisibilityBar({ breakdown }: { breakdown: AnalyticsDashboardData["priva
 
 function CheckRow({ label, passed, detail }: { label: string; passed: boolean; detail?: string }) {
   return (
-    <div className="flex items-start gap-2.5 py-1">
+    <div className="leaf flex items-start gap-2.5 py-2">
       {passed ? (
         <CheckCircle2 size={15} className="mt-0.5 shrink-0 text-emerald-400" aria-hidden="true" />
       ) : (
@@ -614,7 +621,7 @@ export function AnalyticsDashboard({ data, embedded = false }: { data: Analytics
               <Activity size={13} aria-hidden="true" />
               Recent activity
             </p>
-            <div className="divide-y divide-[var(--border-primary)]/60">
+            <div>
               {data.recentActivity.slice(0, 10).map((item) => (
                 <ActivityRow key={item.id} item={item} />
               ))}

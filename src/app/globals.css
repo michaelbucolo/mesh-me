@@ -4563,7 +4563,8 @@ body,
 
    Each shell now carries the idiom it actually is, from the markup:
      header  -> .plate   (settings-control-center.tsx:607)
-     nav     -> .plate   holding a .tray of .leaf rows (:682, :696, :708)
+     nav     -> .plate   holding spaced pills (NOT "a .tray of .leaf rows", as
+                this line read for a long time after that markup went away)
      panel   -> nothing; it is a column, and the .plate cards inside it carry
                 the depth (:723)
      card    -> .plate   (SettingsCard, :2130)
@@ -4584,10 +4585,16 @@ body,
   scrollbar-gutter: stable;
 }
 
-/* The section rail is the brief's named target: a .tray of .leaf rows. The
-   `.tray` sits on the nav element (settings-control-center.tsx:696) and `.leaf`
-   on each button (:708), so the border and radius come from the idioms — a row
-   inside a group has neither of its own. */
+/* THIS COMMENT CLAIMED THE RAIL WAS "a .tray of .leaf rows", with `.tray` on
+   the nav element and `.leaf` on each button. Neither class is in that markup.
+   The nav is `flex flex-col gap-1 p-2` and the buttons are spaced pills, which
+   is a different and perfectly reasonable shape — but it is not the one this
+   comment described, and the claim outlived the markup by long enough that
+   `.leaf` ended up applied to nothing anywhere in the product.
+
+   Left as pills deliberately: joining them into a grouped list is a visual
+   change to a navigation rail, not part of unifying the separator, and it
+   belongs in its own slice with its own screenshots. */
 .settings-nav-item {
   display: inline-flex;
   min-width: max-content;
@@ -4732,8 +4739,11 @@ body,
   padding: 0;
 }
 
+/* The hairline is `.leaf`'s now, in the markup — this rule used to carry its
+   own `+ ::before` copy of it, which was one of three spellings of the same
+   line. All that is left here is where the inset lands. */
 .settings-row {
-  position: relative;
+  --leaf-inset: var(--sp-3);
   display: flex;
   min-height: 2.75rem;
   align-items: center;
@@ -4745,25 +4755,13 @@ body,
   font-weight: 600;
 }
 
-/* The hairline belongs to the row BELOW it, never to the row above. Written
-   `+` rather than `:not(:last-child)` so a list that ends in a paragraph, a
-   button or an empty state closes cleanly without the rule knowing what
-   follows it — and so the last row never has to be found. */
-.settings-row + .settings-row::before {
-  content: "";
-  position: absolute;
-  inset-block-start: 0;
-  inset-inline: var(--sp-3) 0;
-  border-top: var(--border-w) solid var(--rule);
-}
-
-/* Where the rows lead with a tile, the hairline starts at the label instead of
+/* Where a row leads with a tile, its hairline starts at the label instead of
    at the tile. iOS insets the separator to the text for exactly one reason:
    the icons then read as a column, and a rule cutting through that column
    breaks it. 1.9rem is the tile, 0.625rem the gap to the label — both taken
    from `.settings-icon-tile` and the row's own `gap-2.5`. */
-.settings-row:has(.settings-icon-tile) + .settings-row:has(.settings-icon-tile)::before {
-  inset-inline-start: calc(var(--sp-3) + 1.9rem + 0.625rem);
+.settings-row:has(.settings-icon-tile) {
+  --leaf-inset: calc(var(--sp-3) + 1.9rem + 0.625rem);
 }
 
 .settings-row strong {
@@ -5290,12 +5288,39 @@ body,
   box-shadow: inset 0 2px 0 0 var(--plinth-tray);
 }
 
-/* A row inside a tray. No plinth: it is a place, not a control. */
+/* A row inside a group. No plinth: it is a place, not a control.
+ *
+ * THIS CLASS WAS APPLIED TO NOTHING. Nine comments in this file describe markup
+ * as "a .tray of .leaf rows"; shape-check asserts .leaf has no side wall; and
+ * the class had not been on a single element in src/ for some time. So three
+ * surfaces each invented their own separator instead of using it:
+ *
+ *   .settings-row   a `+ ::before` hairline, added when the grouped list landed
+ *                   because Apple insets the separator to the LABEL and
+ *                   `border-bottom` cannot express an inset.
+ *   analytics       `divide-y divide-[var(--border-primary)]/60` — a different
+ *                   pigment from --rule, on the recent-activity list.
+ *   analytics       nothing at all, on the eight-row security checklist.
+ *
+ * One idiom, three implementations, one of them missing. So .leaf takes the
+ * inset the settings list needed and becomes the only way to draw the line.
+ *
+ * `--leaf-inset` is read from the row that OWNS the hairline — the lower one —
+ * which is also more correct than the compound selector it replaces: the
+ * separator sits at the top of the row below it and should align to THAT row's
+ * label, not require both neighbours to agree. */
 .leaf {
+  position: relative;
   background: transparent;
-  border-bottom: var(--border-w) solid var(--rule);
 }
-.leaf:last-child { border-bottom: 0; }
+
+.leaf + .leaf::before {
+  content: "";
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline: var(--leaf-inset, 0) 0;
+  border-top: var(--border-w) solid var(--rule);
+}
 
 /* INFORMATION. Cards, feed posts, panels. Sits on the mat and casts a contact
    shadow; it has thickness, but no side wall, because you do not press it. */

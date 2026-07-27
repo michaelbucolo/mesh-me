@@ -362,7 +362,7 @@ export function SearchClient({ initialQuery }: { initialQuery: string }) {
           <ResultSection title="Social index sources" icon={Globe2}>
             <div className="mesh-cascade-soft grid gap-0 md:grid-cols-2">
               {results.sourceIndex.map((source, index) => (
-                <div key={source.id} style={rowStyle(index)} className="search-result-row search-row-magnetic">
+                <div key={source.id} style={rowStyle(index)} className="leaf search-result-row search-row-magnetic">
                   <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md border border-[var(--border-primary)] bg-[var(--accent-subtle)] text-sm font-semibold text-[var(--accent-text)]">
                     {source.name.slice(0, 2)}
                   </span>
@@ -408,7 +408,7 @@ export function SearchClient({ initialQuery }: { initialQuery: string }) {
         {showPeople && results.users.length > 0 && (
           <ResultSection title="People on Mesh.me" icon={UserRound}>
             {results.users.map((user, index) => (
-              <Link key={user.id} style={rowStyle(index)} href={`/profile/${user.username}`} className="search-result-row search-row-magnetic">
+              <Link key={user.id} style={rowStyle(index)} href={`/profile/${user.username}`} className="leaf search-result-row search-row-magnetic">
                 <Avatar src={user.avatarUrl} alt={user.displayName} size="md" />
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm font-semibold text-[var(--text-primary)]">{user.displayName}</span>
@@ -423,7 +423,7 @@ export function SearchClient({ initialQuery }: { initialQuery: string }) {
         {showNative && results.posts.length > 0 && (
           <ResultSection title="Mesh.me posts" icon={Rss}>
             {results.posts.map((post, index) => (
-              <Link key={post.id} style={rowStyle(index)} href={`/feed/${post.id}`} className="search-result-row search-row-magnetic">
+              <Link key={post.id} style={rowStyle(index)} href={`/feed/${post.id}`} className="leaf search-result-row search-row-magnetic">
                 <Avatar src={post.author.avatarUrl} alt={post.author.displayName} size="md" />
                 <span className="min-w-0 flex-1">
                   <span className="block text-sm font-semibold text-[var(--text-primary)]">{post.author.displayName}</span>
@@ -466,11 +466,11 @@ export function SearchClient({ initialQuery }: { initialQuery: string }) {
                 </>
               );
               return post.url ? (
-                <a key={post.id} style={rowStyle(index)} href={safeHref(post.url)} target="_blank" rel="noreferrer" className="search-result-row search-row-magnetic">
+                <a key={post.id} style={rowStyle(index)} href={safeHref(post.url)} target="_blank" rel="noreferrer" className="leaf search-result-row search-row-magnetic">
                   {content}
                 </a>
               ) : (
-                <div key={post.id} style={rowStyle(index)} className="search-result-row search-row-magnetic" aria-disabled="true">
+                <div key={post.id} style={rowStyle(index)} className="leaf search-result-row search-row-magnetic" aria-disabled="true">
                   {content}
                 </div>
               );
@@ -494,11 +494,11 @@ export function SearchClient({ initialQuery }: { initialQuery: string }) {
                 </>
               );
               return person.profileUrl ? (
-                <a key={person.id} style={rowStyle(index)} href={safeHref(person.profileUrl)} target="_blank" rel="noreferrer" className="search-result-row search-row-magnetic">
+                <a key={person.id} style={rowStyle(index)} href={safeHref(person.profileUrl)} target="_blank" rel="noreferrer" className="leaf search-result-row search-row-magnetic">
                   {content}
                 </a>
               ) : (
-                <div key={person.id} style={rowStyle(index)} className="search-result-row search-row-magnetic" aria-disabled="true">
+                <div key={person.id} style={rowStyle(index)} className="leaf search-result-row search-row-magnetic" aria-disabled="true">
                   {content}
                 </div>
               );
@@ -509,7 +509,7 @@ export function SearchClient({ initialQuery }: { initialQuery: string }) {
         {showPeople && results.communities.length > 0 && (
           <ResultSection title="Communities" icon={Hash}>
             {results.communities.map((community, index) => (
-              <Link key={community.id} style={rowStyle(index)} href={`/communities/${community.slug}`} className="search-result-row search-row-magnetic">
+              <Link key={community.id} style={rowStyle(index)} href={`/communities/${community.slug}`} className="leaf search-result-row search-row-magnetic">
                 <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-[var(--accent-subtle)] text-lg font-semibold text-[var(--accent-text)]">#</span>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm font-semibold text-[var(--text-primary)]">{community.name}</span>
@@ -524,7 +524,7 @@ export function SearchClient({ initialQuery }: { initialQuery: string }) {
         {showMessages && results.messages.length > 0 && (
           <ResultSection title="Private MeChat matches" icon={MessageCircle}>
             {results.messages.map((message, index) => (
-              <Link key={message.id} style={rowStyle(index)} href={`/messages/${message.threadId}`} className="search-result-row search-row-magnetic">
+              <Link key={message.id} style={rowStyle(index)} href={`/messages/${message.threadId}`} className="leaf search-result-row search-row-magnetic">
                 <Avatar src={message.sender.avatarUrl} alt={message.sender.displayName} size="md" />
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm font-semibold text-[var(--text-primary)]">{message.sender.displayName}</span>
@@ -539,7 +539,7 @@ export function SearchClient({ initialQuery }: { initialQuery: string }) {
         {showWeb && results.wikipedia.length > 0 && (
           <ResultSection title="Public reference" icon={Globe2}>
             {results.wikipedia.map((page, index) => (
-              <a key={page.id} style={rowStyle(index)} href={safeHref(page.url)} target="_blank" rel="noreferrer" className="search-result-row search-row-magnetic">
+              <a key={page.id} style={rowStyle(index)} href={safeHref(page.url)} target="_blank" rel="noreferrer" className="leaf search-result-row search-row-magnetic">
                 <span className="relative h-14 w-14 shrink-0 overflow-hidden rounded-md border border-[var(--border-primary)] bg-[var(--bg-tertiary)]">
                   {page.thumbnailUrl ? <Image src={page.thumbnailUrl} alt="" fill sizes="56px" className="object-cover" /> : <Globe2 className="m-auto mt-4 h-6 w-6 text-[var(--accent-text)]" aria-hidden="true" />}
                 </span>
@@ -577,7 +577,7 @@ function ResultSection({
         <Icon className="h-4 w-4 text-[var(--accent-text)]" aria-hidden="true" />
         <h2 className="text-sm font-semibold text-[var(--text-primary)]">{title}</h2>
       </header>
-      <div className="mesh-cascade-soft divide-y divide-[var(--border-primary)]">
+      <div className="mesh-cascade-soft">
         {children}
       </div>
     </motion.section>

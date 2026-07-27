@@ -33,7 +33,7 @@
  * that motivated each rule were taken by hand against a built server.
  */
 
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 
 const ROOT = process.cwd();
@@ -42,6 +42,14 @@ const strip = (s: string) =>
   s
     .replace(/\/\*[\s\S]*?\*\//g, (m) => " ".repeat(m.length))
     .replace(/\{\/\*[\s\S]*?\*\/\}/g, (m) => " ".repeat(m.length));
+
+function* walk(dir: string): Generator<string> {
+  for (const entry of readdirSync(dir)) {
+    const full = join(dir, entry);
+    if (statSync(full).isDirectory()) yield* walk(full);
+    else yield full;
+  }
+}
 
 const failures: string[] = [];
 const fail = (section: string, detail: string) => failures.push(`[${section}] ${detail}`);
@@ -201,45 +209,83 @@ function spacingToken(decl: string): string | null {
   } else ok();
 }
 
-// ── 4. NEIGHBOURING ROWS ARE SEPARATED ──────────────────────────────────────
+// ── 4. ONE SEPARATOR, DRAWN ONE WAY, BY A CLASS SOMETHING ACTUALLY WEARS ────
+//
+// `.leaf` is this design system's word for a row in a group, and it was applied
+// to NOTHING — nine comments in globals.css described markup as "a .tray of
+// .leaf rows", shape-check asserted the dead rule had no side wall, and not one
+// element in src/ carried the class. So each surface invented its own line: the
+// settings list a `+ ::before`, analytics a Tailwind `divide-y` in a different
+// pigment, and the analytics security checklist nothing at all.
+//
+// A documented idiom that nothing uses is worse than no idiom: the comments go
+// on asserting a shape the product does not have, and the next surface invents
+// a fourth spelling. So this section checks BOTH that the mechanism is single
+// and that it is worn.
 {
-  const sep = ruleBody(".settings-row + .settings-row::before");
+  const sep = ruleBody(".leaf + .leaf::before");
   if (!sep) {
     fail(
-      "4 separators",
-      "the hairline between neighbouring rows is gone. `.settings-row` measured `border-bottom-width:\n" +
-        "  0px` on the built page and the group read as four labels adrift in a white box.",
+      "4 one separator",
+      "`.leaf + .leaf::before` is gone — the one hairline. Before it existed, `.settings-row` measured\n" +
+        "  `border-bottom-width: 0px` on the built page and its group read as four labels adrift in a\n" +
+        "  white box, while analytics drew two different lines in two different pigments.",
     );
   } else {
     if (!/border-top:[^;]*var\(--rule\)/.test(sep)) {
-      fail("4 separators", "the row separator no longer draws in `--rule`, the one hairline pigment");
+      fail("4 one separator", "the row separator no longer draws in `--rule`, the one hairline pigment");
     } else ok();
-    if (!/inset-inline:\s*var\(--sp-\d+\)\s+0/.test(sep)) {
+    if (!/inset-inline:\s*var\(--leaf-inset,\s*0\)\s+0/.test(sep)) {
       fail(
-        "4 separators",
-        "the separator no longer starts at the row's leading padding and run to the trailing edge.\n" +
-          "  A hairline inset on BOTH sides reads as an underline under each row, not as a join.",
+        "4 one separator",
+        "the separator no longer runs from `--leaf-inset` to the trailing edge.\n" +
+          "  A hairline inset on BOTH sides reads as an underline under each row, not as a join; and the\n" +
+          "  inset has to be a property so a surface can align it to a label without a second rule.",
       );
     } else ok();
   }
 
   // Written `+` so the last row needs no special case and a trailing paragraph
   // or button closes the list cleanly.
-  if (/\.settings-row:last-child/.test(css)) {
+  if (/\.leaf:last-child|\.settings-row:last-child/.test(css)) {
     fail(
-      "4 separators",
+      "4 one separator",
       "a `:last-child` special case is back. The separator belongs to the row BELOW it (`+`), which is\n" +
         "  what lets a list end in a paragraph, a button or an empty state without the rule knowing.",
     );
   } else ok();
 
-  // The tile-inset variant: iOS aligns the hairline to the text so the icons
-  // read as an unbroken column.
-  const tileInset = ruleBody(".settings-row:has(.settings-icon-tile) + .settings-row:has(.settings-icon-tile)::before");
-  if (!tileInset) {
-    fail("4 separators", "the tile-aligned separator inset is gone; the hairline cuts through the icon column");
-  } else if (!/inset-inline-start:\s*calc\(/.test(tileInset)) {
-    fail("4 separators", "the tile-aligned inset no longer computes from the tile's own width and gap");
+  // No second implementation of the same line, in CSS or in a utility class.
+  if (/\.settings-row\s*\+\s*\.settings-row/.test(css)) {
+    fail("4 one separator", "`.settings-row` draws its own hairline again alongside `.leaf`'s — two spellings, one line");
+  } else ok();
+
+  const divideUsers: string[] = [];
+  for (const file of [...walk(join(ROOT, "src"))].filter((f) => f.endsWith(".tsx"))) {
+    if (/\bdivide-y\b/.test(strip(readFileSync(file, "utf8")))) divideUsers.push(file.slice(ROOT.length + 1));
+  }
+  if (divideUsers.length) {
+    fail(
+      "4 one separator",
+      `Tailwind \`divide-y\` draws row separators again in: ${divideUsers.join(", ")}.\n` +
+        "  It last did so as `divide-[var(--border-primary)]/60` — a pigment neither `--rule` nor\n" +
+        "  anything the contrast gate measures, on a list sitting beside another list drawn in --rule.",
+    );
+  } else ok();
+
+  // AND IT MUST BE WORN. This is the assertion whose absence let the idiom die.
+  const wearers: string[] = [];
+  for (const file of [...walk(join(ROOT, "src"))].filter((f) => f.endsWith(".tsx"))) {
+    const body = strip(readFileSync(file, "utf8"));
+    if (/className=[^>]*["'`\s]leaf[\s"'`]/.test(body)) wearers.push(file.slice(ROOT.length + 1));
+  }
+  if (wearers.length < 2) {
+    fail(
+      "4 one separator",
+      `\`.leaf\` is worn by ${wearers.length} file(s). It was worn by ZERO for long enough that three\n` +
+        "  surfaces each invented their own separator while nine comments went on calling it the idiom.\n" +
+        "  A class nothing uses does not document a shape — it misdescribes one.",
+    );
   } else ok();
 }
 
