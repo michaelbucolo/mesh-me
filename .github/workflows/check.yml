@@ -54,6 +54,36 @@ jobs:
       # `npm run check` reads the generated client in several gates.
       - run: npx prisma generate
 
+      # A real schema in the file database, so the app can actually boot below.
+      - run: npx prisma db push --skip-generate
+
+      - run: npm run build
+
+      # THE SUITE ENDS IN `diagnostics`, WHICH DRIVES A LIVE SERVER.
+      #
+      # The first CI run skipped eight checks with "Server not reachable" and
+      # failed. Four of those eight are the security ones -- anonymous users get
+      # redirected off protected pages, protected APIs reject anonymous access,
+      # mutations require same-origin proof. Skipping them in CI would leave the
+      # checks that matter most as the only ones nobody runs, which is the exact
+      # hole this workflow exists to close.
+      #
+      # So the app is started and waited for, and only then does the suite run.
+      - name: Start the app
+        run: |
+          nohup npx next start -p 3000 > /tmp/server.log 2>&1 &
+          for i in $(seq 1 60); do
+            if curl -fsS http://localhost:3000/api/health > /dev/null 2>&1; then
+              echo "server up after ${i}s"; exit 0
+            fi
+            sleep 1
+          done
+          echo "server never became healthy:"; tail -40 /tmp/server.log; exit 1
+
       # The whole suite. If this fails, the pull request is not mergeable --
       # which is the entire point, and was not true before this file.
       - run: npm run check
+
+      - name: Server log on failure
+        if: failure()
+        run: tail -60 /tmp/server.log || true
