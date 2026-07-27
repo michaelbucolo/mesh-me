@@ -19,7 +19,7 @@
   --paper-0: #f2f2f7;      /* THE MAT. Warm grey-beige, deliberately not white —
                               a white page cannot host a white object. */
   --paper-1: #ffffff;      /* card / sheet / panel */
-  --paper-2: #f2f2f7;      /* RECESS: input wells, trays, sunken groups */
+  --paper-2: #e9e9ee;      /* RECESS: input wells, trays, sunken groups */
   --paper-3: #e5e5ea;      /* track, disabled body, tray floor */
   --paper-hover: #fafafa;  /* a surface brightens ~1% under the pointer */
   --paper-press: #ebebf0;

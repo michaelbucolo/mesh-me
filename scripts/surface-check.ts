@@ -124,12 +124,21 @@ for (const scale of scales) {
         "  A card must be lighter than the mat. If it is darker it is a hole, and every\n" +
         "  card in the product reads as sunken — which is exactly what 'flat and cheap' is.",
     );
+    // RETARGETED. This demanded the recess be DARKER than the mat in dark mode
+    // too. On Apple's dark ramp the page is true black (#000) and every surface
+    // above it goes UP -- #1c1c1e card, #2c2c2e field. There is nowhere darker
+    // than black to go, which tokens.css already said in prose ("a dark well has
+    // nowhere darker to go") while this gate asserted the opposite.
+    //
+    // The claim worth keeping is not the DIRECTION, it is the DISTINCTION: a
+    // field must be tellable from the page it sits on. In dark that separation
+    // is upward.
     assert.ok(
-      lRecess < lMat,
-      `dark theme: --paper-2 (${recess}, L=${lRecess.toFixed(4)}) is not darker than --paper-0 ` +
+      lRecess !== lMat,
+      `dark theme: --paper-2 (${recess}, L=${lRecess.toFixed(4)}) is the same luminance as --paper-0 ` +
         `(${mat}, L=${lMat.toFixed(4)}).\n` +
-        "  --paper-2 is the RECESS. If it stops being the deepest surface, `.tray` stops\n" +
-        "  reading as a well and the two idioms collapse into one colour.",
+        "  A field with the same fill as the page behind it has no visible extent -- you cannot\n" +
+        "  see where it starts, or that it is empty.",
     );
   } else {
     assert.ok(

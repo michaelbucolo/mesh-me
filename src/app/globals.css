@@ -97,7 +97,7 @@
   --radius-xs: 0.5rem;    /*  8px */
   --radius-sm: 0.625rem;  /* 10px — unchanged */
   --radius-md: 0.875rem;  /* 14px — unchanged */
-  --radius-lg: 1.25rem;   /* 20px — was 18.4 */
+  --radius-lg: 1.1875rem;   /* 20px — was 18.4 */
   --radius-xl: 1.75rem;   /* 28px — was 24 */
   --radius-2xl: 1.75rem;  /* 28px — was 32, capped */
   --radius-3xl: 1.75rem;  /* 28px — collapses rounded-3xl into the cap */
@@ -134,16 +134,16 @@
      Every value below is an existing `--t-*` step from tokens.css, not a new
      decision. `6xl` collapses into `display` exactly as `rounded-3xl` collapses
      into the radius cap: the top of a scale is the top. */
-  --text-xs:   0.78125rem;  /* 12.5px — --t-caption   (was 12) */
-  --text-sm:   0.84375rem;  /* 13.5px — --t-small     (was 14) */
-  --text-base: 0.9375rem;   /* 15px   — --t-body      (was 16) */
-  --text-lg:   1.0625rem;   /* 17px   — --t-title     (was 18) */
-  --text-xl:   1.25rem;     /* 20px   — --t-h4        (unchanged) */
-  --text-2xl:  1.5rem;      /* 24px   — --t-h3        (unchanged) */
-  --text-3xl:  1.9375rem;   /* 31px   — --t-h2        (was 30) */
-  --text-4xl:  2.5rem;      /* 40px   — --t-h1        (was 36) */
-  --text-5xl:  3.25rem;     /* 52px   — --t-display   (was 48) */
-  --text-6xl:  3.25rem;     /* 52px   — --t-display, collapsed (was 60) */
+  --text-xs:   0.75rem;     /* 12px   — --t-micro    (Apple caption2/caption1) */
+  --text-sm:   0.8125rem;   /* 13px   — --t-caption  (Apple footnote) */
+  --text-base: 1rem;        /* 16px   — --t-body */
+  --text-lg:   1.0625rem;   /* 17px   — --t-lead / --t-title (Apple body/headline) */
+  --text-xl:   1.1875rem;   /* 19px   — --t-h4 */
+  --text-2xl:  1.375rem;    /* 22px   — --t-h3       (Apple title2) */
+  --text-3xl:  1.75rem;     /* 28px   — --t-h2       (Apple title1) */
+  --text-4xl:  2.125rem;    /* 34px   — --t-h1       (Apple largeTitle) */
+  --text-5xl:  2.75rem;     /* 44px   — --t-display (Apple has no step above this) */
+  --text-6xl:  2.75rem;     /* 44px   — collapses into --t-display, same as 5xl */
 
   /* Each step's paired leading, from the same `--t-*` entry. Tailwind's stock
      pairings are computed against ITS sizes, so leaving them would put the right
@@ -1146,7 +1146,7 @@ select:focus-visible {
    `5.4rem` was the old literal — a guess at 3.5rem of bar plus a gap, sitting
    in a file that had no way to know when either moved. */
 .mesh-continuum-handle-down {
-  bottom: calc(var(--mobile-nav-h) + env(safe-area-inset-bottom) + 1.25rem);
+  bottom: calc(var(--mobile-nav-h) + env(safe-area-inset-bottom) + 1.1875rem);
 }
 .mesh-continuum-handle-up { top: calc(0.7rem + env(safe-area-inset-top)); }
 /* The hover `translateY` drift is gone with the glass. A key does not slide
@@ -1972,7 +1972,7 @@ body[data-meshi-panel="open"] .bug-report-widget {
   justify-content: center;
   border-bottom: 2px solid transparent;
   color: var(--text-muted);
-  font-size: 0.78125rem;
+  font-size: 0.75rem;
   font-weight: 600;
   letter-spacing: 0.01em;
   transition:
@@ -2754,7 +2754,7 @@ html {
 }
 
 .mesh-stat-card {
-  border-radius: 1.25rem;
+  border-radius: 1.1875rem;
   border: 1px solid var(--glass-card-border);
   background: var(--glass-card-bg);
   padding: 1rem;
@@ -2861,7 +2861,7 @@ html {
 
 /* Headset UX: Apple Vision Pro, Meta Quest, and generic spatial browsers */
 .platform-spatial {
-  --spatial-radius: 1.25rem;
+  --spatial-radius: 1.1875rem;
   --spatial-panel-bg: color-mix(in srgb, var(--bg-secondary) 88%, transparent);
   --spatial-panel-border: color-mix(in srgb, var(--border-primary) 78%, rgba(155, 232, 255, 0.18));
   text-rendering: optimizeLegibility;
@@ -2893,7 +2893,7 @@ html {
   }
 
   .platform-spatial .public-site-nav {
-    padding-inline: 1.25rem;
+    padding-inline: 1.1875rem;
   }
 
   .platform-spatial .auth-shell-grid {
@@ -2934,8 +2934,8 @@ html {
   }
 
   .platform-spatial .mesh-action-bar {
-    bottom: 1.25rem;
-    left: 1.25rem;
+    bottom: 1.1875rem;
+    left: 1.1875rem;
     gap: 0.65rem;
   }
 }
@@ -3486,7 +3486,7 @@ body {
   border-radius: 999px;
   color: var(--text-muted);
   background: transparent;
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
   font-weight: 600;
   white-space: nowrap;
   transition:
@@ -3597,7 +3597,7 @@ body {
 
 .feed-creator-stat span {
   color: var(--text-muted);
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
   font-weight: 600;
   font-variant-caps: all-small-caps;
 }
@@ -3634,7 +3634,7 @@ body {
   gap: 0.5rem;
   min-height: 3.5rem;
   color: var(--text-muted);
-  font-size: 0.78125rem;
+  font-size: 0.75rem;
   font-weight: 600;
 }
 
@@ -3928,13 +3928,13 @@ body {
   .feed-mode-button {
     min-height: 2rem;
     padding-inline: 0.68rem;
-    font-size: 0.6875rem;
+    font-size: 0.75rem;
   }
 
   .feed-control-chip {
     min-height: 2rem;
     padding-inline: 0.62rem;
-    font-size: 0.6875rem;
+    font-size: 0.75rem;
   }
 
   .feed-layout-toggle {
@@ -4034,7 +4034,7 @@ body {
 
   .feed-like-count {
     color: var(--text-muted);
-    font-size: 0.78125rem;
+    font-size: 0.75rem;
   }
 
   .mobile-bottom-nav {
@@ -4605,7 +4605,7 @@ body,
   border-radius: 0.5rem;
   padding-inline: 0.75rem;
   color: var(--text-secondary);
-  font-size: 0.78125rem;
+  font-size: 0.75rem;
   font-weight: 600;
   transition: background-color 120ms ease, color 120ms ease;
 }
@@ -4641,7 +4641,7 @@ body,
   border-radius: 0.7rem;
   padding: 0.4rem 0.6rem;
   color: var(--text-secondary);
-  font-size: 0.84375rem;
+  font-size: 0.8125rem;
   font-weight: 600;
 }
 
@@ -4663,7 +4663,7 @@ body,
   border-radius: 0.7rem;
   padding: 0.5rem 0.65rem;
   color: var(--text-primary);
-  font-size: 0.84375rem;
+  font-size: 0.8125rem;
   font-weight: 600;
 }
 
@@ -4749,12 +4749,12 @@ body,
    applied at the end of this file, after `.plate`. */
 .settings-status-toast {
   position: fixed;
-  bottom: 1.25rem;
+  bottom: 1.1875rem;
   left: 50%;
   transform: translateX(-50%);
   z-index: 60;
   padding: 0.7rem 1.1rem;
-  font-size: 0.84375rem;
+  font-size: 0.8125rem;
   font-weight: 600;
   animation: settings-toast-in 0.2s ease;
 }
@@ -4790,7 +4790,7 @@ body,
 .settings-mini-label {
   display: block;
   color: var(--text-muted);
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
   font-weight: 600;
   letter-spacing: 0.02em;
   font-variant-caps: all-small-caps;
@@ -4843,7 +4843,7 @@ body,
 
 .settings-card-heading h3 {
   color: var(--text-secondary);
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
   font-weight: 600;
   letter-spacing: 0.02em;
   font-variant-caps: all-small-caps;
@@ -4862,7 +4862,7 @@ body,
   border-radius: 0.5rem;
   padding: 0.25rem 0.4rem;
   color: var(--text-muted);
-  font-size: 0.78125rem;
+  font-size: 0.75rem;
   font-weight: 600;
   cursor: pointer;
   list-style: none;
@@ -4893,7 +4893,7 @@ body,
 .settings-hint-body {
   padding: 0 0.4rem 0.4rem;
   color: var(--text-secondary);
-  font-size: 0.78125rem;
+  font-size: 0.75rem;
   line-height: 1.55;
 }
 
@@ -4967,7 +4967,7 @@ body,
   --ds-space-2: 0.5rem;
   --ds-space-3: 0.75rem;
   --ds-space-4: 1rem;
-  --ds-space-5: 1.25rem;
+  --ds-space-5: 1.1875rem;
   --ds-space-6: 1.5rem;
   --ds-space-8: 2rem;
   --ds-control-height-sm: 2rem;
@@ -5143,18 +5143,23 @@ body,
   background: var(--face);
   border: 0;
   border-radius: var(--radius-md);
-  --plinth-h: var(--plinth-h-object);
+  /* THE SIDE WALL AND THE MOULD SEAM ARE GONE.
+     They were still declared here after the Apple foundation landed, resolving
+     to `0 0px 0 0` and `none` -- invisible, but present as text. That is worse
+     than either state: scripts/shape-check.ts reads class strings, so it went
+     on asserting "the wall exists" and passing, while the wall it was guarding
+     had been zeroed out from the token side. A gate cannot protect a feature
+     that is only still there as a string.
+     What remains is what Apple actually uses: the --edge ring (kept, because it
+     is the WCAG 1.4.11 boundary on controls that have no fill of their own) and
+     a very subtle contact shadow. */
   box-shadow:
-    inset 0 0 0 var(--edge-w) var(--edge),   /* the legal boundary — see the Separation Law */
-    var(--mould-line),                       /* the tooling seam; dark theme only */
-    0 var(--plinth-h) 0 0 var(--plinth-1),   /* THE SIDE WALL. blur 0, always. */
-    var(--shadow-rest);                      /* contact with the mat */
+    inset 0 0 0 var(--edge-w) var(--edge),
+    var(--shadow-rest);
   /* Owns its own transitions — a .key must NOT also carry .ds-interactive,
      which is the old paper model and lifts on hover. See .key + .ds-interactive
      below, and scripts/shape-check.ts, which forbids the pair. */
   transition:
-    translate var(--dur-press) var(--ease-give),
-    box-shadow var(--dur-press) var(--ease-give),
     background-color var(--dur-tap) var(--ease-settle),
     color var(--dur-tap) var(--ease-settle);
 }
@@ -5173,13 +5178,13 @@ body,
 }
 .key:hover { background: var(--face-hover); }
 .key:active {
+  /* Apple's press is a FILL change, not a journey. The old rule travelled the
+     face down by one wall-height and collapsed the wall to zero, so total height
+     was conserved -- a moulded object bottoming out. With no wall there is
+     nothing to travel into, and `translate: 0 var(--plinth-h)` now resolves to
+     `0 0px`: a transition animating to where it already is.
+     Depth does not change on press. Only the fill does. */
   background: var(--face-press);
-  box-shadow:
-    inset 0 0 0 var(--edge-w) var(--edge),
-    var(--mould-line),
-    0 0 0 0 var(--plinth-1),
-    var(--shadow-press);
-  translate: 0 var(--plinth-h);
 }
 .key:disabled,
 .key[aria-disabled="true"] {
@@ -5368,7 +5373,7 @@ body,
   border-top: 1px solid var(--border-primary);
   padding-top: 0.75rem;
   color: var(--text-muted);
-  font-size: 0.78125rem;
+  font-size: 0.75rem;
   font-weight: 600;
 }
 
@@ -5613,7 +5618,7 @@ body {
   .mesh-topbar-owner {
     padding: 0;
     gap: 0.25rem;
-    font-size: 0.78125rem;
+    font-size: 0.75rem;
   }
 
   .mesh-topbar-icon {
@@ -5758,7 +5763,7 @@ body {
   }
 
   .settings-traditional-header h1 {
-    font-size: 1.25rem;
+    font-size: 1.1875rem;
   }
 
   .settings-traditional-grid {
@@ -5775,7 +5780,7 @@ body {
   .settings-nav-item {
     min-height: 2.75rem;
     scroll-snap-align: start;
-    font-size: 0.78125rem;
+    font-size: 0.75rem;
     padding: 0.5rem 0.65rem;
     gap: 0.4rem;
     white-space: nowrap;
@@ -5807,7 +5812,7 @@ body {
     align-items: flex-start;
     gap: 0.25rem;
     padding: 0.6rem 0.65rem;
-    font-size: 0.78125rem;
+    font-size: 0.75rem;
   }
 
   .settings-row,
@@ -5854,7 +5859,7 @@ body {
   }
 
   .profile-header-card .profile-name {
-    font-size: 1.25rem;
+    font-size: 1.1875rem;
   }
 
   .profile-header-card .profile-actions {
@@ -5863,7 +5868,7 @@ body {
   }
 
   .profile-header-card .profile-actions > * {
-    font-size: 0.78125rem;
+    font-size: 0.75rem;
     padding: 0.45rem 0.75rem;
   }
 
@@ -5906,7 +5911,7 @@ body {
   }
 
   .simple-page header p {
-    font-size: 0.78125rem;
+    font-size: 0.75rem;
   }
 
   .simple-page .mesh-surface {
@@ -6148,7 +6153,7 @@ body {
   /* THE LEGIBILITY FLOOR DOES NOT SCALE WITH THE LAYOUT.
      The rule above deliberately shrinks the rem base so a cover screen fits
      more, and every rem-sized thing follows it — which is correct for layout
-     and wrong for the smallest text in the product. --fs-micro is 0.6875rem
+     and wrong for the smallest text in the product. --fs-micro is 0.75rem
      precisely because 11px is the floor for meta text; at a 13.5px root it
      computes to 9.28px, BELOW several of the fixed values it was introduced to
      replace. The token would have been claiming a floor it did not hold, on the
@@ -6809,20 +6814,20 @@ body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
 .mesh-gate-peek:hover { color: #f3f5fb; }
 
 .mesh-gate-hint {
-  font-size: 0.78125rem;
+  font-size: 0.75rem;
   font-weight: 500;
   letter-spacing: 0.02em;
   color: rgba(154, 163, 188, 0.55);
 }
 .mesh-gate-msg {
-  font-size: 0.84375rem;
+  font-size: 0.8125rem;
   font-weight: 600;
   color: #fecaca;
   max-width: 26rem;
 }
 
 .mesh-gate-textlink {
-  font-size: 0.84375rem;
+  font-size: 0.8125rem;
   font-weight: 600;
   color: rgba(179, 190, 220, 0.82);
   transition: color 150ms ease;
@@ -6900,7 +6905,7 @@ body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
   flex-direction: column;
   gap: 0.2rem;
   text-align: left;
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
   font-weight: 600;
   letter-spacing: 0.02em;
   color: rgba(154, 163, 188, 0.72);
@@ -6934,7 +6939,7 @@ body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
   flex-direction: column;
   align-items: center;
   gap: 0.55rem;
-  padding: 0.9rem 1.25rem max(1rem, env(safe-area-inset-bottom));
+  padding: 0.9rem 1.1875rem max(1rem, env(safe-area-inset-bottom));
   text-align: center;
 }
 .mesh-gate-shield {
@@ -7054,14 +7059,14 @@ body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
 .mesh-owner-zzz:nth-of-type(2) {
   top: -18px;
   right: -14px;
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
   opacity: 0.8;
   animation-delay: 0.7s;
 }
 .mesh-owner-zzz:nth-of-type(3) {
   top: -25px;
   right: -21px;
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
   opacity: 0.65;
   animation-delay: 1.4s;
 }
@@ -7559,7 +7564,7 @@ body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
 }
 
 .watch-muted {
-  font-size: 0.78125rem;
+  font-size: 0.75rem;
   line-height: 1.35;
   color: rgba(255, 255, 255, 0.6);
 }
@@ -7584,7 +7589,7 @@ body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
 
 .watch-item-title {
   overflow: hidden;
-  font-size: 0.78125rem;
+  font-size: 0.75rem;
   font-weight: 600;
   line-height: 1.3;
   display: -webkit-box;
@@ -7596,7 +7601,7 @@ body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
   color: rgba(255, 255, 255, 0.55);
 }
 
@@ -7605,7 +7610,7 @@ body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
   align-items: center;
   background: #fff;
   color: #000;
-  font-size: 0.84375rem;
+  font-size: 0.8125rem;
   font-weight: 600;
 }
 
