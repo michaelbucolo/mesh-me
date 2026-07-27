@@ -220,20 +220,28 @@ for (const [theme, tokens] of [["Daylight", DAYLIGHT], ["Lamplight", LAMPLIGHT]]
     }
   }
 
-  // 8a. The RECESS reads as a recess.
+  // 8a. AN INPUT IS DISTINGUISHABLE FROM THE SURFACE IT SITS ON.
   //
-  // --plinth-tray is the inner lip of a sunken group, and every input in the
-  // product sits in one. It is the one plinth that must INVERT in dark: a dark
-  // recess cannot get darker, so its lip goes up instead of down. The original
-  // dark value measured 1.05:1 against the well — invisible — which is why this
-  // is asserted separately from the moulds rather than assumed to follow.
-  const trayStep = ratio(at("--plinth-tray"), at("--paper-2"));
+  // RETARGETED. This used to assert that --plinth-tray (the inner LIP of a
+  // sunken group) cleared 1.4:1 against the well, because the product was a
+  // rubber tray with moulded objects in it and an input lived in a recess.
+  //
+  // Apple's language has no recess and no lip. An input is a filled field with
+  // a hairline; a grouped list is a card on a slightly different page. Asserting
+  // a visible lip would have forced the moulding back in.
+  //
+  // What survives is the thing that actually protects a user: an input must be
+  // TELLABLE from what it sits on. WCAG 1.4.11 wants 3:1 for a control boundary,
+  // and --edge is that boundary and is checked against every surface below. What
+  // is checked here is the weaker, additional claim that the field's own fill is
+  // not literally identical to the page — because a field you cannot see the
+  // extent of is a field you cannot tell is empty.
+  const wellStep = ratio(at("--paper-2"), at("--paper-1"));
   assert.ok(
-    trayStep >= PLINTH_STEP,
-    `${theme}: --plinth-tray against --paper-2 is ${trayStep.toFixed(2)}:1, below ${PLINTH_STEP}:1.\n` +
-      "  Every input in the product sits in this recess. Below this step it is not a recess, it\n" +
-      "  is a flat patch of a slightly different colour. In dark the lip must go UP, not down —\n" +
-      "  a dark well has nowhere darker to go.",
+    wellStep >= 1.02 || at("--paper-2") !== at("--paper-1"),
+    `${theme}: --paper-2 and --paper-1 are the same colour, so an input well is invisible against its card.\n` +
+      "  Apple separates a field from its card by fill plus a hairline, not by a moulded lip —\n" +
+      "  but the fill still has to differ, or the field has no visible extent at all.",
   );
   checks += 1;
 
@@ -319,12 +327,30 @@ for (const name of NEUTRAL_TOKENS) {
   const h = value.replace("#", "").trim();
   assert.match(h, /^[0-9a-fA-F]{6}$/, `.dark ${name} must be a 6-digit hex to be checked for neutrality, got "${value}"`);
   const [r, g, b] = [h.slice(0, 2), h.slice(2, 4), h.slice(4, 6)].map((c) => parseInt(c, 16));
+  // RETARGETED, and narrowed rather than loosened.
+  //
+  // This demanded r === g === b exactly. The reason it existed is sound and is
+  // kept: the ramp it replaced carried "a hair of warmth" (r >= b at every
+  // step), and summed across a screen that hair WAS the impression — the
+  // product read brown rather than dark.
+  //
+  // But exact neutrality also forbids Apple's dark greys, which are #1C1C1E,
+  // #2C2C2E, #3A3A3C — blue exactly two points above red, deliberately and
+  // consistently, across their whole system. That cast is imperceptible per
+  // step and is what keeps a dark UI from reading dingy.
+  //
+  // So the law becomes directional, which is what it was always really about:
+  // NEVER WARM, and never more than a hair cool. r > b is the failure that
+  // motivated this check, and it is still a failure. A cool cast up to two
+  // points is Apple's, and is allowed.
+  const warm = r > b;
+  const cast = Math.abs(b - r);
   assert.ok(
-    r === g && g === b,
-    `.dark ${name} is ${value} — rgb(${r}, ${g}, ${b}), which carries a hue.\n` +
-      "  Every structural surface and ink in the dark theme must be a true grey (r === g === b).\n" +
-      "  The previous ramp allowed 'a hair of warmth' at each step; summed across a full screen\n" +
-      "  that hair is the entire impression, and the product read as brown rather than as dark.\n" +
+    !warm && cast <= 2 && r === g,
+    `.dark ${name} is ${value} — rgb(${r}, ${g}, ${b}).\n` +
+      (warm
+        ? "  It is WARM (red above blue). That is the exact failure this check exists for: a hair of\n  warmth per step sums to a screen that reads brown rather than dark.\n"
+        : `  Its cast is ${cast} points and red/green differ by ${Math.abs(g - r)}. A dark grey may be\n  neutral or at most two points COOL (Apple's #1C1C1E / #2C2C2E / #3A3A3C), nothing else.\n`) +
       "  If this token genuinely needs a hue, add it to CHROMATIC_BY_DESIGN and say why —\n" +
       "  deliberately, in a diff someone reviews, not by nudging a channel two points.",
   );
