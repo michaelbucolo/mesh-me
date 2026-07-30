@@ -26,7 +26,6 @@ function detectSpatialDevice(): SpatialDevice {
     xr?: unknown;
   };
   const uaDataPlatform = navWithXr.userAgentData?.platform?.toLowerCase() || "";
-  const hasXrApi = typeof navWithXr.xr !== "undefined";
 
   if (/quest|oculus|oculusbrowser|meta quest|wolvic/.test(ua)) return "quest";
   if (/visionos|apple vision|vision pro|reality/.test(ua) || uaDataPlatform.includes("vision")) return "vision";
@@ -40,9 +39,31 @@ function detectSpatialDevice(): SpatialDevice {
     !/ipad|iphone|android/.test(ua);
 
   if (looksLikeVisionSafari) return "vision";
-  if (hasXrApi && window.innerWidth >= 1100) return "generic";
 
   return null;
+}
+
+/* THE "generic" BRANCH USED TO BE `typeof navigator.xr !== "undefined" &&
+ * innerWidth >= 1100` — and `navigator.xr` EXISTS in every desktop Chromium,
+ * headset or not. Measured on the built page at 1440x900 in plain headless
+ * Chrome: body carried `platform-spatial platform-xr-generic`, which inflated
+ * every button to 48px min-height (breaking the dock's 44px keys and its
+ * concentric 56px tray, overlapping popover rows on a 42px pitch) and
+ * re-enabled a hover-lift transform the press model had deliberately removed.
+ * Every wide-viewport user on Chrome was getting the headset layout.
+ *
+ * The presence of the API OBJECT is not a headset. The API's own question is:
+ * `navigator.xr.isSessionSupported("immersive-vr")` — async, so it cannot run
+ * inside the sync detector. It resolves here and stamps the classes on the
+ * devices that actually answer yes. */
+async function detectGenericXr(): Promise<boolean> {
+  const xr = (navigator as Navigator & { xr?: { isSessionSupported?: (mode: string) => Promise<boolean> } }).xr;
+  if (!xr?.isSessionSupported) return false;
+  try {
+    return await xr.isSessionSupported("immersive-vr");
+  } catch {
+    return false;
+  }
 }
 
 function applySpatialClasses(device: SpatialDevice) {
@@ -62,7 +83,18 @@ function applySpatialClasses(device: SpatialDevice) {
 
 export function SpatialInit() {
   useEffect(() => {
-    const refresh = () => applySpatialClasses(detectSpatialDevice());
+    let disposed = false;
+    const refresh = () => {
+      const device = detectSpatialDevice();
+      applySpatialClasses(device);
+      // UA/heuristic detection found nothing — ask the XR API itself. Only a
+      // device that answers yes to immersive-vr gets the generic spatial skin.
+      if (!device && window.innerWidth >= 1100) {
+        void detectGenericXr().then((supported) => {
+          if (!disposed && supported) applySpatialClasses("generic");
+        });
+      }
+    };
     refresh();
 
     window.addEventListener("resize", refresh);
@@ -70,6 +102,7 @@ export function SpatialInit() {
     window.addEventListener("storage", refresh);
 
     return () => {
+      disposed = true;
       window.removeEventListener("resize", refresh);
       window.removeEventListener("orientationchange", refresh);
       window.removeEventListener("storage", refresh);
