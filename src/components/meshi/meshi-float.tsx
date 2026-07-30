@@ -2041,24 +2041,12 @@ export function MeshiFloat() {
                       ? { duration: 3, repeat: Infinity, ease: "easeInOut" }
                       : { duration: 4, repeat: Infinity, ease: "easeInOut" }
                 }>
-                <motion.span
-                  className="absolute inset-[-6px] -z-10 rounded-full bg-[var(--bg-primary)]/45 shadow-[0_10px_32px_rgba(96,165,250,0.18)] backdrop-blur"
-                  animate={{
-                    scale: view === "closed" ? [1, 1.05, 1] : [1, 1.16, 1],
-                    opacity: view === "closed" ? [0.64, 0.82, 0.64] : [0.82, 0.45, 0.82],
-                  }}
-                  transition={{ duration: view === "closed" ? 4 : 1.8, repeat: Infinity, ease: "easeInOut" }}
-                  aria-hidden="true"
-                />
-                <motion.span
-                  className="absolute inset-[-14px] -z-20 rounded-full bg-[var(--accent)]/5"
-                  animate={{
-                    scale: view !== "closed" ? [1, 1.24, 1] : [1, 1.08, 1],
-                    opacity: view !== "closed" ? [0.5, 0.06, 0.5] : [0.16, 0.03, 0.16],
-                  }}
-                  transition={{ duration: view !== "closed" ? 1.8 : 5, repeat: Infinity, ease: "easeOut" }}
-                  aria-hidden="true"
-                />
+                {/* No halo. Two pulsing rings used to sit behind the mascot —
+                    a --bg-primary disc at 45-82% alpha with a blue glow shadow,
+                    and a wider accent ring — breathing on infinite repeat. On
+                    the dark theme a translucent black disc over content is a
+                    black smudge around Meshi, and nothing in this system emits
+                    light. The mascot IS the presence. */}
                 <MeshiMascot
                   size={MESHI_SIZE}
                   mood={isFullscreenVideo || contentInsightVisible ? "learning" : isSearching ? "searching" as MeshiMood : isDragging ? "excited" : mood}
