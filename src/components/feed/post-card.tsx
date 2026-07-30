@@ -185,7 +185,10 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
   const requiresSourceAccount = Boolean(originPlatform && originPlatform !== "meshme");
   const hasSourceAccount = !requiresSourceAccount || connectedPlatformSet.has(originPlatform);
   const platformLabel = originPlatform && PLATFORM_BADGE[originPlatform]?.label;
-  const platformBadge = originPlatform ? PLATFORM_BADGE[originPlatform] : null;
+  // Native posts don't get an origin badge — "mesh.me" printed on every
+  // mesh.me post was self-labeling that helped the meta row wrap to three
+  // lines on a phone. The badge exists to say a post came from SOMEWHERE ELSE.
+  const platformBadge = originPlatform && originPlatform !== "meshme" ? PLATFORM_BADGE[originPlatform] : null;
   const isOptimistic = Boolean(post.optimistic);
   const externalAuthor = post.externalAuthor;
   const isExternalFeedItem = Boolean(externalAuthor);
@@ -536,7 +539,10 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
                     </span>
                   </>
                 )}
-                {!requiresSourceAccount && !isExternalFeedItem && (
+                {/* Public is the default and says nothing — no feed prints
+                    "Public" on every post. Only a NARROWED audience is
+                    information, and it keeps its word + icon. */}
+                {!requiresSourceAccount && !isExternalFeedItem && post.visibility && post.visibility !== "public" && (
                   <>
                     <span>&middot;</span>
                     <span className="inline-flex items-center gap-1">
@@ -547,9 +553,7 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
                           ? "Friends"
                           : post.visibility === "unlisted"
                             ? "Unlisted"
-                            : post.visibility === "draft"
-                              ? "Draft"
-                              : "Public"}
+                            : "Draft"}
                     </span>
                   </>
                 )}
@@ -755,11 +759,15 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
         )}
 
         {visualMedia.length === 0 && linkMedia.length === 0 && (
-          <div className="insta-text-post feed-text-post px-4 py-7 sm:px-6">
+          <div className="insta-text-post feed-text-post px-4 py-5 sm:px-6">
+            {/* Post copy is body text, not a headline. 17px semibold with 28px
+                lines made every text post shout — at 390px one post filled the
+                whole screen. 15px regular, the same voice media-post captions
+                already use (line ~637). */}
             <ExpandablePostText
               content={post.content}
               compact={compact}
-              className="text-[1.0625rem] font-semibold leading-7 text-[var(--text-primary)]"
+              className="text-[0.9375rem] leading-6 text-[var(--text-primary)]"
             />
             {isOptimistic ? (
               <p className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--text-muted)]">

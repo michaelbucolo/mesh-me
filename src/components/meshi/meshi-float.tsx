@@ -428,6 +428,38 @@ function getReadableTextRects(): MeshiRect[] {
   return rects;
 }
 
+/* Text rects miss a whole class of things the float kept landing on:
+   icon-only buttons (child SVG, so the leaf-text walk skips them), inputs
+   (placeholder text is not a child node — photographed sitting on Explore's
+   search field), and avatars/images (Profile's own avatar). The float must
+   never stand on anything tappable, so every visible interactive control is
+   an avoid rect too. Oversized hits (a stretched card link wrapping most of
+   the viewport) are skipped with the same reasoning as the broad-zone rule
+   above — blacklisting a whole column leaves the float nowhere to stand. */
+const MESHI_CONTROL_SELECTOR = "a, button, input, textarea, select, summary, [role='button'], img";
+
+function getInteractiveControlRects(): MeshiRect[] {
+  const rects: MeshiRect[] = [];
+  const viewWidth = window.innerWidth;
+  const viewHeight = window.innerHeight;
+
+  document.querySelectorAll(MESHI_CONTROL_SELECTOR).forEach((element) => {
+    if (element.closest("[data-meshi-owned], [data-meshi-primary]")) return;
+
+    const rect = element.getBoundingClientRect();
+    if (rect.width < 8 || rect.height < 8) return;
+    if (rect.bottom <= 0 || rect.right <= 0 || rect.top >= viewHeight || rect.left >= viewWidth) return;
+    if (rect.width > viewWidth * 0.82 && rect.height > viewHeight * 0.5) return;
+
+    const style = window.getComputedStyle(element);
+    if (style.visibility === "hidden" || style.display === "none" || Number(style.opacity) === 0) return;
+
+    rects.push(toMeshiRect(rect));
+  });
+
+  return rects;
+}
+
 function getMeshiAvoidRects(): MeshiRect[] {
   if (typeof document === "undefined") return [];
 
@@ -443,6 +475,7 @@ function getMeshiAvoidRects(): MeshiRect[] {
   });
 
   rects.push(...getReadableTextRects());
+  rects.push(...getInteractiveControlRects());
 
   return rects;
 }
@@ -897,6 +930,13 @@ export function MeshiFloat() {
       if (!content.id || lastFocusedContentIdRef.current === content.id) return;
       lastFocusedContentIdRef.current = content.id;
       if (view !== "closed" || isSearching || isDragging || isFullscreenVideo) return;
+      /* Never auto-open on phones/tablets. This fires every time a post
+         scrolls into focus, and a 15rem panel popping over a 390px feed was
+         photographed covering the first post's whole action row (and, near
+         the top of a page, clipping under the topbar). On touch the panel
+         still exists — it opens when the user taps Meshi, which is the one
+         moment it cannot be in the way. */
+      if (window.innerWidth < 1024) return;
       setMood("learning");
       setActiveProp("notebook");
       setContentInsightVisible(true);
