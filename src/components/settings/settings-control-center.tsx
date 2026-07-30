@@ -652,7 +652,9 @@ export function SettingsControlCenter({
               interactive
             />
             <div className="min-w-0">
-              <h1 className="truncate text-xl font-semibold text-[var(--text-primary)] md:text-2xl">{settings.displayName || settings.username}</h1>
+              {/* The topbar's "Settings" is this page's h1. The account name is
+                  content — whose settings these are — not a second title. */}
+              <p className="truncate text-xl font-semibold text-[var(--text-primary)] md:text-2xl">{settings.displayName || settings.username}</p>
               <p className="truncate text-sm text-[var(--text-muted)]">@{settings.username}</p>
             </div>
           </div>

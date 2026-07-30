@@ -494,10 +494,11 @@ function StatusPill({ label, ok }: { label: string; ok: boolean }) {
 export function AnalyticsDashboard({ data, embedded = false }: { data: AnalyticsDashboardData; embedded?: boolean }) {
   // Folded into the profile as a tab (`embedded`) or shown as its own page.
   // Embedded drops the page shell (outer <main>, max-width, page padding) so it
-  // fills the profile's own column, and demotes the heading so the profile's
-  // name stays the page's single <h1>.
+  // fills the profile's own column. The heading renders only when embedded —
+  // there it is the tab's section title under the profile's h1; standalone,
+  // the topbar already states "Analytics" and repeating it below is the
+  // double-title pattern #438 removed everywhere else.
   const Container = embedded ? "div" : "main";
-  const Heading = embedded ? "h2" : "h1";
   return (
     // @container so grids track this column's width, not the viewport — the
     // dashboard now renders inside the (narrower) profile column as well as the
@@ -506,7 +507,7 @@ export function AnalyticsDashboard({ data, embedded = false }: { data: Analytics
       {/* Header — quiet, product-like */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <Heading className="text-2xl font-semibold text-[var(--text-primary)]">Analytics</Heading>
+          {embedded && <h2 className="text-2xl font-semibold text-[var(--text-primary)]">Analytics</h2>}
           <p className="mt-0.5 text-sm text-[var(--text-secondary)]">
             Every platform you&apos;ve connected, measured in one place.
           </p>
