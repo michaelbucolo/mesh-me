@@ -2555,6 +2555,7 @@ body[data-meshi-panel="open"] .bug-report-widget {
 }
 
 .mesh-choice {
+  min-height: 2.75rem; /* filter pills measured 33-39px tall — a control is 44 */
   border: 1px solid var(--border-primary);
   background: color-mix(in srgb, var(--bg-primary) 72%, transparent);
   transform: translateZ(0);
@@ -4718,7 +4719,7 @@ body,
 
 .settings-quick-link {
   display: inline-flex;
-  min-height: 2.5rem;
+  min-height: 2.75rem; /* 2.5rem sat 4px under the touch floor */
   align-items: center;
   justify-content: center;
   gap: 0.4rem;

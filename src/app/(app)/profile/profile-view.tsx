@@ -152,7 +152,7 @@ export async function InstagramProfileView({ username, tab }: { username: string
             <div className="absolute top-4 right-4">
               <Link
                 href={`/mesh?user=${username}`}
-                className="inline-flex items-center gap-2 rounded-xl border border-[var(--mesh-border)] bg-[var(--mesh-bg)]/80 px-4 py-2 text-sm font-medium text-[var(--mesh-text)] backdrop-blur-sm transition-colors hover:bg-[var(--mesh-panel-hover)]"
+                className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[var(--mesh-border)] bg-[var(--mesh-bg)]/80 px-4 text-sm font-medium text-[var(--mesh-text)] backdrop-blur-sm transition-colors hover:bg-[var(--mesh-panel-hover)]"
               >
                 View Public Mesh
               </Link>
@@ -256,7 +256,7 @@ export async function InstagramProfileView({ username, tab }: { username: string
                           href={link.url}
                           target="_blank"
                           rel="noopener noreferrer nofollow"
-                          className="ds-focus-ring group inline-flex max-w-full items-center gap-1.5 rounded-md border border-[var(--rule)] bg-[var(--paper-1)] px-2.5 py-1.5 text-sm text-[var(--text-primary)] transition-colors hover:border-[var(--rule-strong)] hover:bg-[var(--paper-hover)]"
+                          className="ds-focus-ring group inline-flex min-h-11 max-w-full items-center gap-1.5 rounded-md border border-[var(--rule)] bg-[var(--paper-1)] px-2.5 text-sm text-[var(--text-primary)] transition-colors hover:border-[var(--rule-strong)] hover:bg-[var(--paper-hover)]"
                         >
                           <LinkIcon size={13} aria-hidden="true" className="shrink-0 text-[var(--text-tertiary)]" />
                           <span className="truncate font-medium">{link.label}</span>

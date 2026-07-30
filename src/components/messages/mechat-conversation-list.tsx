@@ -362,7 +362,7 @@ export function MeChatConversationList({
                 // reads as "All 3" — a quantity with no unit. Name the button.
                 aria-label={count > 0 ? `${filter.label}, ${count} ${count === 1 ? "conversation" : "conversations"}` : filter.label}
                 onClick={() => setActiveFilter(filter.key)}
-                className={`mechat-key mechat-key-chip key inline-flex min-h-8 items-center gap-1.5 px-3 py-1 text-xs font-semibold ${
+                className={`mechat-key mechat-key-chip key inline-flex min-h-11 items-center gap-1.5 px-3 py-1 text-xs font-semibold ${
                   selected
                     ? "key-lit [--mould:var(--mould-jade)] [--mould-ink:var(--mould-jade-ink)] [--mould-plinth:var(--mould-jade-plinth)]"
                     : "text-[var(--mesh-text-secondary)]"

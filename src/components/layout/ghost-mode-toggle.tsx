@@ -93,7 +93,7 @@ export function GhostModeToggle({ compact = false, initialGhost = false }: { com
          verified by contrast:check. Same idiom as the liked/saved controls in
          feed/post-card.tsx:790,837. */
       className={`key inline-flex items-center gap-1.5 px-3 ${
-        compact ? "h-9 justify-center" : "h-9"
+        compact ? "h-11 justify-center" : "h-11"
       } ${
         ghost
           ? "key-lit [--mould:var(--mould-grape)] [--mould-ink:var(--mould-grape-ink)] [--mould-plinth:var(--mould-grape-plinth)]"

@@ -160,7 +160,7 @@ export function CommunityHub({ data }: { data: CommunitiesHubData }) {
                 onClick={() => scrollCarousel(-1)}
                 whileTap={{ scale: 0.88 }}
                 transition={HUB_SPRING}
-                className="flex h-11 w-11 items-center justify-center rounded-lg border border-[var(--mesh-border)] text-[var(--mesh-text-muted)] hover:bg-[var(--mesh-panel)] hover:text-[var(--mesh-text)] transition-colors"
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-[var(--mesh-border)] text-[var(--mesh-text-muted)] hover:bg-[var(--mesh-panel)] hover:text-[var(--mesh-text)] transition-colors"
                 aria-label="Previous"
               >
                 <ArrowLeft size={14} />
@@ -170,7 +170,7 @@ export function CommunityHub({ data }: { data: CommunitiesHubData }) {
                 onClick={() => scrollCarousel(1)}
                 whileTap={{ scale: 0.88 }}
                 transition={HUB_SPRING}
-                className="flex h-11 w-11 items-center justify-center rounded-lg border border-[var(--mesh-border)] text-[var(--mesh-text-muted)] hover:bg-[var(--mesh-panel)] hover:text-[var(--mesh-text)] transition-colors"
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-[var(--mesh-border)] text-[var(--mesh-text-muted)] hover:bg-[var(--mesh-panel)] hover:text-[var(--mesh-text)] transition-colors"
                 aria-label="Next"
               >
                 <ArrowRight size={14} />
@@ -194,7 +194,7 @@ export function CommunityHub({ data }: { data: CommunitiesHubData }) {
                 type="button"
                 onClick={() => setActiveCategory(cat)}
                 whileTap={{ scale: 0.95 }}
-                className={`relative rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+                className={`relative inline-flex min-h-11 items-center rounded-full px-4 text-sm font-medium transition-colors ${
                   active
                     ? "border border-transparent text-[var(--accent-ink)]"
                     : "border border-[var(--mesh-border)] text-[var(--mesh-text-secondary)] hover:bg-[var(--mesh-panel)]"

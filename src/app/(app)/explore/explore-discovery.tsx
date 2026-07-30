@@ -410,7 +410,7 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
             <button
               type="button"
               onClick={() => setShowFilters((value) => !value)}
-              className={`key ml-auto inline-flex shrink-0 items-center gap-1.5 px-3 py-2 text-xs font-semibold ${
+              className={`key ml-auto inline-flex min-h-11 shrink-0 items-center gap-1.5 px-3 py-2 text-xs font-semibold ${
                 showFilters || hasActiveFilters
                   ? "key-lit [--mould:var(--mould-cobalt)] [--mould-ink:var(--mould-cobalt-ink)] [--mould-plinth:var(--mould-cobalt-plinth)]"
                   : "text-[var(--text-secondary)]"
