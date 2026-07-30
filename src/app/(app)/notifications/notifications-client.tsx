@@ -44,7 +44,6 @@ export function NotificationsClient({ initialPayload }: { initialPayload: Notifi
   const [payload, setPayload] = useState(initialPayload);
   const [activeCategory, setActiveCategory] = useState<NotificationCategory>("all");
   const [query, setQuery] = useState("");
-  const [showUnreadOnly, setShowUnreadOnly] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState<string[]>([]);
   const [notice, setNotice] = useState<NoticeState>(null);
   const [isPending, startTransition] = useTransition();
@@ -54,7 +53,6 @@ export function NotificationsClient({ initialPayload }: { initialPayload: Notifi
     return payload.groups.filter((group) => {
       if (activeCategory === "unread" && group.unreadCount === 0) return false;
       if (!["all", "unread"].includes(activeCategory) && group.category !== activeCategory) return false;
-      if (showUnreadOnly && group.unreadCount === 0) return false;
       if (!search) return true;
       return [
         group.title,
@@ -64,7 +62,7 @@ export function NotificationsClient({ initialPayload }: { initialPayload: Notifi
         ...group.notifications.map((notification) => notification.message),
       ].some((value) => value.toLowerCase().includes(search));
     });
-  }, [activeCategory, payload.groups, query, showUnreadOnly]);
+  }, [activeCategory, payload.groups, query]);
 
   function toggleGroup(key: string) {
     setExpandedGroups((current) => (
@@ -174,13 +172,15 @@ export function NotificationsClient({ initialPayload }: { initialPayload: Notifi
           generated summary sentence) before the reader reached a single
           notification. Actions only. */}
       <header className="flex flex-wrap items-center justify-end gap-2">
-        <Link href="/settings" className="mesh-action mesh-action-secondary px-3 text-sm">
+        {/* On a phone the two secondary actions are icon keys — spelled out,
+            this row wrapped to two 44px lines before the first notification. */}
+        <Link href="/settings" className="mesh-action mesh-action-secondary px-3 text-sm" aria-label="Notification settings" title="Notification settings">
           <LockKeyhole size={15} aria-hidden="true" />
-          Settings
+          <span className="hidden sm:inline">Settings</span>
         </Link>
-        <button type="button" onClick={refresh} disabled={isPending} className="mesh-action mesh-action-secondary px-3 text-sm">
+        <button type="button" onClick={refresh} disabled={isPending} className="mesh-action mesh-action-secondary px-3 text-sm" aria-label="Refresh notifications" title="Refresh notifications">
           {isPending ? <PaperWait size="sm" /> : <RefreshCw size={15} aria-hidden="true" />}
-          Refresh
+          <span className="hidden sm:inline">Refresh</span>
         </button>
         <button
           type="button"
@@ -196,33 +196,27 @@ export function NotificationsClient({ initialPayload }: { initialPayload: Notifi
 
       <section className="grid gap-4">
           <div className="mesh-surface rounded-lg p-3 md:p-4">
-            <div className="grid gap-3 md:grid-cols-[1fr_auto] md:items-center">
-              <label className="flex h-11 items-center gap-2 rounded-md border border-[var(--border-primary)] bg-[var(--bg-primary)]/70 px-3 text-sm transition focus-within:border-[var(--accent)]/50">
-                <Search size={15} className="text-[var(--text-muted)]" aria-hidden="true" />
-                <input
-                  data-testid="notification-search"
-                  value={query}
-                  onChange={(event) => setQuery(event.target.value)}
-                  className="min-w-0 flex-1 bg-transparent outline-none placeholder:text-[var(--text-muted)]"
-                  placeholder="Search notifications"
-                  suppressHydrationWarning
-                />
-                {query && (
-                  <button type="button" onClick={() => setQuery("")} className="mesh-choice rounded-full p-1" aria-label="Clear search">
-                    <X size={14} aria-hidden="true" />
-                  </button>
-                )}
-              </label>
-              <button
-                type="button"
-                onClick={() => setShowUnreadOnly((current) => !current)}
-                aria-pressed={showUnreadOnly}
-                className={`mesh-action px-4 text-sm ${showUnreadOnly ? "mesh-action-primary" : "mesh-action-secondary"}`}
-              >
-                <AlertTriangle size={15} aria-hidden="true" />
-                Unread only
-              </button>
-            </div>
+            {/* The "Unread only" toggle is GONE: it was the second spelling of
+                the Unread category pill directly below it — filteredGroups
+                applied both to the same fact (lines 55/57 were identical
+                tests). Two controls stating one filter is how this page got to
+                ~600px of chrome before its first notification at 390. */}
+            <label className="flex h-11 items-center gap-2 rounded-md border border-[var(--border-primary)] bg-[var(--bg-primary)]/70 px-3 text-sm transition focus-within:border-[var(--accent)]/50">
+              <Search size={15} className="text-[var(--text-muted)]" aria-hidden="true" />
+              <input
+                data-testid="notification-search"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                className="min-w-0 flex-1 bg-transparent outline-none placeholder:text-[var(--text-muted)]"
+                placeholder="Search notifications"
+                suppressHydrationWarning
+              />
+              {query && (
+                <button type="button" onClick={() => setQuery("")} className="mesh-choice rounded-full p-1" aria-label="Clear search">
+                  <X size={14} aria-hidden="true" />
+                </button>
+              )}
+            </label>
 
             <div className="mt-3 flex gap-2 overflow-x-auto pb-1" data-testid="notification-category-tabs">
               {visibleCategories.map((category) => {
