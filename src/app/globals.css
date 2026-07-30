@@ -1018,21 +1018,42 @@ select:focus-visible {
   }
 }
 
+/* THE 100% FRAMES OF THIS FAMILY CARRY NO transform, ON PURPOSE.
+
+   Every route slot runs one of these with `animation-fill-mode: both`, which
+   retains the last frame forever. When that frame held `translateY(0)
+   scale(1)`, the slot kept an IDENTITY TRANSFORM for the life of the page —
+   and a transformed ancestor is the containing block for every
+   `position: fixed` descendant. Measured on the built page: the settings
+   status toast (fixed, bottom 1.19rem) positioned against the ROUTE SLOT
+   instead of the viewport, i.e. 1.19rem above the bottom of a document that
+   scrolls — off-screen for any scrolled page.
+
+   TWO measures, and the second is the one that works. Omitting transform from
+   the 100% frames was tried first and MEASURED INSUFFICIENT: with
+   `fill-mode: both`, Chromium retains the animation's neutral transform as an
+   identity matrix, and a mid-scroll fixed probe still positioned against the
+   slot (probe bottom 747 = slot bottom, viewport 640). So the family runs
+   with `fill-mode: backwards`: nothing is retained after the last frame, the
+   underlying `transform: none` applies, and the probe lands on the viewport.
+   The 100% frames end at opacity 1 — the underlying value — so releasing the
+   fill is invisible. During the run itself the trap still exists, which is
+   why the toasts are ALSO portalled to document.body. */
 @keyframes meshPageEnter {
   0% { opacity: 0; transform: translateY(12px) scale(0.992); }
   70% { opacity: 1; transform: translateY(-2px) scale(1.002); }
-  100% { opacity: 1; transform: translateY(0) scale(1); }
+  100% { opacity: 1; }
 }
 
 .animate-page-enter {
   /* Every navigation lands with a springy rise — one connected world, not
      separate pages loading. Positioned so the aurora sheen can ride over it. */
   position: relative;
-  animation: pageEnter 380ms var(--mesh-spring) both;
+  animation: pageEnter 380ms var(--mesh-spring) backwards;
 }
 
 .mesh-shell-mesh:not(.mesh-shell-flow) .mesh-route-slot.animate-page-enter {
-  animation: meshPageEnter 280ms var(--mesh-ease-out) both;
+  animation: meshPageEnter 280ms var(--mesh-ease-out) backwards;
 }
 
 /* ─── Heart Bounce — elastic, joyful, with a little anticipation twist ─── */
@@ -1140,33 +1161,33 @@ select:focus-visible {
 @keyframes pageEnter {
   0% { opacity: 0; transform: translateY(18px) scale(0.984); }
   68% { opacity: 1; transform: translateY(-3px) scale(1.004); }
-  100% { opacity: 1; transform: translateY(0) scale(1); }
+  100% { opacity: 1; }
 }
 /* Directional route motion — app-shell stamps data-nav-dir on the slot so
    going deeper enters from the right, back from the left, giving navigation
    spatial logic instead of one uniform nudge. */
 @keyframes pageEnterForward {
   0% { opacity: 0; transform: translateX(2.2%) scale(0.99); }
-  100% { opacity: 1; transform: translateX(0) scale(1); }
+  100% { opacity: 1; }
 }
 @keyframes pageEnterBack {
   0% { opacity: 0; transform: translateX(-2.2%) scale(0.99); }
-  100% { opacity: 1; transform: translateX(0) scale(1); }
+  100% { opacity: 1; }
 }
-.mesh-route-slot[data-nav-dir="forward"].animate-page-enter { animation: pageEnterForward 0.36s var(--mesh-ease-out) both; }
-.mesh-route-slot[data-nav-dir="back"].animate-page-enter { animation: pageEnterBack 0.36s var(--mesh-ease-out) both; }
+.mesh-route-slot[data-nav-dir="forward"].animate-page-enter { animation: pageEnterForward 0.36s var(--mesh-ease-out) backwards; }
+.mesh-route-slot[data-nav-dir="back"].animate-page-enter { animation: pageEnterBack 0.36s var(--mesh-ease-out) backwards; }
 /* Mesh ↔ Flow are one vertical space: dive DOWN into the Flow (it rises up into
    view), rise back UP to the Mesh (it settles down from above). */
 @keyframes pageEnterDive {
   0% { opacity: 0; transform: translateY(7%) scale(0.992); }
-  100% { opacity: 1; transform: translateY(0) scale(1); }
+  100% { opacity: 1; }
 }
 @keyframes pageEnterRise {
   0% { opacity: 0; transform: translateY(-7%) scale(0.992); }
-  100% { opacity: 1; transform: translateY(0) scale(1); }
+  100% { opacity: 1; }
 }
-.mesh-route-slot[data-nav-dir="dive"].animate-page-enter { animation: pageEnterDive 0.42s var(--mesh-ease-out) both; }
-.mesh-route-slot[data-nav-dir="rise"].animate-page-enter { animation: pageEnterRise 0.42s var(--mesh-ease-out) both; }
+.mesh-route-slot[data-nav-dir="dive"].animate-page-enter { animation: pageEnterDive 0.42s var(--mesh-ease-out) backwards; }
+.mesh-route-slot[data-nav-dir="rise"].animate-page-enter { animation: pageEnterRise 0.42s var(--mesh-ease-out) backwards; }
 
 /* The handle that bridges the two: a quiet pill that dives into the Flow from
    the Mesh, or rises back to the Mesh from the Flow. */

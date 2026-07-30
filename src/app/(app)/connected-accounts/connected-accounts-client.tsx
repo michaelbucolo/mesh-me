@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { readableInkOn } from "@/lib/readable-ink";
 import {
@@ -155,7 +156,13 @@ function Toast({ state, onDismiss }: { state: ActionState; onDismiss: () => void
     return () => clearTimeout(timer);
   }, [state, onDismiss]);
 
-  return (
+  /* Portalled to <body>: this toast is `position: fixed`, and any transformed
+     ancestor (a route slot mid page-enter animation, a future animated
+     wrapper) becomes its containing block — measured on the built page as the
+     toast positioning against the scrolled document instead of the viewport.
+     From <body> there is no ancestor to trap it. */
+  if (typeof document === "undefined") return null;
+  return createPortal(
     <AnimatePresence>
       {state && (
         <motion.div
@@ -183,7 +190,8 @@ function Toast({ state, onDismiss }: { state: ActionState; onDismiss: () => void
           </button>
         </motion.div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body,
   );
 }
 
