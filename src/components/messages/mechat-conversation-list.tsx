@@ -317,15 +317,15 @@ export function MeChatConversationList({
             suppressHydrationWarning
           />
         </label>
-        {/* Compose is the primary action of the whole surface and it had no
-            material: `.mesh-pressable` lifts on hover, the fill was raw --accent
-            under an emitting `0 4px 18px var(--accent-glow)`, and the press was
-            `active:scale-95`. Moulded from jade — --domain-messages, tokens.css:102
-            — with the pinned ink `.key-lit` carries. */}
+        {/* A neutral key, not jade: each view states compose in jade exactly
+            once — the empty pane's "Start a conversation", or a thread's Send.
+            On desktop this rail button was a second jade fill for the same
+            action, on screen at the same time. Rail chrome stays quiet
+            (Messages on macOS keeps rail compose a plain toolbar key too). */}
         <button
           type="button"
           onClick={openCompose}
-          className="mechat-key key key-lit [--mould:var(--mould-jade)] [--mould-ink:var(--mould-jade-ink)] [--mould-plinth:var(--mould-jade-plinth)] inline-flex h-11 w-11 shrink-0 items-center justify-center"
+          className="mechat-key key inline-flex h-11 w-11 shrink-0 items-center justify-center"
           aria-label="Compose new message"
           title="Compose new message"
         >
