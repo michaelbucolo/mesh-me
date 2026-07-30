@@ -241,14 +241,14 @@ export function NotificationsClient({ initialPayload }: { initialPayload: Notifi
                       <motion.span
                         layoutId="notif-category-pill"
                         transition={pillSpring}
-                        className="absolute inset-0 rounded-full bg-[var(--accent)] shadow-[0_0_18px_-4px_var(--accent)]"
+                        className="absolute inset-0 rounded-full bg-[var(--accent)]"
                         aria-hidden="true"
                       />
                     )}
                     <span className={`relative flex items-center gap-1.5 ${active ? "text-[var(--accent-contrast)]" : ""}`}>
                       <Icon size={14} aria-hidden="true" />
                       {getNotificationCategoryLabel(category)}
-                      {counts.unread > 0 ? <span className={`rounded-full px-1.5 py-0.5 text-micro text-[var(--accent-contrast)] ${active ? "bg-white/25" : "bg-[var(--accent)]"}`}>{counts.unread}</span> : null}
+                      {counts.unread > 0 ? <span className={`rounded-full px-1.5 py-0.5 text-micro ${active ? "bg-white/25 text-[var(--accent-contrast)]" : "bg-[var(--accent-subtle)] text-[var(--accent-text)]"}`}>{counts.unread}</span> : null}
                     </span>
                   </button>
                 );
@@ -362,7 +362,7 @@ group.priority === "high" ? "bg-[var(--mould-crimson)] text-[var(--mould-crimson
             <div className="flex flex-wrap items-center gap-2">
               <h2 className="min-w-0 truncate text-base font-semibold text-[var(--text-primary)]">{group.title}</h2>
               {group.unreadCount > 0 && (
-                <span className="rounded-full bg-[var(--accent)] px-2 py-0.5 text-micro font-semibold text-[var(--accent-contrast)]">
+                <span className="rounded-full bg-[var(--accent-subtle)] px-2 py-0.5 text-micro font-semibold text-[var(--accent-text)]">
                   {group.unreadCount} unread
                 </span>
               )}
@@ -389,8 +389,10 @@ group.priority === "high" ? "bg-[var(--mould-crimson)] text-[var(--mould-crimson
           <button type="button" onClick={onToggle} className="mesh-action mesh-action-secondary px-3 text-xs">
             {expanded ? "Hide" : "Details"}
           </button>
+          {/* One accent statement per view: "Mark all read" is the page's
+              primary. A filled per-row copy of it competed on every card. */}
           {group.unreadCount > 0 ? (
-            <button type="button" onClick={onMarkRead} disabled={busy} className="mesh-action mesh-action-primary px-3 text-xs" aria-label={`Mark ${group.title} read`}>
+            <button type="button" onClick={onMarkRead} disabled={busy} className="mesh-action mesh-action-secondary px-3 text-xs" aria-label={`Mark ${group.title} read`}>
               <Check size={13} aria-hidden="true" />
               Read
             </button>
