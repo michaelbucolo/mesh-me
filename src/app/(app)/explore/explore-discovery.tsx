@@ -390,7 +390,7 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
                   document.getElementById(`explore-tab-${next}`)?.focus();
                 }}
                 onClick={() => setTab(item.id)}
-                className={`key inline-flex shrink-0 items-center gap-1.5 px-3.5 py-2 text-xs font-semibold ${
+                className={`key inline-flex min-h-11 shrink-0 items-center gap-1.5 px-3.5 py-2 text-xs font-semibold ${
                   selected
                     ? "key-lit [--mould:var(--mould-cobalt)] [--mould-ink:var(--mould-cobalt-ink)] [--mould-plinth:var(--mould-cobalt-plinth)]"
                     : "text-[var(--text-secondary)]"

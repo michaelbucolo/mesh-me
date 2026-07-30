@@ -149,17 +149,18 @@ export function CommunityHub({ data }: { data: CommunitiesHubData }) {
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-lg font-semibold text-[var(--mesh-text)]">Featured communities</h2>
             <div className="flex items-center gap-2">
-              <Link href="/communities?view=featured" className="inline-flex items-center gap-1 text-xs text-[var(--accent-text)] hover:underline">
+              <Link href="/communities?view=featured" className="inline-flex min-h-11 items-center gap-1 text-xs text-[var(--accent-text)] hover:underline">
                 View all
                 <ArrowRight size={12} />
               </Link>
+              {/* 28px carousel arrows brought to the 44px floor; the whileHover
+                  x-drift goes with them — hover never travels (#442). */}
               <motion.button
                 type="button"
                 onClick={() => scrollCarousel(-1)}
                 whileTap={{ scale: 0.88 }}
-                whileHover={{ x: -1 }}
                 transition={HUB_SPRING}
-                className="rounded-lg border border-[var(--mesh-border)] p-1.5 text-[var(--mesh-text-muted)] hover:bg-[var(--mesh-panel)] hover:text-[var(--mesh-text)] transition-colors"
+                className="flex h-11 w-11 items-center justify-center rounded-lg border border-[var(--mesh-border)] text-[var(--mesh-text-muted)] hover:bg-[var(--mesh-panel)] hover:text-[var(--mesh-text)] transition-colors"
                 aria-label="Previous"
               >
                 <ArrowLeft size={14} />
@@ -168,9 +169,8 @@ export function CommunityHub({ data }: { data: CommunitiesHubData }) {
                 type="button"
                 onClick={() => scrollCarousel(1)}
                 whileTap={{ scale: 0.88 }}
-                whileHover={{ x: 1 }}
                 transition={HUB_SPRING}
-                className="rounded-lg border border-[var(--mesh-border)] p-1.5 text-[var(--mesh-text-muted)] hover:bg-[var(--mesh-panel)] hover:text-[var(--mesh-text)] transition-colors"
+                className="flex h-11 w-11 items-center justify-center rounded-lg border border-[var(--mesh-border)] text-[var(--mesh-text-muted)] hover:bg-[var(--mesh-panel)] hover:text-[var(--mesh-text)] transition-colors"
                 aria-label="Next"
               >
                 <ArrowRight size={14} />

@@ -212,11 +212,13 @@ export async function InstagramProfileView({ username, tab }: { username: string
                     </span>
                     {profile.sectionVisibility.people ? (
                       <>
-                        <Link href={`/profile/${profile.username}/connections?tab=followers`} className="text-sm text-[var(--mesh-text-secondary)] transition-colors hover:text-[var(--mesh-text)]">
-                          <span className="font-semibold text-[var(--mesh-text)]">{profile._count.followers}</span> followers
+                        {/* min-h-11 with -my-3: a 44px touch target without
+                            adding a pixel to the row's visual height. */}
+                        <Link href={`/profile/${profile.username}/connections?tab=followers`} className="-my-3 inline-flex min-h-11 items-center text-sm text-[var(--mesh-text-secondary)] transition-colors hover:text-[var(--mesh-text)]">
+                          <span className="font-semibold text-[var(--mesh-text)]">{profile._count.followers}</span>&nbsp;followers
                         </Link>
-                        <Link href={`/profile/${profile.username}/connections?tab=following`} className="text-sm text-[var(--mesh-text-secondary)] transition-colors hover:text-[var(--mesh-text)]">
-                          <span className="font-semibold text-[var(--mesh-text)]">{profile._count.following}</span> following
+                        <Link href={`/profile/${profile.username}/connections?tab=following`} className="-my-3 inline-flex min-h-11 items-center text-sm text-[var(--mesh-text-secondary)] transition-colors hover:text-[var(--mesh-text)]">
+                          <span className="font-semibold text-[var(--mesh-text)]">{profile._count.following}</span>&nbsp;following
                         </Link>
                       </>
                     ) : (

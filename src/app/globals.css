@@ -851,8 +851,9 @@ select:focus-visible {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 2.25rem;
-  height: 2.25rem;
+  /* 2.25rem (36px) sat under the 44px touch floor on every page. */
+  width: 2.75rem;
+  height: 2.75rem;
   border-radius: 0.5rem;
   color: var(--mesh-text-muted);
   transition: background-color 150ms ease, color 150ms ease;
@@ -888,6 +889,7 @@ select:focus-visible {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  min-height: 2.75rem; /* menu rows measured 36px — under the touch floor */
   padding: 0.5rem 0.75rem;
   border-radius: 0.5rem;
   font-size: var(--text-sm);
@@ -2702,8 +2704,10 @@ html {
 }
 
 @media (max-width: 639px) {
+  /* This used to LOWER min-height to 2.55rem (40.8px) — compacting actions on
+     exactly the form factor where the 44px touch floor matters. The base rule
+     (2.75rem, :2496) stands on every width now. */
   .mesh-action {
-    min-height: 2.55rem;
     justify-content: center;
   }
 
