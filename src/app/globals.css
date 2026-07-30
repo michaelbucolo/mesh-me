@@ -4569,16 +4569,12 @@ body,
   }
 }
 
-.simple-page > header.mesh-surface {
-  padding: clamp(0.95rem, 2vw, 1.35rem) !important;
-}
-
-.simple-page > header.mesh-surface h1 {
-  max-width: 52rem;
-  font-size: clamp(1.85rem, 4vw, 3rem) !important;
-  line-height: 1.05 !important;
-}
-
+/* Inside the shell the topbar already states each page's name at 19px.
+   A rule here used to inflate every simple-page header h1 to
+   clamp(1.85rem, 4vw, 3rem) with !important — so "Notifications" appeared
+   twice on one screen, once in the topbar and once at 48px directly below
+   it. Page identity is stated once, by the topbar; in-page headings are
+   section-level and size themselves. */
 .simple-page > header.mesh-surface p {
   max-width: 42rem;
 }
@@ -5454,6 +5450,48 @@ body,
   background: var(--mould, var(--mould-cobalt));
   color: var(--mould-ink, var(--mould-cobalt-ink));
   --plinth-1: var(--mould-plinth, var(--mould-cobalt-plinth));
+}
+
+/* ═══ OLED SURFACE DOCTRINE — dark theme only ═══════════════════════════════
+
+   On the true-black mat, the product drew a visible line around EVERYTHING:
+   every .plate carried a 1px --rule border and every .key an inset --edge ring
+   (#8e8e8e — a bright grey outline on #000). Photographed in dark at 1440:
+   cards outlined, chips outlined, the topbar's pills outlined — the
+   "everything-in-a-wireframe" look that reads as a default theme, not a
+   designed one.
+
+   Premium dark surfaces separate by LUMINANCE. The ladder already pays for
+   it: --paper-1 (#1c1c1e) reads as a lifted surface against #000 on an OLED
+   panel with no line around it, and --face does the same for controls. So in
+   dark, the boundary IS the fill:
+
+     - .plate keeps its 1px border-box (no reflow) but paints it transparent.
+     - .key drops the --edge ring and keeps only the contact shadow. Applies
+       to lit keys too — a filled control is self-bounding.
+     - Hairlines are spent where they carry structure: BETWEEN rows (.leaf),
+       and on the shell's region seams. Never around a surface.
+     - Focus is untouched: the :focus-visible ring is re-asserted below
+       because these overrides tie its specificity and later-wins would
+       otherwise eat it.
+
+   The light theme keeps its borders and rings — on paper, a line is how a
+   surface exists at all, and every one of those pairings is measured. This
+   block is the dark half of one fact: "how a surface declares its extent",
+   stated once per theme because the physics differ. */
+.dark .plate {
+  border-color: transparent;
+}
+
+.dark .key {
+  box-shadow: var(--shadow-rest);
+}
+
+.dark .key:focus-visible,
+.dark .key-lit:focus-visible,
+.dark .plate:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
 }
 
 /* The one topmost modal. Heaviest wall, deepest contact shadow. */

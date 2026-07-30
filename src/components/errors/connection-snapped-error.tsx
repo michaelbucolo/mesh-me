@@ -103,7 +103,7 @@ export function ConnectionSnappedError({
           The connection broke. I kept your world safe.
         </div>
 
-        <h1 className={cn("mx-auto mt-4 max-w-2xl font-display text-3xl font-semibold leading-tight text-[var(--text-primary)]", !compact && "sm:text-5xl")}>
+        <h1 className={cn("mx-auto mt-4 max-w-2xl font-display text-2xl font-semibold leading-tight text-[var(--text-primary)]", !compact && "sm:text-3xl")}>
           Connection Snapped
         </h1>
         <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-[var(--text-secondary)] sm:text-base">

@@ -695,23 +695,19 @@ export function ConnectedAccountsClient({
 
   return (
     <main data-testid="connected-accounts-center" className="ds-page-shell animate-page-enter grid gap-6">
-      <header className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
-        <div className="max-w-2xl">
-          <h1 className="text-3xl font-semibold tracking-[0] sm:text-4xl">One Account</h1>
-          <p className="mt-2 text-sm leading-6 text-[var(--text-secondary)] sm:text-base">
-            Every platform, threading back to one mesh.me identity. One tap to connect — you approve every permission, and Mesh.me never sees your passwords.
-          </p>
-          <p className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--text-muted)]">
-            <ShieldCheck className="h-4 w-4 text-[var(--accent-text)]" aria-hidden="true" />
-            Official APIs only · disconnect anytime
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Button type="button" variant="secondary" loading={busyKey === "refresh"} onClick={refreshDashboard}>
-            <RefreshCw className="h-4 w-4" aria-hidden="true" />
-            Refresh
-          </Button>
-        </div>
+      {/* The topbar states "One Account — every platform and account,
+          threading back to one you." This header used to restate both at
+          36px. What survives is the one line the topbar does not carry — the
+          API-honesty promise — and the refresh action. */}
+      <header className="flex flex-wrap items-center justify-between gap-3">
+        <p className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--text-muted)]">
+          <ShieldCheck className="h-4 w-4 text-[var(--accent-text)]" aria-hidden="true" />
+          Official APIs only · disconnect anytime
+        </p>
+        <Button type="button" variant="secondary" loading={busyKey === "refresh"} onClick={refreshDashboard}>
+          <RefreshCw className="h-4 w-4" aria-hidden="true" />
+          Refresh
+        </Button>
       </header>
 
       {/* The One Mesh — your mesh.me identity at the center, every connected

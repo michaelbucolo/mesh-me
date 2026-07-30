@@ -324,7 +324,7 @@ export function PrivacyControlCenter({ data }: { data: ControlData }) {
               <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
               Privacy control center
             </Badge>
-            <h1 className="mt-3 text-3xl font-semibold leading-tight text-[var(--text-primary)] md:text-5xl">
+            <h1 className="mt-3 text-2xl font-semibold leading-tight text-[var(--text-primary)]">
               Own every copy of your world.
             </h1>
             <p className="mt-3 max-w-2xl text-sm leading-6 text-[var(--text-secondary)] md:text-base">
