@@ -9,7 +9,7 @@ import { motion, useReducedMotion } from "framer-motion";
 import { ChevronLeft, ChevronRight, Footprints, Lock, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { RouteWait } from "@/components/loading/route-wait";
 import { inkForFill } from "@/lib/palette";
 
@@ -103,6 +103,25 @@ function TrailInner({ isPro }: { isPro: boolean }) {
   const [data, setData] = useState<TrailData | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
+  // The labels are HTML at fixed font size while the SVG scales with the
+  // container — so the layout must be computed from the REAL width. Laid out
+  // at a hardcoded 720 and squeezed onto a 390px phone, the 92px node gap
+  // renders at ~50px, shorter than one ~70px label: every label overlapped
+  // its neighbour. null = not measured yet; the trail waits for the first
+  // observation instead of flashing a mislaid frame.
+  const [trailWidth, setTrailWidth] = useState<number | null>(null);
+  const trailObserverRef = useRef<ResizeObserver | null>(null);
+  const measureTrail = useCallback((el: HTMLDivElement | null) => {
+    trailObserverRef.current?.disconnect();
+    trailObserverRef.current = null;
+    if (!el) return;
+    const observer = new ResizeObserver((entries) => {
+      const width = entries[0]?.contentRect.width;
+      if (width) setTrailWidth(Math.min(720, Math.max(320, Math.round(width))));
+    });
+    observer.observe(el);
+    trailObserverRef.current = observer;
+  }, []);
 
   const loadTrail = useCallback(async (signal: AbortSignal) => {
     setStatus("loading");
@@ -133,7 +152,10 @@ function TrailInner({ isPro }: { isPro: boolean }) {
     return () => controller.abort();
   }, [loadTrail]);
 
-  const trail = useMemo(() => (data ? layoutTrail(data.steps, 720) : null), [data]);
+  const trail = useMemo(
+    () => (data && trailWidth ? layoutTrail(data.steps, trailWidth) : null),
+    [data, trailWidth],
+  );
 
   if (status === "loading") {
     return (
@@ -286,7 +308,7 @@ function TrailInner({ isPro }: { isPro: boolean }) {
           )}
 
           {/* The trail itself */}
-          <div className="relative overflow-hidden rounded-3xl border border-[var(--border-primary)] bg-[radial-gradient(ellipse_at_top,#0c1226,#070a16_60%,#030409)]">
+          <div ref={measureTrail} className="relative overflow-hidden rounded-3xl border border-[var(--border-primary)] bg-[radial-gradient(ellipse_at_top,#0c1226,#070a16_60%,#030409)]">
             {trail && (
               <div className="relative mx-auto w-full" style={{ maxWidth: trail.width }}>
                 <svg
