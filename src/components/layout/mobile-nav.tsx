@@ -19,20 +19,6 @@ interface MobileNavProps {
 // A springy elastic overshoot for the active tab's icon.
 const ELASTIC_POP = { duration: 0.52, ease: [0.34, 1.56, 0.64, 1] as const, times: [0, 0.42, 0.72, 1] };
 
-// Six domains, six plastics — the SAME assignment the sidebar already ships at
-// globals.css:7370-7375 (`.mesh-nav-item[href="/mesh"] { --domain: … }`), keyed
-// on the unresolved `item.href` so /profile still matches after
-// resolveNavHref() has expanded it to /profile/<username>. Colour is WHICH tab,
-// never how loud: every triple below is pinned in tokens.css:87-93, so the ink
-// that rides with each fill is contrast-verified rather than guessed.
-const TAB_MOULD: Record<string, string> = {
-  "/mesh": "[--mould:var(--mould-tomato)] [--mould-ink:var(--mould-tomato-ink)] [--mould-plinth:var(--mould-tomato-plinth)]",
-  "/flow": "[--mould:var(--mould-cobalt)] [--mould-ink:var(--mould-cobalt-ink)] [--mould-plinth:var(--mould-cobalt-plinth)]",
-  "/messages": "[--mould:var(--mould-jade)] [--mould-ink:var(--mould-jade-ink)] [--mould-plinth:var(--mould-jade-plinth)]",
-  "/explore": "[--mould:var(--mould-grape)] [--mould-ink:var(--mould-grape-ink)] [--mould-plinth:var(--mould-grape-plinth)]",
-  "/profile": "[--mould:var(--mould-teal)] [--mould-ink:var(--mould-teal-ink)] [--mould-plinth:var(--mould-teal-plinth)]",
-};
-
 function MobileNavItem({
   item,
   isActive,
@@ -44,7 +30,6 @@ function MobileNavItem({
   badgeCount: number;
   resolvedHref: string;
 }) {
-  const isMesh = item.href === "/mesh";
   const iconControls = useAnimationControls();
   const wasActive = useRef(isActive);
 
@@ -58,55 +43,40 @@ function MobileNavItem({
   }, [isActive, iconControls]);
 
   return (
-    /* THE FIVE TABS HAD NO MATERIAL AT ALL — a radius, a text colour, and an
-       `active:bg` tint. No face, no --edge ring (so no WCAG 1.4.11 boundary on
-       the primary navigation of the whole mobile app), and no side wall. They
-       are `.key` now (globals.css:4942), and the active one is `.key-lit`
-       (globals.css:4996) moulded from its own domain plastic.
-
-       The `layoutId="mobile-nav-pill"` sliding highlight is GONE with it. It was
-       `color-mix(--accent 22%)` under `boxShadow: 0 0 16px color-mix(--accent
-       28%)` — a translucent tint plus a literal glow, i.e. the active state was
-       carried by brightness. Emphasis here is material and plinth, never
-       saturation, so the highlight has nothing left to say; laid over an opaque
-       `--face` it would only have muddied it. The elastic icon pop on route
-       change is untouched — that is content arriving, not ambient motion.
-
-       Tailwind's `rounded-full` / `transition-all` / `active:bg-*` are deleted
-       rather than left: this file's CSS is unlayered and Tailwind's utilities
-       are in `@layer utilities`, so `.key` already beat all three and they were
-       markup that read as if it still did something. */
+    /* A FLAT tab bar, not a row of keys. The previous pass made each tab a
+       `.key` — five boxed faces with edge rings in a row, which photographs
+       as a keyboard, not as navigation; no native tab bar (iOS, X, Instagram)
+       boxes its tabs. The bar's own top hairline and mat are the boundary;
+       WITHIN it, tabs are icon + label, and the active one is stated by ink
+       (--accent-text, the contrast-measured ink for the mat) on both icon
+       and label plus aria-current — never by a filled box. Labels are back
+       because icon-only navigation makes people guess: every native tab bar
+       ships ~10px labels under the glyphs. */
     <Link
       href={resolvedHref}
       onClick={() => impactFeedback("LIGHT")}
       aria-current={isActive ? "page" : undefined}
-      aria-label={item.label}
-      title={item.label}
       className={cn(
-        "key relative flex min-h-12 items-center justify-center px-1",
-        isActive
-          ? cn("key-lit", TAB_MOULD[item.href])
-          : "text-[var(--text-muted)]",
+        "relative flex min-h-[52px] flex-col items-center justify-center gap-0.5 px-1",
+        isActive ? "text-[var(--accent-text)]" : "text-[var(--text-muted)]",
       )}
     >
-      <motion.span animate={iconControls} className="relative z-10 flex">
-        <item.icon className={cn("h-[22px] w-[22px]", isMesh && "h-[24px] w-[24px]")} aria-hidden="true" />
+      <motion.span animate={iconControls} className="relative flex">
+        <item.icon className="h-[23px] w-[23px]" aria-hidden="true" />
+        {badgeCount > 0 && (
+          <motion.span
+            key={badgeCount}
+            initial={{ scale: 0.4 }}
+            animate={{ scale: 1 }}
+            transition={{ type: "spring", stiffness: 520, damping: 18 }}
+            /* --accent-ink is the pinned ink for an --accent fill (tokens.css). */
+            className="absolute -right-2.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--accent)] px-1 text-micro font-semibold text-[var(--accent-ink)]"
+          >
+            {badgeCount > 99 ? "99+" : badgeCount}
+          </motion.span>
+        )}
       </motion.span>
-      <span className="sr-only">{item.label}</span>
-      {badgeCount > 0 && (
-        <motion.span
-          key={badgeCount}
-          initial={{ scale: 0.4 }}
-          animate={{ scale: 1 }}
-          transition={{ type: "spring", stiffness: 520, damping: 18 }}
-          /* `text-white` on `bg-[var(--accent)]` measures ~1.9:1 in Worklight,
-             where --accent is #93a9ff (tokens.css:194). --accent-ink is the
-             pinned ink for that fill (tokens.css:69, 197). */
-          className="absolute right-2 top-1.5 z-10 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--accent)] px-1 text-micro font-semibold text-[var(--accent-ink)]"
-        >
-          {badgeCount > 99 ? "99+" : badgeCount}
-        </motion.span>
-      )}
+      <span className="text-[0.625rem] font-medium leading-none">{item.label}</span>
     </Link>
   );
 }
@@ -118,31 +88,25 @@ export function MobileNav({ unreadNotifications = 0, unreadMessages = 0, usernam
   const navClass = useMemo(
     () =>
       cn(
-        // `backdrop-blur-xl` removed: backdrop-filter is banned system-wide, and
-        // globals.css:4202-4210 already cancels it with `backdrop-filter: none
-        // !important` — so the utility was naming a property it never got. The
-        // translucent `bg-[var(--mesh-bg)]/96` went with it for the same reason;
-        // that same block forces `background: var(--bg-primary) !important`, an
-        // opaque mat, which is what a row of keys has to sit on.
         "safe-area-bottom mobile-bottom-nav fixed bottom-0 left-0 right-0 z-50 w-full border-t border-[var(--mesh-border)] transition-all duration-200 md:hidden",
         isKeyboardVisible && "pointer-events-none translate-y-24 opacity-0"
       ),
     [isKeyboardVisible],
   );
 
-  // The FAB keeps its class rather than gaining `.key`, and that is deliberate:
-  // `.mobile-compose-fab` is pinned by three `!important` blocks
-  // (globals.css:4096-4103, 4106-4112, 4114-4121) that `.key` cannot outrank on
-  // specificity, and `.key`'s --radius-md would square off a round FAB. The
-  // material it was missing — the --edge ring, the cobalt side wall, and a press
-  // that replaces the `translateY(-1px)` hover LIFT at :4110 — arrives as an
-  // `!important` block appended after those three. `shadow-[var(--shadow-md)]`
-  // and `text-[var(--compose-fg)]` are dropped here because :4102 and :4118
-  // already overrode both; they were dead.
+  // The FAB keeps its class rather than gaining `.key` — `.mobile-compose-fab`
+  // is pinned by `!important` blocks in globals.css that `.key` cannot outrank.
   const composeClass = cn(
     "mobile-compose-fab mesh-fab-enter fixed bottom-[calc(5.45rem+env(safe-area-inset-bottom))] right-4 z-50 flex h-14 w-14 items-center justify-center rounded-full transition-all duration-200 md:hidden",
     isKeyboardVisible && "pointer-events-none translate-y-24 opacity-0",
   );
+
+  /* The FAB is the FEED's compose action, and it only renders on the feed.
+     As a global overlay it floated over every surface — photographed covering
+     Trail's serpentine labels at 390 and sitting beside MeChat's own compose
+     key as a second, differently-shaped compose that makes a different kind
+     of post. Surfaces with their own primary keep their own. */
+  const showComposeFab = pathname === "/feed";
 
   return (
     <>
@@ -159,17 +123,19 @@ export function MobileNav({ unreadNotifications = 0, unreadMessages = 0, usernam
           .mesh-fab-enter { animation: none; }
         }
       `}</style>
-      <Link
-        href="/feed?compose=true"
-        onClick={() => impactFeedback("MEDIUM")}
-        className={composeClass}
-        aria-label="Create post"
-        title="Create post"
-      >
-        <PlusSquare className="h-[24px] w-[24px]" aria-hidden="true" />
-      </Link>
+      {showComposeFab && (
+        <Link
+          href="/feed?compose=true"
+          onClick={() => impactFeedback("MEDIUM")}
+          className={composeClass}
+          aria-label="Create post"
+          title="Create post"
+        >
+          <PlusSquare className="h-[24px] w-[24px]" aria-hidden="true" />
+        </Link>
+      )}
       <nav className={navClass} aria-label="Primary mobile navigation">
-        <div className="grid grid-cols-5 items-center gap-1">
+        <div className="grid grid-cols-5 items-center">
           {mobileNavItems.map((item) => {
             const isActive = isNavItemActive(pathname, item.href, username);
             const badgeCount = getBadgeCount(item.badgeKey, unreadNotifications, unreadMessages);
