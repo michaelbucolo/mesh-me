@@ -68,7 +68,7 @@ export function IdentityProviderButtons({ providers, next, className }: Identity
                   maskComposite: "exclude",
                 } as React.CSSProperties}
               />
-              <span className="inline-flex transition-transform duration-300 ease-out motion-safe:group-hover:-translate-y-0.5 motion-safe:group-hover:scale-110">
+              <span className="inline-flex">
                 <Glyph />
               </span>
               {PROVIDER_LABEL[provider]}

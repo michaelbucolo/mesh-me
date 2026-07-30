@@ -27,7 +27,7 @@ function BrandContents({
       {useUserMeshi ? (
         <UserMeshi size={size} animate={false} className="shrink-0" />
       ) : (
-        <MeshiBrandMark size={size + 2} className="shrink-0 transition-transform duration-200 group-hover:scale-105" />
+        <MeshiBrandMark size={size + 2} className="shrink-0" />
       )}
       {showWordmark && (
         <span className="mesh-brand-wordmark-wrap min-w-0">

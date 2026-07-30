@@ -189,7 +189,7 @@ export default async function MeshProPage({ searchParams }: MeshProPageProps) {
           <Link
             key={title}
             href={href}
-            className="mesh-choice group rounded-xl p-5 transition hover:-translate-y-0.5"
+            className="mesh-choice group rounded-xl p-5 transition"
           >
             <Icon className="h-5 w-5 text-[var(--accent-text)]" aria-hidden="true" />
             <p className="mt-3 text-sm font-semibold text-[var(--text-primary)]">{title}</p>
