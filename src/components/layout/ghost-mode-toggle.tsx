@@ -92,8 +92,8 @@ export function GhostModeToggle({ compact = false, initialGhost = false }: { com
          plastic, whose ink and plinth are pinned together in tokens.css:92 and
          verified by contrast:check. Same idiom as the liked/saved controls in
          feed/post-card.tsx:790,837. */
-      className={`key inline-flex items-center gap-1.5 px-3 ${
-        compact ? "h-9 justify-center" : "h-9"
+      className={`key inline-flex items-center gap-1.5 ${
+        compact ? "h-11 w-11 justify-center px-0" : "h-11 px-3"
       } ${
         ghost
           ? "key-lit [--mould:var(--mould-grape)] [--mould-ink:var(--mould-grape-ink)] [--mould-plinth:var(--mould-grape-plinth)]"

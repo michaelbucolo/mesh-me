@@ -207,7 +207,7 @@ function TrailInner({ isPro }: { isPro: boolean }) {
           <Link
             href={yearMode ? `/trail?range=year&year=${data.prevMonth}` : `/trail?month=${data.prevMonth}`}
             aria-label={yearMode ? "Previous year" : "Previous month"}
-            className="mesh-bubble-btn flex h-8 w-8 items-center justify-center rounded-full border border-[var(--border-primary)] bg-[var(--bg-card)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+            className="mesh-bubble-btn flex h-11 w-11 items-center justify-center rounded-full border border-[var(--border-primary)] bg-[var(--bg-card)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
           >
             <ChevronLeft size={15} />
           </Link>
@@ -215,12 +215,12 @@ function TrailInner({ isPro }: { isPro: boolean }) {
             <Link
               href={yearMode ? `/trail?range=year&year=${data.nextMonth}` : `/trail?month=${data.nextMonth}`}
               aria-label={yearMode ? "Next year" : "Next month"}
-              className="mesh-bubble-btn flex h-8 w-8 items-center justify-center rounded-full border border-[var(--border-primary)] bg-[var(--bg-card)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+              className="mesh-bubble-btn flex h-11 w-11 items-center justify-center rounded-full border border-[var(--border-primary)] bg-[var(--bg-card)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
             >
               <ChevronRight size={15} />
             </Link>
           ) : (
-            <span className="flex h-8 w-8 items-center justify-center rounded-full border border-[var(--border-primary)] text-[var(--text-muted)]">
+            <span className="flex h-11 w-11 items-center justify-center rounded-full border border-[var(--border-primary)] text-[var(--text-muted)]">
               <ChevronRight size={15} />
             </span>
           )}
@@ -231,7 +231,7 @@ function TrailInner({ isPro }: { isPro: boolean }) {
       <div className="mb-3 flex items-center gap-1.5">
         <Link
           href="/trail"
-          className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+          className={`inline-flex min-h-11 items-center rounded-full px-3.5 text-xs font-semibold transition ${
             !yearMode ? "bg-[var(--accent)] text-[var(--accent-contrast)]" : "border border-[var(--border-primary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
           }`}
         >
@@ -240,7 +240,7 @@ function TrailInner({ isPro }: { isPro: boolean }) {
         {isPro ? (
           <Link
             href="/trail?range=year"
-            className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+            className={`inline-flex min-h-11 items-center rounded-full px-3.5 text-xs font-semibold transition ${
               yearMode ? "bg-[var(--accent)] text-[var(--accent-contrast)]" : "border border-[var(--border-primary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
             }`}
           >
@@ -249,7 +249,7 @@ function TrailInner({ isPro }: { isPro: boolean }) {
         ) : (
           <Link
             href="/meshpro"
-            className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border-primary)] px-3 py-1.5 text-xs font-semibold text-[var(--text-secondary)] transition hover:text-[var(--text-primary)]"
+            className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-[var(--border-primary)] px-3.5 text-xs font-semibold text-[var(--text-secondary)] transition hover:text-[var(--text-primary)]"
           >
             <Lock size={11} />
             Your Year · Pro
