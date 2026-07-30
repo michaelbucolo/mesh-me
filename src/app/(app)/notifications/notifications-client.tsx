@@ -169,40 +169,29 @@ export function NotificationsClient({ initialPayload }: { initialPayload: Notifi
           box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 50%, transparent);
         }
       `}</style>
-      <header className="mesh-surface mesh-pop-in rounded-lg p-4 md:p-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <h1 className="text-xl font-semibold md:text-2xl">Notifications</h1>
-              {payload.unreadCount > 0 && (
-                <span className="rounded-full bg-[var(--accent)] px-2 py-0.5 text-xs font-semibold text-[var(--accent-contrast)]">{payload.unreadCount} new</span>
-              )}
-            </div>
-            {payload.smartSummary && (
-              <p className="mt-1 text-sm text-[var(--text-secondary)]">{payload.smartSummary}</p>
-            )}
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Link href="/settings" className="mesh-action mesh-action-secondary px-3 text-sm">
-              <LockKeyhole size={15} aria-hidden="true" />
-              Settings
-            </Link>
-            <button type="button" onClick={refresh} disabled={isPending} className="mesh-action mesh-action-secondary px-3 text-sm">
-              {isPending ? <PaperWait size="sm" /> : <RefreshCw size={15} aria-hidden="true" />}
-              Refresh
-            </button>
-            <button
-              type="button"
-              onClick={() => requestNotificationAction("mark-read")}
-              disabled={isPending || payload.unreadCount === 0}
-              className="mesh-action mesh-action-primary px-4 text-sm"
-              data-testid="mark-all-notifications-read"
-            >
-              <Check size={15} aria-hidden="true" />
-              Mark all read
-            </button>
-          </div>
-        </div>
+      {/* The topbar states "Notifications" and the bell badge counts unread —
+          this header used to restate both (a 48px title, a "2 new" pill, and a
+          generated summary sentence) before the reader reached a single
+          notification. Actions only. */}
+      <header className="flex flex-wrap items-center justify-end gap-2">
+        <Link href="/settings" className="mesh-action mesh-action-secondary px-3 text-sm">
+          <LockKeyhole size={15} aria-hidden="true" />
+          Settings
+        </Link>
+        <button type="button" onClick={refresh} disabled={isPending} className="mesh-action mesh-action-secondary px-3 text-sm">
+          {isPending ? <PaperWait size="sm" /> : <RefreshCw size={15} aria-hidden="true" />}
+          Refresh
+        </button>
+        <button
+          type="button"
+          onClick={() => requestNotificationAction("mark-read")}
+          disabled={isPending || payload.unreadCount === 0}
+          className="mesh-action mesh-action-primary px-4 text-sm"
+          data-testid="mark-all-notifications-read"
+        >
+          <Check size={15} aria-hidden="true" />
+          Mark all read
+        </button>
       </header>
 
       <section className="grid gap-4">
@@ -383,7 +372,12 @@ group.priority === "high" ? "bg-[var(--mould-crimson)] text-[var(--mould-crimson
                 </span>
               )}
             </div>
-            <p className="mt-1 line-clamp-2 text-sm leading-6 text-[var(--text-secondary)]">{group.summary}</p>
+            {/* For single-item groups groupSummary() falls back to the same
+                notification.message the title already shows — printing it
+                twice per row reads as filler. */}
+            {group.summary !== group.title && (
+              <p className="mt-1 line-clamp-2 text-sm leading-6 text-[var(--text-secondary)]">{group.summary}</p>
+            )}
             <p className="mt-2 text-xs font-semibold text-[var(--text-muted)]">
               {getNotificationCategoryLabel(group.category)} · {formatRelativeTime(group.latestAt)}
               {group.count > 1 ? ` · ${group.count} related` : ""}

@@ -4569,16 +4569,12 @@ body,
   }
 }
 
-.simple-page > header.mesh-surface {
-  padding: clamp(0.95rem, 2vw, 1.35rem) !important;
-}
-
-.simple-page > header.mesh-surface h1 {
-  max-width: 52rem;
-  font-size: clamp(1.85rem, 4vw, 3rem) !important;
-  line-height: 1.05 !important;
-}
-
+/* Inside the shell the topbar already states each page's name at 19px.
+   A rule here used to inflate every simple-page header h1 to
+   clamp(1.85rem, 4vw, 3rem) with !important — so "Notifications" appeared
+   twice on one screen, once in the topbar and once at 48px directly below
+   it. Page identity is stated once, by the topbar; in-page headings are
+   section-level and size themselves. */
 .simple-page > header.mesh-surface p {
   max-width: 42rem;
 }

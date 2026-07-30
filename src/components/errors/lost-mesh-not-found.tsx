@@ -85,7 +85,7 @@ export function LostMeshNotFound({
           </div>
         </div>
 
-        <h1 className="mx-auto mt-6 max-w-2xl font-display text-3xl font-semibold leading-tight text-[var(--text-primary)] sm:text-5xl">
+        <h1 className="mx-auto mt-6 max-w-2xl font-display text-2xl font-semibold leading-tight text-[var(--text-primary)] sm:text-3xl">
           Lost in the Mesh
         </h1>
         <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-[var(--text-secondary)] sm:text-base">

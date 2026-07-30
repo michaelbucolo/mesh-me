@@ -40,8 +40,9 @@ export default async function BillingPage() {
       <header className="mesh-surface rounded-lg p-4 md:p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
+            {/* The topbar states "Billing" — this header used to repeat the
+                word at 48px. The plan badge is the information. */}
             <Badge variant={isPro ? "success" : "secondary"}>{isPro ? "MeshPro active" : "Free plan"}</Badge>
-            <h1 className="mt-3 text-3xl font-semibold leading-tight md:text-5xl">Billing</h1>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--text-secondary)]">
               Manage MeshPro payments through Stripe. Mesh.me does not store card numbers and never sells user data.
             </p>
