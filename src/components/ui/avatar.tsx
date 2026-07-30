@@ -46,9 +46,9 @@ const dotSizeMap = {
 };
 
 const interactiveClass =
-  "transition-[transform,box-shadow] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] " +
-  "hover:scale-[1.03] hover:ring-[var(--accent)] will-change-transform " +
-  "motion-reduce:transition-none motion-reduce:hover:scale-100";
+  "transition-shadow duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] " +
+  "hover:ring-[var(--accent)] " +
+  "motion-reduce:transition-none";
 
 export const Avatar = memo(function Avatar({
   src,

@@ -981,7 +981,7 @@ function TrendingHero({ posts }: { posts: FeedCardPost[] }) {
             >
               <Link
                 href={safeHref(post.externalUrl) || `/feed/${post.id}`}
-                className="group relative block h-44 w-[min(16rem,75vw)] overflow-hidden rounded-2xl border border-[var(--border-secondary)] bg-[var(--bg-secondary)] transition-transform hover:-translate-y-0.5"
+                className="group relative block h-44 w-[min(16rem,75vw)] overflow-hidden rounded-2xl border border-[var(--border-secondary)] bg-[var(--bg-secondary)]"
               >
                 {still ? (
                   // eslint-disable-next-line @next/next/no-img-element
