@@ -28,10 +28,20 @@ export default function MessagesLayout({ children }: MessagesLayoutProps) {
   );
 }
 
+/* The rail's divider, stated ONCE for both the loading and the loaded state.
+ *
+ * It used to be stated twice, differently: the fallback aside drew
+ * `border-r border-[var(--border-primary)]` while the loaded shell's aside
+ * drew nothing and left the border to the conversation list's own root, in a
+ * different pigment (--mesh-border). So the divider changed colour the moment
+ * the data landed — the exact "two places state one fact" drift the fallback's
+ * own comment promises to avoid ("when the data lands nothing shifts"). */
+const RAIL_ASIDE = "hidden min-h-0 border-r border-[var(--mesh-border)] lg:block";
+
 function MessagesWait() {
   return (
     <div className="grid h-full min-h-0 lg:grid-cols-[360px_minmax(0,1fr)]">
-      <aside className="hidden min-h-0 border-r border-[var(--border-primary)] lg:block">
+      <aside className={RAIL_ASIDE}>
         <RouteWait shape="rail-list" label="Loading your conversations" />
       </aside>
       <div className="min-h-0 min-w-0">
@@ -157,7 +167,7 @@ async function MessagesShell({ children }: MessagesLayoutProps) {
       value={sidebarData}
     >
       <div className="grid h-full min-h-0 lg:grid-cols-[360px_minmax(0,1fr)]">
-        <aside className="hidden min-h-0 lg:block">
+        <aside className={RAIL_ASIDE}>
           <MeChatConversationList
             variant="rail"
             currentUser={currentUser}

@@ -299,7 +299,7 @@ export function MeChatConversationList({
 
   const rootClassName =
     variant === "rail"
-      ? "flex h-full min-h-0 w-full flex-col overflow-hidden border-r border-[var(--mesh-border)] bg-[var(--mesh-panel)]"
+      ? "flex h-full min-h-0 w-full flex-col overflow-hidden bg-[var(--mesh-panel)]"
       : "flex h-[calc(100dvh-3.5rem)] min-h-0 w-full flex-col overflow-hidden bg-[var(--mesh-bg)] pb-[env(safe-area-inset-bottom)]";
 
   return (

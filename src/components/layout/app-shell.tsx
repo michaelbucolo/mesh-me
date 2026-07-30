@@ -381,6 +381,10 @@ export function AppShell({ children, user }: AppShellProps) {
   // word Mesh — two places stating one fact, rendered as two boxes. The page's
   // one stays; this one steps aside there.
   const isExploreSurface = pathname === "/explore" || pathname.startsWith("/explore/");
+  // MeChat is a split view that owns its height — a chat never scrolls the
+  // page. `mesh-shell-chat` gives it the same full-bleed content column the
+  // canvas surfaces use (and only that; see globals.css at the shared rule).
+  const isMessagesSurface = pathname === "/messages" || pathname.startsWith("/messages/");
   const userInitials = useMemo(() => {
     const fromName = user.displayName
       .split(/\s+/)
@@ -476,7 +480,7 @@ export function AppShell({ children, user }: AppShellProps) {
   }, [isMeshSurface, pathname]);
 
   return (
-    <div className={`mesh-shell h-dvh max-h-dvh min-h-0 overflow-hidden text-[var(--mesh-text)] md:grid md:grid-cols-[var(--mesh-sidebar-width)_1fr] ${isFeedSurface ? "mesh-shell-feed" : ""} ${isMeshSurface || isFlowSurface ? "mesh-shell-mesh" : ""} ${isFlowSurface ? "mesh-shell-flow" : ""} ${isExploreSurface ? "mesh-shell-explore" : ""}`}>
+    <div className={`mesh-shell h-dvh max-h-dvh min-h-0 overflow-hidden text-[var(--mesh-text)] md:grid md:grid-cols-[var(--mesh-sidebar-width)_1fr] ${isFeedSurface ? "mesh-shell-feed" : ""} ${isMeshSurface || isFlowSurface ? "mesh-shell-mesh" : ""} ${isMessagesSurface ? "mesh-shell-chat" : ""} ${isFlowSurface ? "mesh-shell-flow" : ""} ${isExploreSurface ? "mesh-shell-explore" : ""}`}>
 
       {/* The per-item static active bar is superseded by the shared morphing
           indicator rendered inside the active SidebarNavItem. */}
