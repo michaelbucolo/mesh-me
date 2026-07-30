@@ -79,8 +79,12 @@ function MeshLoadingGate({ viewUserId, isGlobal }: { viewUserId?: string; isGlob
           invented, and an invented number costs every later real one. */}
       <MeshFormingLoader backdrop className="opacity-80" />
       <div className="absolute inset-0 flex items-center justify-center">
+        {/* No `meshi-wait-on-dark` here: the weave backdrop follows the THEME
+            (paintTheme()), and pinning a dark-only ink on a theme-following
+            backdrop measured 1.02:1 in light — the headline photographed as
+            ghost text. The default ink is var(--text-primary), measured on
+            both themes by the contrast gate. */}
         <MeshiWait
-          className="meshi-wait-on-dark"
           headline={
             viewUserId ? "Opening their world…" : isGlobal ? "Weaving the Global Mesh…" : "Weaving your world…"
           }

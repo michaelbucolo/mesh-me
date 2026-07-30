@@ -193,7 +193,7 @@ export function ContentLens({
 
   return (
     <div
-      className="absolute inset-0 z-50 flex animate-[fadeIn_.18s_ease] items-end justify-center bg-black/65 p-3 backdrop-blur-md sm:items-center"
+      className="absolute inset-0 z-50 flex animate-[fadeIn_.18s_ease] items-end justify-center bg-black/65 p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom)+var(--mobile-nav-h,0px))] backdrop-blur-md sm:items-center sm:pb-3"
       onPointerDown={(e) => {
         e.stopPropagation();
         if (e.target === e.currentTarget) onClose();
