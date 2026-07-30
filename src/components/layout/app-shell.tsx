@@ -64,7 +64,14 @@ type RouteInfo = {
 const routeInfoMap: Record<string, RouteInfo> = {
   "/mesh": { title: "The Mesh", description: "Your digital world. Connected by you." },
   "/feed": { title: "Feed", description: "Your timeline across all connected platforms." },
-  "/messages": { title: "MeChat", description: "Your universal messaging hub. All your conversations, in one place." },
+  // NOT "your universal messaging hub, all your conversations in one place".
+  // Measured from src/lib/platform-capabilities.ts: 0 of the 9 messengers
+  // mesh.me lists can sync a message, because none of them expose an official
+  // direct-message API to connected apps. The claim was false for every single
+  // one of them, and it was the page description — the first thing said about
+  // this surface. scripts/unified-claim-check.ts derives what may be said here
+  // from what the capability table actually supports.
+  "/messages": { title: "MeChat", description: "Your mesh.me conversations." },
   "/notifications": { title: "Notifications", description: "Stay updated on what matters." },
   "/search": { title: "Search", description: "Find people, posts, and communities." },
   "/communities": { title: "Communities", description: "Discover, join, and build with communities around the world." },

@@ -24,7 +24,9 @@ export function MessagesIndexPane() {
           <MeshiMascot size={110} mood="happy" prop="envelope" animate showGlow />
           <h1 className="mt-6 text-2xl font-semibold text-[var(--mesh-text)]">Your messages</h1>
           <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-[var(--mesh-text-secondary)]">
-            Every conversation — from mesh.me and all your connected platforms — lives here. Pick one on the left, or start something new.
+            Your mesh.me conversations live here. Connected platforms keep their own inboxes — none of
+            them opens messages to other apps — so MeChat links out to those rather than pretending to
+            hold them.
           </p>
           {/* The one action on an otherwise empty screen, and it had no material:
               `.mesh-pressable` (globals.css:2192) LIFTS 2px on hover and swaps in a

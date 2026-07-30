@@ -403,7 +403,13 @@ function reason(query: string, context?: ChatRequest["context"]): ReasonResult {
   }
 
   // Mesh.me features knowledge base
-  if (q.includes("feature") || q.includes("what can")) return { content: "mesh.me has three main areas: The Mesh (visualize & manage your digital footprint), Feed (content from all your platforms), and Messages (unified inbox). Plus: per-node privacy controls, cross-platform posting, achievement badges, Meshi (that's me!), communities, and MeshPro extras. What would you like to know more about?", mood: "excited" };
+  // This answer used to say "Messages (unified inbox)" and "cross-platform
+  // posting". Neither is true as built: platform-capabilities.ts reports 0 of 9
+  // messengers able to sync a message, and exactly 1 of 18 platforms able to
+  // cross-post. Meshi is the surface people ASK what the product does, so a
+  // confident wrong answer here is worse than the same wrong answer in a
+  // headline — it was requested. scripts/unified-claim-check.ts holds this.
+  if (q.includes("feature") || q.includes("what can")) return { content: "mesh.me has three main areas: The Mesh (visualize & manage your digital footprint), Flow (content from the platforms that allow importing — X, YouTube, Twitch, Spotify and Discord today), and MeChat for your mesh.me conversations. Plus: per-node privacy controls, achievement badges, Meshi (that's me!), communities, and MeshPro extras. The One Account page shows exactly what each platform does and does not let mesh.me do. What would you like to know more about?", mood: "excited" };
   if (q.includes("meshpro") || q.includes("pro") || q.includes("premium") || q.includes("upgrade")) return { content: "MeshPro is $4.99/mo or $39.99/yr. It adds: Digital Footprint Scanner, cross-platform analytics, custom mesh cosmetics, and advanced security tools. Everything else is free — we never gate core features.", mood: "happy" };
   if (q.includes("privacy") || q.includes("private") || q.includes("hide") || q.includes("visible")) return { content: "Privacy is a core Mesh.me control. You can set profile and Mesh visibility, hide connection branches or stats, and manage individual nodes. Server-side access checks enforce those choices; Settings > Mesh Privacy has the controls.", mood: "cool" };
   if (q.includes("security") || q.includes("secure") || q.includes("safe") || q.includes("hack")) return { content: "mesh.me uses strong encryption, rate limiting, account lockout protection, and session management. Your data is yours — we never sell it, track you, or build ad profiles. Change passwords, manage sessions, and export data from Settings > Security.", mood: "cool" };
