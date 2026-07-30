@@ -805,7 +805,12 @@ function ReelContent({
             </span>
           ))}
 
-          <span className="absolute left-3 top-3 z-10 flex flex-col items-start gap-1.5">
+          {/* top-16, not top-3: the flow chrome (Back at left-3, mode pill at
+              left-14, both ~41px tall and z-20) is anchored to the same corner
+              of the same viewport-sized cell. At top-3 this chip sat exactly
+              under the Back button — and it is the ONLY way out to the source
+              platform. */}
+          <span className="absolute left-3 top-16 z-10 flex flex-col items-start gap-1.5">
             {platformChip && (
               postSourceUrl ? (
                 // The ONLY way out to the source platform: tapping the source
@@ -839,13 +844,16 @@ function ReelContent({
           </span>
 
           {/* Related-lane state: finding, or how deep into "similar" you are */}
+          {/* Centered at top-3 these collided with the mode pill (ends ~x170
+              on a 390 viewport; a centered ~150px pill starts ~x120). top-16
+              clears the chrome row. */}
           {laneLoading && (
-            <span className="absolute left-1/2 top-3 z-10 flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-black/60 px-3 py-1 text-micro font-semibold text-white backdrop-blur">
+            <span className="absolute left-1/2 top-16 z-10 flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-black/60 px-3 py-1 text-micro font-semibold text-white backdrop-blur">
               <OrbitSparkle size={12} /> Finding similar…
             </span>
           )}
           {!laneLoading && laneIndex > 0 && (
-            <span className="absolute left-1/2 top-3 z-10 flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-black/60 px-3 py-1 text-micro font-semibold text-white backdrop-blur">
+            <span className="absolute left-1/2 top-16 z-10 flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-black/60 px-3 py-1 text-micro font-semibold text-white backdrop-blur">
               <Sparkles size={12} /> Similar {laneIndex}/{laneTotal}
             </span>
           )}
