@@ -919,14 +919,32 @@ select:focus-visible {
 .mesh-content::-webkit-scrollbar-thumb { background: rgba(100, 166, 255, 0.12); border-radius: 4px; }
 .mesh-content::-webkit-scrollbar-thumb:hover { background: rgba(100, 166, 255, 0.24); }
 
-/* Mesh full-bleed for canvas pages */
-.mesh-shell-mesh .mesh-content {
+/* FULL-BLEED APP SURFACES — the mesh/flow canvas AND the chat split view.
+ *
+ * `.mesh-content` is a plain block scroller and `.mesh-route-slot` inside it
+ * has `height: auto`, which means a route saying `h-full` gets NOTHING: a
+ * percentage cannot resolve against auto, so it falls back to content height.
+ * Measured on the built page at 1440x900: the scroller stood at 828px while
+ * the MeChat grid, its rail, and the whole conversation list all collapsed to
+ * 415px — the rail photographed as a panel stopping mid-air at half the pane.
+ *
+ * The canvas pages never hit this because this pair of rules turns the
+ * scroller into a non-scrolling flex column and makes the route slot a
+ * definite-height flex item, which percentages CAN resolve against. A chat
+ * split view is the same kind of surface — it owns its height and never
+ * scrolls the page — so it joins the same two rules rather than growing a
+ * third spelling of "full-bleed". (`.mesh-shell-mesh` itself is wider than
+ * this pair: it also restyles mobile chrome, which chat must not inherit —
+ * that is why `.mesh-shell-chat` exists instead of chat joining the class.) */
+.mesh-shell-mesh .mesh-content,
+.mesh-shell-chat .mesh-content {
   display: flex;
   flex-direction: column;
   overflow: hidden;
 }
 
-.mesh-shell-mesh .mesh-content > .mesh-route-slot {
+.mesh-shell-mesh .mesh-content > .mesh-route-slot,
+.mesh-shell-chat .mesh-content > .mesh-route-slot {
   flex: 1;
   min-height: 0;
   display: flex;
