@@ -64,7 +64,16 @@ export default async function FeedPage({ searchParams }: FeedPageProps) {
       }),
   ]);
 
-  let posts = feedWindow.slice(0, INITIAL_FEED_LIMIT);
+  /* A ranked feed that ranks NOTHING is not an empty account — it is a cold
+     taste profile. The seeded account follows nine posting users and still got
+     the empty state, because rankFlowPosts returning [] fell straight through
+     to "no posts". Fall back to the chronological combined feed; the empty
+     state remains for accounts that genuinely have nothing to show. */
+  const feedPosts = rankedDefault && feedWindow.length === 0
+    ? await getCombinedFeedPosts({ user, source, contentFilter, limit: INITIAL_FEED_LIMIT + 1 })
+    : feedWindow;
+
+  let posts = feedPosts.slice(0, INITIAL_FEED_LIMIT);
   if (flow && !posts.some((post) => post.id === flow)) {
     const flowPost = await getFeedPostById(user, flow);
     if (flowPost) posts = [flowPost, ...posts];
@@ -76,7 +85,7 @@ export default async function FeedPage({ searchParams }: FeedPageProps) {
       key={source}
       user={{ id: user.id, username: user.username, displayName: user.displayName, avatarUrl: user.avatarUrl }}
       initialPosts={posts}
-      initialHasMore={feedWindow.length > INITIAL_FEED_LIMIT}
+      initialHasMore={feedPosts.length > INITIAL_FEED_LIMIT}
       source={source}
       initialContentFilter={contentFilter}
       connectedPlatforms={connectedPlatforms}

@@ -196,7 +196,7 @@ export function CommunityHub({ data }: { data: CommunitiesHubData }) {
                 whileTap={{ scale: 0.95 }}
                 className={`relative rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
                   active
-                    ? "border border-transparent text-white"
+                    ? "border border-transparent text-[var(--accent-ink)]"
                     : "border border-[var(--mesh-border)] text-[var(--mesh-text-secondary)] hover:bg-[var(--mesh-panel)]"
                 }`}
               >
