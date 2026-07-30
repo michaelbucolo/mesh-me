@@ -692,7 +692,7 @@ function SectionHeader({ title, action }: { title: string; action?: { label: str
         <button
           type="button"
           onClick={action.onClick}
-          className="text-xs font-medium text-[var(--accent-text)] transition hover:opacity-80"
+          className="-my-3 inline-flex min-h-11 items-center text-xs font-medium text-[var(--accent-text)] transition hover:opacity-80"
         >
           {action.label}
         </button>

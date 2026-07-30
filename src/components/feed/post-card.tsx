@@ -431,14 +431,16 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
 
         <div className="flex min-w-0 items-center justify-between gap-2">
           <div className="flex min-w-0 items-center gap-3">
+            {/* p-0.5/-m-0.5 lifts the 40px avatar's tap target to 44px without
+                moving a pixel of layout. */}
             {isExternalFeedItem && externalAuthor?.profileUrl ? (
-              <a href={safeHref(externalAuthor.profileUrl)} target="_blank" rel="noopener noreferrer">
+              <a href={safeHref(externalAuthor.profileUrl)} target="_blank" rel="noopener noreferrer" className="-m-0.5 inline-flex p-0.5">
                 <Avatar src={post.author.avatarUrl} alt={post.author.displayName} size={compact ? "sm" : "md"} />
               </a>
             ) : isExternalFeedItem ? (
               <Avatar src={post.author.avatarUrl} alt={post.author.displayName} size={compact ? "sm" : "md"} />
             ) : (
-              <Link href={`/profile/${post.author.username}`}>
+              <Link href={`/profile/${post.author.username}`} className="-m-0.5 inline-flex p-0.5">
                 <Avatar src={post.author.avatarUrl} alt={post.author.displayName} size={compact ? "sm" : "md"} />
               </Link>
             )}
