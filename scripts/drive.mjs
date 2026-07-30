@@ -29,7 +29,7 @@ import { chromium } from "playwright";
 const CHROME = "/opt/pw-browsers/chromium-1194/chrome-linux/chrome";
 const CREDS = { id: "alex@mesh.me", pw: "password123" };
 
-export async function drive({ theme = "light", width = 1440, height = 900, port = process.env.PORT || "3500" } = {}) {
+export async function drive({ theme = "light", width = 1440, height = 900, port = process.env.PORT || "3500", creds = CREDS } = {}) {
   const browser = await chromium.launch({ executablePath: CHROME });
   const context = await browser.newContext({ viewport: { width, height }, deviceScaleFactor: 2 });
   const page = await context.newPage();
@@ -41,16 +41,16 @@ export async function drive({ theme = "light", width = 1440, height = 900, port 
 
   const base = `http://localhost:${port}`;
   await page.goto(`${base}/login`, { waitUntil: "domcontentloaded" });
-  await page.locator('[data-testid="entry-identity-input"]').pressSequentially(CREDS.id, { delay: 8 });
+  await page.locator('[data-testid="entry-identity-input"]').pressSequentially(creds.id, { delay: 8 });
   await page.waitForFunction(() => {
     const el = document.querySelector('[data-testid="entry-continue-button"]');
     return el && !el.disabled;
   });
   await page.locator('[data-testid="entry-continue-button"]').click();
   await page.locator('[data-testid="entry-password-input"]').waitFor({ state: "visible" });
-  await page.locator('[data-testid="entry-password-input"]').pressSequentially(CREDS.pw, { delay: 8 });
+  await page.locator('[data-testid="entry-password-input"]').pressSequentially(creds.pw, { delay: 8 });
   await page.locator('[data-testid="entry-submit-button"]').click();
-  await page.waitForURL(/\/(mesh|flow|home)?$/, { timeout: 30000 }).catch(() => {});
+  await page.waitForURL(/\/(mesh|flow|home|onboarding)?$/, { timeout: 30000 }).catch(() => {});
 
   /** Navigate and wait for the page to have actually rendered prose. */
   async function go(route) {
