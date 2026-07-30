@@ -263,7 +263,13 @@ export function OnboardingFlow({
 
   return (
     <main className="onboarding-shell h-dvh max-h-dvh min-h-0 overflow-hidden bg-[var(--bg-primary)] text-[var(--text-primary)]">
-      <form onSubmit={submit} className="onboarding-grid mx-auto grid h-full min-h-0 w-full max-w-6xl gap-4 overflow-hidden px-4 py-4 lg:grid-cols-[17rem_minmax(0,1fr)] lg:px-8">
+      {/* Below lg the two children stack, and without an explicit row template
+          the rows fought over a fixed h-full: measured at 390×844, the card row
+          compressed onto the aside (85px overlap swallowing its footer) and the
+          step panel shrank to a ~90px strip that clipped the Username field
+          mid-input. auto + minmax(0,1fr): the header takes its height, the card
+          gets the remainder and scrolls inside itself. */}
+      <form onSubmit={submit} className="onboarding-grid mx-auto grid h-full min-h-0 w-full max-w-6xl grid-rows-[auto_minmax(0,1fr)] gap-4 overflow-hidden px-4 py-4 lg:grid-cols-[17rem_minmax(0,1fr)] lg:grid-rows-1 lg:px-8">
         <aside className="mesh-surface h-fit rounded-lg p-4 lg:sticky lg:top-4">
           <div className="flex items-center gap-3">
             <motion.div
@@ -312,7 +318,11 @@ export function OnboardingFlow({
               )}
             </motion.div>
           </div>
-          <nav className="mt-4 grid gap-1" aria-label="Onboarding steps">
+          {/* On a phone this six-button menu plus the note below cost ~410 of
+              844px before any setup content appeared. Next/Back walk the same
+              steps and the progress bar stays; the full menu is a desktop
+              luxury. */}
+          <nav className="mt-4 hidden gap-1 lg:grid" aria-label="Onboarding steps">
             {steps.map((item, index) => {
               const Icon = item.icon;
               return (
@@ -335,7 +345,7 @@ export function OnboardingFlow({
               );
             })}
           </nav>
-          <p className="mt-4 rounded-md border border-[var(--border-primary)] bg-[var(--bg-primary)]/70 p-3 text-xs leading-5 text-[var(--text-secondary)]">
+          <p className="mt-4 hidden rounded-md border border-[var(--border-primary)] bg-[var(--bg-primary)]/70 p-3 text-xs leading-5 text-[var(--text-secondary)] lg:block">
             Privacy-first defaults are already on. Setup only decides how your world starts.
           </p>
         </aside>
@@ -344,7 +354,7 @@ export function OnboardingFlow({
           <header className="shrink-0 flex flex-wrap items-start justify-between gap-4 border-b border-[var(--border-primary)] pb-4">
             <div>
               <p className="text-xs font-semibold mesh-eyebrow text-[var(--text-muted)]">Your World, Your Way</p>
-              <h1 className="mt-2 text-3xl font-semibold tracking-[0] md:text-5xl">{currentStep.label}</h1>
+              <h1 className="mt-2 text-3xl font-semibold tracking-[0] md:text-4xl">{currentStep.label}</h1>
             </div>
             <div className="rounded-full border border-[var(--border-primary)] bg-[var(--bg-primary)]/70 px-3 py-2 text-xs font-semibold text-[var(--text-secondary)]">
               {user.email}
