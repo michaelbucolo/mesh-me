@@ -54,3 +54,7 @@ prisma/dev.db
 
 .env*.local
 .claude/worktrees/
+
+# Throwaway browser-driving scripts and probe output. The reusable harness
+# lives in scripts/drive.mjs; anything here is a one-off.
+scratchpad/
