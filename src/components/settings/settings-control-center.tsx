@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { effectiveProfileVisibility } from "@/lib/profile-visibility";
 import { type Dispatch, type FormEvent, type ReactNode, type SetStateAction, useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { Activity, AlignLeft, AtSign, AudioLines, BadgeCheck, Ban, BarChart3, BellRing, CheckCheck, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, Compass, CreditCard, Crown, Database, EyeOff, Fingerprint, Flame, Ghost, Globe, Hash, IdCard, Info, KeyRound, LayoutGrid, Link as LinkIcon, Lock, LockKeyhole, LogOut, Mail, MailCheck, MapPin, Megaphone, MessageCircle, MessageSquare, Monitor, MonitorSmartphone, Moon, Palette, Phone, PlugZap, RefreshCw, Search, Settings2, ShieldAlert, ShieldCheck, ShieldOff, Sparkles, Smartphone, Sun, Trash2, UserPlus, UserRound, UsersRound, Volume2, WandSparkles, Waypoints, type LucideIcon } from "lucide-react";
 import { PaperWait } from "@/components/loading/paper-wait";
@@ -711,7 +712,7 @@ export function SettingsControlCenter({
         </div>
       </header>
 
-      {status && (
+      {status && typeof document !== "undefined" && createPortal(
         <div
           className={`settings-status-toast ${
             status.type === "success"
@@ -724,7 +725,8 @@ export function SettingsControlCenter({
             {status.type === "success" ? <CheckCircle2 size={15} aria-hidden="true" /> : <ShieldAlert size={15} aria-hidden="true" />}
             {status.message}
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
 
       <section className="settings-traditional-grid mt-3 grid gap-3 lg:grid-cols-[18rem_minmax(0,1fr)] lg:items-start">
