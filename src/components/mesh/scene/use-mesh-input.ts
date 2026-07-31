@@ -20,7 +20,6 @@ import { aimPluck, peekPluckFlick, releasePluck, startPluck } from "../sim/toys"
 import { playFunSound } from "../audio/sound-kit";
 
 export interface MeshInputDeps {
-  fitToContent: () => void;
   push: (href: string) => void;
   setSelectedNode: React.Dispatch<React.SetStateAction<SceneNode | null>>;
   setActiveBranch: React.Dispatch<React.SetStateAction<BranchKey | null>>;
@@ -98,7 +97,6 @@ function cancelPluckHold(rt: MeshRuntime): void {
 
 export function useMeshInput(rtRef: MeshRuntimeRef, deps: MeshInputDeps): MeshInput {
   const {
-    fitToContent,
     push,
     setSelectedNode,
     setActiveBranch,
@@ -150,11 +148,14 @@ export function useMeshInput(rtRef: MeshRuntimeRef, deps: MeshInputDeps): MeshIn
     (node: SceneNode) => {
       const rt = rtRef.current;
       if (node.kind === "self") {
+        // Your own card, same as everyone else's. Tapping yourself used to
+        // only reframe the camera — the profile panel was hover-only canvas
+        // paint, unreachable on touch. NodeDetail's "you" card carries the
+        // bio, verified mark and View-profile now; reframing stays on
+        // double-tap and the dock's home control.
         setActiveBranch(null);
-        setSelectedNode(null);
-        // A quiet indigo twinkle blooms out of you as the world reframes.
-        spawnBurst(rt, node.dx, node.dy, "spark", 6);
-        fitToContent();
+        setSelectedNode(node);
+        playSound("pop");
         return;
       }
       if (node.kind === "person" && node.userId) {
@@ -186,7 +187,7 @@ export function useMeshInput(rtRef: MeshRuntimeRef, deps: MeshInputDeps): MeshIn
       }
       flyToNode(node);
     },
-    [rtRef, fitToContent, flyToNode, setActiveBranch, setSelectedNode],
+    [rtRef, flyToNode, setActiveBranch, setSelectedNode],
   );
 
   const jumpToNode = useCallback(
@@ -638,16 +639,6 @@ export function useMeshInput(rtRef: MeshRuntimeRef, deps: MeshInputDeps): MeshIn
           };
           return;
         }
-        const profileRect = rt.hitmap.profile.get(rt.model?.selfId || "");
-        if (profileRect) {
-          const sx = e.clientX - rect.left;
-          const sy = e.clientY - rect.top;
-          if (sx >= profileRect.x && sx <= profileRect.x + profileRect.w && sy >= profileRect.y && sy <= profileRect.y + profileRect.h) {
-            const selfNode = rt.model?.nodes.get(rt.model?.selfId ?? "");
-            push(selfNode?.href || "/profile");
-            return;
-          }
-        }
         const node = hitTest(e.clientX - rect.left, e.clientY - rect.top, tapSlop);
         if (node) {
           activateNode(node);
@@ -661,7 +652,7 @@ export function useMeshInput(rtRef: MeshRuntimeRef, deps: MeshInputDeps): MeshIn
         setActiveBranch(null);
       }
     },
-    [rtRef, activateNode, hitTest, imprecise, push, setActiveBranch, setSelectedNode, onFlick],
+    [rtRef, activateNode, hitTest, imprecise, setActiveBranch, setSelectedNode, onFlick],
   );
 
   // A browser-initiated cancel (system gesture, pointer stolen) should ABORT the
