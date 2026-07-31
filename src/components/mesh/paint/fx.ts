@@ -33,16 +33,18 @@ export function drawStrandPulse(
   const py2 = mt * mt * ay + 2 * mt * t * cy + t * t * by;
   const glowR = 5 * Math.max(0.8, zoom) * (1 - pt * 0.5);
   const glow = ctx.createRadialGradient(px2, py2, 0, px2, py2, glowR * 3);
-  const warm = paintTheme().warm;
-  glow.addColorStop(0, withAlpha(warm, 0.85 * (1 - pt)));
-  glow.addColorStop(1, withAlpha(warm, 0));
+  // The DOM's thrown heart is --like; this comet is its wake. Same pigment,
+  // or one gesture reads as two features.
+  const like = paintTheme().like;
+  glow.addColorStop(0, withAlpha(like, 0.85 * (1 - pt)));
+  glow.addColorStop(1, withAlpha(like, 0));
   ctx.fillStyle = glow;
   ctx.beginPath();
   ctx.arc(px2, py2, glowR * 3, 0, Math.PI * 2);
   ctx.fill();
   ctx.beginPath();
   ctx.arc(px2, py2, glowR, 0, Math.PI * 2);
-  ctx.fillStyle = withAlpha(warm, 0.95 * (1 - pt * 0.6));
+  ctx.fillStyle = withAlpha(like, 0.95 * (1 - pt * 0.6));
   ctx.fill();
 }
 
@@ -152,7 +154,7 @@ export function drawReactionTrails(
       const fade = (1 - k / motes) * settle;
       ctx.beginPath();
       ctx.arc(s.x, s.y, (3.4 - k * 0.34) * z, 0, Math.PI * 2);
-      ctx.fillStyle = withAlpha(paintTheme().warm, 0.32 * fade);
+      ctx.fillStyle = withAlpha(paintTheme().like, 0.32 * fade);
       ctx.fill();
     }
   }

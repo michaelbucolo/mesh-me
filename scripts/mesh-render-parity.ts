@@ -480,12 +480,12 @@ console.log("mesh-render-contract");
     return { rec, all };
   };
 
-  // The strand-pulse glow rides the --warm token now (Worklight fallback in
-  // this DOM-less run) — the old hardcoded pink is gone from fx.ts. Since
-  // nodes.ts legitimately paints --warm at every tier (card hearts, the New
-  // pill), the fx signature is narrowed to GRADIENT STOPS in warm: only the
-  // pulse glow builds a gradient from that pigment.
-  const PULSE_HUE = paintTheme().warm;
+  // The strand-pulse glow rides the --like token now (Worklight fallback in
+  // this DOM-less run) — fx traces the DOM's thrown --like heart, so it wears
+  // the same pigment. Since nodes.ts legitimately paints --like at every tier
+  // (card hearts), the fx signature is narrowed to GRADIENT STOPS in like:
+  // only the pulse glow builds a gradient from that pigment.
+  const PULSE_HUE = paintTheme().like;
   const isPulseOp = (op: string) => op.includes(".addColorStop(") && op.includes(PULSE_HUE);
   const t0 = runTier(0);
   assert.ok(shadowSets(t0.all) > 0, "T0 draws shadows");

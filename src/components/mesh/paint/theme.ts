@@ -45,8 +45,16 @@ export interface PaintTheme {
   inkInverse: string;
   accent: string;
   accentLine: string;
-  /** Affection: hearts, strum, the warm pigment. */
-  warm: string;
+  /**
+   * Affection — hearts, strum, heart-throw fx — exactly as the DOM wears it
+   * (`--like` on the feed's like key and the like-pop ring). Canvas hearts
+   * and the fx that trace the DOM's thrown heart must be the SAME pigment —
+   * two reds for one gesture reads as two features. tokens.css declares it
+   * once for both themes, so both fallbacks carry the same literal. (--warm
+   * is deliberately NOT bridged: the moment its last canvas consumer moved
+   * to --like, keeping it here would be a second palette waiting.)
+   */
+  like: string;
   success: string;
   warning: string;
   danger: string;
@@ -79,7 +87,7 @@ const WORKLIGHT: PaintTheme = {
   inkInverse: "#000000",
   accent: "#409cff",
   accentLine: "rgba(64,156,255,.38)",
-  warm: "#f486b0",
+  like: "#e8496b",
   success: "#5fcb98",
   warning: "#f3be55",
   danger: "#f58279",
@@ -101,7 +109,7 @@ const DAYLIGHT: PaintTheme = {
   inkInverse: "#ffffff",
   accent: "#0056d6",
   accentLine: "rgba(0,86,214,.30)",
-  warm: "#992756",
+  like: "#e8496b",
   success: "#155839",
   warning: "#754c08",
   danger: "#9e2c23",
@@ -122,7 +130,7 @@ const TOKEN_OF: Record<Exclude<keyof PaintTheme, "dark">, string> = {
   inkInverse: "--ink-inverse",
   accent: "--accent",
   accentLine: "--accent-line",
-  warm: "--warm",
+  like: "--like",
   success: "--success",
   warning: "--warning",
   danger: "--danger",
