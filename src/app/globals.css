@@ -3825,11 +3825,6 @@ body {
 }
 
 @media (min-width: 1024px) {
-  .feed-layout-mode-media {
-    width: min(100%, 74rem);
-    grid-template-columns: minmax(0, 47rem) minmax(15rem, 18rem);
-  }
-
   .feed-layout-mode-media .feed-post-list-media {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     align-items: start;
@@ -3837,6 +3832,16 @@ body {
 
   .feed-layout-mode-media .feed-card-shell {
     contain-intrinsic-size: 35rem;
+  }
+}
+
+/* The side-rail track needs 62rem (992px) minimum. At 1024 the content pane
+   is 1024 − 16rem sidebar = 768px, so the two-track layout overflowed its
+   pane for the whole 1024–1279 tier; it fits from 1280 (pane ≥ 1008px). */
+@media (min-width: 1280px) {
+  .feed-layout-mode-media {
+    width: min(100%, 74rem);
+    grid-template-columns: minmax(0, 47rem) minmax(15rem, 18rem);
   }
 }
 
@@ -5832,7 +5837,7 @@ body {
    below the 768px tablet breakpoint — give them the icon rail too instead of
    the phone bottom nav. --- */
 @media (min-width: 768px) and (max-width: 1023px),
-  (min-width: 600px) and (max-width: 767.98px) and (min-height: 560px) and (min-aspect-ratio: 3/4) {
+  (min-width: 600px) and (max-width: 767.98px) and (min-height: 560px) {
   .mesh-shell {
     --mesh-sidebar-width: 4.5rem;
   }
@@ -6104,13 +6109,17 @@ body {
 
 /* --- Foldable / dual-screen devices --- */
 
-/* Unfolded book-style foldables (600–767px squarish, e.g. Galaxy Z Fold main
-   display ~673×812, Pixel Fold portrait ~701×841): the Tailwind md: grid and
-   sidebar classes don't apply below 768px, so recreate the tablet shell
-   structure and neutralize phone rules that assume the bottom nav exists.
-   This block must stay after the phone-tier (max-width: 767px) rules so it
-   wins the cascade. */
-@media (min-width: 600px) and (max-width: 767.98px) and (min-height: 560px) and (min-aspect-ratio: 3/4) {
+/* Tablet-class screens below the 768px md: breakpoint — unfolded book-style
+   foldables (Galaxy Z Fold main ~673×812, Pixel Fold portrait ~701×841) AND
+   iPad mini portrait (744×1133). The Tailwind md: grid and sidebar classes
+   don't apply below 768px, so recreate the tablet shell structure and
+   neutralize phone rules that assume the bottom nav exists. The min-height
+   gate alone excludes landscape phones (≤500px tall); the old extra
+   min-aspect-ratio 3/4 gate bought nothing beyond that and cost iPad mini
+   portrait (aspect 0.657) the tablet shell — it rendered a 5-tab phone bar
+   at 744px wide. This block must stay after the phone-tier
+   (max-width: 767px) rules so it wins the cascade. */
+@media (min-width: 600px) and (max-width: 767.98px) and (min-height: 560px) {
   .mesh-shell {
     display: grid;
     grid-template-columns: var(--mesh-sidebar-width) 1fr;
@@ -6263,9 +6272,13 @@ body {
 }
 
 /* --- Ultra-narrow cover displays (folded Galaxy Z Fold cover screen and
-   similar, ≈280–380px CSS wide): scale the rem base down so every rem-sized
-   surface tightens proportionally, and clamp the few fixed-width floaters. --- */
-@media (max-width: 379px) {
+   similar, ≈280–355px CSS wide): scale the rem base down so every rem-sized
+   surface tightens proportionally, and clamp the few fixed-width floaters.
+   359, not 379: iPhone SE / 13 mini are 375 and 360-class Androids are
+   mainstream compact phones — at 379 this tier was downscaling a normal
+   iPhone's root font to 15px as if it were a fold's cover screen. Only true
+   cover displays sit below 360. --- */
+@media (max-width: 359px) {
   html {
     font-size: var(--fs-base);
   }

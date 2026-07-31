@@ -434,7 +434,10 @@ export default async function ThreadDetailPage({ params, searchParams }: ThreadP
     <div className="h-full min-h-0 overflow-hidden text-[var(--mesh-text)] animate-page-enter">
       {/* minmax(0,1fr) on the single-column tier too: an implicit `auto` track
           takes the thread's min-content width, which ran past narrow phones. */}
-      <div className="grid h-full min-h-0 grid-cols-[minmax(0,1fr)] gap-0 px-0 py-0 md:gap-4 md:px-5 md:py-6 lg:grid-cols-[minmax(0,1fr)_380px]">
+      {/* Detail rail at xl, not lg: the messages layout already spends 360px
+          on the conversation rail from lg, so a 380px detail rail at lg left
+          the thread itself ~250px at exactly 1024 (iPad Pro 12.9 portrait). */}
+      <div className="grid h-full min-h-0 grid-cols-[minmax(0,1fr)] gap-0 px-0 py-0 md:gap-4 md:px-5 md:py-6 xl:grid-cols-[minmax(0,1fr)_380px]">
         <section className="mesh-surface mesh-pop-in flex min-h-0 flex-col overflow-hidden rounded-none border-0 md:rounded-[32px] md:border md:border-[var(--mesh-border)] md:shadow-[var(--shadow-lg)]">
           <header className="border-b border-[var(--mesh-border)] px-2 py-2 md:px-5 md:py-4">
             <div className="flex items-center gap-2 md:gap-4">
@@ -536,7 +539,7 @@ export default async function ThreadDetailPage({ params, searchParams }: ThreadP
           </div>
         </section>
 
-        <div className="hidden min-h-0 lg:block">
+        <div className="hidden min-h-0 xl:block">
           <MeChatInfoRail
             title={conversationTitle}
             subtitle={conversationSubtitle}

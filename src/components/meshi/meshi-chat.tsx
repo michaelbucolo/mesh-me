@@ -210,7 +210,7 @@ export function MeshiChat({
           exit={{ opacity: 0, y: 16, scale: 0.62 }}
           transition={{ type: "spring", damping: 26, stiffness: 320 }}
           style={{ transformOrigin: "bottom right" }}
-          className="fixed bottom-[calc(5.75rem+env(safe-area-inset-bottom))] right-3 z-50 flex h-[calc(100dvh-9rem)] min-h-[22rem] max-h-[520px] w-[calc(100vw-1.5rem)] max-w-[360px] flex-col overflow-hidden rounded-2xl shadow-2xl glass-dropdown sm:bottom-4 sm:right-4 sm:h-[520px] sm:max-h-[calc(100vh-6rem)] sm:w-[360px]"
+          className="fixed bottom-[calc(5.75rem+env(safe-area-inset-bottom))] right-3 z-50 flex h-[calc(100dvh-9rem)] min-h-[22rem] max-h-[520px] w-[calc(100vw-1.5rem)] max-w-[360px] flex-col overflow-hidden rounded-2xl shadow-2xl glass-dropdown sm:bottom-4 sm:right-4 sm:h-[520px] sm:max-h-[calc(100dvh-6rem)] sm:w-[360px]"
         >
           <div className="flex items-center gap-3 border-b border-[var(--border-primary)] px-4 py-3" style={{ background: "var(--bg-secondary)" }}>
             <UserMeshi size={36} mood={isTyping ? "thinking" : meshiMood} />

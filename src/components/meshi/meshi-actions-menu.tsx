@@ -33,7 +33,7 @@ export function MeshiActionsMenu({
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: 10, scale: 0.95 }}
       transition={{ type: "spring", damping: 25, stiffness: 300 }}
-      className="fixed bottom-[72px] lg:bottom-[72px] right-4 z-50 w-[260px] max-w-[calc(100vw-2rem)] max-h-[60vh] glass-dropdown rounded-2xl shadow-2xl overflow-hidden flex flex-col"
+      className="fixed bottom-[calc(var(--mobile-nav-h)+env(safe-area-inset-bottom)+1.25rem)] right-4 z-50 w-[260px] max-w-[calc(100vw-2rem)] max-h-[60dvh] glass-dropdown rounded-2xl shadow-2xl overflow-hidden flex flex-col md:bottom-[72px]"
     >
       {/* Header */}
       <div className="flex items-center gap-3 px-4 py-3 border-b border-[var(--border-primary)]" style={{ background: "var(--bg-secondary)" }}>
