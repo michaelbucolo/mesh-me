@@ -175,7 +175,6 @@ export function MeshScene({ viewUserId, viewMode = "mesh", viewerIsPro = false }
   const chromeRef = useRef<MeshChromeController | null>(null);
   const push = useCallback((href: string) => router.push(href), [router]);
   const input = useMeshInput(rtRef, {
-    fitToContent: world.fitToContent,
     push,
     setSelectedNode,
     setActiveBranch,
@@ -279,9 +278,11 @@ export function MeshScene({ viewUserId, viewMode = "mesh", viewerIsPro = false }
 
   const isContentSelection =
     selectedNode && (selectedNode.kind === "post" || selectedNode.kind === "activity");
+  // Self is a detail selection too now: tapping yourself opens NodeDetail's
+  // "you" card (bio, verified, View profile) — the canvas profile panel it
+  // replaces was hover-only paint, unreachable on touch.
   const isDetailSelection =
     selectedNode &&
-    selectedNode.kind !== "self" &&
     selectedNode.kind !== "branch" &&
     selectedNode.kind !== "post" &&
     selectedNode.kind !== "activity";

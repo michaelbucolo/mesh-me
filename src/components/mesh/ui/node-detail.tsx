@@ -36,6 +36,7 @@ export function NodeDetail({
   onMuteChanged?: () => void;
 }) {
   const isPerson = node.kind === "person" && !!node.userId;
+  const isSelf = node.kind === "self";
   const [following, setFollowing] = useState(!!node.isFollowing);
   const [, startFollow] = useTransition();
   const { copied: shareCopied, share } = useShare();
@@ -109,7 +110,15 @@ export function NodeDetail({
           />
         )}
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-semibold text-[var(--text-primary)]">{node.label}</p>
+          <p className="flex items-center gap-1 truncate text-sm font-semibold text-[var(--text-primary)]">
+            <span className="truncate">{node.label}</span>
+            {node.isVerified && (
+              <svg viewBox="0 0 16 16" className="h-3.5 w-3.5 shrink-0" aria-label="Verified" role="img">
+                <circle cx="8" cy="8" r="8" fill="var(--accent)" />
+                <path d="M4.6 8.2 7 10.6 11.4 5.8" fill="none" stroke="var(--accent-contrast)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            )}
+          </p>
           {node.sublabel && <p className="truncate text-xs text-[var(--text-tertiary)]">{node.sublabel}</p>}
         </div>
         <button
@@ -138,7 +147,14 @@ export function NodeDetail({
         </p>
       )}
 
-      {node.content && <p className="mt-3 line-clamp-3 text-xs leading-relaxed text-[var(--text-secondary)]">{node.content}</p>}
+      {/* The body: a post's content, or — on the "you" card — your bio. The
+          canvas used to paint the bio inside a hover-only self panel; this
+          card is where it lives now, reachable by tap. */}
+      {(node.content || (isSelf && node.description)) && (
+        <p className="mt-3 line-clamp-3 text-xs leading-relaxed text-[var(--text-secondary)]">
+          {node.content || node.description}
+        </p>
+      )}
 
       {node.meta && node.meta.length > 0 && (
         <div className="mt-3 flex flex-wrap gap-2">
@@ -217,7 +233,7 @@ export function NodeDetail({
                 target={node.href.startsWith("http") ? "_blank" : undefined}
                 className="mesh-bubble-btn mesh-glass mesh-ctl ds-focus-ring flex-1 rounded-full py-2 text-center text-xs font-semibold text-[var(--text-primary)]"
               >
-                {node.kind === "post" ? "Open post" : node.kind === "platform" ? "Manage account" : "Open"}
+                {node.kind === "post" ? "Open post" : node.kind === "platform" ? "Manage account" : isSelf ? "View profile" : "Open"}
               </Link>
             )}
             {muteKey && (

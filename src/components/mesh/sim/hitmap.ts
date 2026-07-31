@@ -37,11 +37,10 @@ export interface Hitmap {
   /** Screen-space branch label-pill rects keyed by node id. */
   pills: Map<string, HitRect>;
   /** Screen-space rect for the self node's View-Profile button. */
-  profile: Map<string, HitRect>;
 }
 
 export function createHitmap(): Hitmap {
-  return { circles: new Map(), pills: new Map(), profile: new Map() };
+  return { circles: new Map(), pills: new Map() };
 }
 
 export interface HitmapInputs {
@@ -170,44 +169,6 @@ function measureText(font: string, text: string): number {
   return measureCtx.measureText(text).width;
 }
 
-/** How many lines the painter's two-line bio wrap produces (0, 1, or 2) —
- * mirrors wrapTwoLines in scene-render.ts, line-count only. */
-function bioLineCount(text: string, font: string, maxW: number): number {
-  if (!text) return 0;
-  if (measureText(font, text) <= maxW) return 1;
-  let lo = 0;
-  let hi = text.length;
-  while (lo < hi) {
-    const mid = Math.ceil((lo + hi) / 2);
-    if (measureText(font, text.slice(0, mid)) <= maxW) lo = mid;
-    else hi = mid - 1;
-  }
-  const breakAt = text.lastIndexOf(" ", lo) > lo * 0.6 ? text.lastIndexOf(" ", lo) : lo;
-  return text.slice(breakAt).trim() ? 2 : 1;
-}
-
-/** The self node's View-Profile button rect — mirrors drawSelfProfile's
- * panel layout (scene-render.ts) down to each spacing constant. */
-function selfProfileButtonRect(node: SceneNode, x: number, y: number, zoom: number): HitRect {
-  const zoomScale = Math.max(0.68, Math.min(1.18, zoom * 1.08));
-  const avatarR = 31 * zoomScale;
-  const nameFont = Math.max(16, 18 * zoomScale);
-  const handleFont = Math.max(11, 12 * zoomScale);
-  const bioFont = Math.max(11, 12 * zoomScale);
-  const buttonFont = Math.max(11, 11.5 * zoomScale);
-  const bodyMaxW = 272 * zoomScale;
-  const contentTop = y + avatarR + 18 * zoomScale;
-  const bioLines = bioLineCount(node.description || "", `500 ${bioFont}px ${FONT_STACK}`, bodyMaxW);
-  const bioHeight = bioLines > 0 ? bioLines * (bioFont + 4 * zoomScale) - 4 * zoomScale : 0;
-  const nameY = contentTop;
-  const handleY = nameY + nameFont + 9 * zoomScale;
-  const bioY = handleY + handleFont + 12 * zoomScale;
-  const buttonY = bioY + bioHeight + (bioLines > 0 ? 18 * zoomScale : 12 * zoomScale);
-  const buttonW = measureText(`600 ${buttonFont}px ${FONT_STACK}`, "View Profile") + 28;
-  const buttonH = buttonFont + 12;
-  return { x: x - buttonW / 2, y: buttonY, w: buttonW, h: buttonH };
-}
-
 /**
  * Rebuild the whole hitmap from the model + camera for this frame. Runs in
  * the scheduler's paint phase, before drawScene — so the DOM-sync phase and
@@ -217,7 +178,6 @@ export function rebuildHitmap(hitmap: Hitmap, o: HitmapInputs): void {
   const { model, camera, width, height, time } = o;
   hitmap.circles.clear();
   hitmap.pills.clear();
-  hitmap.profile.clear();
 
   const zclamp = Math.max(0.5, Math.min(camera.zoom, 2.2));
   const hoverChain = chainFrom(model, o.hoverId);
@@ -242,14 +202,11 @@ export function rebuildHitmap(hitmap: Hitmap, o: HitmapInputs): void {
     if (p.x < -cull || p.x > width + cull || p.y < -cull || p.y > height + cull) return;
 
     if (node.kind === "self") {
-      // The self target matches the drawn avatar (drawSelfProfile's radius).
+      // The self target matches the drawn avatar (paintSelfCapital's radius).
+      // The canvas profile panel and its mirrored button rect are gone: tap
+      // opens NodeDetail's "you" card like every other node.
       const avatarR = 31 * Math.max(0.68, Math.min(1.18, camera.zoom * 1.08));
       hitmap.circles.set(node.id, { x: p.x, y: p.y, r: Math.max(avatarR * 1.12, 26) });
-      // The profile panel (and its button) exists only while the centre is
-      // hovered or selected — same gate as the painter.
-      if (o.hoverId === node.id || o.selectedId === node.id) {
-        hitmap.profile.set(node.id, selfProfileButtonRect(node, p.x, p.y, camera.zoom));
-      }
       return;
     }
 

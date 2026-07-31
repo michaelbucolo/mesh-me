@@ -340,28 +340,25 @@ function paintPostCard(
   ctx.restore();
 }
 
-/** The self node: avatar + glow, and (hover/selected) the profile panel.
- * Always immediate-mode — one node, and its panel is gate-shared with
- * sim/hitmap's mirrored button rect. Verbatim legacy math. */
-function paintSelfProfile(
+/** The self node is the CAPITAL: avatar with a contact shadow and a
+ * PERMANENT name plate beneath it. The hover/selected profile panel this
+ * replaces (name, handle, two-line bio, View-Profile button, chips — ~130
+ * lines of immediate-mode text layout, mirrored constant-for-constant by a
+ * hitmap twin) is gone: on touch it was unreachable (hover-only), and its
+ * whole content now lives in NodeDetail's "you" card, which opens on tap
+ * like every other node. A capital on an atlas is marked by its NAME, not
+ * by a popover. */
+function paintSelfCapital(
   o: ScenePaintOptions,
   node: SceneNode,
   x: number,
   y: number,
   emph: number,
-  isHover: boolean,
-  isSelected: boolean,
   shadows: boolean,
 ): void {
   const { ctx } = o;
   const zoomScale = Math.max(0.68, Math.min(1.18, o.camera.zoom * 1.08));
   const avatarR = 31 * zoomScale;
-  const bodyMaxW = 272 * zoomScale;
-  const nameFont = Math.max(16, 18 * zoomScale);
-  const handleFont = Math.max(11, 12 * zoomScale);
-  const bioFont = Math.max(11, 12 * zoomScale);
-  const chipFont = Math.max(9, 9.5 * zoomScale);
-  const buttonFont = Math.max(11, 11.5 * zoomScale);
 
   ctx.save();
 
@@ -419,80 +416,32 @@ function paintSelfProfile(
     ctx.fill();
   }
 
-  // The profile panel appears only when the centre is hovered or selected —
-  // sim/hitmap gates the button's hit rect on the same condition.
-  if (!isHover && !isSelected) {
-    ctx.restore();
-    return;
-  }
-
-  const contentTop = y + avatarR + 18 * zoomScale;
-  const chips: string[] = [];
-  if (node.isVerified) chips.push('Verified');
-  if (o.isOwnMesh) chips.push('Owner', 'Private by default');
-
-  const chipWidths = chips.map((chip) => {
-    ctx.font = `600 ${chipFont}px ui-sans-serif, system-ui, sans-serif`;
-    return ctx.measureText(chip).width + 18;
-  });
-  const chipRowW = chipWidths.reduce((sum, value) => sum + value, 0) + Math.max(0, chipWidths.length - 1) * (6 * zoomScale);
-  const chipH = chipFont + 8;
-
+  // The permanent plate: name (with a vector verified check when earned) and
+  // handle, centred under the avatar. Ink on the sheet, no panel fill.
+  const nameFont = Math.max(12, 13.5 * zoomScale);
+  const handleFont = Math.max(10, 11 * zoomScale);
+  const nameY = y + avatarR + 12 * zoomScale;
   const nameText = node.label;
-  ctx.font = `700 ${nameFont}px ui-sans-serif, system-ui, sans-serif`;
-  const nameW = ctx.measureText(nameText).width;
-  const buttonText = 'View Profile';
-  ctx.font = `600 ${buttonFont}px ui-sans-serif, system-ui, sans-serif`;
-  const buttonW = ctx.measureText(buttonText).width + 28;
-  const buttonH = buttonFont + 12;
-
-  const bio = node.description || '';
-  ctx.font = `500 ${bioFont}px ui-sans-serif, system-ui, sans-serif`;
-  const bioLines = bio ? wrapTwoLines(ctx, bio, bodyMaxW).slice(0, 2) : [];
-  const bioHeight = bioLines.length > 0 ? bioLines.length * (bioFont + 4 * zoomScale) - 4 * zoomScale : 0;
-
-  const textBlockW = Math.max(bodyMaxW, buttonW, chipRowW);
-  const panelW = textBlockW + 40 * zoomScale;
-  const panelTop = contentTop - 12 * zoomScale;
-  const nameY = contentTop;
-  const handleY = nameY + nameFont + 9 * zoomScale;
-  const bioY = handleY + handleFont + 12 * zoomScale;
-  const buttonY = bioY + bioHeight + (bioLines.length > 0 ? 18 * zoomScale : 12 * zoomScale);
-  const chipsY = buttonY + buttonH + 16 * zoomScale;
-  const panelBottom = chipsY + chipH + 10 * zoomScale;
-  const panelRect = {
-    x: x - panelW / 2,
-    y: panelTop,
-    w: panelW,
-    h: panelBottom - panelTop,
-  };
-
-  roundRectPath(ctx, panelRect.x, panelRect.y, panelRect.w, panelRect.h, 22 * zoomScale);
-  ctx.fillStyle = withAlpha(paintTheme().paper2, 0.86);
-  ctx.fill();
-  ctx.strokeStyle = withAlpha(paintTheme().ink4, 0.3);
-  ctx.lineWidth = 1;
-  ctx.stroke();
 
   ctx.textAlign = 'center';
   ctx.textBaseline = 'top';
-  ctx.fillStyle = paintTheme().ink1;
   ctx.font = `700 ${nameFont}px ui-sans-serif, system-ui, sans-serif`;
+  const nameW = ctx.measureText(nameText).width;
+  ctx.fillStyle = th.ink1;
   ctx.fillText(nameText, x, nameY);
+
   if (node.isVerified) {
-    const badgeX = x + nameW / 2 + 12 * zoomScale;
-    const badgeY = nameY + nameFont * 0.53;
+    const badgeR = 5.5 * zoomScale;
+    const badgeX = x + nameW / 2 + 9 * zoomScale;
+    const badgeY = nameY + nameFont * 0.5;
     ctx.beginPath();
-    ctx.arc(badgeX, badgeY, 7 * zoomScale, 0, Math.PI * 2);
-    ctx.fillStyle = withAlpha(paintTheme().accent, 0.18 + 0.48 * emph);
+    ctx.arc(badgeX, badgeY, badgeR, 0, Math.PI * 2);
+    ctx.fillStyle = withAlpha(th.accent, 0.9);
     ctx.fill();
-    ctx.lineWidth = 1.2;
-    ctx.strokeStyle = withAlpha(paintTheme().accent, 0.8);
-    ctx.stroke();
     // Vector checkmark (never a font glyph).
-    const cr = 3.4 * zoomScale;
-    ctx.strokeStyle = paintTheme().inkInverse;
-    ctx.lineWidth = Math.max(1.2, 1.6 * zoomScale);
+    const cr = badgeR * 0.55;
+    ctx.strokeStyle = th.inkInverse;
+    ctx.lineWidth = Math.max(1.1, 1.3 * zoomScale);
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
     ctx.beginPath();
@@ -503,51 +452,10 @@ function paintSelfProfile(
     ctx.textBaseline = 'top';
   }
 
-  ctx.fillStyle = withAlpha(paintTheme().ink2, 0.88);
-  ctx.font = `500 ${handleFont}px ui-sans-serif, system-ui, sans-serif`;
-  ctx.fillText(node.sublabel || '', x, handleY);
-
-  if (bioLines.length > 0) {
-    ctx.fillStyle = withAlpha(paintTheme().ink2, 0.84);
-    ctx.font = `500 ${bioFont}px ui-sans-serif, system-ui, sans-serif`;
-    bioLines.forEach((line, index) => {
-      ctx.fillText(line, x, bioY + index * (bioFont + 4 * zoomScale));
-    });
-  }
-
-  const buttonRect = {
-    x: x - buttonW / 2,
-    y: buttonY,
-    w: buttonW,
-    h: buttonH,
-  };
-  roundRectPath(ctx, buttonRect.x, buttonRect.y, buttonRect.w, buttonRect.h, buttonH / 2);
-  ctx.fillStyle = withAlpha(paintTheme().accent, isSelected || isHover ? 0.34 : 0.22);
-  ctx.fill();
-  ctx.strokeStyle = paintTheme().accentLine;
-  ctx.lineWidth = 1;
-  ctx.stroke();
-  ctx.fillStyle = paintTheme().ink1;
-  ctx.font = `600 ${buttonFont}px ui-sans-serif, system-ui, sans-serif`;
-  ctx.textBaseline = 'middle';
-  // sim/hitmap mirrors this button's rect exactly.
-  ctx.fillText(buttonText, x, buttonRect.y + buttonRect.h / 2 + 0.5);
-
-  let chipCursor = x - chipRowW / 2;
-  for (const [index, chip] of chips.entries()) {
-    const chipW = chipWidths[index];
-    const chipRect = { x: chipCursor, y: chipsY, w: chipW, h: chipH };
-    roundRectPath(ctx, chipRect.x, chipRect.y, chipRect.w, chipRect.h, chipH / 2);
-    ctx.fillStyle = chip === 'Verified' ? withAlpha(paintTheme().accent, 0.16) : withAlpha(paintTheme().ink1, 0.05);
-    ctx.fill();
-    ctx.strokeStyle = chip === 'Verified' ? paintTheme().accentLine : withAlpha(paintTheme().ink1, 0.08);
-    ctx.lineWidth = 1;
-    ctx.stroke();
-    ctx.fillStyle = paintTheme().ink1;
-    ctx.font = `600 ${chipFont}px ui-sans-serif, system-ui, sans-serif`;
-    ctx.textBaseline = 'middle';
-    ctx.fillText(chip, chipRect.x + chipRect.w / 2, chipRect.y + chipRect.h / 2 + 0.5);
-    chipCursor += chipW + 6 * zoomScale;
+  if (node.sublabel) {
+    ctx.fillStyle = withAlpha(th.ink2, 0.85);
+    ctx.font = `500 ${handleFont}px ui-sans-serif, system-ui, sans-serif`;
+    ctx.fillText(node.sublabel, x, nameY + nameFont + 4 * zoomScale);
   }
 
   ctx.restore();
@@ -660,7 +568,7 @@ export function drawNodesPass(o: ScenePaintOptions, rc: NodePassResources): void
   }
 
   const labelQueue: { node: SceneNode; x: number; y: number; r: number; emph: number }[] = [];
-  const selfQueue: { node: SceneNode; x: number; y: number; emph: number; isHover: boolean; isSelected: boolean }[] = [];
+  const selfQueue: { node: SceneNode; x: number; y: number; emph: number }[] = [];
 
   nodes.forEach((node) => {
     const born = birthProgress(node, time);
@@ -690,7 +598,7 @@ export function drawNodesPass(o: ScenePaintOptions, rc: NodePassResources): void
     const isHover = o.hoverId === node.id;
 
     if (node.kind === "self") {
-      selfQueue.push({ node, x: p.x, y: p.y, emph, isHover, isSelected });
+      selfQueue.push({ node, x: p.x, y: p.y, emph });
       return;
     }
 
@@ -953,6 +861,6 @@ export function drawNodesPass(o: ScenePaintOptions, rc: NodePassResources): void
   }
 
   for (const item of selfQueue) {
-    paintSelfProfile(o, item.node, item.x, item.y, item.emph, item.isHover, item.isSelected, rc.params.shadows);
+    paintSelfCapital(o, item.node, item.x, item.y, item.emph, rc.params.shadows);
   }
 }
