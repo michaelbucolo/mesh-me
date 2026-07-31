@@ -219,11 +219,18 @@ export function useMeshWorld(
     const contentW = Math.max(b.maxX - b.minX, 400) + 220;
     const contentH = Math.max(b.maxY - b.minY, 400) + 220;
     const isNarrowViewport = width < 640;
+    // Home is a FIT, on every width. The old narrow-viewport branch pinned
+    // zoom at 0.72 centred on the origin, which framed one blurry node and
+    // acres of empty black on a phone — the world was there, the camera just
+    // refused to show it. Narrow fits clamp to [0.5, 0.9] (close enough to
+    // read, far enough to see the neighborhood); every home lands at ≥0.42 so
+    // the resting frame is never below the label tier.
+    const fitted = Math.min(1, Math.min(width / contentW, (height - 130) / contentH));
     const zoom = isNarrowViewport
-      ? Math.max(MIN_ZOOM, 0.72)
-      : Math.max(MIN_ZOOM, Math.min(1, Math.min(width / contentW, (height - 130) / contentH)));
-    const midX = isNarrowViewport ? 0 : (b.minX + b.maxX) / 2;
-    const midY = isNarrowViewport ? 0 : (b.minY + b.maxY) / 2;
+      ? Math.max(MIN_ZOOM, Math.min(0.9, Math.max(0.5, fitted)))
+      : Math.max(MIN_ZOOM, Math.max(0.42, fitted));
+    const midX = (b.minX + b.maxX) / 2;
+    const midY = (b.minY + b.maxY) / 2;
     // Nudge the world down so the top arc never hides under the top bar.
     rt.camera = { zoom, panX: -midX * zoom, panY: -midY * zoom + 30 };
   }, [rtRef]);

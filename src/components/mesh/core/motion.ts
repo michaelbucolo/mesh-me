@@ -40,6 +40,10 @@ export interface TierParams {
   liveStrands: boolean;
   /** How stale the cached background layer may grow while the camera is
    * still (twinkle/nebula refresh). Infinity = repaint on resize/theme only. */
+  /** Time-based staleness bound for the cached sheet. Camera pan/zoom always
+   *  repaints (the orbit contours are world-anchored); this clock only bounds
+   *  drift when nothing else changed, so Infinity on the deepest tier means
+   *  "input-driven repaints only", not a frozen background. */
   backgroundRefreshMs: number;
 }
 

@@ -71,6 +71,10 @@ export function createPaintEngine(options: PaintEngineOptions = {}): PaintEngine
       }
       const { ctx, width, height } = o;
       ctx.clearRect(0, 0, width, height);
+      // The theme, read ONCE per frame and handed down. (The layers may still
+      // call paintTheme() themselves — it is cache-keyed and cheap — but the
+      // sheet takes it as data so a DOM-less parity render can pin it.)
+      const theme = paintTheme();
       const skyInputs = {
         width,
         height,
@@ -84,7 +88,10 @@ export function createPaintEngine(options: PaintEngineOptions = {}): PaintEngine
         // was #1f1b17 with the DOM in `.light`, a brown tabletop inside a cream
         // page. The gap between the canvas and the chrome around it is most of
         // what "the colours don't complement each other" is describing.
-        dark: paintTheme().dark,
+        dark: theme.dark,
+        theme,
+        // The atlas rings thin as the tier deepens; they never disappear.
+        contourAlpha: tier === 0 ? 0.07 : tier === 1 ? 0.05 : 0.03,
       };
       if (cached) background.draw(ctx, skyInputs, params.backgroundRefreshMs);
       else paintSky(ctx, skyInputs); // direct: the exact legacy op stream

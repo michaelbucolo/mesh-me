@@ -387,8 +387,12 @@ function paintSelfProfile(
   } else {
     ctx.beginPath();
     ctx.arc(x, y + avatarR * 0.14, avatarR * 1.05, 0, Math.PI * 2);
-    ctx.fillStyle = withAlpha(th.dark ? "#000000" : "#261e14", 0.18 + 0.1 * emph);
+    // The token shadow (--canvas-shadow) is the one contact-shade color; the
+    // old light-theme literal here was the vignette's #261e14 twin.
+    ctx.fillStyle = th.shadow;
+    ctx.globalAlpha = 0.18 + 0.1 * emph;
     ctx.fill();
+    ctx.globalAlpha = 1;
   }
   ctx.restore();
 

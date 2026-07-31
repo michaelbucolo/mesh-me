@@ -27,12 +27,15 @@ import type { SceneModel, SceneNode, SceneNodeKind } from "../scene/scene-model"
 const TOP = -Math.PI / 2;
 const BOTTOM = Math.PI / 2;
 // People: closeness maps onto this radial band.
-const PERSON_NEAR = 240;
+// Exported: the background's orbit contours draw at these SAME radii, so the
+// map's rings are the layout's real semantic distances, never a second set of
+// numbers that drifts from where things actually sit.
+export const PERSON_NEAR = 240;
 const PERSON_SPREAD = 290;
-const PLATFORM_RADIUS = 380;
+export const PLATFORM_RADIUS = 380;
 // Content rings: post cards are wide, so they live well beyond the sources.
-const CONTENT_RADIUS = 620;
-const RING_GAP = 210;
+export const CONTENT_RADIUS = 620;
+export const RING_GAP = 210;
 // World-units of arc one content card needs before cards start crowding.
 const CARD_SPACING = 300;
 // Breathing room between zones so wedges never visually touch.

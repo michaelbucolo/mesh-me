@@ -39,6 +39,8 @@ export interface PaintTheme {
    * "an object without --edge is a WCAG 1.4.11 bug, not a style choice."
    */
   edge: string;
+  /** Hairline dividers — the atlas contour ink. Carries its own alpha. */
+  rule: string;
   /** Text sitting ON an accent fill. */
   inkInverse: string;
   accent: string;
@@ -73,6 +75,7 @@ const WORKLIGHT: PaintTheme = {
   ink3: "#a8a8a8",
   ink4: "#5a5a5a",
   edge: "#8e8e8e",
+  rule: "rgba(84, 84, 88, 0.65)",
   inkInverse: "#000000",
   accent: "#409cff",
   accentLine: "rgba(64,156,255,.38)",
@@ -94,6 +97,7 @@ const DAYLIGHT: PaintTheme = {
   ink3: "#636366",
   ink4: "#aeaeb2",
   edge: "#78787d",
+  rule: "rgba(60, 60, 67, 0.29)",
   inkInverse: "#ffffff",
   accent: "#0056d6",
   accentLine: "rgba(0,86,214,.30)",
@@ -114,6 +118,7 @@ const TOKEN_OF: Record<Exclude<keyof PaintTheme, "dark">, string> = {
   ink3: "--ink-3",
   ink4: "--ink-4",
   edge: "--edge",
+  rule: "--rule",
   inkInverse: "--ink-inverse",
   accent: "--accent",
   accentLine: "--accent-line",
