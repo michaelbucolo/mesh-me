@@ -1409,3 +1409,26 @@ CREATE UNIQUE INDEX IF NOT EXISTS "PushSubscription_endpoint_key" ON "PushSubscr
 
 -- CreateIndex
 CREATE INDEX IF NOT EXISTS "PushSubscription_userId_idx" ON "PushSubscription"("userId");
+
+-- CreateTable
+-- Snapshot bookmarks of Flow content (see SavedFlowItem in schema.prisma —
+-- snapshot, not FK, because supply rows are pruned on retention schedules).
+CREATE TABLE IF NOT EXISTS "SavedFlowItem" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "userId" TEXT NOT NULL,
+    "refId" TEXT NOT NULL,
+    "platform" TEXT,
+    "title" TEXT,
+    "url" TEXT,
+    "thumbnailUrl" TEXT,
+    "authorName" TEXT,
+    "postType" TEXT,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "SavedFlowItem_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "SavedFlowItem_userId_refId_key" ON "SavedFlowItem"("userId", "refId");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "SavedFlowItem_userId_idx" ON "SavedFlowItem"("userId");

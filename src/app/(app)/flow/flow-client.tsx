@@ -4,8 +4,8 @@ import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from
 import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Check, ChevronLeft, ChevronRight, Heart, Info, Link2, Maximize2, MessageCircle, Minimize2, Music2, Play, Send, SlidersHorizontal, Sparkles, VolumeX, Volume2, X } from "lucide-react";
-import { toggleFollow, toggleReaction, setFlowLike } from "@/lib/actions";
+import { ArrowLeft, Bookmark, Check, ChevronLeft, ChevronRight, Heart, Info, Link2, Maximize2, MessageCircle, Minimize2, Music2, Play, Send, SlidersHorizontal, Sparkles, VolumeX, Volume2, X } from "lucide-react";
+import { toggleFollow, toggleReaction, setFlowLike, toggleSavePost } from "@/lib/actions";
 import { getVideoEmbedUrl } from "@/lib/video-embed";
 import { attachNormalizer } from "@/lib/audio-normalize";
 import { playSound } from "@/lib/sound";
@@ -24,6 +24,8 @@ export type FlowPost = {
   tags: { id: string; tag: string }[];
   _count: { comments: number; reactions: number; reposts: number };
   reactions?: { id: string }[];
+  /** Whether the signed-in viewer has this NATIVE post in their saved list. */
+  savedBy?: { id: string }[];
   platform?: string;
   url?: string | null;
   externalUrl?: string | null;
@@ -506,6 +508,7 @@ function Reel({
   onLaneSwipe,
   signedOut = false,
   connectedSet,
+  savedRefs,
   onNeedsConnect,
   onWatchProgress,
 }: {
@@ -524,6 +527,7 @@ function Reel({
   onLaneSwipe: (dir: 1 | -1) => void;
   signedOut?: boolean;
   connectedSet: Set<string>;
+  savedRefs: Set<string>;
   onNeedsConnect: (platformId: string) => void;
   onWatchProgress: (postId: string, completion: number) => void;
 }) {
@@ -599,6 +603,7 @@ function Reel({
             onLaneSwipe={onLaneSwipe}
             signedOut={signedOut}
             connectedSet={connectedSet}
+            savedRefs={savedRefs}
             onNeedsConnect={onNeedsConnect}
             onWatchProgress={onWatchProgress}
             suppressTapRef={suppressTapRef}
@@ -624,6 +629,7 @@ function ReelContent({
   onLaneSwipe,
   signedOut,
   connectedSet,
+  savedRefs,
   onNeedsConnect,
   onWatchProgress,
   suppressTapRef,
@@ -640,6 +646,8 @@ function ReelContent({
   onLaneSwipe: (dir: 1 | -1) => void;
   signedOut: boolean;
   connectedSet: Set<string>;
+  /** refIds of the viewer's saved EXTERNAL flow items (one fetch, in the parent). */
+  savedRefs: Set<string>;
   onNeedsConnect: (platformId: string) => void;
   onWatchProgress: (postId: string, completion: number) => void;
   suppressTapRef: React.MutableRefObject<boolean>;
@@ -655,6 +663,15 @@ function ReelContent({
   const { addToast } = useToast();
   const [liked, setLiked] = useState(Boolean(post.reactions && post.reactions.length > 0));
   const [likeCount, setLikeCount] = useState(post._count.reactions);
+  // Saved state: native posts arrive knowing it (savedBy); external items
+  // learn it when the parent's one /api/saves fetch lands — unless the viewer
+  // has already touched the control, whose word then wins.
+  const [saved, setSaved] = useState(() => Boolean(post.savedBy && post.savedBy.length > 0));
+  const savedTouchedRef = useRef(false);
+  useEffect(() => {
+    if (!savedTouchedRef.current && !native && savedRefs.has(post.id)) setSaved(true);
+  }, [savedRefs, native, post.id]);
+  const [, startSave] = useTransition();
   const [expanded, setExpanded] = useState(false);
   const captionRef = useRef<HTMLParagraphElement | null>(null);
   const [captionOverflows, setCaptionOverflows] = useState(false);
@@ -703,6 +720,48 @@ function ReelContent({
       if (res && "error" in res) {
         setLiked(!next);
         if (native) setLikeCount((c) => c + (next ? -1 : 1));
+      }
+    });
+  };
+
+  const handleSave = () => {
+    if (signedOut) {
+      router.push("/login?next=/flow");
+      return;
+    }
+    // No connect-to-interact gate here, deliberately: a save is a PRIVATE
+    // mesh-side bookmark, not an action on the source platform — you can
+    // save a YouTube video without a YouTube account. That asymmetry is the
+    // whole convenience: one saved list, no matter where things came from.
+    const next = !saved;
+    setSaved(next);
+    savedTouchedRef.current = true;
+    startSave(async () => {
+      try {
+        if (native) {
+          const res = await toggleSavePost(post.id);
+          if (res && "error" in res) throw new Error(res.error);
+        } else {
+          const image = post.media.find((m) => m.type === "image")?.url || post.media[0]?.posterUrl;
+          const res = await fetch("/api/saves", {
+            method: "POST",
+            credentials: "same-origin",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              refId: post.id,
+              platform: post.platform,
+              title: (post.content || "").slice(0, 280) || undefined,
+              url: sourceUrl(post) || undefined,
+              thumbnailUrl: image && /^https?:\/\//i.test(image) ? image : undefined,
+              authorName: post.author?.displayName || undefined,
+              postType: hasVideo ? "video" : "post",
+            }),
+          });
+          if (!res.ok) throw new Error();
+        }
+      } catch {
+        setSaved(!next);
+        addToast("Couldn't update your saved list", "error");
       }
     });
   };
@@ -980,6 +1039,9 @@ function ReelContent({
             <RailButton label="Share" onClick={handleShare}>
               <Send size={26} />
             </RailButton>
+            <RailButton label={saved ? "Saved" : "Save"} onClick={handleSave} active={saved}>
+              <Bookmark size={26} fill={saved ? "currentColor" : "none"} />
+            </RailButton>
             {(post.whyThis || laneIndex > 0) && (
               <RailButton label="Why this?" onClick={() => setShowWhy((w) => !w)} active={showWhy}>
                 <Info size={24} />
@@ -1232,6 +1294,24 @@ export function FlowClient({
     () => new Set(connectedPlatforms.map((p) => normalizePlatformId(p)).filter(Boolean)),
     [connectedPlatforms],
   );
+  // The viewer's saved EXTERNAL flow items, fetched once — each card derives
+  // its initial bookmark state from this (native posts already know theirs
+  // via savedBy).
+  const [savedRefs, setSavedRefs] = useState<Set<string>>(() => new Set());
+  useEffect(() => {
+    if (signedOut) return;
+    let cancelled = false;
+    void fetch("/api/saves", { credentials: "same-origin" })
+      .then(async (res) => {
+        if (!res.ok) return;
+        const data = (await res.json().catch(() => null)) as { items?: Array<{ refId: string }> } | null;
+        if (!cancelled && data?.items) setSavedRefs(new Set(data.items.map((item) => item.refId)));
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [signedOut]);
   // A gentle, dismissible "connect <platform> to interact there" prompt, raised
   // the first time this session that a signed-in viewer engages with an external
   // reel from a platform they haven't merged. Viewing and the private mesh-side
@@ -1845,6 +1925,7 @@ export function FlowClient({
               onLaneSwipe={(dir) => void swipeLane(post.id, dir)}
               signedOut={signedOut}
               connectedSet={connectedSet}
+              savedRefs={savedRefs}
               onNeedsConnect={handleNeedsConnect}
               onWatchProgress={reportWatchProgress}
             />

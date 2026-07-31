@@ -1433,6 +1433,30 @@ export async function getSavedPosts(page = 1, limit = 20) {
   return visible.filter((p): p is NonNullable<typeof p> => p !== null);
 }
 
+/** The viewer's saved EXTERNAL flow items — snapshot bookmarks of platform
+ * and public-supply content (see SavedFlowItem). Native saved posts come from
+ * getSavedPosts; together they are the one saved list that spans platforms. */
+export async function getSavedFlowItems(limit = 48) {
+  const user = await getCurrentUser();
+  if (!user) return [];
+  return prisma.savedFlowItem.findMany({
+    where: { userId: user.id },
+    orderBy: { createdAt: "desc" },
+    take: limit,
+    select: {
+      id: true,
+      refId: true,
+      platform: true,
+      title: true,
+      url: true,
+      thumbnailUrl: true,
+      authorName: true,
+      postType: true,
+      createdAt: true,
+    },
+  });
+}
+
 export async function getSavedPostCount() {
   const user = await getCurrentUser();
   if (!user) return 0;

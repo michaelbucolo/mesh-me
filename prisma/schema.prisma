@@ -50,6 +50,7 @@ model User {
   links                      UserLink[]
   adminLogs                  AdminLog[]
   savedPosts                 SavedPost[]
+  savedFlowItems             SavedFlowItem[]
   connectedAccounts          ConnectedAccount[]
   feedPreference             FeedPreference?
   achievements               UserAchievement[]
@@ -474,6 +475,31 @@ model Mute {
   muted User @relation("muted", fields: [mutedId], references: [id], onDelete: Cascade)
 
   @@unique([muterId, mutedId])
+}
+
+/// A bookmark of something seen in the Flow that is NOT a native mesh post —
+/// synced platform content or public supply. Stores a SNAPSHOT (title, url,
+/// thumbnail, platform, author) rather than a foreign key, because supply
+/// rows are pruned on retention schedules (platformFeedItem after 30 days,
+/// PublicPost on expiry) — a person's saved list must outlive the cache that
+/// fed it. refId is the Flow item's stable id, so re-saving the same thing
+/// toggles instead of duplicating.
+model SavedFlowItem {
+  id           String   @id @default(cuid())
+  userId       String
+  refId        String
+  platform     String?
+  title        String?
+  url          String?
+  thumbnailUrl String?
+  authorName   String?
+  postType     String?
+  createdAt    DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, refId])
+  @@index([userId])
 }
 
 model SavedPost {
