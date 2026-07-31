@@ -115,24 +115,30 @@ const uiFiles = readdirSync(join(ROOT, UI_DIR)).filter((f) => f.endsWith(".tsx")
   const chrome = strip(read(`${UI_DIR}/chrome.tsx`));
   const desk = strip(read(`${UI_DIR}/desk.tsx`));
 
-  // The two rim objects each anchor exactly once, through a named class whose
-  // position lives in CSS rather than in a Tailwind soup of edge utilities.
-  // They float INSIDE the loom window (the panel frames them) — the desk
-  // itself is in normal flow and is not an anchor at all.
+  // The floating objects each anchor exactly once, through a named class
+  // whose position lives in CSS rather than in a Tailwind soup of edge
+  // utilities: the rim pair over the full-screen world, and the HUD (the one
+  // collapsible ledger) at the right edge.
   if (!/className={`mesh-rim-keys\b[^`]*\babsolute\b|className="[^"]*\bmesh-rim-keys\b[^"]*\babsolute\b/.test(dock)) {
     fail("3 anchors", "the rim keys' root is not a single `.mesh-rim-keys absolute` — its position has scattered back into utilities");
   } else ok();
   if (!/className="[^"]*\bmesh-rim-context\b[^"]*\babsolute\b/.test(context)) {
     fail("3 anchors", "the context bar's root is not a single `.mesh-rim-context absolute`");
   } else ok();
-  // The tray is a ROW in the strip, never a floating island — if it goes
-  // absolute the ambient slot has left the page again.
-  if (/className="[^"]*\bmesh-tray\b[^"]*\babsolute\b/.test(desk)) {
-    fail("3 anchors", "the desk's .mesh-tray is absolutely positioned — the ambient slot belongs in the strip's flow, not floating over the world");
+  // The HUD is desk.tsx's ONE floating object; anything else absolute there
+  // is a fourth island growing back.
+  const deskAnchors = [...desk.matchAll(/className="([^"]*\babsolute\b[^"]*)"/g)]
+    .map((m) => m[1])
+    // A presence dot pinned to its avatar's corner is part of the avatar,
+    // not an island (negative-offset corner pins are always decorations).
+    .filter((cls) => !/-bottom-0\.5|-top-1/.test(cls));
+  if (!deskAnchors.length || deskAnchors.some((cls) => !/\bmesh-hud\b/.test(cls))) {
+    fail("3 anchors", `desk.tsx floats something that is not .mesh-hud: ${deskAnchors.join(" | ") || "(none found)"}`);
   } else ok();
 
-  // Count edge-pinned islands the chrome group declares. Two is the budget:
-  // rim context and rim keys. The rewind panel is a layer, not an anchor.
+  // Count edge-pinned islands the chrome group declares. Two is the budget
+  // here: rim context and rim keys (the HUD is counted above, in its own
+  // file). The rewind panel is a layer, not an anchor.
   const anchorClasses = new Set<string>();
   for (const src of [dock, context, chrome]) {
     for (const m of src.matchAll(/className="([^"]*\babsolute\b[^"]*)"/g)) {
@@ -265,6 +271,12 @@ const uiFiles = readdirSync(join(ROOT, UI_DIR)).filter((f) => f.endsWith(".tsx")
   if (!/var\(--mobile-nav-h/.test(handleRule)) {
     fail("6 one number", ".mesh-continuum-handle-down does not read var(--mobile-nav-h) — it will sit under the tab bar the moment the bar's height changes");
   } else ok();
+  // The HUD's height budget must also stop at the tab bar, from the same
+  // one number.
+  const hudRule = /\.mesh-hud\s*\{([^}]*)\}/.exec(css)?.[1] ?? "";
+  if (!/var\(--mobile-nav-h/.test(hudRule)) {
+    fail("6 one number", ".mesh-hud does not read var(--mobile-nav-h) — the ledger will run under the tab bar on phones");
+  } else ok();
   const navRule = /\.mobile-bottom-nav\s*\{([^}]*)\}/g;
   let navReadsToken = false;
   for (const m of css.matchAll(navRule)) {
@@ -295,15 +307,13 @@ const uiFiles = readdirSync(join(ROOT, UI_DIR)).filter((f) => f.endsWith(".tsx")
     fail("7 top clearance", ".mesh-topbar does not size itself from --mesh-topbar-h, so the token describes nothing");
   } else ok();
 
-  // The rim chrome lives INSIDE the loom window — the panel frames it, the
-  // top bar never overlaps it. Reading --mesh-topbar-h from inside the frame
-  // would be a stale opinion about a bar it no longer meets.
-  for (const cls of [".mesh-rim-context", ".mesh-rim-keys"]) {
+  // The world is full-bleed again, and the top bar sits absolute OVER it —
+  // every floating object at the top edge must derive its clearance from the
+  // bar's one token (which is 0 wherever the bar is hidden).
+  for (const cls of [".mesh-rim-context", ".mesh-rim-keys", ".mesh-hud"]) {
     const rule = new RegExp(`\\${cls}\\s*\\{([^}]*)\\}`).exec(css)?.[1] ?? "";
-    if (!rule) {
-      fail("7 top clearance", `${cls} has no rule in globals.css — the rim anchor's position has no owner`);
-    } else if (/--mesh-topbar-h/.test(rule)) {
-      fail("7 top clearance", `${cls} reads --mesh-topbar-h, but it is framed by the loom panel and never meets the top bar`);
+    if (!/top:\s*calc\([^)]*var\(--mesh-topbar-h/.test(rule)) {
+      fail("7 top clearance", `${cls} does not derive its top from var(--mesh-topbar-h) — it will render under the top bar the moment that bar's height changes`);
     } else ok();
   }
 }
