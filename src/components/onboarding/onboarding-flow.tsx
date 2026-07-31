@@ -693,6 +693,21 @@ export function OnboardingFlow({
               <ArrowLeft size={16} aria-hidden="true" />
               Back
             </Button>
+            {/* Only the first step (your name) is load-bearing — every later
+                step edits a setting that already has a sensible default and a
+                home in Settings. Making people walk all six before seeing the
+                product is time-to-value spent dressing a mascot; this exit
+                appears the moment the required part is done. */}
+            {step > 0 && step < steps.length - 1 && (
+              <button
+                type="submit"
+                disabled={isPending}
+                data-testid="onboarding-skip-finish"
+                className="ds-focus-ring text-xs font-semibold text-[var(--text-muted)] underline-offset-4 hover:text-[var(--text-primary)] hover:underline sm:mr-auto sm:ml-4"
+              >
+                Skip the rest — everything here can be changed later in Settings
+              </button>
+            )}
             {step < steps.length - 1 ? (
               <Button type="button" onClick={next} disabled={isPending} data-testid="onboarding-next">
                 Next
