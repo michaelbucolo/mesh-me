@@ -456,12 +456,11 @@ export function FeedTimelineClient({
   return (
     <main className={`insta-feed-layout feed-x-layout feed-layout-mode-${layoutMode} feed-view-${contentFilter} animate-page-enter`} data-meshi-zone="feed">
       <section className="min-w-0">
+        {/* No identity cluster here: the app topbar states "Home" once — this
+            bar (hidden under 768px) is only the desktop action strip. It also
+            kept a second <h1> on the page. */}
         <div className="insta-feed-topbar feed-x-topbar">
-          <div className="inline-flex min-w-0 items-center gap-2">
-            <UserMeshiBadge displayName={user.displayName} username={user.username} compact size={28} />
-            <h1 className="truncate text-lg font-semibold text-[var(--text-primary)]">Home</h1>
-          </div>
-          <div className="feed-topbar-actions flex items-center gap-2">
+          <div className="feed-topbar-actions ml-auto flex items-center gap-2">
           <button
             type="button"
             onClick={() => setReelsOpen(true)}

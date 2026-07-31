@@ -63,7 +63,7 @@ type RouteInfo = {
 
 const routeInfoMap: Record<string, RouteInfo> = {
   "/mesh": { title: "The Mesh", description: "Your digital world. Connected by you." },
-  "/feed": { title: "Feed", description: "Your timeline across all connected platforms." },
+  "/feed": { title: "Home", description: "Your timeline across all connected platforms." },
   // NOT "your universal messaging hub, all your conversations in one place".
   // Measured from src/lib/platform-capabilities.ts: 0 of the 9 messengers
   // mesh.me lists can sync a message, because none of them expose an official
