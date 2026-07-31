@@ -23,7 +23,7 @@ const nextConfig: NextConfig = {
   // Retired experiment-era surfaces land somewhere real instead of 404ing.
   async redirects() {
     return [
-      // These two were `page.tsx` files that called `redirect()` in a server
+      // This was a `page.tsx` file that called `redirect()` in a server
       // component. That renders the route — layout, client boundary and all —
       // and only then throws, and doing it during the initial RSC render made
       // Next's own app-router change its hook count between renders:
@@ -35,8 +35,8 @@ const nextConfig: NextConfig = {
       // A config redirect answers at the routing layer, before React renders
       // anything, which is what the other eleven aliases here already do. It is
       // also simply better: a real 308, no wasted render, no flash of the
-      // loading boundary on the way through.
-      { source: "/analytics", destination: "/profile?tab=analytics", permanent: true },
+      // loading boundary on the way through. (/analytics used to be aliased
+      // here too; it is a real page again now that Analytics is a primary tab.)
       { source: "/one-account", destination: "/connected-accounts", permanent: true },
 
       { source: "/marketplace", destination: "/meshpro", permanent: true },

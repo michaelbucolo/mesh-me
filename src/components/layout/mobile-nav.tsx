@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { motion, useAnimationControls } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { impactFeedback } from "@/lib/native/haptics";
-import { getBadgeCount, isNavItemActive, mobileNavItems, resolveNavHref, type NavItem } from "@/components/layout/navigation-config";
+import { getBadgeCount, isNavItemActive, primaryNavItems, resolveNavHref, type NavItem } from "@/components/layout/navigation-config";
 import { PlusSquare } from "lucide-react";
 import { useKeyboard } from "@/hooks/use-keyboard";
 
@@ -136,7 +136,7 @@ export function MobileNav({ unreadNotifications = 0, unreadMessages = 0, usernam
       )}
       <nav className={navClass} aria-label="Primary mobile navigation">
         <div className="grid grid-cols-5 items-center">
-          {mobileNavItems.map((item) => {
+          {primaryNavItems.map((item) => {
             const isActive = isNavItemActive(pathname, item.href, username);
             const badgeCount = getBadgeCount(item.badgeKey, unreadNotifications, unreadMessages);
             const resolvedHref = resolveNavHref(item.href, username);

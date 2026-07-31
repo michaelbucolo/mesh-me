@@ -28,7 +28,7 @@ import { MeshiBrandLockup } from "@/components/meshi/meshi-identity";
 import { Avatar } from "@/components/ui/avatar";
 import { GhostModeToggle } from "@/components/layout/ghost-mode-toggle";
 import { MobileNav } from "@/components/layout/mobile-nav";
-import { sidebarNavItems, resolveNavHref, isNavItemActive, type NavItem } from "@/components/layout/navigation-config";
+import { primaryNavItems, resolveNavHref, isNavItemActive, type NavItem } from "@/components/layout/navigation-config";
 
 const CommandPalette = dynamic(
   () => import("@/components/layout/command-palette").then((module) => module.CommandPalette),
@@ -64,7 +64,7 @@ type RouteInfo = {
 
 const routeInfoMap: Record<string, RouteInfo> = {
   "/mesh": { title: "The Mesh", description: "Your accounts and connections in one graph." },
-  "/feed": { title: "Home", description: "Your timeline across all connected platforms." },
+  "/feed": { title: "Feed", description: "Your timeline across all connected platforms." },
   // NOT "your universal messaging hub, all your conversations in one place".
   // Measured from src/lib/platform-capabilities.ts: 0 of the 9 messengers
   // mesh.me lists can sync a message, because none of them expose an official
@@ -502,7 +502,7 @@ export function AppShell({ children, user }: AppShellProps) {
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto px-3" aria-label="Primary navigation">
           <div className="space-y-0.5">
-            {sidebarNavItems.map((item) => {
+            {primaryNavItems.map((item) => {
               const href = resolveNavHref(item.href, user.username);
               const active = isNavItemActive(pathname, item.href, user.username);
 

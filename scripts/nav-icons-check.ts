@@ -43,7 +43,11 @@ const ok = () => {
   checks += 1;
 };
 
-const REQUIRED = ["MeshIcon", "FlowIcon", "MeChatIcon", "ExploreIcon", "ProfileIcon"];
+// The five tabs: Mesh · MeChat · Flow · Explore · Analytics. ProfileIcon still
+// lives in the file for identity chrome (command palette) and is held to the
+// same structural rules by the per-icon sections below, which iterate every
+// export — only THIS list is about tab membership.
+const REQUIRED = ["MeshIcon", "MeChatIcon", "FlowIcon", "ExploreIcon", "AnalyticsIcon"];
 
 /** Each exported icon's JSX, from its `export function X` to the next one. */
 function iconBodies(): Map<string, string> {

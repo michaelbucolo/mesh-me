@@ -89,7 +89,7 @@ const sourceFilters: Array<{ id: FeedSource; label: string; mobileHidden?: boole
  *
  * Two of the six modes were duplicates outright. `creator` set the identical
  * contentFilter and layoutMode as `classic` and only added a stats panel that
- * /profile?tab=analytics already renders in full. `clean` was `classic` plus
+ * /analytics already renders in full. `clean` was `classic` plus
  * compact cards — exactly the "Compact" layout button sitting next to it —
  * while its description promised "calm, fewer controls", which it did not do.
  *

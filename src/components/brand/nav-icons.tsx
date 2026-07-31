@@ -24,9 +24,11 @@
  * 1. LEGIBLE AT 22px. Few elements, thick strokes, large negative space. No
  *    opacity tricks — a 0.55-opacity hairline is invisible at tab size, which
  *    is exactly how the mesh lost its edges and kept its teeth.
- * 2. DISTINCT SILHOUETTES. Closed hexagon · solid triangle on a rule · twin
- *    bubbles · ringed compass · person. You can tell them apart peripherally,
- *    by outline alone, which is how a tab bar is actually read.
+ * 2. DISTINCT SILHOUETTES. Closed hexagon · twin bubbles · solid triangle on
+ *    a rule · ringed compass · three rising bars. You can tell them apart
+ *    peripherally, by outline alone, which is how a tab bar is actually read.
+ *    (The person survives outside the bar — identity chrome like the command
+ *    palette — drawn to the same rules so it still matches when adjacent.)
  * 3. NO COLLISIONS. An early draft of the mesh mark — a centre node with three
  *    spokes — was rejected because it is lucide's Share2, which this app
  *    already uses in the top bar. Another read as an X, which means dismiss.
@@ -56,23 +58,6 @@ function base(props: SVGProps<SVGSVGElement>) {
     strokeLinejoin: "round" as const,
     ...props,
   };
-}
-
-/**
- * A house: one roofline, one door.
- *
- * Drawn to the same rules as the rest of the set, not borrowed from lucide —
- * the stock house's thin ribs and narrow door close up at 22px. Two elements
- * only, and it is the one angled roof in the bar, so the silhouette reads
- * peripherally the way a home tab must.
- */
-export function HomeIcon(props: SVGProps<SVGSVGElement>) {
-  return (
-    <svg {...base(props)}>
-      <path d="M4.3 10.9 12 4.2l7.7 6.7M5.9 9.9v8.1a2.2 2.2 0 0 0 2.2 2.2h7.8a2.2 2.2 0 0 0 2.2-2.2V9.9" />
-      <path d="M9.9 20.2v-4.4a2.1 2.1 0 0 1 4.2 0v4.4" />
-    </svg>
-  );
 }
 
 /**
@@ -152,6 +137,24 @@ export function ExploreIcon(props: SVGProps<SVGSVGElement>) {
     <svg {...base(props)}>
       <circle cx="12" cy="12" r="8.6" />
       <path d="M16.1 7.9 13.9 13.9 7.9 16.1 10.1 10.1 16.1 7.9Z" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+/**
+ * Three bars, rising.
+ *
+ * No axis, no frame, no data dots — at 22px those are the details that smear
+ * first, and the bars alone already say "chart". Drawn as three fat strokes
+ * with round caps so the silhouette (the bar's only vertical strokes) reads
+ * peripherally, and stepped left-to-right so growth is legible at any size.
+ */
+export function AnalyticsIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base(props)}>
+      <path d="M5.3 19.4v-5.4" strokeWidth="2.7" />
+      <path d="M12 19.4V9.4" strokeWidth="2.7" />
+      <path d="M18.7 19.4V4.8" strokeWidth="2.7" />
     </svg>
   );
 }
