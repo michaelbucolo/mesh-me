@@ -1,5 +1,5 @@
 /**
- * THE FIVE TABS. DRAWN FOR 22px, WHICH IS THE ONLY SIZE THEY SHIP AT.
+ * THE TAB MARKS. DRAWN FOR 22px, WHICH IS THE ONLY SIZE THEY SHIP AT.
  *
  * ── HOW THE OLD SET FAILED ───────────────────────────────────────────────────
  *
@@ -56,6 +56,23 @@ function base(props: SVGProps<SVGSVGElement>) {
     strokeLinejoin: "round" as const,
     ...props,
   };
+}
+
+/**
+ * A house: one roofline, one door.
+ *
+ * Drawn to the same rules as the rest of the set, not borrowed from lucide —
+ * the stock house's thin ribs and narrow door close up at 22px. Two elements
+ * only, and it is the one angled roof in the bar, so the silhouette reads
+ * peripherally the way a home tab must.
+ */
+export function HomeIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base(props)}>
+      <path d="M4.3 10.9 12 4.2l7.7 6.7M5.9 9.9v8.1a2.2 2.2 0 0 0 2.2 2.2h7.8a2.2 2.2 0 0 0 2.2-2.2V9.9" />
+      <path d="M9.9 20.2v-4.4a2.1 2.1 0 0 1 4.2 0v4.4" />
+    </svg>
+  );
 }
 
 /**
