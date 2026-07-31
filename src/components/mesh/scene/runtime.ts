@@ -130,7 +130,6 @@ export interface MeshRuntime {
   hitmap: Hitmap;
   physics: PhysicsState;
   images: Map<string, HTMLImageElement>;
-  stars: { x: number; y: number; r: number; tw: number }[];
   size: { width: number; height: number };
   proVisuals: ProVisuals;
   meshOwnerId: string | null;
@@ -219,7 +218,6 @@ export function createMeshRuntime(): MeshRuntime {
     hitmap: createHitmap(),
     physics: createPhysicsState(),
     images: new Map(),
-    stars: [],
     size: { width: 0, height: 0 },
     proVisuals: { connectionColor: null, nodeStyle: null, motionStyle: null, atmosphere: null },
     meshOwnerId: null,

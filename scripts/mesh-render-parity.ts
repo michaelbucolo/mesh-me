@@ -322,11 +322,6 @@ function frameOptions(
     focusId: "post:1",
     hoverId: "post:1",
     images,
-    backgroundStars: [
-      { x: 40, y: 60, r: 0.8, tw: 1.2 },
-      { x: 420, y: 180, r: 1.1, tw: 3.4 },
-      { x: 760, y: 520, r: 0.5, tw: 5.1 },
-    ],
     visuals: { connectionColor: "#8b5cf6", nodeStyle: null, atmosphere: "midnight" },
     avoidCenter: true,
     isOwnMesh: true,

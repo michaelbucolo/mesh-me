@@ -9,9 +9,8 @@
 // separately by sim/layout.ts.
 
 import { bestStillUrl, playableVideoUrl } from "@/lib/external-media";
-import { branchFill } from "@/lib/palette";
+import { branchFill, PLATFORM_COLORS } from "@/lib/palette";
 import type { MeshApiResponse } from "../core/domain";
-import { PLATFORM_COLORS } from "../mesh-types";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 

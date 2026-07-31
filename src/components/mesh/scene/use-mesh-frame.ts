@@ -15,20 +15,6 @@ import { stepStrum } from "../sim/strum";
 import { stepToys } from "../sim/toys";
 import type { MeshRuntimeRef } from "./runtime";
 
-function generateStars(width: number, height: number) {
-  const stars: { x: number; y: number; r: number; tw: number }[] = [];
-  const count = Math.round((width * height) / 9000);
-  let seed = 1337;
-  const rand = () => {
-    seed = (seed * 1103515245 + 12345) & 0x7fffffff;
-    return seed / 0x7fffffff;
-  };
-  for (let i = 0; i < count; i++) {
-    stars.push({ x: rand() * width, y: rand() * height, r: rand() * 1.1 + 0.2, tw: rand() * 6.28 });
-  }
-  return stars;
-}
-
 export function useMeshFrame(
   rtRef: MeshRuntimeRef,
   opts: {
@@ -110,7 +96,6 @@ export function useMeshFrame(
       canvas.height = Math.round(rect.height * dpr);
       canvas.style.width = `${rect.width}px`;
       canvas.style.height = `${rect.height}px`;
-      rt.stars = generateStars(rect.width, rect.height);
       if (rt.model && rt.camera.panX === 0 && rt.camera.panY === 0) fitToContent();
     };
     resize();
@@ -256,7 +241,6 @@ export function useMeshFrame(
           focusId: rt.focusId,
           hoverId: rt.hoverId,
           images: rt.images,
-          backgroundStars: rt.stars,
           avoidCenter: rt.coarse,
           isOwnMesh,
           strands: rt.physics.strands,
