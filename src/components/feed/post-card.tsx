@@ -769,15 +769,14 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
               compact={compact}
               className="text-[0.9375rem] leading-6 text-[var(--text-primary)]"
             />
-            {isOptimistic ? (
+            {/* No "Open post" label loitering under the copy — the comment
+                button and the "View n comments" line below the actions both
+                navigate to the post already. */}
+            {isOptimistic && (
               <p className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--text-muted)]">
                 <PaperWait size="sm" />
                 Saving to feed
               </p>
-            ) : (
-              <Link href={postHref} className="mt-3 inline-flex text-xs font-semibold text-[var(--text-muted)] transition hover:text-[var(--text-primary)]">
-                Open post
-              </Link>
             )}
           </div>
         )}

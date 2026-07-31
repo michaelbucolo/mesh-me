@@ -8256,32 +8256,24 @@ button, [role="button"] {
 /* ── 1. THE ACTION ROW, AND THE HEADER ────────────────────────────────────────
 
    `.insta-post-action` (like / comment / share / save, four per post) and
-   `.insta-icon-button` (the four topbar controls and the card's "…" menu) share
-   one base block up at :1868. It gave them no face, no --edge ring, no wall and
-   a 36px box, and pressed them with `transform: scale(0.92)` — the control
-   shrinking AWAY from the finger, which is the precise opposite of a key
-   bottoming out. On the busiest row of the product.
-
-   They get the chip mould: the same 2px wall the filter chips wear, not the 3px
-   object wall, because Law 3 says the chrome on a post must stay quieter than
-   the post. The press conserves height — wall to zero, face down by exactly one
-   wall — so the bottom edge never moves. */
+   `.insta-icon-button` (the topbar controls and the card's "…" menu) are GHOST
+   buttons: glyph, 44px target, a tint on hover/press, and nothing else. An
+   earlier pass moulded them into chip keys — face, --edge ring, plinth wall —
+   and four boxed keys per post photographed at 390px as a button panel with a
+   post attached. Law 3 in that pass's own words: the chrome on a post must
+   stay quieter than the post; a filled ringed chip is louder than 15px body
+   copy. Every major feed (iOS-native or not) draws these as plain glyphs, and
+   the moulded treatment now belongs ONLY to the stateful pair below — liked
+   and saved — where a fill genuinely says "this is ON", and it reads because
+   it is the only fill in the row. */
 .insta-icon-button,
 .insta-post-action {
-  min-height: 2.75rem;   /* was 2.25rem — under the 44px touch target */
+  min-height: 2.75rem;
   min-width: 2.75rem;
   border-radius: var(--radius-md);
-  background: var(--face);
+  background: transparent;
   color: var(--ink-2);
-  --plinth-h: var(--plinth-h-chip);
-  box-shadow:
-    inset 0 0 0 var(--edge-w) var(--edge),
-    var(--mould-line),
-    0 var(--plinth-h) 0 0 var(--plinth-1),
-    var(--shadow-rest);
   transition:
-    translate var(--dur-press) var(--ease-give),
-    box-shadow var(--dur-press) var(--ease-give),
     background-color var(--dur-tap) var(--ease-settle),
     color var(--dur-tap) var(--ease-settle);
 }
@@ -8290,32 +8282,15 @@ button, [role="button"] {
   background: var(--face-hover);
   color: var(--ink-1);
 }
-/* `transform: none` is load-bearing. `translate` and `transform` are separate
-   properties that COMPOSE, so the old scale would have survived underneath the
-   new press and the object would have shrunk and dropped at the same time. */
 .insta-icon-button:active,
 .insta-post-action:active {
   background: var(--face-press);
-  box-shadow:
-    inset 0 0 0 var(--edge-w) var(--edge),
-    var(--mould-line),
-    0 0 0 0 var(--plinth-1),
-    var(--shadow-press);
-  translate: 0 var(--plinth-h);
-  transform: none;
+  color: var(--ink-1);
 }
 .insta-icon-button:focus-visible,
 .insta-post-action:focus-visible {
   outline: none;
   box-shadow: var(--focus-ring);
-}
-/* Already bottomed out: nothing left to press. */
-.insta-icon-button:disabled,
-.insta-post-action:disabled,
-.insta-icon-button[aria-disabled="true"],
-.insta-post-action[aria-disabled="true"] {
-  box-shadow: inset 0 0 0 var(--edge-w) var(--edge), 0 0 0 0 var(--plinth-1);
-  translate: none;
 }
 
 /* LIKED and SAVED are moulded from plastic, not tinted.
