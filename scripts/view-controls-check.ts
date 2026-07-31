@@ -13,7 +13,7 @@
  *   narrowing the feed.
  *
  * Two modes were duplicates outright: `creator` set the same contentFilter and
- * layoutMode as `classic` and only added a stats panel /profile?tab=analytics
+ * layoutMode as `classic` and only added a stats panel /analytics
  * already renders in full; `clean` was `classic` plus compact cards, which is
  * exactly what the "Compact" layout button beside it did.
  *
@@ -128,7 +128,7 @@ const explore = strip(read(EXPLORE));
 // ── 4. The duplicated surfaces stay gone ─────────────────────────────────────
 {
   if (/feed-creator-dashboard/.test(code)) {
-    fail("4 duplicates", "the Creator dashboard is back in the feed; /profile?tab=analytics already renders it in full");
+    fail("4 duplicates", "the Creator dashboard is back in the feed; /analytics already renders it in full");
   } else ok();
   // "Clean" was Compact wearing a different label, and its copy promised
   // "fewer controls" while removing none.

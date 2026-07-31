@@ -1,4 +1,4 @@
-import { ExploreIcon, FlowIcon, HomeIcon, MeChatIcon, MeshIcon, ProfileIcon, type BrandIcon } from "@/components/brand/nav-icons";
+import { AnalyticsIcon, ExploreIcon, FlowIcon, MeChatIcon, MeshIcon, type BrandIcon } from "@/components/brand/nav-icons";
 
 export type BadgeKey = "messages" | "notifications";
 
@@ -10,31 +10,21 @@ export interface NavItem {
 }
 
 
-// The persistent surfaces. /feed — the timeline, the one place the "all your
-// platforms in one account" promise is readable as a list — used to appear in
-// NO navigation at all: reachable only through the command palette, a keyboard
-// shortcut, and back-links, while its own topbar called it "Home". A hidden
-// home. It leads both navs now. Notifications stays in the top-bar bell,
-// Analytics inside Profile, Settings / One Account / MeshPro in the account
-// menu. On mobile, Profile is identity chrome and lives where identity already
-// lives — the topbar avatar menu — so content keeps the five tab slots.
-export const sidebarNavItems: NavItem[] = [
-  { href: "/feed", icon: HomeIcon, label: "Home" },
+// THE FIVE TABS: Mesh · MeChat · Flow · Explore · Analytics — the same set in
+// the same order on the desktop rail and the mobile bar, so the product has
+// one navigation, not two. Mesh is home (the proxy already lands "/" there).
+// Everything displaced still has a visible door: /feed sits behind the
+// command palette, its keyboard shortcut, and back-links; Profile is identity
+// chrome (the sidebar user dock on desktop, the topbar avatar menu on
+// mobile); Notifications stays in the top-bar bell; Settings / One Account /
+// MeshPro live in the account menu. Analytics is promoted from a profile tab
+// to a first-class destination at /analytics.
+export const primaryNavItems: NavItem[] = [
   { href: "/mesh", icon: MeshIcon, label: "Mesh" },
-  { href: "/flow", icon: FlowIcon, label: "Flow" },
   { href: "/messages", icon: MeChatIcon, label: "MeChat", badgeKey: "messages" },
-  { href: "/explore", icon: ExploreIcon, label: "Explore" },
-  { href: "/profile", icon: ProfileIcon, label: "Profile" },
-];
-
-
-
-export const mobileNavItems: NavItem[] = [
-  { href: "/feed", icon: HomeIcon, label: "Home" },
-  { href: "/mesh", icon: MeshIcon, label: "Mesh" },
   { href: "/flow", icon: FlowIcon, label: "Flow" },
-  { href: "/messages", icon: MeChatIcon, label: "MeChat", badgeKey: "messages" },
   { href: "/explore", icon: ExploreIcon, label: "Explore" },
+  { href: "/analytics", icon: AnalyticsIcon, label: "Analytics" },
 ];
 
 export function resolveNavHref(href: string, username?: string): string {

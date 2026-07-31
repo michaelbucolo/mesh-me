@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ComponentType, 
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
-  BarChart3,
   Bell,
   BookOpen,
   Bug,
@@ -12,6 +11,7 @@ import {
   CreditCard,
   Database,
   HelpCircle,
+  House,
   Keyboard,
   Network,
   Palette,
@@ -25,7 +25,7 @@ import {
   UserRound,
   UsersRound,
 } from "lucide-react";
-import { FlowIcon, MeChatIcon, MeshIcon, ProfileIcon } from "@/components/brand/nav-icons";
+import { AnalyticsIcon, MeChatIcon, MeshIcon, ProfileIcon } from "@/components/brand/nav-icons";
 import { Badge } from "@/components/ui/badge";
 import { Modal } from "@/components/ui/modal";
 import { openMeshi } from "@/lib/meshi-events";
@@ -70,11 +70,11 @@ function createCommands(username: string): CommandItem[] {
   return [
     {
       id: "go-feed",
-      title: "Open Home Feed",
+      title: "Open Feed",
       description: "Scroll the unified social feed.",
       category: "Go",
       href: "/feed",
-      icon: FlowIcon,
+      icon: House,
       keywords: ["home", "timeline", "twitter", "x", "instagram", "posts"],
     },
     {
@@ -128,7 +128,7 @@ function createCommands(username: string): CommandItem[] {
       description: "See engagement, growth, activity, and privacy health.",
       category: "Go",
       href: "/analytics",
-      icon: BarChart3,
+      icon: AnalyticsIcon,
       keywords: ["stats", "creator", "performance", "privacy score"],
     },
     {
