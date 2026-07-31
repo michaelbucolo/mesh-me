@@ -36,8 +36,13 @@ export async function POST(req: Request) {
       },
     });
 
-    // Keep accounts close to real-time by syncing anything older than 45 seconds.
-    const staleThreshold = new Date(Date.now() - 45 * 1000);
+    // Sync anything older than 10 minutes. The window matches syncPlatform's
+    // per-user budget (10 syncs / 10 min): at most one auto pass per account
+    // per window, so the beacon that fires this on every app open can never
+    // exhaust the budget a manual Sync click draws from. A just-connected
+    // account (lastSyncAt null) always qualifies — that is what makes
+    // connect-then-return-to-the-app import your content with no extra step.
+    const staleThreshold = new Date(Date.now() - 10 * 60 * 1000);
     const staleAccounts = accounts.filter(
       (a) => canImportFromPlatform(a.platform) && a.syncStatus !== "syncing" && (!a.lastSyncAt || a.lastSyncAt < staleThreshold),
     );
