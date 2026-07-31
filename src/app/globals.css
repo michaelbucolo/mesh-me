@@ -2471,6 +2471,19 @@ body[data-meshi-panel="open"] .bug-report-widget {
   transform: translateY(0) scale(var(--mesh-press-scale));
 }
 
+/* THE SELECTED STATE — unlayered, because .mesh-choice's own border and
+   background are unlayered and therefore beat any Tailwind utility a
+   component adds. Onboarding shipped `border-[var(--accent)]` conditionals
+   for months and they never rendered once (photographed: clicking "Private"
+   changed nothing on screen). State the selection where it can actually
+   win the cascade. */
+.mesh-choice-selected,
+.mesh-choice-selected:hover {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, var(--bg-primary));
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+
 .mesh-step {
   border: 1px solid var(--border-primary);
   background: color-mix(in srgb, var(--bg-primary) 66%, transparent);
