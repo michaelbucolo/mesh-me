@@ -621,18 +621,24 @@ const youtubeAdapter: PlatformAdapter = {
   },
   async fetchMedia() { return { media: [] }; },
   async fetchForYouFeed(accessToken) {
-    try {
-      const res = await fetch("https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics&chart=mostPopular&maxResults=30", {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
-      if (!res.ok) return { items: [] };
-      const data = await res.json().catch(() => ({}));
-      const items: PlatformFeedItemData[] = (data.items || [])
-        .filter((item: Record<string, unknown>) => Boolean(item?.id))
-        .map((item: Record<string, unknown>) => {
+    // "For you" means YOUR subscriptions' latest uploads, not the public
+    // mostPopular chart — that chart is one tap away in the YouTube app and
+    // carries none of the reasons a person would open mesh.me instead. The
+    // youtube.readonly scope this account already granted covers everything
+    // needed, and the whole walk is ~15 quota units: subscriptions.list (1)
+    // → channels.list batch for uploads playlists (1) → playlistItems.list
+    // per channel (1 × N) → one videos.list batch for stats and duration.
+    // The chart remains the fallback for accounts with no subscriptions —
+    // generic trending still beats an empty feed.
+    const authHeader = { headers: { Authorization: `Bearer ${accessToken}` } };
+    const mapVideoItems = (rawItems: unknown[]): PlatformFeedItemData[] =>
+      (rawItems as Record<string, unknown>[])
+        .filter((item) => Boolean(item?.id) && typeof item.id === "string")
+        .map((item) => {
           const snippet = item.snippet as Record<string, unknown> | undefined;
           const stats = (item.statistics as Record<string, unknown>) || {};
           const channelId = snippet?.channelId as string | undefined;
+          const seconds = parseIso8601Duration((item.contentDetails as Record<string, unknown> | undefined)?.duration);
           return {
             platformItemId: item.id as string,
             authorName: snippet?.channelTitle as string,
@@ -642,14 +648,74 @@ const youtubeAdapter: PlatformAdapter = {
             content: (snippet?.description as string) || "",
             url: `https://youtube.com/watch?v=${item.id}`,
             thumbnailUrl: ((snippet?.thumbnails as Record<string, unknown>)?.high as Record<string, unknown>)?.url as string,
-            postType: "video",
+            durationSeconds: seconds,
+            postType: seconds && seconds <= 180 ? "short" : "video",
             likeCount: toInt(stats.likeCount),
             commentCount: toInt(stats.commentCount),
             publishedAt: dateFromString(snippet?.publishedAt),
             rawMetadata: JSON.stringify({ channelTitle: snippet?.channelTitle, viewCount: stats.viewCount }),
           };
         });
-      return { items };
+
+    try {
+      // 1. Who you subscribe to, in YouTube's own relevance order.
+      const subsRes = await fetch("https://www.googleapis.com/youtube/v3/subscriptions?part=snippet&mine=true&maxResults=50", authHeader);
+      const subsData = subsRes.ok ? await subsRes.json().catch(() => ({})) : {};
+      const channelIds: string[] = ((subsData.items as Record<string, unknown>[] | undefined) || [])
+        .map((item) => ((item.snippet as Record<string, unknown> | undefined)?.resourceId as Record<string, unknown> | undefined)?.channelId)
+        .filter((id): id is string => typeof id === "string" && id.length > 0);
+
+      if (channelIds.length > 0) {
+        // 2. One batched call resolves every channel's uploads playlist.
+        const channelsRes = await fetch(
+          `https://www.googleapis.com/youtube/v3/channels?part=contentDetails&maxResults=50&id=${channelIds.slice(0, 50).join(",")}`,
+          authHeader,
+        );
+        const channelsData = channelsRes.ok ? await channelsRes.json().catch(() => ({})) : {};
+        const uploadPlaylists: string[] = ((channelsData.items as Record<string, unknown>[] | undefined) || [])
+          .map((item) => (((item.contentDetails as Record<string, unknown> | undefined)?.relatedPlaylists as Record<string, unknown> | undefined)?.uploads))
+          .filter((id): id is string => typeof id === "string" && id.length > 0);
+
+        // 3. Recent uploads from the most relevant channels. 12 × 5 keeps the
+        //    call count and the feed's channel diversity both reasonable.
+        const recentVideoIds = (
+          await Promise.all(
+            uploadPlaylists.slice(0, 12).map(async (playlistId) => {
+              const res = await fetch(
+                `https://www.googleapis.com/youtube/v3/playlistItems?part=contentDetails&maxResults=5&playlistId=${playlistId}`,
+                authHeader,
+              ).catch(() => null);
+              if (!res?.ok) return [] as string[];
+              const data = await res.json().catch(() => ({}));
+              return ((data.items as Record<string, unknown>[] | undefined) || [])
+                .map((item) => ((item.contentDetails as Record<string, unknown> | undefined)?.videoId))
+                .filter((id): id is string => typeof id === "string" && id.length > 0);
+            }),
+          )
+        ).flat();
+
+        if (recentVideoIds.length > 0) {
+          // 4. One batched call hydrates stats, snippet, and duration (the
+          //    duration is what lets the Flow's shorts rule measure, not guess).
+          const videosRes = await fetch(
+            `https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics,contentDetails&maxResults=50&id=${recentVideoIds.slice(0, 50).join(",")}`,
+            authHeader,
+          );
+          if (videosRes.ok) {
+            const videosData = await videosRes.json().catch(() => ({}));
+            const items = mapVideoItems((videosData.items as unknown[]) || []).sort(
+              (a, b) => (b.publishedAt?.getTime() ?? 0) - (a.publishedAt?.getTime() ?? 0),
+            );
+            if (items.length > 0) return { items };
+          }
+        }
+      }
+
+      // Fallback: no subscriptions (or the walk came up dry) — the chart.
+      const res = await fetch("https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics,contentDetails&chart=mostPopular&maxResults=30", authHeader);
+      if (!res.ok) return { items: [] };
+      const data = await res.json().catch(() => ({}));
+      return { items: mapVideoItems((data.items as unknown[]) || []) };
     } catch { return { items: [] }; }
   },
   async fetchAnalytics(accessToken) {
