@@ -50,6 +50,7 @@ export type MeChatSerializedMessage = {
     displayName: string;
     username: string;
     avatarUrl: string | null;
+    meshi?: TypingMeshi | null;
   }>;
 };
 
@@ -69,6 +70,9 @@ type TypingUser = {
   displayName: string;
   avatarUrl: string | null;
   meshi: TypingMeshi | null;
+  /* "viewing" = in the chat right now (Bitmoji-style presence); anything else
+     renders as the typing indicator, matching older payloads. */
+  mode?: "typing" | "viewing";
 };
 
 type SharedMessageSource = {
@@ -126,7 +130,9 @@ function readState(message: MeChatSerializedMessage, currentUserId: string) {
   if (message.id.startsWith("optimistic-")) return "Sending";
   const readers = message.readBy.filter((reader) => reader.userId !== currentUserId);
   if (readers.length === 0) return "Delivered";
-  return "Read";
+  // Once someone has read it, their Meshi face at the read frontier IS the
+  // receipt — the word would announce the same thing twice.
+  return "";
 }
 
 /** True for anything not authored by the viewer (including synced external senders). */
@@ -313,6 +319,36 @@ export function MeChatThread({
     return null;
   }, [messages, currentUser.id]);
 
+  // Bitmoji-style read frontier: each other member's Meshi face sits under the
+  // LAST message they've read, so the faces physically mark how far into the
+  // conversation each person has seen. A member's own messages don't count as
+  // a frontier — having written something says nothing new about having read
+  // it — so their face lands on the newest message from someone else instead.
+  const readFrontier = useMemo(() => {
+    const frontier = new Map<string, MeChatSerializedMessage["readBy"]>();
+    if (isExternalThread) return frontier;
+    const placed = new Set<string>();
+    for (let i = messages.length - 1; i >= 0; i -= 1) {
+      const message = messages[i];
+      for (const reader of message.readBy) {
+        if (reader.userId === currentUser.id) continue;
+        if (reader.userId === message.senderId) continue;
+        if (placed.has(reader.userId)) continue;
+        placed.add(reader.userId);
+        const existing = frontier.get(message.id);
+        if (existing) existing.push(reader);
+        else frontier.set(message.id, [reader]);
+      }
+    }
+    return frontier;
+  }, [messages, currentUser.id, isExternalThread]);
+
+  // Presence splits by mode: fresh keystrokes drive the classic typing
+  // indicator, while "viewing" members — thread open, keyboard quiet — appear
+  // as still Meshi faces hanging out at the bottom of the conversation.
+  const typers = typingUsers.filter((user) => user.mode !== "viewing");
+  const viewers = typingUsers.filter((user) => user.mode === "viewing");
+
   const searchCount = searchQuery.trim() ? visibleMessages.length : 0;
 
   const loadThread = useCallback(async (threadId: string) => {
@@ -447,16 +483,21 @@ export function MeChatThread({
   useEffect(() => {
     if (!activeThreadId) return;
     if (typingTimerRef.current) window.clearTimeout(typingTimerRef.current);
+    // Only real keystrokes matter here — the viewing heartbeat below owns
+    // baseline presence, so an untouched (or restored) draft has nothing to
+    // announce and shouldn't double-post on mount.
+    if (!draftTouchedRef.current) return;
     if (!draft.trim()) {
       void fetch(`/api/messages/${activeThreadId}/typing`, {
         method: "POST",
         credentials: "same-origin",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ typing: false }),
+        // Keystrokes stopped, but you're still IN the chat — demote to the
+        // viewing presence instead of disappearing.
+        body: JSON.stringify({ typing: false, viewing: true }),
       }).catch(() => {});
       return;
     }
-    if (!draftTouchedRef.current) return;
 
     typingTimerRef.current = window.setTimeout(() => {
       void fetch(`/api/messages/${activeThreadId}/typing`, {
@@ -471,6 +512,60 @@ export function MeChatThread({
       if (typingTimerRef.current) window.clearTimeout(typingTimerRef.current);
     };
   }, [activeThreadId, draft]);
+
+  // Bitmoji-style presence: while this thread is open in a visible tab, your
+  // Meshi sits in the chat for everyone else. The server holds a viewing entry
+  // for ~25s, so a 15s heartbeat keeps it alive with margin; hiding the tab
+  // just lets it lapse, and leaving the thread clears it immediately so your
+  // face never lingers somewhere you aren't.
+  useEffect(() => {
+    if (!activeThreadId) return;
+    const threadId = activeThreadId;
+    const beat = () => {
+      if (document.visibilityState !== "visible") return;
+      void fetch(`/api/messages/${threadId}/typing`, {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ typing: false, viewing: true }),
+      }).catch(() => {});
+    };
+    const leave = () => {
+      const body = JSON.stringify({ typing: false });
+      // sendBeacon is the one API guaranteed to survive page teardown — a
+      // keepalive fetch fired from pagehide still gets aborted by the
+      // navigation. Beacons carry cookies and the server parses the JSON body
+      // regardless of content type, so this is a plain clear.
+      const sent =
+        typeof navigator !== "undefined" &&
+        typeof navigator.sendBeacon === "function" &&
+        navigator.sendBeacon(`/api/messages/${threadId}/typing`, body);
+      if (!sent) {
+        void fetch(`/api/messages/${threadId}/typing`, {
+          method: "POST",
+          credentials: "same-origin",
+          headers: { "Content-Type": "application/json" },
+          body,
+          keepalive: true,
+        }).catch(() => {});
+      }
+    };
+    beat();
+    const interval = window.setInterval(beat, 15_000);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") beat();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    // Hard exits (tab close, full navigation) never reach React cleanup — the
+    // pagehide beacon clears your presence instead of leaving a ~25s ghost.
+    window.addEventListener("pagehide", leave);
+    return () => {
+      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("pagehide", leave);
+      leave();
+    };
+  }, [activeThreadId]);
 
   async function ensureThread() {
     if (activeThreadId) return activeThreadId;
@@ -993,6 +1088,46 @@ export function MeChatThread({
                     )}
                   </motion.div>
                 </article>
+                {(() => {
+                  const frontierReaders = readFrontier.get(message.id);
+                  if (!frontierReaders || frontierReaders.length === 0) return null;
+                  return (
+                    <div
+                      data-testid="mechat-read-frontier"
+                      className="mt-1 flex items-center justify-end gap-1 pr-2"
+                      aria-label={`Seen by ${frontierReaders.map((reader) => reader.displayName).join(", ")}`}
+                    >
+                      {frontierReaders.slice(0, 4).map((reader) =>
+                        reader.meshi ? (
+                          <span
+                            key={reader.userId}
+                            title={`Seen by ${reader.displayName}`}
+                            className="inline-flex h-5 w-5 items-center justify-center"
+                          >
+                            <MeshiMascot
+                              size={19}
+                              mood="happy"
+                              color={reader.meshi.color as MeshiColor}
+                              hat={reader.meshi.hat as MeshiHat}
+                              hair={reader.meshi.hair as MeshiHair}
+                              accessory={reader.meshi.accessory as MeshiAccessory}
+                              eyeStyle={reader.meshi.eyeStyle as MeshiEyeStyle}
+                              badge={reader.meshi.badge as MeshiBadge}
+                              outfit={reader.meshi.outfit as MeshiOutfit}
+                            />
+                          </span>
+                        ) : (
+                          <Avatar
+                            key={reader.userId}
+                            src={reader.avatarUrl}
+                            alt={`Seen by ${reader.displayName}`}
+                            size="xs"
+                          />
+                        ),
+                      )}
+                    </div>
+                  );
+                })()}
                 </div>
               );
             })}
@@ -1010,10 +1145,10 @@ export function MeChatThread({
           </div>
         )}
 
-        {typingUsers.length > 0 && (
+        {typers.length > 0 && (
           <div className="mt-3 flex items-end gap-2">
             <div className="flex -space-x-1.5">
-              {typingUsers.slice(0, 3).map((user, index) =>
+              {typers.slice(0, 3).map((user, index) =>
                 user.meshi ? (
                   <span
                     key={user.userId}
@@ -1042,7 +1177,7 @@ export function MeChatThread({
               role="status"
               aria-live="polite"
               className="rounded-[1.3rem] rounded-bl-[0.5rem] border border-[var(--border-primary)] bg-[var(--bg-primary)]/80 px-4 py-3 shadow-sm"
-              aria-label={`${typingUsers.map((user) => user.displayName).join(", ")} ${typingUsers.length === 1 ? "is" : "are"} typing`}
+              aria-label={`${typers.map((user) => user.displayName).join(", ")} ${typers.length === 1 ? "is" : "are"} typing`}
             >
               <span className="mesh-typing-wave" aria-hidden="true">
                 <span />
@@ -1050,6 +1185,41 @@ export function MeChatThread({
                 <span />
               </span>
             </div>
+          </div>
+        )}
+
+        {/* Viewing presence — the Bitmoji move: members with the thread open
+            right now sit here as their still Meshi, no bubble, no motion. */}
+        {viewers.length > 0 && (
+          <div
+            data-testid="mechat-viewing-presence"
+            className="mt-3 flex items-center gap-1.5"
+            aria-label={`${viewers.map((user) => user.displayName).join(", ")} ${viewers.length === 1 ? "is" : "are"} in the chat right now`}
+          >
+            <div className="flex -space-x-1.5">
+              {viewers.slice(0, 3).map((user) =>
+                user.meshi ? (
+                  <span key={user.userId} className="inline-flex h-7 w-7 items-center justify-center" title={user.displayName}>
+                    <MeshiMascot
+                      size={26}
+                      mood="happy"
+                      color={user.meshi.color as MeshiColor}
+                      hat={user.meshi.hat as MeshiHat}
+                      hair={user.meshi.hair as MeshiHair}
+                      accessory={user.meshi.accessory as MeshiAccessory}
+                      eyeStyle={user.meshi.eyeStyle as MeshiEyeStyle}
+                      badge={user.meshi.badge as MeshiBadge}
+                      outfit={user.meshi.outfit as MeshiOutfit}
+                    />
+                  </span>
+                ) : (
+                  <Avatar key={user.userId} src={user.avatarUrl} alt={user.displayName} size="xs" />
+                ),
+              )}
+            </div>
+            <span className="text-micro font-semibold text-[var(--text-muted)]">
+              {viewers.length === 1 ? `${viewers[0].displayName} is here` : `${viewers.length} people are here`}
+            </span>
           </div>
         )}
 
