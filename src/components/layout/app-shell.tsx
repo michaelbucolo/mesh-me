@@ -207,7 +207,10 @@ function ShellTopBar({
   ).toUpperCase();
 
   return (
-    <header className="mesh-topbar lg-scroll-edge sticky top-0 z-30 flex min-h-[54px] items-center gap-3 border-b border-[var(--mesh-border)] bg-[var(--mesh-bg)]/95 px-4 backdrop-blur-xl lg:min-h-[72px] lg:gap-4 lg:px-6">
+    // Height comes from `.mesh-topbar { min-height: var(--mesh-topbar-h) }` in
+    // unlayered CSS, which outranks any min-h-* utility on this element — do
+    // not add one; it would read as live and lie.
+    <header className="mesh-topbar lg-scroll-edge sticky top-0 z-30 flex items-center gap-3 border-b border-[var(--mesh-border)] bg-[var(--mesh-bg)]/95 px-4 backdrop-blur-xl lg:gap-4 lg:px-6">
       {/* Account dropdown: top-right spring reveal + quick top-down item
           stagger. Bespoke keyframes scoped here; self-guards reduced motion. */}
       <style>{`
