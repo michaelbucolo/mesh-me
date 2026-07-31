@@ -31,6 +31,7 @@ import type { ScenePaintOptions } from "../src/components/mesh/paint/types";
 import type { BranchKey, SceneModel, SceneNode, SceneNodeKind } from "../src/components/mesh/scene/scene-model";
 import { createPaintEngine } from "../src/components/mesh/paint";
 import { LruCache } from "../src/components/mesh/paint/caches";
+import { paintTheme } from "../src/components/mesh/paint/theme";
 import { SpatialGrid } from "../src/components/mesh/sim/spatial-grid";
 
 // ---------------------------------------------------------------------------
@@ -479,18 +480,24 @@ console.log("mesh-render-contract");
     return { rec, all };
   };
 
-  const PULSE_HUE = "#fda4af"; // the strand-pulse glow's signature color
+  // The strand-pulse glow rides the --warm token now (Worklight fallback in
+  // this DOM-less run) — the old hardcoded pink is gone from fx.ts. Since
+  // nodes.ts legitimately paints --warm at every tier (card hearts, the New
+  // pill), the fx signature is narrowed to GRADIENT STOPS in warm: only the
+  // pulse glow builds a gradient from that pigment.
+  const PULSE_HUE = paintTheme().warm;
+  const isPulseOp = (op: string) => op.includes(".addColorStop(") && op.includes(PULSE_HUE);
   const t0 = runTier(0);
   assert.ok(shadowSets(t0.all) > 0, "T0 draws shadows");
-  assert.ok(t0.all.some((op) => op.includes(PULSE_HUE)), "T0 draws the strand pulse");
+  assert.ok(t0.all.some(isPulseOp), "T0 draws the strand pulse");
 
   const t1 = runTier(1);
   assert.equal(shadowSets(t1.all), 0, "T1 draws no shadows");
-  assert.ok(t1.all.some((op) => op.includes(PULSE_HUE)), "T1 keeps fx (pulses)");
+  assert.ok(t1.all.some(isPulseOp), "T1 keeps fx (pulses)");
 
   const t2 = runTier(2);
   assert.equal(shadowSets(t2.all), 0, "T2 draws no shadows");
-  assert.ok(!t2.all.some((op) => op.includes(PULSE_HUE)), "T2 fx layer off");
+  assert.ok(!t2.all.some(isPulseOp), "T2 fx layer off");
   // Same node population at every tier — identical semantics, only garnish.
   const blitCount = (ops: Op[]) => ops.filter((op) => op.startsWith("drawImage(")).length;
   assert.equal(blitCount(t2.rec.ops), blitCount(t0.rec.ops), "T2 draws every node T0 draws");

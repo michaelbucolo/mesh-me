@@ -9,20 +9,23 @@
 // product does not do — and none of it was reachable by the design tokens, so
 // the mesh stayed futuristic while everything around it became paper.
 //
-// It is now a TABLETOP. Consequence worth knowing: with the drift and the
-// twinkle gone the surface is fully STATIC, which turns
-// TIER_PARAMS[2].backgroundRefreshMs = Infinity from a visible fidelity cliff
-// into simply the correct answer, and makes the surface cheaper on every tier.
+// It is now a NIGHT ATLAS SHEET. The wash and grain are static, but the sheet
+// carries ORBIT CONTOURS — world-anchored rings at the layout's real semantic
+// radii — so the map states its geography: this ring is where your people
+// live, that one is where the platforms sit, the outer ones carry the posts.
+// Distance stops being decoration and becomes information.
 //
-// The layer repaints only when its inputs actually moved: resize, paper
-// change, or camera pan. Nothing in it is time-varying any more, so the
-// refresh clock is vestigial and kept only so the tier params keep their
-// meaning for callers.
+// The layer repaints only when its inputs actually moved: resize, paper or
+// tier-alpha change, or camera pan/zoom (the contours are world-anchored, so
+// the camera moves them). A repaint is one gradient fill, one pattern fill and
+// at most fourteen arc strokes — cheap enough to track the camera every frame
+// on every tier, which is what the pan path always did.
 
 import type { Camera } from "../core/camera";
+import { CONTENT_RADIUS, PERSON_NEAR, PLATFORM_RADIUS, RING_GAP } from "../sim/layout";
 import { GradientCache } from "./caches";
 import { atmosphereOf } from "./papers";
-import { withAlpha } from "./shared";
+import type { PaintTheme } from "./theme";
 import { domSurface, type CreateSurface, type OffscreenSurface } from "./types";
 
 export interface BackgroundInputs {
@@ -33,6 +36,11 @@ export interface BackgroundInputs {
   atmosphere?: string | null;
   /** Lamplit paper when true (the DOM theme), daylit when false. */
   dark?: boolean;
+  /** The frame's theme, hoisted once per frame by the engine. */
+  theme: PaintTheme;
+  /** Contour ink opacity for the active quality tier (alpha only — the rings
+   *  themselves exist at every tier; T2 thins, it never deletes). */
+  contourAlpha: number;
 }
 
 /**
@@ -117,11 +125,44 @@ export function paintSky(
     ctx.restore();
   }
 
-  // A warm edge rather than a black vignette — the corners of a sheet catching
-  // less light, not a lens.
+  // ORBIT CONTOURS — the atlas's rings, drawn at the layout's real radii so
+  // the map never lies about distance. World-anchored: the camera moves them.
+  // Stroked in --rule; `contourAlpha` is the EFFECTIVE target ink (7/5/3% by
+  // tier), so the stroke alpha is normalized against the alpha --rule itself
+  // carries (0.65 dark / 0.29 light) — otherwise the light theme's rings
+  // would land under 2% and vanish into the paper. 1px regardless of zoom —
+  // geography zooms, ink does not.
+  {
+    const { camera, theme } = o;
+    const ruleAlphaMatch = theme.rule.match(/rgba?\([^)]*,\s*([\d.]+)\s*\)/);
+    const ruleAlpha = ruleAlphaMatch ? Math.max(0.05, parseFloat(ruleAlphaMatch[1])) : 1;
+    const cx = width / 2 + camera.panX;
+    const cy = height / 2 + camera.panY;
+    // How far out the sheet must ring: the farthest viewport corner, in world
+    // units, plus one ring of headroom.
+    const cornerDx = Math.max(cx, width - cx);
+    const cornerDy = Math.max(cy, height - cy);
+    const maxWorldR = Math.hypot(cornerDx, cornerDy) / camera.zoom + RING_GAP;
+    const radii: number[] = [PERSON_NEAR, PLATFORM_RADIUS];
+    for (let r = CONTENT_RADIUS; r <= maxWorldR && radii.length < 14; r += RING_GAP) radii.push(r);
+    ctx.save();
+    ctx.strokeStyle = theme.rule;
+    ctx.globalAlpha = Math.min(1, o.contourAlpha / ruleAlpha);
+    ctx.lineWidth = 1;
+    for (const worldR of radii) {
+      ctx.beginPath();
+      ctx.arc(cx, cy, worldR * camera.zoom, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  // Edge falloff in the sheet's own hairline ink, not a warm lens vignette:
+  // the corners of the map catching less light. The old #261e14 radial was the
+  // last hardcoded hex in this file.
   const vigStops: readonly (readonly [number, string])[] = [
-    [0, withAlpha("#261e14", 0)],
-    [1, withAlpha("#261e14", 0.1)],
+    [0, "rgba(0,0,0,0)"],
+    [1, o.theme.rule],
   ];
   const vigR0 = Math.min(width, height) * 0.4;
   const vigR1 = Math.max(width, height) * 0.78;
@@ -129,7 +170,7 @@ export function paintSky(
   if (gradients) {
     vig = gradients.radial(
       ctx,
-      `edge:${width}x${height}`,
+      `edge:${width}x${height}:${o.theme.rule}`,
       width / 2, height / 2, vigR0, width / 2, height / 2, vigR1,
       vigStops,
     );
@@ -137,8 +178,13 @@ export function paintSky(
     vig = ctx.createRadialGradient(width / 2, height / 2, vigR0, width / 2, height / 2, vigR1);
     for (const [off, color] of vigStops) vig.addColorStop(off, color);
   }
+  ctx.save();
+  // --rule carries its own alpha (0.65 dark / 0.29 light); these factors land
+  // both themes at ≈8% effective ink in the far corners.
+  ctx.globalAlpha = o.theme.dark ? 0.12 : 0.28;
   ctx.fillStyle = vig;
   ctx.fillRect(0, 0, width, height);
+  ctx.restore();
 }
 
 export class BackgroundLayer {
@@ -153,6 +199,8 @@ export class BackgroundLayer {
   private lastAtmo: string | null = null;
   private lastPanX = NaN;
   private lastPanY = NaN;
+  private lastZoom = NaN;
+  private lastContourAlpha = NaN;
   private lastTime = -Infinity;
   /** Offscreen repaints performed (telemetry/parity assertions). */
   repaintCount = 0;
@@ -186,11 +234,19 @@ export class BackgroundLayer {
       return;
     }
     const atmoId = atmosphereOf(o.atmosphere, o.dark !== false).id + (o.dark !== false ? ":dark" : ":light");
+    // Camera movement dirties the sheet: the wash shifts with pan (as before)
+    // and the contours are world-anchored, so zoom moves them too. A repaint
+    // is one gradient fill + one pattern fill + ≤14 arc strokes — cheap enough
+    // to track every frame on every tier, exactly as the pan path always has.
+    // `refreshMs` keeps its historical meaning (time-based refresh window) and
+    // nothing time-varying remains, so it only matters for clock rollback.
     const stale =
       needSurface ||
       this.lastAtmo !== atmoId ||
+      this.lastContourAlpha !== o.contourAlpha ||
       this.lastPanX !== o.camera.panX ||
       this.lastPanY !== o.camera.panY ||
+      this.lastZoom !== o.camera.zoom ||
       o.time - this.lastTime > refreshMs ||
       o.time < this.lastTime; // clock went backwards (model reload)
     if (stale) {
@@ -202,6 +258,8 @@ export class BackgroundLayer {
       this.lastWidth = o.width;
       this.lastHeight = o.height;
       this.lastAtmo = atmoId;
+      this.lastContourAlpha = o.contourAlpha;
+      this.lastZoom = o.camera.zoom;
       this.lastPanX = o.camera.panX;
       this.lastPanY = o.camera.panY;
       this.lastTime = o.time;

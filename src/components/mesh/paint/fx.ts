@@ -8,6 +8,7 @@
 import { projectPoint, type Camera } from "../core/camera";
 import type { SceneModel } from "../scene/scene-model";
 import { withAlpha } from "./shared";
+import { paintTheme } from "./theme";
 import type { ReactionTrail } from "./types";
 
 /**
@@ -32,15 +33,16 @@ export function drawStrandPulse(
   const py2 = mt * mt * ay + 2 * mt * t * cy + t * t * by;
   const glowR = 5 * Math.max(0.8, zoom) * (1 - pt * 0.5);
   const glow = ctx.createRadialGradient(px2, py2, 0, px2, py2, glowR * 3);
-  glow.addColorStop(0, withAlpha("#fda4af", 0.85 * (1 - pt)));
-  glow.addColorStop(1, withAlpha("#fda4af", 0));
+  const warm = paintTheme().warm;
+  glow.addColorStop(0, withAlpha(warm, 0.85 * (1 - pt)));
+  glow.addColorStop(1, withAlpha(warm, 0));
   ctx.fillStyle = glow;
   ctx.beginPath();
   ctx.arc(px2, py2, glowR * 3, 0, Math.PI * 2);
   ctx.fill();
   ctx.beginPath();
   ctx.arc(px2, py2, glowR, 0, Math.PI * 2);
-  ctx.fillStyle = withAlpha("#fecdd3", 0.95 * (1 - pt * 0.6));
+  ctx.fillStyle = withAlpha(warm, 0.95 * (1 - pt * 0.6));
   ctx.fill();
 }
 
@@ -97,7 +99,7 @@ export function drawStrandStrum(
   const hy = mt2 * mt2 * ay + 2 * mt2 * pt * cy + pt * pt * by;
   const r = 3.4 * z * (0.6 + 0.4 * env);
   const glow = ctx.createRadialGradient(hx, hy, 0, hx, hy, r * 2.6);
-  glow.addColorStop(0, withAlpha("#ffffff", 0.5 * env));
+  glow.addColorStop(0, withAlpha(paintTheme().ink1, 0.5 * env));
   glow.addColorStop(1, withAlpha(color, 0));
   ctx.fillStyle = glow;
   ctx.beginPath();
@@ -150,7 +152,7 @@ export function drawReactionTrails(
       const fade = (1 - k / motes) * settle;
       ctx.beginPath();
       ctx.arc(s.x, s.y, (3.4 - k * 0.34) * z, 0, Math.PI * 2);
-      ctx.fillStyle = withAlpha(k % 2 === 0 ? "#fda4af" : "#fecdd3", 0.32 * fade);
+      ctx.fillStyle = withAlpha(paintTheme().warm, 0.32 * fade);
       ctx.fill();
     }
   }
@@ -178,7 +180,7 @@ export function drawBirthFx(
     if (rp > 0 && rp < 1) {
       ctx.beginPath();
       ctx.arc(x, y, r * (1.1 + rp * 3.6), 0, Math.PI * 2);
-      ctx.strokeStyle = withAlpha(ri === 0 ? color : "#ffffff", 0.5 * (1 - rp));
+      ctx.strokeStyle = withAlpha(ri === 0 ? color : paintTheme().ink1, 0.5 * (1 - rp));
       ctx.lineWidth = (ri === 0 ? 2.2 : 1.2) * (1 - rp) + 0.4;
       ctx.stroke();
     }
@@ -190,7 +192,7 @@ export function drawBirthFx(
     ctx.save();
     ctx.translate(x, y);
     ctx.rotate(sp * 0.9);
-    ctx.strokeStyle = withAlpha("#fff7d6", 0.75 * (1 - sp));
+    ctx.strokeStyle = withAlpha(paintTheme().warning, 0.75 * (1 - sp));
     ctx.lineWidth = 1.4;
     for (let k = 0; k < rays; k += 1) {
       const a = (Math.PI / 2) * (4 / rays) * k + Math.PI / 4;
@@ -202,8 +204,9 @@ export function drawBirthFx(
     ctx.restore();
     if (particleScale >= 1) {
       const flash = ctx.createRadialGradient(x, y, 0, x, y, r * 2.4);
-      flash.addColorStop(0, withAlpha("#fff2c4", 0.5 * (1 - sp)));
-      flash.addColorStop(1, withAlpha("#fff2c4", 0));
+      const gold = paintTheme().warning;
+      flash.addColorStop(0, withAlpha(gold, 0.5 * (1 - sp)));
+      flash.addColorStop(1, withAlpha(gold, 0));
       ctx.fillStyle = flash;
       ctx.beginPath();
       ctx.arc(x, y, r * 2.4, 0, Math.PI * 2);
