@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import { after } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
+import { sendPushForNotification } from "@/lib/push";
 import {
   buildLinkPreview,
   normalizeAttachments,
@@ -369,6 +371,17 @@ export async function POST(request: NextRequest, context: RouteContext) {
         })),
     }),
   ]);
+  // After the response: a new message is the notification people most expect
+  // on a lock screen, and the one that decides whether MeChat can be a daily
+  // messenger at all.
+  const pushMessage = thread.threadType === "group"
+    ? `${user.displayName} sent a message in ${thread.title || "a MeChat group"}`
+    : `${user.displayName} sent you a message`;
+  for (const member of thread.members) {
+    if (member.userId === user.id) continue;
+    const recipientId = member.userId;
+    after(() => sendPushForNotification(recipientId, { type: "message", message: pushMessage }));
+  }
   clearMeChatTyping(threadId, user.id);
 
   const refreshedThread = await getAuthorizedThread(threadId, user.id);

@@ -37,6 +37,7 @@ model User {
   threadMembers              ThreadMember[]
   notifications              Notification[]              @relation("recipient")
   notificationPreference     UserNotificationPreference?
+  pushSubscriptions          PushSubscription[]
   actorNotifs                Notification[]              @relation("actor")
   reports                    Report[]                    @relation("reporter")
   reportedUser               Report[]                    @relation("reportedUser")
@@ -389,6 +390,24 @@ model Notification {
   // without a per-row filter/filesort.
   @@index([recipientId, read])
   @@index([recipientId, createdAt])
+}
+
+/// One browser's Web Push subscription. A user has one row per device/browser
+/// that granted notification permission; the endpoint is the push service's
+/// unique URL for that browser, so it is the natural key. Rows are pruned
+/// when the push service reports the subscription dead (404/410).
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model UserNotificationPreference {

@@ -64,3 +64,46 @@ self.addEventListener("fetch", (event) => {
     ),
   );
 });
+
+// ── Web Push ────────────────────────────────────────────────────────────────
+// The payload is JSON built server-side by src/lib/push.ts: {title, body,
+// url, tag}. `tag` coalesces repeat pushes about the same thing (three likes
+// on one post replace each other instead of stacking three banners).
+self.addEventListener("push", (event) => {
+  let payload = {};
+  try {
+    payload = event.data ? event.data.json() : {};
+  } catch {
+    // A malformed payload still shows a generic notification below.
+  }
+  const title = payload.title || "mesh.me";
+  event.waitUntil(
+    self.registration.showNotification(title, {
+      body: payload.body || "",
+      icon: "/icons/icon-192x192.png",
+      badge: "/icons/icon-128x128.png",
+      tag: payload.tag || undefined,
+      data: { url: payload.url || "/notifications" },
+    }),
+  );
+});
+
+// Tapping the notification lands on the thing it announced — an existing
+// mesh.me window if one is open, a fresh one otherwise.
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const url = (event.notification.data && event.notification.data.url) || "/notifications";
+  event.waitUntil(
+    self.clients
+      .matchAll({ type: "window", includeUncontrolled: true })
+      .then((clients) => {
+        for (const client of clients) {
+          if ("focus" in client) {
+            client.navigate(url);
+            return client.focus();
+          }
+        }
+        return self.clients.openWindow(url);
+      }),
+  );
+});

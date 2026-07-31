@@ -1389,3 +1389,23 @@ CREATE INDEX IF NOT EXISTS "PublicSupplyRun_platform_startedAt_idx" ON "PublicSu
 
 -- CreateIndex
 CREATE INDEX IF NOT EXISTS "PublicSupplyRun_startedAt_idx" ON "PublicSupplyRun"("startedAt");
+
+-- CreateTable
+-- One browser's Web Push subscription (see PushSubscription in schema.prisma —
+-- endpoint is the push service's unique URL for that browser, hence UNIQUE).
+CREATE TABLE IF NOT EXISTS "PushSubscription" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "userId" TEXT NOT NULL,
+    "endpoint" TEXT NOT NULL,
+    "p256dh" TEXT NOT NULL,
+    "auth" TEXT NOT NULL,
+    "userAgent" TEXT,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "PushSubscription_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "PushSubscription_endpoint_key" ON "PushSubscription"("endpoint");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "PushSubscription_userId_idx" ON "PushSubscription"("userId");
