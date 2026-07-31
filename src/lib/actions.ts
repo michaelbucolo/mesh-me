@@ -1202,7 +1202,7 @@ export async function createPost(formData: FormData) {
     });
   }
 
-  let crossPostResults: Record<string, { success: boolean; error?: string }> | undefined;
+  let crossPostResults: Record<string, { success: boolean; error?: string; url?: string; note?: string }> | undefined;
   const parseStringArray = (value: string | null) => {
     if (!value) return [];
     try {
@@ -1220,10 +1220,23 @@ export async function createPost(formData: FormData) {
   const targetPlatforms = parseStringArray(crossPostTo);
   const targetAccountIds = parseStringArray(crossPostAccountIds);
   if (targetPlatforms.length > 0 || targetAccountIds.length > 0) {
-    const { crossPostContent } = await import("./platform-sync");
-    const result = await crossPostContent(sanitizedContent, targetPlatforms, mediaItems.filter((item) => item.type !== "link").map((item) => item.url), targetAccountIds);
-    if ("results" in result && result.results && typeof result.results === "object") {
-      crossPostResults = result.results;
+    if (visibility !== "public") {
+      // A cross-post is public EVERYWHERE it lands — a Friends or Only-me
+      // post must never leak to X/Reddit because a checkbox was left on.
+      const audience = visibility === "friends" ? "Friends" : "Only me";
+      const gated = {
+        success: false,
+        error: `Not sent: this post's audience is ${audience} on mesh.me, and a cross-post is public everywhere. Make the post Public to send it.`,
+      };
+      crossPostResults = Object.fromEntries(
+        [...targetPlatforms, ...targetAccountIds].map((target) => [target, gated]),
+      );
+    } else {
+      const { crossPostContent } = await import("./platform-sync");
+      const result = await crossPostContent(sanitizedContent, targetPlatforms, mediaItems.filter((item) => item.type !== "link").map((item) => item.url), targetAccountIds);
+      if ("results" in result && result.results && typeof result.results === "object") {
+        crossPostResults = result.results;
+      }
     }
   }
 
