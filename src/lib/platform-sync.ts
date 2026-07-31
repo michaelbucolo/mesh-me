@@ -932,12 +932,42 @@ const twitterAdapter: PlatformAdapter = {
       };
     } catch { return defaultAnalytics(); }
   },
-  async createPost(accessToken, content) {
+  async createPost(accessToken, content, mediaUrls) {
     try {
+      // Photos travel WITH the tweet now instead of being silently stripped.
+      // Mesh media are data: URIs (base64 in the local DB), so the bytes are
+      // in hand — up to four images go through the v2 media upload (which
+      // lives on api.x.com, unlike the tweet endpoints) and their ids ride
+      // the tweet. Any upload failing (no media.write on an older token,
+      // oversize, video) degrades to a text-only tweet with the shortfall
+      // recorded in rawMetadata, where crossPostContent turns it into an
+      // honest note — never a silent drop.
+      const requested = (mediaUrls || []).filter((url) => url.startsWith("data:image/")).slice(0, 4);
+      const mediaIds: string[] = [];
+      for (const dataUri of requested) {
+        const match = /^data:(image\/[a-z+]+);base64,(.+)$/i.exec(dataUri);
+        if (!match) continue;
+        const bytes = Buffer.from(match[2], "base64");
+        if (bytes.byteLength === 0 || bytes.byteLength > 5 * 1024 * 1024) continue;
+        const form = new FormData();
+        form.append("media", new Blob([new Uint8Array(bytes)], { type: match[1] }), "media");
+        form.append("media_category", "tweet_image");
+        const uploadRes = await fetch("https://api.x.com/2/media/upload", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${accessToken}` },
+          body: form,
+        }).catch(() => null);
+        if (!uploadRes?.ok) continue;
+        const uploaded = await uploadRes.json().catch(() => null) as { data?: { id?: string } } | null;
+        if (uploaded?.data?.id) mediaIds.push(uploaded.data.id);
+      }
+
       const res = await fetch("https://api.twitter.com/2/tweets", {
         method: "POST",
         headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ text: content }),
+        body: JSON.stringify(
+          mediaIds.length > 0 ? { text: content, media: { media_ids: mediaIds } } : { text: content },
+        ),
       });
       if (!res.ok) return null;
       const data = await res.json().catch(() => null) as { data?: { id?: string; text?: string } } | null;
@@ -946,13 +976,16 @@ const twitterAdapter: PlatformAdapter = {
         platformPostId: data.data.id,
         content: data.data.text || content,
         url: `https://twitter.com/i/web/status/${data.data.id}`,
-        postType: "tweet",
+        postType: mediaIds.length > 0 ? "image" : "tweet",
         likeCount: 0,
         commentCount: 0,
         shareCount: 0,
         viewCount: 0,
         visibility: "public",
         publishedAt: new Date(),
+        rawMetadata: JSON.stringify({
+          mesh: { mediaRequested: (mediaUrls || []).length, mediaDelivered: mediaIds.length },
+        }),
       };
     } catch { return null; }
   },
@@ -2659,11 +2692,39 @@ export async function deletePlatformPost(postId: string) {
   return { success: true };
 }
 
+/** What one platform's cross-post came to: the permalink when it worked, and
+ *  an honest note whenever anything about the delivery was less than what was
+ *  asked (media that couldn't travel, a text-only platform). Silence is only
+ *  ever "everything you asked for went through". */
+export type CrossPostOutcome = { success: boolean; error?: string; url?: string; note?: string };
+
+function successOutcome(platform: string, post: { url?: string; rawMetadata?: string }, mediaRequested: number): CrossPostOutcome {
+  let note: string | undefined;
+  if (mediaRequested > 0) {
+    if (platform === "reddit") {
+      note = "Photos and videos stay on mesh.me — Reddit delivery is text-only today.";
+    } else {
+      let delivered = 0;
+      try {
+        const meta = JSON.parse(post.rawMetadata || "{}") as { mesh?: { mediaDelivered?: number } };
+        delivered = meta.mesh?.mediaDelivered ?? 0;
+      } catch { /* no metadata = nothing delivered */ }
+      if (delivered === 0) {
+        note = "Sent text-only — reconnect this account to grant photo permission.";
+      } else if (delivered < mediaRequested) {
+        note = `Delivered ${delivered} of ${mediaRequested} attachments.`;
+      }
+    }
+  }
+  return { success: true, url: post.url, note };
+}
+
 export async function crossPostContent(content: string, platforms: string[], mediaUrls?: string[], accountIds?: string[]) {
   const user = await getCurrentUser();
   if (!user) return { error: "Not authenticated" };
 
-  const results: Record<string, { success: boolean; error?: string }> = {};
+  const mediaRequested = mediaUrls?.length ?? 0;
+  const results: Record<string, CrossPostOutcome> = {};
 
   // If account IDs are provided, use them directly; otherwise fall back to platform names
   if (accountIds && accountIds.length > 0) {
@@ -2702,7 +2763,7 @@ export async function crossPostContent(content: string, platforms: string[], med
           await prisma.platformPost.create({
             data: { connectedAccountId: account.id, ...post, ...safety, isFromMesh: true },
           });
-          results[account.platformUsername || account.platform] = { success: true };
+          results[account.platformUsername || account.platform] = successOutcome(account.platform, post, mediaRequested);
         } else {
           results[account.platformUsername || account.platform] = { success: false, error: "Platform API returned no result" };
         }
@@ -2755,7 +2816,7 @@ export async function crossPostContent(content: string, platforms: string[], med
             isFromMesh: true,
           },
         });
-        results[platform] = { success: true };
+        results[platform] = successOutcome(platform, post, mediaRequested);
       } else {
         results[platform] = { success: false, error: "Platform API returned no result" };
       }

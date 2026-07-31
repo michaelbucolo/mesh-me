@@ -105,6 +105,18 @@ export function PostComposer({ user, communityId, startExpanded = false, onPostP
   const [showLinkTools, setShowLinkTools] = useState(false);
   const [showVisibility, setShowVisibility] = useState(false);
   const [showCrossPost, setShowCrossPost] = useState(false);
+  // Per-platform cross-post outcomes from the last publish: the permalink to
+  // what was actually created ("your words, over there"), plus any honest
+  // shortfall note. Shown under the success line, cleared with it.
+  const [crossPostOutcomes, setCrossPostOutcomes] = useState<
+    Array<{ target: string; url?: string; note?: string; error?: string }>
+  >([]);
+
+  // A selection armed while the post was Public must not ride along when the
+  // audience narrows — cross-posts are public everywhere they land.
+  useEffect(() => {
+    if (visibility !== "public") setSelectedPlatforms(new Set());
+  }, [visibility]);
   const [selectedPlatforms, setSelectedPlatforms] = useState<Set<string>>(new Set());
   const [connectedAccounts, setConnectedAccounts] = useState<string[]>([]);
   const [publishableAccounts, setPublishableAccounts] = useState<string[]>([]);
@@ -171,12 +183,15 @@ export function PostComposer({ user, communityId, startExpanded = false, onPostP
 
   useEffect(() => {
     if (!successMessage && !errorMessage) return;
+    // Permalinks and delivery notes need reading-and-clicking time; a plain
+    // "Post created" doesn't.
     const timeout = window.setTimeout(() => {
       setSuccessMessage("");
       setErrorMessage("");
-    }, 3000);
+      setCrossPostOutcomes([]);
+    }, crossPostOutcomes.length > 0 ? 10000 : 3000);
     return () => window.clearTimeout(timeout);
-  }, [successMessage, errorMessage]);
+  }, [successMessage, errorMessage, crossPostOutcomes.length]);
 
   useEffect(() => {
     mediaFilesRef.current = mediaFiles;
@@ -270,6 +285,14 @@ export function PostComposer({ user, communityId, startExpanded = false, onPostP
           publishMeshiCause({ kind: "post:published" });
           const crossPostResults = result.crossPostResults ? Object.entries(result.crossPostResults) : [];
           const failedCrossPosts = crossPostResults.filter(([, value]) => !value.success);
+          setCrossPostOutcomes(
+            crossPostResults.map(([target, value]) => ({
+              target,
+              url: value.url,
+              note: value.note,
+              error: value.success ? undefined : value.error || "Failed",
+            })),
+          );
           if (result.post) {
             onPostCreated?.(result.post, optimisticId || undefined);
             window.dispatchEvent(new CustomEvent("mesh:post-created", { detail: result.post }));
@@ -333,13 +356,44 @@ export function PostComposer({ user, communityId, startExpanded = false, onPostP
     // is what forced the outward shadow onto a well in the first place.
     <div className="feed-composer-card p-3 sm:p-4">
       {(successMessage || errorMessage) && (
-        <div className={`tray mb-3 flex items-center gap-2 px-3 py-2 text-xs font-semibold ${successMessage ? "text-[var(--success)]" : "text-[var(--danger)]"}`} role="status">
-          {successMessage ? (
-            isPending ? <PaperWait size="sm" /> : <CheckCircle2 className="h-3.5 w-3.5" />
-          ) : (
-            <AlertTriangle className="h-3.5 w-3.5" />
+        <div className={`tray mb-3 px-3 py-2 text-xs font-semibold ${successMessage ? "text-[var(--success)]" : "text-[var(--danger)]"}`} role="status">
+          <div className="flex items-center gap-2">
+            {successMessage ? (
+              isPending ? <PaperWait size="sm" /> : <CheckCircle2 className="h-3.5 w-3.5" />
+            ) : (
+              <AlertTriangle className="h-3.5 w-3.5" />
+            )}
+            {successMessage || errorMessage}
+          </div>
+          {/* Where the cross-post actually landed: the permalink is the
+              receipt, and any shortfall (media that couldn't travel, a
+              text-only platform) is said out loud instead of dropped. */}
+          {crossPostOutcomes.length > 0 && (
+            <ul className="mt-1.5 grid gap-0.5 pl-5 text-micro font-medium text-[var(--text-secondary)]">
+              {crossPostOutcomes.map((outcome) => (
+                <li key={outcome.target} className="flex flex-wrap items-center gap-1.5">
+                  <span className="font-semibold">{outcome.target}</span>
+                  {outcome.error ? (
+                    <span className="text-[var(--danger)]">{outcome.error}</span>
+                  ) : (
+                    <>
+                      {outcome.url && (
+                        <a
+                          href={outcome.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="underline underline-offset-2 hover:text-[var(--text-primary)]"
+                        >
+                          View post ↗
+                        </a>
+                      )}
+                      {outcome.note && <span className="text-[var(--text-muted)]">{outcome.note}</span>}
+                    </>
+                  )}
+                </li>
+              ))}
+            </ul>
           )}
-          {successMessage || errorMessage}
         </div>
       )}
 
@@ -482,7 +536,16 @@ export function PostComposer({ user, communityId, startExpanded = false, onPostP
                   <X className="h-3 w-3" />
                 </button>
               </div>
-              {availablePlatforms.length > 0 ? (
+              {visibility !== "public" ? (
+                // A cross-post is public everywhere it lands. Saying so HERE,
+                // where the checkboxes would be, beats a server rejection
+                // after the person already hit Post.
+                <p className="text-micro text-[var(--text-muted)] flex items-center gap-1">
+                  <Info className="h-3 w-3" />
+                  Cross-posting is for Public posts — this post&apos;s audience is{" "}
+                  {visibility === "friends" ? "Friends" : "Only me"}.
+                </p>
+              ) : availablePlatforms.length > 0 ? (
                 <div className="flex flex-wrap gap-1.5">
                   {availablePlatforms.map((p) => (
                     <button

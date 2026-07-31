@@ -101,7 +101,10 @@ export const OAUTH_CONFIGS: Record<string, OAuthConfig> = {
     authUrl: "https://twitter.com/i/oauth2/authorize",
     tokenUrl: "https://api.twitter.com/2/oauth2/token",
     profileUrl: "https://api.twitter.com/2/users/me",
-    scopes: ["tweet.read", "tweet.write", "users.read", "like.read", "like.write", "follows.read", "follows.write", "offline.access"],
+    // media.write: lets a cross-post carry its photos. Tokens granted before
+    // this scope was added degrade gracefully — the upload 403s and the tweet
+    // goes out text-only with an honest note asking for a reconnect.
+    scopes: ["tweet.read", "tweet.write", "users.read", "like.read", "like.write", "follows.read", "follows.write", "media.write", "offline.access"],
     clientIdEnv: "TWITTER_CLIENT_ID",
     clientSecretEnv: "TWITTER_CLIENT_SECRET",
     tokenAuthMethod: "client_secret_basic",
