@@ -8,7 +8,8 @@ import {
   toggleMessageReaction,
   type MeChatMessageMetadata,
 } from "@/lib/mechat-metadata";
-import { clearMeChatTyping, getMeChatTypingUsers } from "@/lib/mechat-presence";
+import { clearMeChatTyping, getMeChatTypingUsers, type TypingMeshi } from "@/lib/mechat-presence";
+import { getCachedMeshiFor } from "@/lib/mechat-meshi-cache";
 import { getPlatformMessagingCapability } from "@/lib/platform-capabilities";
 import { deliverMeChatMessageToPlatform } from "@/lib/platform-sync";
 import { prisma } from "@/lib/prisma";
@@ -99,6 +100,7 @@ function serializeMessage(
   },
   thread: ThreadWithMembers,
   messagesById: Map<string, { id: string; content: string; sender: { displayName: string; username: string } }>,
+  meshiByUser: Map<string, TypingMeshi | null>,
 ) {
   const metadata = parseMeChatMetadata(message.metadata);
   const replyTo = metadata.replyToMessageId ? messagesById.get(metadata.replyToMessageId) : null;
@@ -113,6 +115,9 @@ function serializeMessage(
       displayName: member.user.displayName,
       username: member.user.username,
       avatarUrl: member.user.avatarUrl,
+      // The reader AS their Meshi — the read receipt is their face, not a
+      // checkmark (Bitmoji-style; same cache the typing indicator uses).
+      meshi: meshiByUser.get(member.userId) ?? null,
     }));
 
   return {
@@ -136,6 +141,13 @@ function serializeMessage(
     } : null,
     readBy,
   };
+}
+
+async function resolveMemberMeshis(thread: ThreadWithMembers): Promise<Map<string, TypingMeshi | null>> {
+  const entries = await Promise.all(
+    thread.members.map(async (member) => [member.userId, await getCachedMeshiFor(member.userId).catch(() => null)] as const),
+  );
+  return new Map(entries);
 }
 
 async function serializeThreadMessages(thread: ThreadWithMembers, currentUserId: string) {
@@ -166,8 +178,10 @@ async function serializeThreadMessages(thread: ThreadWithMembers, currentUserId:
     },
   }]));
 
+  const meshiByUser = await resolveMemberMeshis(thread);
+
   return {
-    messages: messages.map((message) => serializeMessage(message, thread, messagesById)),
+    messages: messages.map((message) => serializeMessage(message, thread, messagesById, meshiByUser)),
     typingUsers: getMeChatTypingUsers(thread.id, currentUserId),
   };
 }
@@ -368,7 +382,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
   }]]);
 
   return NextResponse.json({
-    message: serializeMessage(created, refreshedThread, messageMap),
+    message: serializeMessage(created, refreshedThread, messageMap, await resolveMemberMeshis(refreshedThread)),
   }, { status: 201 });
 }
 
@@ -452,7 +466,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     }]]);
 
     return NextResponse.json({
-      message: serializeMessage(updated, thread, messageMap),
+      message: serializeMessage(updated, thread, messageMap, await resolveMemberMeshis(thread)),
     });
   }
 
@@ -520,7 +534,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     }]]);
 
     return NextResponse.json({
-      message: serializeMessage(updated, thread, messageMap),
+      message: serializeMessage(updated, thread, messageMap, await resolveMemberMeshis(thread)),
     });
   }
 

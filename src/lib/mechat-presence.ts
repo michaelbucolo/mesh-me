@@ -8,12 +8,17 @@ export type TypingMeshi = {
   outfit: string;
 };
 
+export type MeChatPresenceMode = "typing" | "viewing";
+
 type TypingUser = {
   userId: string;
   username: string;
   displayName: string;
   avatarUrl: string | null;
   meshi: TypingMeshi | null;
+  /* "typing" = keystrokes in the last few seconds; "viewing" = the thread is
+     open and visible (a slower heartbeat). Typing always outranks viewing. */
+  mode: MeChatPresenceMode;
   expiresAt: number;
 };
 
@@ -51,6 +56,7 @@ export function setMeChatTyping(
     meshi?: TypingMeshi | null;
   },
   ttlMs = 6500,
+  mode: MeChatPresenceMode = "typing",
 ) {
   const store = typingStore();
   const active = pruneThread(threadId).filter((entry) => entry.userId !== user.id);
@@ -60,6 +66,7 @@ export function setMeChatTyping(
     displayName: user.displayName,
     avatarUrl: user.avatarUrl,
     meshi: user.meshi ?? null,
+    mode,
     expiresAt: Date.now() + ttlMs,
   });
   store.set(threadId, active);
@@ -84,5 +91,6 @@ export function getMeChatTypingUsers(threadId: string, currentUserId: string) {
       displayName: entry.displayName,
       avatarUrl: entry.avatarUrl,
       meshi: entry.meshi,
+      mode: entry.mode,
     }));
 }

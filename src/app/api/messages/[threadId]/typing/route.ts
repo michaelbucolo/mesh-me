@@ -1,53 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
-import { clearMeChatTyping, getMeChatTypingUsers, setMeChatTyping, type TypingMeshi } from "@/lib/mechat-presence";
-import { getUserMeshiPreference } from "@/lib/actions";
+import { clearMeChatTyping, getMeChatTypingUsers, setMeChatTyping } from "@/lib/mechat-presence";
+import { getCachedMeshiFor } from "@/lib/mechat-meshi-cache";
 import { prisma } from "@/lib/prisma";
 import { isSameOriginRequest, readJsonObject } from "@/lib/request-guard";
 
 type RouteContext = {
   params: Promise<{ threadId: string }>;
 };
-
-type MeshiCacheGlobal = typeof globalThis & {
-  __meshTypingMeshiCache?: Map<string, { meshi: TypingMeshi | null; expiresAt: number }>;
-};
-
-const MESHI_CACHE_TTL_MS = 60_000;
-
-async function getCachedTypingMeshi(userId: string): Promise<TypingMeshi | null> {
-  const globalRef = globalThis as MeshiCacheGlobal;
-  if (!globalRef.__meshTypingMeshiCache) {
-    globalRef.__meshTypingMeshiCache = new Map();
-  }
-  const cache = globalRef.__meshTypingMeshiCache;
-  const cached = cache.get(userId);
-  if (cached && cached.expiresAt > Date.now()) {
-    return cached.meshi;
-  }
-
-  const pref = await getUserMeshiPreference(userId);
-  const meshi: TypingMeshi | null = pref
-    ? {
-        color: pref.colorTheme,
-        hat: pref.hatStyle,
-        hair: pref.hairStyle,
-        accessory: pref.accessoryStyle,
-        eyeStyle: pref.eyeStyle,
-        badge: pref.badgeStyle,
-        outfit: pref.outfitStyle,
-      }
-    : null;
-  // Opportunistically evict expired entries (this runs only on a cache miss, so
-  // at most once per user per TTL) — otherwise the process-global map grows one
-  // permanent entry per distinct user forever.
-  const now = Date.now();
-  for (const [key, entry] of cache) {
-    if (entry.expiresAt <= now) cache.delete(key);
-  }
-  cache.set(userId, { meshi, expiresAt: now + MESHI_CACHE_TTL_MS });
-  return meshi;
-}
 
 async function isThreadMember(threadId: string, userId: string) {
   const membership = await prisma.threadMember.findFirst({
@@ -87,7 +47,28 @@ export async function POST(request: NextRequest, context: RouteContext) {
   }
 
   const body = await readJsonObject(request);
-  if (body.typing === false) {
+  if (body.typing === false && body.viewing === true) {
+    // Viewing heartbeat: the thread is open and visible, Bitmoji-style
+    // presence — the member's Meshi sits quietly in the chat. Honors the
+    // same per-user "Read receipts" toggle as readBy (opting out of "seen"
+    // also opts out of "here right now"), plus the hide-activity-status
+    // toggle, since "in the chat right now" IS activity status.
+    const self = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: { readReceipts: true, hideActivityStatus: true },
+    });
+    if (self?.readReceipts && !self.hideActivityStatus) {
+      // The route owns the transition: a viewing beat replaces whatever state
+      // came before it (typing demotes to viewing when keystrokes stop).
+      setMeChatTyping(threadId, {
+        id: user.id,
+        username: user.username,
+        displayName: user.displayName,
+        avatarUrl: user.avatarUrl,
+        meshi: await getCachedMeshiFor(user.id).catch(() => null),
+      }, 25_000, "viewing");
+    }
+  } else if (body.typing === false) {
     clearMeChatTyping(threadId, user.id);
   } else {
     setMeChatTyping(threadId, {
@@ -95,7 +76,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
       username: user.username,
       displayName: user.displayName,
       avatarUrl: user.avatarUrl,
-      meshi: await getCachedTypingMeshi(user.id).catch(() => null),
+      meshi: await getCachedMeshiFor(user.id).catch(() => null),
     });
   }
 
