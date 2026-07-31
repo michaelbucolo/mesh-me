@@ -107,6 +107,11 @@
   --mould-grape:  #7448d4;  --mould-grape-ink:  #ffffff;  --mould-grape-plinth:  #4e2c99;  /* ink 5.80 · step 1.69 */
   --mould-crimson:#b81f3a;  --mould-crimson-ink:#ffffff;  --mould-crimson-plinth:#84142a;  /* ink 6.37 · step 1.56 */
 
+  /* The like token (tone reset R1): a GLYPH-LEVEL tint for the liked heart and
+     its count — never a fill. 3.4:1 on white paper, 5.9:1 on black: clears the
+     3:1 graphical-object floor on both themes as a single value. */
+  --like: #e8496b;
+
   /* Ink for a SATURATED, DATA-DRIVEN fill — a mesh node colour, a rank badge, a
      platform chip. The moulds above each pin their own ink because their fill is
      known; these fills are not. The eight node colours in scene-model.ts run
@@ -501,8 +506,10 @@
   --accent-subtle: var(--accent-wash); /* unchanged */
   --accent-contrast: var(--accent-ink);/* unchanged */
   --ring-color: var(--ring-a);         /* RETARGETED — 4 call sites */
-  --brand-gradient: var(--mould-tomato);        /* RETARGETED to the brand plastic */
-  --brand-gradient-vibrant: var(--mould-tomato);/* RETARGETED */
+  /* --brand-gradient / --brand-gradient-vibrant DELETED (tone reset R1):
+     they aliased the tomato mould into chrome reach. Zero live var() call
+     sites remained; platform-brand scopes in globals.css define their own
+     locally and are the sanctioned exception. */
 
   --shadow-sm: var(--shadow-rest);     /* unchanged — 18 call sites */
   --shadow-md: var(--shadow-raised);   /* unchanged — 12 call sites */

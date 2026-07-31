@@ -432,12 +432,12 @@ function PlatformCard({
         </div>
         {canConnect && !handleOpen && (
           isOauth && platform.connectHref ? (
-            <Link href={platform.connectHref} prefetch={false} className={cn(buttonVariants({ size: "sm" }), "shrink-0")}>
+            <Link href={platform.connectHref} prefetch={false} className={cn(buttonVariants({ size: "sm", variant: "outline" }), "shrink-0")}>
               <PlugZap className="h-4 w-4" aria-hidden="true" />
               {platform.activeCount > 0 ? "Add another" : "Connect"}
             </Link>
           ) : (
-            <Button type="button" size="sm" className="shrink-0" onClick={() => setHandleOpen(true)}>
+            <Button type="button" size="sm" variant="outline" className="shrink-0" onClick={() => setHandleOpen(true)}>
               <PlugZap className="h-4 w-4" aria-hidden="true" />
               {platform.activeCount > 0 ? "Link another" : "Link profile"}
             </Button>

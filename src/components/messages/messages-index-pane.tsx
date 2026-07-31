@@ -33,12 +33,12 @@ export function MessagesIndexPane() {
               wide blurred shadow, the fill was raw --accent under an EMITTING glow
               (`0 4px 20px var(--accent-glow)`), and the press was `active:scale-95`
               — the control shrinking away from the finger. It is the shared key
-              now, moulded from jade because --domain-messages is jade
-              (tokens.css:102). `.key-lit` supplies the pinned --mould-jade-ink, so
-              the unpinned `text-white` goes with it. */}
+              now, moulded from the system primary plastic (tone reset R1: one
+              primary colour app-wide, per-section hues are gone). `.key-lit`
+              supplies the pinned ink, so the unpinned `text-white` went. */}
           <Link
             href="/messages?compose=true"
-            className="mechat-key key key-lit [--mould:var(--mould-jade)] [--mould-ink:var(--mould-jade-ink)] [--mould-plinth:var(--mould-jade-plinth)] mt-6 inline-flex min-h-11 items-center px-6 py-2.5 text-sm font-semibold"
+            className="mechat-key key key-lit [--mould:var(--mould-cobalt)] [--mould-ink:var(--mould-cobalt-ink)] [--mould-plinth:var(--mould-cobalt-plinth)] mt-6 inline-flex min-h-11 items-center px-6 py-2.5 text-sm font-semibold"
           >
             Start a conversation
           </Link>

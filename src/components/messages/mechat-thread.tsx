@@ -917,7 +917,7 @@ export function MeChatThread({
                               ring or a wall. Jade commit key, --face cancel key —
                               the same pair everywhere on this surface. */}
                           <div className="flex gap-2">
-                            <button type="button" onClick={() => saveEdit(message.id)} disabled={isPending} className="mechat-key mechat-key-chip key key-lit [--mould:var(--mould-jade)] [--mould-ink:var(--mould-jade-ink)] [--mould-plinth:var(--mould-jade-plinth)] inline-flex min-h-8 items-center px-3 py-1 text-micro font-semibold disabled:opacity-50">Save</button>
+                            <button type="button" onClick={() => saveEdit(message.id)} disabled={isPending} className="mechat-key mechat-key-chip key key-lit [--mould:var(--mould-cobalt)] [--mould-ink:var(--mould-cobalt-ink)] [--mould-plinth:var(--mould-cobalt-plinth)] inline-flex min-h-8 items-center px-3 py-1 text-micro font-semibold disabled:opacity-50">Save</button>
                             <button type="button" onClick={() => { setEditingId(null); setEditDraft(""); }} className="mechat-key mechat-key-chip key inline-flex min-h-8 items-center px-3 py-1 text-micro font-semibold text-[var(--text-secondary)]">Cancel</button>
                           </div>
                         </div>
@@ -1072,7 +1072,7 @@ export function MeChatThread({
                 bottomRef.current?.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "end" });
                 setNewBelowCount(0);
               }}
-              className="mechat-key key key-lit [--mould:var(--mould-jade)] [--mould-ink:var(--mould-jade-ink)] [--mould-plinth:var(--mould-jade-plinth)] pointer-events-auto flex min-h-9 items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold"
+              className="mechat-key key key-lit [--mould:var(--mould-cobalt)] [--mould-ink:var(--mould-cobalt-ink)] [--mould-plinth:var(--mould-cobalt-plinth)] pointer-events-auto flex min-h-9 items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold"
             >
               {newBelowCount > 1 ? `${newBelowCount} new messages` : "New messages"}
               <ArrowDown size={14} aria-hidden="true" />
@@ -1208,7 +1208,7 @@ export function MeChatThread({
             onClick={() => setShowMediaTools((current) => !current)}
             className={`mechat-key key flex h-11 w-11 shrink-0 items-center justify-center ${
               showMediaTools
-                ? "key-lit [--mould:var(--mould-jade)] [--mould-ink:var(--mould-jade-ink)] [--mould-plinth:var(--mould-jade-plinth)]"
+                ? "key-selected"
                 : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
             }`}
             aria-pressed={showMediaTools}
@@ -1276,7 +1276,7 @@ export function MeChatThread({
             disabled={isPending || (!draft.trim() && attachments.length === 0 && !pendingSource?.sourceUrl)}
             className={`mechat-key key flex h-11 w-11 shrink-0 items-center justify-center disabled:cursor-not-allowed ${
               draft.trim() || attachments.length > 0 || pendingSource?.sourceUrl
-                ? "key-lit [--mould:var(--mould-jade)] [--mould-ink:var(--mould-jade-ink)] [--mould-plinth:var(--mould-jade-plinth)]"
+                ? "key-lit [--mould:var(--mould-cobalt)] [--mould-ink:var(--mould-cobalt-ink)] [--mould-plinth:var(--mould-cobalt-plinth)]"
                 : "text-[var(--text-muted)]"
             }`}
             aria-label="Send message"
