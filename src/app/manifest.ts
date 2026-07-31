@@ -66,6 +66,19 @@ export default function manifest(): MetadataRoute.Manifest {
         type: "image/svg+xml",
       },
     ],
+    // Other apps' share sheets can send INTO mesh.me: the installed app
+    // registers as a share target and /share lands the text in the composer.
+    // GET with text params only — file sharing needs a POST/multipart
+    // handler and is a later slice.
+    share_target: {
+      action: "/share",
+      method: "GET",
+      params: {
+        title: "title",
+        text: "text",
+        url: "url",
+      },
+    },
     shortcuts: [
       {
         name: "The Mesh",
