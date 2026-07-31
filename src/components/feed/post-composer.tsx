@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useRef, useState, useTransition, useEffect } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { createPost } from "@/lib/actions";
+import { SHARED_INTAKE_KEY } from "@/app/(app)/share/share-intake";
 import { publishMeshiCause } from "@/lib/meshi-bus";
 import { playSound } from "@/lib/sound";
 import { Image as ImageIcon, Hash, Globe, X, Share2, ChevronDown, Info, CheckCircle2, AlertTriangle, Link as LinkIcon, Lock, Users, Video, Eye } from "lucide-react";
@@ -117,6 +118,22 @@ export function PostComposer({ user, communityId, startExpanded = false, onPostP
   useEffect(() => {
     if (visibility !== "public") setSelectedPlatforms(new Set());
   }, [visibility]);
+
+  // Shared INTO mesh.me (see /share, the manifest's share_target receiver):
+  // another app's share sheet stashed its text one redirect ago. Pick it up
+  // exactly once, open pre-filled, and never overwrite something the person
+  // was already writing.
+  useEffect(() => {
+    try {
+      const shared = sessionStorage.getItem(SHARED_INTAKE_KEY);
+      if (!shared) return;
+      sessionStorage.removeItem(SHARED_INTAKE_KEY);
+      setContent((current) => current || shared.slice(0, 500));
+      setExpanded(true);
+    } catch {
+      // Storage unavailable — nothing to pick up.
+    }
+  }, []);
   const [selectedPlatforms, setSelectedPlatforms] = useState<Set<string>>(new Set());
   const [connectedAccounts, setConnectedAccounts] = useState<string[]>([]);
   const [publishableAccounts, setPublishableAccounts] = useState<string[]>([]);
