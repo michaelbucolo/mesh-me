@@ -2042,44 +2042,13 @@ body[data-meshi-panel="open"] .bug-report-widget {
     linear-gradient(135deg, color-mix(in srgb, var(--bg-secondary) 88%, #111827), var(--bg-primary));
 }
 
-.insta-right-rail {
-  display: none;
-  position: sticky;
-  top: 1.5rem;
-  height: fit-content;
-  padding-top: 0.35rem;
-}
-
-.insta-rail-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.55rem;
-  min-height: 2.5rem;
-  border-radius: var(--r-md);
-  color: var(--text-secondary);
-  font-size: var(--fs-base);
-  font-weight: 500;
-  transition:
-    color var(--mesh-transition-fast),
-    background-color var(--mesh-transition-fast),
-    transform var(--mesh-transition-fast);
-}
-
-/* A row is a place, not a control that travels. The `transform: translateX(2px)`
-   that used to be here made the rail drift sideways under the pointer; a `.leaf`
-   brightens instead. Surface treatment is in the feed block at end of file. */
-.insta-rail-link:hover {
-  color: var(--text-primary);
-}
-
+/* The right rail is deleted (tone reset #25): it restated the sidebar. From
+   1024px up the feed is one centered column at the readable measure. */
 @media (min-width: 1024px) {
   .insta-feed-layout {
-    grid-template-columns: minmax(0, 39rem) minmax(15rem, 19rem);
+    grid-template-columns: minmax(0, 40rem);
+    justify-content: center;
     align-items: start;
-  }
-
-  .insta-right-rail {
-    display: block;
   }
 }
 
@@ -3488,12 +3457,24 @@ body {
   min-width: 100%;
   gap: 0.45rem;
   overflow-x: auto;
-  padding-inline: 0.1rem;
+  padding-inline: 0.1rem 1.5rem;
   scrollbar-width: none;
+  mask-image: linear-gradient(to right, black 0, black calc(100% - 24px), transparent 100%);
+  -webkit-mask-image: linear-gradient(to right, black 0, black calc(100% - 24px), transparent 100%);
 }
 
 .feed-mode-strip::-webkit-scrollbar {
   display: none;
+}
+
+/* A horizontal chip rail fades at its clipped edge instead of amputating a
+   chip mid-word (tone reset #10). The mask rides the SCROLLER so the fade
+   tracks scroll; the trailing padding is wider than the fade so the last chip
+   lands clear of it at scroll end. */
+.rail-fade {
+  padding-right: 1.5rem;
+  mask-image: linear-gradient(to right, black 0, black calc(100% - 24px), transparent 100%);
+  -webkit-mask-image: linear-gradient(to right, black 0, black calc(100% - 24px), transparent 100%);
 }
 
 .feed-control-scroll {
@@ -3502,8 +3483,10 @@ body {
   flex: 1 1 auto;
   gap: 0.45rem;
   overflow-x: auto;
-  padding-inline: 0.1rem;
+  padding-inline: 0.1rem 1.5rem;
   scrollbar-width: none;
+  mask-image: linear-gradient(to right, black 0, black calc(100% - 24px), transparent 100%);
+  -webkit-mask-image: linear-gradient(to right, black 0, black calc(100% - 24px), transparent 100%);
 }
 
 .feed-control-scroll::-webkit-scrollbar {
@@ -3593,28 +3576,6 @@ body {
   content-visibility: auto;
   contain-intrinsic-size: 46rem;
   scroll-margin-top: 7rem;
-}
-
-.feed-mode-summary {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  min-height: 3.35rem;
-  border: 1px solid var(--border-primary);
-  border-radius: var(--r-lg);
-  background: var(--bg-secondary);
-  padding: 0.65rem 0.8rem;
-}
-
-.feed-mode-summary-icon {
-  display: grid;
-  flex: 0 0 auto;
-  place-items: center;
-  width: 2rem;
-  height: 2rem;
-  border-radius: var(--r-sm);
-  color: var(--accent-text);
-  background: var(--accent-subtle);
 }
 
 .feed-creator-dashboard {
@@ -3848,10 +3809,6 @@ body {
   width: min(100%, 45rem);
 }
 
-.feed-adaptive-clean .insta-right-rail {
-  display: none;
-}
-
 .feed-adaptive-clean .feed-control-scroll,
 .feed-adaptive-clean .feed-layout-toggle,
 .feed-adaptive-clean .feed-like-count,
@@ -3972,10 +3929,6 @@ body {
   }
 
   .feed-layout-toggle {
-    display: none;
-  }
-
-  .feed-mode-summary {
     display: none;
   }
 
@@ -5743,12 +5696,6 @@ body {
 
 .feed-post-list {
   min-height: 0;
-}
-
-.insta-right-rail {
-  max-height: 100%;
-  overflow-y: auto;
-  overscroll-behavior: contain;
 }
 
 @media (max-width: 767px) {
@@ -8269,37 +8216,8 @@ button, [role="button"] {
   transform: none;
 }
 
-/* ── 3. THE RIGHT RAIL GETS A SURFACE ─────────────────────────────────────────
-
-   `.insta-right-rail` had display / position / top / height / padding and
-   nothing else — no background, no border, no radius, no shadow. The whole rail
-   was naked text on the bare mat, which is why it read as unfinished next to
-   plated post cards. Its two groups (feed-timeline-client.tsx:681, 692 — both
-   plain divs, both verified) become plates. NO plinth: Law 1, a panel is
-   information, and the links inside it are the things you press. */
-.insta-right-rail > div {
-  background: var(--paper-1);
-  border: var(--border-w) solid var(--rule);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-rest);
-  padding: var(--sp-4);
-}
-
-/* A row inside the plate. `.leaf` — brightens, does not travel. The rule that
-   used to be here slid the row 2px sideways on hover, which is a control that
-   goes somewhere; a row is a place. The padding is new: a hover surface with no
-   padding hugs the glyph and reads as a highlighter, not a target. */
-.insta-rail-link {
-  border-radius: var(--radius-md);
-  padding-inline: 0.55rem;
-  transition:
-    color var(--dur-tap) var(--ease-settle),
-    background-color var(--dur-tap) var(--ease-settle);
-}
-.insta-rail-link:hover {
-  background: var(--paper-hover);
-  transform: none;
-}
+/* (Section 3, the right-rail surface, is deleted with the rail itself —
+   tone reset #25: it restated the sidebar.) */
 
 /* ── 4. NOTHING EMITS ─────────────────────────────────────────────────────────
 

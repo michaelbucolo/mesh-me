@@ -3,12 +3,11 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowRight, Bell, Camera, Grid3X3, Image as ImageIcon, LayoutList, Link2, MessageCircle, Play, PlusSquare, Rows3, Search, Sparkles, Type, Video } from "lucide-react";
+import { ArrowRight, Camera, Grid3X3, Image as ImageIcon, LayoutList, Link2, MessageCircle, Play, PlusSquare, Rows3, Search, Sparkles, Type, Video } from "lucide-react";
 import { FlowReels } from "./flow-reels";
 import { PaperWait } from "@/components/loading/paper-wait";
 import { PostCard } from "@/components/feed/post-card";
 import { PostComposer } from "@/components/feed/post-composer";
-import { Avatar } from "@/components/ui/avatar";
 import { MeshiMascot, type MeshiColor, type MeshiHat } from "@/components/meshi/meshi-mascot";
 import { readGhostMode } from "@/lib/ghost-mode";
 import { readWhereShare } from "@/lib/where-share";
@@ -196,8 +195,6 @@ export function FeedTimelineClient({
     }
   }, [flowPostId]);
   const activePresencePostId = getFeedPresenceKey(activePost);
-  const activeModeConfig = feedViews.find((view) => view.id === contentFilter) || feedViews[0];
-  const ActiveModeIcon = activeModeConfig.icon;
 
   useEffect(() => {
     setPosts(initialPosts);
@@ -525,18 +522,10 @@ export function FeedTimelineClient({
         </div>
 
         <div className="feed-consumption-stack">
-          <div className="feed-mode-summary">
-            <span className="feed-mode-summary-icon">
-              <ActiveModeIcon size={15} aria-hidden="true" />
-            </span>
-            <span className="min-w-0">
-              <span className="block truncate text-sm font-semibold text-[var(--text-primary)]">{activeModeConfig.label} feed</span>
-              <span className="block truncate text-xs font-semibold text-[var(--text-muted)]">{activeModeConfig.copy}</span>
-            </span>
-          </div>
-
-          
-
+          {/* The "All feed / Balanced social feed" explainer banner is gone
+              (tone reset #24): the chip row already states the mode via its
+              pressed chip, and a banner restating it in marketing copy was a
+              row of chrome between the user and the first post. */}
           <div className={`feed-inline-composer ${isComposing ? "feed-inline-composer-active" : ""}`}>
             <PostComposer
               user={{ displayName: user.displayName, avatarUrl: user.avatarUrl }}
@@ -615,38 +604,9 @@ export function FeedTimelineClient({
         </div>
       </section>
 
-      <aside className="insta-right-rail">
-        <div className="flex items-center justify-between gap-3">
-          <Link href={`/profile/${user.username}`} className="flex min-w-0 items-center gap-3">
-            <Avatar src={user.avatarUrl} alt={user.displayName} size="md" />
-            <span className="min-w-0">
-              <span className="block truncate text-sm font-semibold text-[var(--text-primary)]">@{user.username}</span>
-              <span className="block truncate text-xs text-[var(--text-muted)]">{user.displayName}</span>
-            </span>
-          </Link>
-          <Link href="/settings" className="text-xs font-semibold text-[var(--accent-text)]">Edit</Link>
-        </div>
-
-        <div className="mt-6 grid gap-3">
-          <div className="flex items-center justify-between text-sm">
-            <span className="font-semibold text-[var(--text-muted)]">Everything</span>
-            <Link href="/mesh" className="text-xs font-semibold text-[var(--text-primary)]">Open Mesh</Link>
-          </div>
-          {[
-            { href: "/mesh", label: "The Mesh", icon: Grid3X3 },
-            { href: "/connected-accounts", label: "Connect platforms", icon: ArrowRight },
-            { href: "/notifications", label: "Notifications", icon: Bell },
-          ].map((item) => {
-            const Icon = item.icon;
-            return (
-              <Link key={item.href} href={item.href} className="insta-rail-link">
-                <Icon size={15} aria-hidden="true" />
-                {item.label}
-              </Link>
-            );
-          })}
-        </div>
-      </aside>
+      {/* No right rail (tone reset #25): it held an identity card and a nav
+          list, both restating the sidebar to its immediate left. The feed is
+          one centered column now. */}
 
       {reelsOpen && (
         <FlowReels
