@@ -588,9 +588,15 @@ export function OnboardingFlow({
                       type="button"
                       whileTap={{ scale: 0.97 }}
                       onClick={() => setPrivacy((current) => ({ ...current, meshVisibility: option.id }))}
-                      className={cn("mesh-choice rounded-md p-4 text-left", privacy.meshVisibility === option.id && "border-[var(--accent)] bg-[var(--accent-subtle)]")}
+                      aria-pressed={privacy.meshVisibility === option.id}
+                      className={cn("mesh-choice rounded-md p-4 text-left", privacy.meshVisibility === option.id && "mesh-choice-selected")}
                     >
-                      <span className="block text-base font-semibold">{option.title}</span>
+                      <span className="flex items-center justify-between gap-2 text-base font-semibold">
+                        {option.title}
+                        {privacy.meshVisibility === option.id && (
+                          <Check size={16} className="animate-mesh-pop shrink-0 text-[var(--accent-text)]" aria-hidden="true" />
+                        )}
+                      </span>
                       <span className="mt-2 block text-sm leading-6 text-[var(--text-secondary)]">{option.body}</span>
                     </motion.button>
                   ))}
@@ -640,9 +646,15 @@ export function OnboardingFlow({
                       type="button"
                       whileTap={{ scale: 0.97 }}
                       onClick={() => setInterfaceStyle(option.id)}
-                      className={cn("mesh-choice rounded-md p-4 text-left", interfaceStyle === option.id && "border-[var(--accent)] bg-[var(--accent-subtle)]")}
+                      aria-pressed={interfaceStyle === option.id}
+                      className={cn("mesh-choice rounded-md p-4 text-left", interfaceStyle === option.id && "mesh-choice-selected")}
                     >
-                      <span className="block text-base font-semibold">{option.title}</span>
+                      <span className="flex items-center justify-between gap-2 text-base font-semibold">
+                        {option.title}
+                        {interfaceStyle === option.id && (
+                          <Check size={16} className="animate-mesh-pop shrink-0 text-[var(--accent-text)]" aria-hidden="true" />
+                        )}
+                      </span>
                       <span className="mt-2 block text-sm leading-6 text-[var(--text-secondary)]">{option.body}</span>
                     </motion.button>
                   ))}
@@ -662,7 +674,7 @@ export function OnboardingFlow({
                         whileTap={{ scale: 0.97 }}
                         onClick={() => toggleApp(platform.id)}
                         aria-pressed={active}
-                        className={cn("mesh-choice min-h-20 rounded-md px-4 py-3 text-left transition", active && "border-[var(--accent)] bg-[var(--accent-subtle)]")}
+                        className={cn("mesh-choice min-h-20 rounded-md px-4 py-3 text-left transition", active && "mesh-choice-selected")}
                         data-testid={`onboarding-app-${platform.id}`}
                       >
                         <span className="flex items-center justify-between gap-2">
@@ -762,7 +774,8 @@ function ChoiceButton({ active, onClick, children }: { active: boolean; onClick:
       whileTap={{ scale: 0.94 }}
       animate={active ? { scale: [1, 1.09, 1] } : { scale: 1 }}
       transition={{ duration: 0.34, ease: SPRING_LUSH }}
-      className={cn("mesh-choice rounded-full px-3 py-2 text-sm font-semibold capitalize", active && "border-[var(--accent)] bg-[var(--accent-subtle)]")}
+      aria-pressed={active}
+      className={cn("mesh-choice rounded-full px-3 py-2 text-sm font-semibold capitalize", active && "mesh-choice-selected")}
     >
       {children}
     </motion.button>
@@ -775,7 +788,7 @@ function GraphicChoice({ active, label, onClick, children }: { active: boolean; 
       type="button"
       onClick={onClick}
       whileTap={{ scale: 0.92 }}
-      className={cn("mesh-choice relative grid min-w-[4.75rem] justify-items-center gap-1 rounded-md px-3 py-2 text-xs font-semibold capitalize", active && "border-[var(--accent)] bg-[var(--accent-subtle)]")}
+      className={cn("mesh-choice relative grid min-w-[4.75rem] justify-items-center gap-1 rounded-md px-3 py-2 text-xs font-semibold capitalize", active && "mesh-choice-selected")}
       aria-pressed={active}
     >
       {/* Selected-pop: the preview springs with an overshoot and a brand ring
@@ -811,7 +824,7 @@ function Toggle({ label, value, onChange }: { label: string; value: boolean; onC
     <button
       type="button"
       onClick={() => onChange(!value)}
-      className={cn("mesh-choice flex min-h-12 items-center justify-between gap-3 rounded-md px-3 py-2 text-left", value && "border-emerald-300/30 bg-emerald-300/10")}
+      className={cn("mesh-choice flex min-h-12 items-center justify-between gap-3 rounded-md px-3 py-2 text-left", value && "mesh-choice-selected")}
       aria-pressed={value}
     >
       <span>
