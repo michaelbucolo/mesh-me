@@ -252,6 +252,12 @@ function AccountCard({
             <PlugZap className="h-4 w-4" aria-hidden="true" />
             Reconnect
           </Link>
+        ) : account.authType === "manual" ? (
+          /* No Sync control for a public reference: manual accounts carry no
+             credential, so the button could only ever render disabled — dead
+             chrome promising an import that cannot happen. The Details panel
+             states what a reference does instead. */
+          null
         ) : (
           <Button
             type="button"
@@ -295,7 +301,13 @@ function AccountCard({
                 ? ` · ${assumedCount} requested`
                 : ""}
             </span>
-            <span>Last synced {formatDate(account.lastSyncAt)}</span>
+            {/* "Last synced never" on a reference that can never sync reads as a
+                fault. A reference states when it was added instead. */}
+            <span>
+              {account.authType === "manual"
+                ? `Added ${formatDate(account.createdAt)}`
+                : `Last synced ${formatDate(account.lastSyncAt)}`}
+            </span>
           </div>
 
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -409,10 +421,13 @@ function PlatformCard({
           <div className="flex flex-wrap items-center gap-2">
             <p className="truncate text-sm font-semibold text-[var(--text-primary)]">{platform.name}</p>
             {platform.activeCount > 0 && <Badge variant="success">Connected</Badge>}
-            {!canConnect && <Badge variant="outline">Coming soon</Badge>}
+            {/* "Coming soon" was a promise nobody scheduled. The card is inert
+                because this deployment lacks the provider credentials — say
+                that, and hand the owner the exact switch below. */}
+            {!canConnect && <Badge variant="outline">Needs setup</Badge>}
           </div>
           <p className="text-xs text-[var(--text-muted)]">
-            {categoryLabels[platform.category]} · {isOauth ? "One-tap connect" : "Public handle"}
+            {categoryLabels[platform.category]} · {isOauth ? "Platform sign-in" : "Public handle"}
           </p>
         </div>
         {canConnect && !handleOpen && (
@@ -424,11 +439,33 @@ function PlatformCard({
           ) : (
             <Button type="button" size="sm" className="shrink-0" onClick={() => setHandleOpen(true)}>
               <PlugZap className="h-4 w-4" aria-hidden="true" />
-              {platform.activeCount > 0 ? "Add another" : "Connect"}
+              {platform.activeCount > 0 ? "Link another" : "Link profile"}
             </Button>
           )
         )}
       </div>
+
+      {!canConnect && platform.missingEnv.length > 0 && (
+        <details className="group rounded-[var(--ds-radius-md)] bg-[var(--bg-primary)]/55 px-3 py-2">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-2 text-xs font-semibold text-[var(--text-muted)] transition-colors hover:text-[var(--text-secondary)]">
+            <span>Setup — enable {platform.name}</span>
+            <ChevronDown className="h-3.5 w-3.5 transition-transform group-open:rotate-180" aria-hidden="true" />
+          </summary>
+          <div className="mt-2 grid gap-1.5 text-xs leading-5 text-[var(--text-secondary)]">
+            <p>
+              Create a {platform.name} developer app, then add these environment variables to the
+              deployment and redeploy:
+            </p>
+            <ul className="grid gap-1">
+              {platform.missingEnv.map((name) => (
+                <li key={name}>
+                  <code className="rounded bg-[var(--ds-surface)] px-1.5 py-0.5 font-mono text-[0.6875rem] text-[var(--text-primary)]">{name}</code>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </details>
+      )}
 
       {handleOpen && (
         <form onSubmit={submitHandle} className="flex items-center gap-2">
@@ -802,6 +839,22 @@ export function ConnectedAccountsClient({
             One-tap connect where platforms support it, or link a public handle for the rest.
           </p>
         </div>
+
+        {/* When no OAuth provider is configured, every marquee platform card is
+            inert — and without this line the page reads as "nothing connects".
+            The state must be said once, plainly, not inferred from a wall of
+            badges. */}
+        {dashboard.summary.oauthReady === 0 && (
+          <div className="flex items-start gap-2 rounded-[var(--ds-radius-md)] border border-[var(--ds-border)] bg-[var(--ds-surface)] px-3.5 py-3 text-sm leading-6 text-[var(--text-secondary)]">
+            <AlertCircle className="mt-1 h-4 w-4 shrink-0 text-[var(--text-muted)]" aria-hidden="true" />
+            <span>
+              Platform sign-in isn&apos;t set up on this deployment yet, so one-tap connections are
+              unavailable. You can still link public profiles — they appear on your mesh and profile.
+              Each unavailable platform lists the credentials that enable it under{" "}
+              <span className="font-semibold text-[var(--text-primary)]">Setup</span>.
+            </span>
+          </div>
+        )}
 
         <div className="flex flex-col gap-3">
           <Input
