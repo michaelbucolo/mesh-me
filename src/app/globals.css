@@ -358,43 +358,17 @@ select:focus-visible {
 /* ═══════════════════════════════════════════════════════════════════
    CURSOR SYSTEM — Meshi is your hand on the page.
 
-   Two layers, and `cursor: none` appears NOWHERE in this product. That is
-   the load-bearing rule: there is no state, on any platform, in which the
-   user has no pointer.
-
-   Layer 0 (here) is the floor — a native `cursor: url()` PNG, present in
-   the very first paint, before any JavaScript. It draws Meshi's contact
-   shadow plus a 1px aim dot at the hotspot (6, 6). Layer 1 is the DOM
-   sprite in meshi-cursor.tsx, which draws Meshi's body up-and-right of
-   that aim point.
-
-   The floor is deliberately a SHADOW and not a second Meshi. If the sprite
-   is missing — over an iframe, behind a modal, before hydration, or if the
-   bundle simply failed — a lone shadow reads as "Meshi stepped away",
-   which is true. Two Meshis disagreeing would read as a rendering fault.
-
-   PNG, not SVG: WebKit does not support SVG cursor images, and this site
-   is shipped inside an iOS WKWebView. 24×24 single resolution, no
-   image-set(): Chrome and Firefox on Windows ignore custom cursors above
-   32×32 device px, so a 2× variant risks no cursor at all. Slight softness
-   on HiDPI is an acceptable cost; a missing pointer is not.
-
-   `--meshi-cursor` is the hook JS uses to swap in a cosmetic-specific
-   variant once preferences are known. Until then the static default
-   applies, which is why the whole thing is pure CSS.
-
-   Tailwind v4's preflight stopped giving <button> a pointer cursor, which
-   left affordances patched per-component; restored here once, for
-   everything. Declared in @layer base so utilities (cursor-default,
-   cursor-grab, …) and component rules still override, and scoped to fine
-   pointers so touch devices ship zero cursor styling.
+   POINTER AFFORDANCES. The OS cursor is the pointer — the product does not
+   replace it. (A mascot used to ride the cursor here; an adult product's
+   pointer is the system's.) What this block DOES own: Tailwind v4's preflight
+   stopped giving <button> a pointer cursor, which left affordances patched
+   per-component; restored here once, for everything. Declared in @layer base
+   so utilities (cursor-default, cursor-grab, …) and component rules still
+   override, and scoped to fine pointers so touch devices ship zero cursor
+   styling.
    ═══════════════════════════════════════════════════════════════════ */
 @media (pointer: fine) {
   @layer base {
-    :root {
-      cursor: var(--meshi-cursor, url("/cursor/meshi-shadow-24.png") 6 6), auto;
-    }
-
     /* `cursor` INHERITS, so the floor would otherwise reach into text
        fields and over embedded content. Below, `[contenteditable]` gets an
        explicit `text` — but `input` and `textarea` only keep the UA I-beam
@@ -453,54 +427,6 @@ select:focus-visible {
     [contenteditable="plaintext-only"] {
       cursor: text;
     }
-  }
-}
-
-/* Forced colours: the user asked the OS for a specific, high-contrast
-   presentation. A custom cursor image is exactly the kind of decoration that
-   request is meant to switch off. The DOM sprite opts out on the same signal,
-   so the two never disagree. */
-@media (forced-colors: active) {
-  :root {
-    cursor: auto;
-  }
-}
-
-/* ── The DOM sprite ──
-   Above the shortcuts overlay (z-90), the toast stack (z-60) and modals
-   (z-50), because it is the pointer and the pointer is always on top.
-   Never interactive: every event must reach what is underneath. */
-.meshi-cursor {
-  position: fixed;
-  top: 0;
-  left: 0;
-  /* Zero-size anchor. The body is positioned against this point rather than
-     inside a box, so the geometry does not depend on the mascot's intrinsic
-     height — which is taller than the `size` prop, and drifted the body 6px
-     low when the offset was computed from `size` instead of measured. */
-  width: 0;
-  height: 0;
-  z-index: 100;
-  pointer-events: none;
-  opacity: 0;
-  /* Only the fade is transitioned. Position is written per frame and must
-     never be eased — an eased pointer is a pointer in the wrong place. */
-  transition: opacity 140ms var(--mesh-ease-out, ease-out);
-  will-change: transform;
-}
-
-/* Bottom-left of the body sits on the anchor, so Meshi stands up-and-right of
-   the aim point with its feet at the offset — never over the target. */
-.meshi-cursor-body {
-  position: absolute;
-  left: 0;
-  bottom: 0;
-  transform-origin: 50% 100%;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .meshi-cursor {
-    transition: none;
   }
 }
 
@@ -2385,18 +2311,24 @@ body[data-meshi-panel="open"] .bug-report-widget {
   opacity: 0.8;
 }
 
+/* THE DOCK. Meshi is chrome: one instance, pinned to the corner by CSS alone —
+   the component no longer computes a position, so there is nothing here to
+   will-change. `width: max-content` hugs the 44px body so the popovers that
+   anchor to its right edge stay on-screen. On phones it sits above the tab bar
+   AND the compose FAB — the FAB is the screen's primary action and keeps the
+   prime thumb spot; chrome yields. From 768px up (the width where the tab bar
+   and FAB both leave) it takes the plain corner inset. */
 .meshi-float-shell {
-  /* Hug the 48px Meshi body: the shell's popovers anchor to its right edge,
-     and a stretched shell threw them off-screen. Matches MESHI_SIZE, which the
-     float's own viewport clamping already assumes. */
+  right: max(1rem, env(safe-area-inset-right));
+  bottom: calc(var(--mobile-nav-h) + env(safe-area-inset-bottom) + 5.25rem);
   width: max-content;
-  will-change: left, top, transform, opacity;
 }
 
-.meshi-float-shell[data-meshi-avoiding="true"] [data-meshi-primary="true"] {
-  box-shadow:
-    0 0 0 4px color-mix(in srgb, var(--accent) 10%, transparent),
-    0 12px 34px color-mix(in srgb, var(--accent) 18%, transparent);
+@media (min-width: 768px) {
+  .meshi-float-shell {
+    right: 1.5rem;
+    bottom: 1.5rem;
+  }
 }
 
 .mesh-pressable {

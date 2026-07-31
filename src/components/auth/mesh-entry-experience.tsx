@@ -259,7 +259,7 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
     event.preventDefault();
     const email = resetEmail.trim().toLowerCase();
     if (!EMAIL_RE.test(email)) {
-      setMessage("Enter the email connected to your Mesh.");
+      setMessage("Enter the email on your account.");
       return;
     }
     setMessage("");
@@ -352,7 +352,7 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
             className={`mesh-gate-focus${leaving ? " mesh-gate-leaving" : ""}`}
             noValidate
           >
-            <h1 className="mesh-gate-q">Who are you?</h1>
+            <h1 className="mesh-gate-q">Log in</h1>
             <div ref={anchorRef} className="mesh-gate-inputwrap">
               <input
                 autoFocus
@@ -388,7 +388,7 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
             {message ? (
               <p className="mesh-gate-msg" role="alert">{message}</p>
             ) : (
-              <p className="mesh-gate-hint">Enter your Mesh</p>
+              <p className="mesh-gate-hint">Log in or create an account</p>
             )}
             <button
               type="button"
@@ -405,7 +405,7 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
               className="mesh-gate-textlink"
               data-testid="entry-open-signup-button"
             >
-              New here? Create your Mesh
+              Create account
             </button>
             {oauthProviders.length > 0 && (
               <div className="mesh-gate-providers">
@@ -448,16 +448,12 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
             </div>
             <p className="mesh-gate-bubble">
               {success
-                ? "Pulling your world together…"
+                ? "Signing you in…"
                 : message
-                  ? "Hmm, that's not it — try again."
-                  : password && !showPassword
-                    ? "Eyes closed. Promise."
-                    : password && showPassword
-                      ? "Peeking, since you asked."
-                      : greetingName
-                        ? `You're @${greetingName}. What's your password?`
-                        : "Welcome back. What's your password?"}
+                  ? "Incorrect password. Try again or reset it."
+                  : greetingName
+                    ? `Welcome back, @${greetingName}.`
+                    : "Enter your password."}
             </p>
             <div className={`mesh-gate-inputwrap${shaking ? " mesh-gate-shake" : ""}`}>
               <input
@@ -489,7 +485,7 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
                 type="submit"
                 className={`mesh-gate-go overflow-hidden${password ? " is-ready" : ""}`}
                 disabled={isPending || success}
-                aria-label="Enter my world"
+                aria-label="Log in"
                 data-testid="entry-submit-button"
               >
                 {password && !success && !reduceMotion && <GoSheen />}
@@ -522,17 +518,14 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
             filledCount >= 4 ? "celebrating" : filledCount === 3 ? "love" : filledCount === 2 ? "excited" : "happy";
           return (
           <form key="signup" action={submitSignup} className="mesh-gate-form" data-testid="entry-signup-form" noValidate>
-            {/* A brand-new Meshi warms up as the form comes alive — it's THEIR
-                Meshi being born, one field at a time. */}
-            <div className="mesh-gate-signup-meshi" style={{ transform: `scale(${1 + filledCount * 0.05})` }} aria-hidden="true">
+            {/* The new account's Meshi. Its MOOD warms as the form fills — the
+                behavioral character stays — but it holds its size and says
+                nothing: the captions and the inflating scale were narration. */}
+            <div className="mesh-gate-signup-meshi" aria-hidden="true">
               <MeshiMascot size={72} mood={signupMood} animate bouncy={filledCount >= 4} showGlow={filledCount >= 3} />
             </div>
-            <h1 className="mesh-gate-q mesh-gate-q-sm">Create your Mesh</h1>
-            <p className="mesh-gate-hint">
-              {filledCount >= 4
-                ? "Your Meshi is ready to meet you."
-                : "Your world, your way — private by default."}
-            </p>
+            <h1 className="mesh-gate-q mesh-gate-q-sm">Create account</h1>
+            <p className="mesh-gate-hint">Private by default.</p>
             <input type="hidden" name="phone" value={signupDraft.phone} />
             <label className="mesh-gate-field">
               <span>Email</span>
@@ -597,7 +590,7 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
             </label>
             {message && <p className="mesh-gate-msg" role="alert">{message}</p>}
             <button type="submit" className="mesh-gate-primary" disabled={isPending} data-testid="entry-create-account-button">
-              {isPending ? <PaperWait size="sm" /> : "Create your Mesh"}
+              {isPending ? <PaperWait size="sm" /> : "Create account"}
             </button>
             <button type="button" onClick={backToIdentity} className="mesh-gate-textlink">
               I already have an account
@@ -611,7 +604,7 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
           <form key="reset" onSubmit={submitReset} className="mesh-gate-form" noValidate>
             <h1 className="mesh-gate-q mesh-gate-q-sm">Reset password</h1>
             {resetSent ? (
-              <p className="mesh-gate-hint">If that email is connected to a Mesh, a reset link is on its way.</p>
+              <p className="mesh-gate-hint">If that email has an account, a reset link is on its way.</p>
             ) : (
               <>
                 <p className="mesh-gate-hint">We&apos;ll send a secure reset link.</p>

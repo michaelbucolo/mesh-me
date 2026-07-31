@@ -1,7 +1,5 @@
 import { memo } from "react";
-import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { MeshiLogo } from "@/components/meshi/meshi-mascot";
 import Image from "next/image";
 
 interface AvatarProps {
@@ -14,10 +12,7 @@ interface AvatarProps {
    * (new/live), "online" adds a radar-ping presence dot. Omitted = no motion.
    */
   presence?: "online" | "live";
-  /**
-   * Opt-in interactivity: hover scale + ring-brighten, and a tiny happy bob for
-   * the Meshi fallback. Omitted = static, identical to prior behavior.
-   */
+  /** Opt-in interactivity: hover ring-brighten. Omitted = static. */
   interactive?: boolean;
 }
 
@@ -50,6 +45,31 @@ const interactiveClass =
   "hover:ring-[var(--accent)] " +
   "motion-reduce:transition-none";
 
+/**
+ * Identity slots are never the mascot. The old fallback rendered the same
+ * cartoon MeshiLogo face for EVERY user without a photo, on seven of eleven
+ * screens — a feed where half the bylines share one smiley reads as a toy, and
+ * names stop meaning anything. The fallback is now the adult convention:
+ * the user's initial on a disc whose hue is a stable hash of their name, so
+ * the same person is always the same color and two people rarely collide.
+ * MeshiLogo remains reserved for Meshi's OWN system rows.
+ */
+const FALLBACK_HUES = [211, 156, 32, 262, 340, 190, 82, 16] as const;
+
+function initialOf(alt: string): string {
+  const trimmed = alt.trim();
+  if (!trimmed) return "?";
+  // First grapheme, uppercased — handles astral-plane characters.
+  const first = [...trimmed][0] ?? "?";
+  return first.toUpperCase();
+}
+
+function hueOf(alt: string): number {
+  let hash = 5381;
+  for (let i = 0; i < alt.length; i++) hash = ((hash << 5) + hash + alt.charCodeAt(i)) >>> 0;
+  return FALLBACK_HUES[hash % FALLBACK_HUES.length];
+}
+
 export const Avatar = memo(function Avatar({
   src,
   alt = "",
@@ -58,8 +78,6 @@ export const Avatar = memo(function Avatar({
   presence,
   interactive = false,
 }: AvatarProps) {
-  const meshiSize = size === "xs" ? 14 : size === "sm" ? 18 : size === "md" ? 20 : size === "lg" ? 28 : 36;
-
   const core = src ? (
     <Image
       src={src}
@@ -78,26 +96,22 @@ export const Avatar = memo(function Avatar({
   ) : (
     <div
       className={cn(
-        "rounded-full flex items-center justify-center ring-1 ring-[var(--border-primary)] flex-shrink-0 bg-[var(--bg-secondary)]",
+        "rounded-full flex items-center justify-center ring-1 ring-[var(--border-primary)] flex-shrink-0 select-none font-semibold",
         sizeMap[size],
         interactive && interactiveClass,
         className
       )}
+      style={{
+        // Desaturated, theme-stable: dark enough for light ink in dark mode,
+        // read through color-mix so the light theme lifts it automatically.
+        background: `color-mix(in srgb, hsl(${hueOf(alt)} 26% 40%) 42%, var(--bg-secondary))`,
+        color: "var(--text-secondary)",
+      }}
       role="img"
-      aria-label={alt ? `${alt}'s Meshi avatar` : "Meshi avatar"}
-      title={alt ? `${alt}'s Meshi` : "Meshi"}
+      aria-label={alt || "Avatar"}
+      title={alt || undefined}
     >
-      {interactive ? (
-        <motion.span
-          className="inline-flex"
-          whileHover={{ y: [0, -3, 0] }}
-          transition={{ duration: 0.5, ease: "easeInOut" }}
-        >
-          <MeshiLogo size={meshiSize} color="blue" mood="happy" />
-        </motion.span>
-      ) : (
-        <MeshiLogo size={meshiSize} color="blue" mood="happy" />
-      )}
+      {initialOf(alt)}
     </div>
   );
 
