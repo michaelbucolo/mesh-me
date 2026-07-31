@@ -295,7 +295,7 @@ body {
      body text. Setting it here is not a new decision, it is the first time the
      existing one takes effect. Line-height comes with it, which is why the
      hardcoded 1.5 below is gone — 1.55 is the paired value. */
-  font-size: 0.9375rem;
+  font-size: var(--fs-base);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   transition: background-color 0.2s ease, color 0.2s ease;
@@ -854,7 +854,7 @@ select:focus-visible {
   /* 2.25rem (36px) sat under the 44px touch floor on every page. */
   width: 2.75rem;
   height: 2.75rem;
-  border-radius: 0.5rem;
+  border-radius: var(--r-sm);
   color: var(--mesh-text-muted);
   transition: background-color 150ms ease, color 150ms ease;
 }
@@ -870,7 +870,7 @@ select:focus-visible {
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem 0.875rem;
-  border-radius: 0.625rem;
+  border-radius: var(--r-md);
   border: 1px solid var(--mesh-border);
   background: transparent;
   font-size: var(--text-sm);
@@ -891,7 +891,7 @@ select:focus-visible {
   gap: 0.5rem;
   min-height: 2.75rem; /* menu rows measured 36px — under the touch floor */
   padding: 0.5rem 0.75rem;
-  border-radius: 0.5rem;
+  border-radius: var(--r-sm);
   font-size: var(--text-sm);
   color: var(--mesh-text-secondary);
   transition: background-color 120ms ease, color 120ms ease;
@@ -1218,10 +1218,10 @@ select:focus-visible {
   /* `transform`, NOT `translate` — `.key:active` presses with `translate`, so
      the two compose instead of one clobbering the other. */
   transform: translateX(-50%);
-  border-radius: 9999px;
+  border-radius: var(--r-md);
   padding: 0.4rem 0.9rem;
-  font-size: 11px;
-  font-weight: 600;
+  font-size: var(--fs-micro);
+  font-weight: 500;
   letter-spacing: 0.02em;
   color: var(--text-secondary);
 }
@@ -1374,7 +1374,7 @@ select:focus-visible {
 .paper-wait-dot:nth-child(2) { animation-delay: 0.13s; }
 .paper-wait-dot:nth-child(3) { animation-delay: 0.26s; }
 
-.paper-wait-sm { font-size: 0.8125rem; }
+.paper-wait-sm { font-size: var(--fs-caption); }
 .paper-wait-md { font-size: 1rem; }
 
 /* ── Route-level wait: the page's own furniture, drawn empty ── */
@@ -1434,7 +1434,7 @@ select:focus-visible {
 }
 
 .meshi-wait-headline {
-  font-size: 0.9375rem;
+  font-size: var(--fs-base);
   font-weight: 500;
   color: var(--text-primary);
 }
@@ -1445,7 +1445,7 @@ select:focus-visible {
 .meshi-wait-on-dark .meshi-wait-detail { color: rgb(244 239 230 / 0.62); }
 
 .meshi-wait-detail {
-  font-size: 0.8125rem;
+  font-size: var(--fs-caption);
   color: var(--text-tertiary, var(--text-secondary));
   /* Holds its line whether or not there is a number to show. */
   min-height: 1.2em;
@@ -1549,7 +1549,7 @@ body[data-meshi-panel="open"] .bug-report-widget {
 .brand-button {
   background: var(--accent);
   color: var(--accent-contrast);
-  font-weight: 600;
+  font-weight: 500;
   border: 1px solid color-mix(in srgb, var(--accent) 70%, black 30%);
   position: relative;
   overflow: hidden;
@@ -1697,11 +1697,11 @@ body[data-meshi-panel="open"] .bug-report-widget {
   justify-content: center;
   gap: 0.5rem;
   border: 1px solid var(--border-primary);
-  border-radius: 0.85rem;
+  border-radius: var(--r-lg);
   background: var(--bg-primary);
   color: var(--text-primary);
-  font-size: 0.9375rem;
-  font-weight: 600;
+  font-size: var(--fs-base);
+  font-weight: 500;
   transition:
     transform 180ms var(--mesh-ease-out),
     border-color 180ms var(--mesh-ease-out),
@@ -1859,12 +1859,12 @@ body[data-meshi-panel="open"] .bug-report-widget {
   width: fit-content;
   max-width: min(100%, 24rem);
   border: 1px solid var(--border-primary);
-  border-radius: 999px;
+  border-radius: var(--r-lg);
   background: var(--bg-primary);
   padding: 0.7rem 1rem;
   color: var(--text-primary);
-  font-size: 0.9375rem;
-  font-weight: 600;
+  font-size: var(--fs-base);
+  font-weight: 400;
   box-shadow: var(--shadow-sm);
 }
 
@@ -1875,11 +1875,11 @@ body[data-meshi-panel="open"] .bug-report-widget {
   justify-content: center;
   gap: 0.5rem;
   border: 1px solid var(--border-primary);
-  border-radius: 0.85rem;
+  border-radius: var(--r-lg);
   background: var(--bg-primary);
   color: var(--text-primary);
-  font-size: 0.9375rem;
-  font-weight: 600;
+  font-size: var(--fs-base);
+  font-weight: 500;
   transition:
     transform 180ms var(--mesh-ease-out),
     border-color 180ms var(--mesh-ease-out),
@@ -1911,12 +1911,12 @@ body[data-meshi-panel="open"] .bug-report-widget {
   justify-content: space-between;
   gap: 0.75rem;
   border: 1px solid var(--border-primary);
-  border-radius: 0.85rem;
+  border-radius: var(--r-lg);
   background: var(--bg-primary);
   padding: 0.65rem 0.75rem;
   color: var(--text-secondary);
   font-size: var(--text-sm);
-  font-weight: 600;
+  font-weight: 500;
   text-align: left;
   transition:
     transform 180ms var(--mesh-ease-out),
@@ -2056,8 +2056,8 @@ body[data-meshi-panel="open"] .bug-report-widget {
   justify-content: center;
   border-bottom: 2px solid transparent;
   color: var(--text-muted);
-  font-size: 0.75rem;
-  font-weight: 600;
+  font-size: var(--fs-micro);
+  font-weight: 500;
   letter-spacing: 0.01em;
   transition:
     color 150ms ease,
@@ -2086,7 +2086,7 @@ body[data-meshi-panel="open"] .bug-report-widget {
   justify-content: center;
   min-height: 2.25rem;
   min-width: 2.25rem;
-  border-radius: 999px;
+  border-radius: var(--r-md);
   color: var(--text-secondary);
   transition:
     background-color 120ms ease,
@@ -2138,10 +2138,10 @@ body[data-meshi-panel="open"] .bug-report-widget {
   align-items: center;
   gap: 0.55rem;
   min-height: 2.5rem;
-  border-radius: 0.7rem;
+  border-radius: var(--r-md);
   color: var(--text-secondary);
-  font-size: 0.9375rem;
-  font-weight: 600;
+  font-size: var(--fs-base);
+  font-weight: 500;
   transition:
     color var(--mesh-transition-fast),
     background-color var(--mesh-transition-fast),
@@ -2167,7 +2167,7 @@ body[data-meshi-panel="open"] .bug-report-widget {
 }
 
 .simple-card {
-  border-radius: 1rem;
+  border-radius: var(--r-lg);
   border: 1px solid var(--glass-card-border);
   background: var(--glass-card-bg);
   box-shadow: var(--shadow-sm);
@@ -2190,7 +2190,7 @@ body[data-meshi-panel="open"] .bug-report-widget {
 }
 
 .simple-input {
-  border-radius: 0.5rem;
+  border-radius: var(--r-sm);
   border: 1px solid var(--border-primary);
   background: var(--bg-input);
   color: var(--text-primary);
@@ -2223,7 +2223,7 @@ body[data-meshi-panel="open"] .bug-report-widget {
 
 .simple-muted {
   color: var(--text-secondary);
-  font-size: 0.9375rem;
+  font-size: var(--fs-base);
 }
 
 /* Mesh.me motion system */
@@ -2496,8 +2496,8 @@ body[data-meshi-panel="open"] .bug-report-widget {
   justify-content: center;
   gap: 0.5rem;
   min-height: 2.75rem;
-  border-radius: 0.5rem;
-  font-weight: 600;
+  border-radius: var(--r-sm);
+  font-weight: 500;
   overflow: hidden;
   transform: translateZ(0);
   transition:
@@ -2683,7 +2683,7 @@ select {
 /* Full-width card on mobile, constrained on desktop */
 .card-responsive {
   width: 100%;
-  border-radius: 1rem;
+  border-radius: var(--r-lg);
 }
 
 /* Prevent layout shift from scrollbar */
@@ -2797,12 +2797,12 @@ html {
   align-items: center;
   justify-content: center;
   min-height: 2.5rem;
-  border-radius: 0.9rem;
+  border-radius: var(--r-lg);
   border: 1px solid var(--glass-card-border);
   background: var(--glass-card-bg);
   color: var(--text-secondary);
   font-size: var(--text-sm);
-  font-weight: 600;
+  font-weight: 400;
   transform: translateZ(0);
   transition:
     transform var(--mesh-transition-fast),
@@ -2821,7 +2821,7 @@ html {
 }
 
 .mesh-section {
-  border-radius: 1.5rem;
+  border-radius: var(--r-xl);
   border: 1px solid var(--glass-card-border);
   background: var(--glass-card-bg);
   box-shadow: var(--glass-shadow);
@@ -2841,7 +2841,7 @@ html {
 }
 
 .mesh-stat-card {
-  border-radius: 1.1875rem;
+  border-radius: var(--r-xl);
   border: 1px solid var(--glass-card-border);
   background: var(--glass-card-bg);
   padding: 1rem;
@@ -2918,7 +2918,7 @@ html {
 
   .mobile-app-chrome .card,
   .mobile-app-chrome .premium-surface {
-    border-radius: 1.15rem;
+    border-radius: var(--r-xl);
   }
 
   .mobile-topbar-banner {
@@ -3339,8 +3339,8 @@ body {
 }
 
 .mesh-action {
-  border-radius: 0.65rem;
-  font-weight: 600;
+  border-radius: var(--r-md);
+  font-weight: 500;
 }
 
 .mesh-action:hover,
@@ -3374,7 +3374,7 @@ body {
 }
 
 .simple-input {
-  border-radius: 0.7rem;
+  border-radius: var(--r-md);
   background: color-mix(in srgb, var(--bg-input) 92%, transparent);
   box-shadow: none;
 }
@@ -3597,11 +3597,11 @@ body {
   gap: 0.3rem;
   min-height: 1.85rem;
   border: 1px solid var(--border-primary);
-  border-radius: 999px;
+  border-radius: var(--r-sm);
   color: var(--text-muted);
   background: transparent;
-  font-size: 0.75rem;
-  font-weight: 600;
+  font-size: var(--fs-micro);
+  font-weight: 500;
   white-space: nowrap;
   transition:
     border-color var(--mesh-transition-fast),
@@ -3644,7 +3644,7 @@ body {
   flex: 0 0 auto;
   gap: 0.25rem;
   border: 1px solid var(--border-primary);
-  border-radius: 999px;
+  border-radius: var(--r-sm);
   padding: 0.18rem;
   background: var(--bg-secondary);
 }
@@ -3678,7 +3678,7 @@ body {
   gap: 0.75rem;
   min-height: 3.35rem;
   border: 1px solid var(--border-primary);
-  border-radius: 0.85rem;
+  border-radius: var(--r-lg);
   background: var(--bg-secondary);
   padding: 0.65rem 0.8rem;
 }
@@ -3689,7 +3689,7 @@ body {
   place-items: center;
   width: 2rem;
   height: 2rem;
-  border-radius: 999px;
+  border-radius: var(--r-sm);
   color: var(--accent-text);
   background: var(--accent-subtle);
 }
@@ -3704,22 +3704,22 @@ body {
   display: grid;
   gap: 0.25rem;
   border: 1px solid var(--border-primary);
-  border-radius: 0.85rem;
+  border-radius: var(--r-lg);
   background: var(--bg-secondary);
   padding: 0.75rem;
 }
 
 .feed-creator-stat span {
   color: var(--text-muted);
-  font-size: 0.75rem;
-  font-weight: 600;
+  font-size: var(--fs-micro);
+  font-weight: 400;
   font-variant-caps: all-small-caps;
 }
 
 .feed-creator-stat strong {
   color: var(--text-primary);
   font-size: var(--text-base);
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .feed-post-list {
@@ -3748,8 +3748,8 @@ body {
   gap: 0.5rem;
   min-height: 3.5rem;
   color: var(--text-muted);
-  font-size: 0.75rem;
-  font-weight: 600;
+  font-size: var(--fs-micro);
+  font-weight: 400;
 }
 
 .feed-load-button {
@@ -3783,7 +3783,7 @@ body {
   aspect-ratio: 1.35;
   overflow: hidden;
   border: 1px solid var(--border-primary);
-  border-radius: 0.8rem;
+  border-radius: var(--r-lg);
   background: var(--bg-secondary);
 }
 
@@ -3813,7 +3813,7 @@ body {
   gap: 0.75rem;
   min-height: 4rem;
   border: 1px solid var(--border-primary);
-  border-radius: 0.9rem;
+  border-radius: var(--r-lg);
   background: var(--bg-secondary);
   padding: 0.75rem;
   transition: border-color var(--mesh-transition-fast), background var(--mesh-transition-fast), transform var(--mesh-transition-fast);
@@ -3830,7 +3830,7 @@ body {
   place-items: center;
   width: 2.5rem;
   height: 2.5rem;
-  border-radius: 0.75rem;
+  border-radius: var(--r-md);
   background: var(--accent-subtle);
   color: var(--accent-text);
 }
@@ -3910,7 +3910,7 @@ body {
 
 .feed-adaptive-photo .feed-media-frame,
 .feed-adaptive-video .feed-media-frame {
-  border-radius: 0.95rem;
+  border-radius: var(--r-lg);
 }
 
 .feed-adaptive-creator .feed-post-list {
@@ -4039,13 +4039,13 @@ body {
   .feed-mode-button {
     min-height: 2rem;
     padding-inline: 0.68rem;
-    font-size: 0.75rem;
+    font-size: var(--fs-micro);
   }
 
   .feed-control-chip {
     min-height: 2rem;
     padding-inline: 0.62rem;
-    font-size: 0.75rem;
+    font-size: var(--fs-micro);
   }
 
   .feed-layout-toggle {
@@ -4116,7 +4116,7 @@ body {
     margin-right: 0.9rem;
     margin-left: 4.05rem;
     border: 1px solid var(--border-primary);
-    border-radius: 1rem;
+    border-radius: var(--r-lg);
     max-height: min(68dvh, 520px);
   }
 
@@ -4145,7 +4145,7 @@ body {
 
   .feed-like-count {
     color: var(--text-muted);
-    font-size: 0.75rem;
+    font-size: var(--fs-micro);
   }
 
   .mobile-bottom-nav {
@@ -4392,7 +4392,7 @@ body,
   background: var(--accent) !important;
   color: var(--accent-contrast) !important;
   box-shadow: none !important;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .brand-button:hover,
@@ -4713,7 +4713,7 @@ body,
   min-width: 0;
   align-items: center;
   gap: 0.55rem;
-  border-radius: 0.7rem;
+  border-radius: var(--r-md);
   padding: 0.45rem 0.65rem;
 }
 
@@ -4723,11 +4723,11 @@ body,
   align-items: center;
   justify-content: center;
   gap: 0.4rem;
-  border-radius: 0.5rem;
+  border-radius: var(--r-sm);
   padding-inline: 0.75rem;
   color: var(--text-secondary);
-  font-size: 0.75rem;
-  font-weight: 600;
+  font-size: var(--fs-micro);
+  font-weight: 500;
   transition: background-color 120ms ease, color 120ms ease;
 }
 
@@ -4792,8 +4792,8 @@ body,
   gap: 0.85rem;
   padding: 0.5rem var(--sp-3);
   color: var(--text-secondary);
-  font-size: 0.8125rem;
-  font-weight: 600;
+  font-size: var(--fs-caption);
+  font-weight: 400;
 }
 
 /* Where a row leads with a tile, its hairline starts at the label instead of
@@ -4820,11 +4820,11 @@ body,
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
-  border-radius: 0.7rem;
+  border-radius: var(--r-md);
   padding: 0.5rem 0.65rem;
   color: var(--text-primary);
-  font-size: 0.8125rem;
-  font-weight: 600;
+  font-size: var(--fs-caption);
+  font-weight: 500;
 }
 
 /* The hover rules that used to sit here fought a second, later rule for the
@@ -4867,7 +4867,7 @@ body,
   align-items: center;
   justify-content: space-between;
   gap: 0.7rem;
-  border-radius: 0.75rem;
+  border-radius: var(--r-md);
   padding: 0.5rem 0.65rem;
   color: var(--text-primary);
   text-align: left;
@@ -4932,8 +4932,8 @@ body,
   transform: translateX(-50%);
   z-index: 60;
   padding: 0.7rem 1.1rem;
-  font-size: 0.8125rem;
-  font-weight: 600;
+  font-size: var(--fs-caption);
+  font-weight: 400;
   animation: settings-toast-in 0.2s ease;
 }
 
@@ -4974,8 +4974,8 @@ body,
 .settings-mini-label {
   display: block;
   color: var(--text-muted);
-  font-size: 0.75rem;
-  font-weight: 600;
+  font-size: var(--fs-micro);
+  font-weight: 500;
   letter-spacing: 0.02em;
   font-variant-caps: all-small-caps;
 }
@@ -4996,7 +4996,7 @@ body,
   flex-shrink: 0;
   place-items: center;
   border: 0;
-  border-radius: 0.55rem;
+  border-radius: var(--r-sm);
   background: var(--paper-3);
   color: var(--ink-3);
 }
@@ -5043,7 +5043,7 @@ body,
 
 .settings-card-heading h3 {
   color: var(--text-secondary);
-  font-size: 0.75rem;
+  font-size: var(--fs-micro);
   font-weight: 600;
   letter-spacing: 0.02em;
   font-variant-caps: all-small-caps;
@@ -5059,11 +5059,11 @@ body,
   min-height: 2.5rem;
   align-items: center;
   gap: 0.35rem;
-  border-radius: 0.5rem;
+  border-radius: var(--r-sm);
   padding: 0.25rem 0.4rem;
   color: var(--text-muted);
-  font-size: 0.75rem;
-  font-weight: 600;
+  font-size: var(--fs-micro);
+  font-weight: 500;
   cursor: pointer;
   list-style: none;
   user-select: none;
@@ -5093,7 +5093,7 @@ body,
 .settings-hint-body {
   padding: 0 0.4rem 0.4rem;
   color: var(--text-secondary);
-  font-size: 0.75rem;
+  font-size: var(--fs-micro);
   line-height: 1.55;
 }
 
@@ -5162,7 +5162,7 @@ body,
   --ds-radius-sm: var(--radius-sm);
   --ds-radius-md: var(--radius-md);
   --ds-radius-lg: var(--radius-lg);
-  --ds-radius-pill: 999px;
+  --ds-radius-pill: var(--r-md)  /* was a full pill — buttons are not pills; the token name survives for its call sites */;
   --ds-space-1: 0.25rem;
   --ds-space-2: 0.5rem;
   --ds-space-3: 0.75rem;
@@ -5555,7 +5555,7 @@ body,
   align-items: center;
   gap: 1rem;
   border: 1px solid var(--border-primary);
-  border-radius: 0.75rem;
+  border-radius: var(--r-md);
   background: var(--bg-primary);
   padding: 0.75rem;
   text-align: left;
@@ -5580,7 +5580,7 @@ body,
 }
 
 .command-palette-modal {
-  border-radius: 1rem;
+  border-radius: var(--r-lg);
 }
 
 .command-palette-shell {
@@ -5594,7 +5594,7 @@ body,
   align-items: center;
   gap: 0.75rem;
   border: 1px solid var(--border-primary);
-  border-radius: 0.85rem;
+  border-radius: var(--r-lg);
   background: var(--bg-input);
   padding: 0 0.9rem;
   transition:
@@ -5623,7 +5623,7 @@ body,
   align-items: center;
   gap: 0.75rem;
   border: 1px solid transparent;
-  border-radius: 0.85rem;
+  border-radius: var(--r-lg);
   background: transparent;
   padding: 0.62rem 0.7rem;
   color: var(--text-primary);
@@ -5654,7 +5654,7 @@ body,
   align-items: center;
   justify-content: center;
   border: 1px solid var(--border-primary);
-  border-radius: 0.7rem;
+  border-radius: var(--r-md);
   background: var(--bg-secondary);
   color: var(--accent-text);
 }
@@ -5672,8 +5672,8 @@ body,
   border-top: 1px solid var(--border-primary);
   padding-top: 0.75rem;
   color: var(--text-muted);
-  font-size: 0.75rem;
-  font-weight: 600;
+  font-size: var(--fs-micro);
+  font-weight: 400;
 }
 
 .command-palette-footer span {
@@ -5904,7 +5904,7 @@ body {
   }
 
   .mesh-topbar h1 {
-    font-size: 0.9375rem;
+    font-size: var(--fs-base);
   }
 
   .mesh-topbar p {
@@ -5922,7 +5922,7 @@ body {
   .mesh-topbar-owner {
     padding: 0;
     gap: 0.25rem;
-    font-size: 0.75rem;
+    font-size: var(--fs-micro);
   }
 
   .mesh-topbar-icon {
@@ -6005,7 +6005,7 @@ body {
   .mesh-nav-item {
     justify-content: center;
     padding: 0.65rem !important;
-    border-radius: 0.75rem !important;
+    border-radius: var(--r-md) !important;
   }
 
   .mesh-nav-item svg {
@@ -6053,11 +6053,11 @@ body {
 
   .settings-traditional-header {
     padding: 0.75rem !important;
-    border-radius: 0.75rem !important;
+    border-radius: var(--r-md) !important;
   }
 
   .settings-traditional-header h1 {
-    font-size: 1.1875rem;
+    font-size: var(--fs-title);
   }
 
   .settings-traditional-grid {
@@ -6074,7 +6074,7 @@ body {
   .settings-nav-item {
     min-height: 2.75rem;
     scroll-snap-align: start;
-    font-size: 0.75rem;
+    font-size: var(--fs-micro);
     padding: 0.5rem 0.65rem;
     gap: 0.4rem;
     white-space: nowrap;
@@ -6093,7 +6093,7 @@ body {
   }
 
   .settings-panel-heading h2 {
-    font-size: 1.0625rem;
+    font-size: var(--fs-title);
   }
 
   .settings-panel-scroll {
@@ -6105,7 +6105,7 @@ body {
     align-items: flex-start;
     gap: 0.25rem;
     padding: 0.6rem 0.65rem;
-    font-size: 0.75rem;
+    font-size: var(--fs-micro);
   }
 
   .settings-action-row,
@@ -6161,7 +6161,7 @@ body {
   }
 
   .profile-header-card .profile-name {
-    font-size: 1.1875rem;
+    font-size: var(--fs-title);
   }
 
   .profile-header-card .profile-actions {
@@ -6170,7 +6170,7 @@ body {
   }
 
   .profile-header-card .profile-actions > * {
-    font-size: 0.75rem;
+    font-size: var(--fs-micro);
     padding: 0.45rem 0.75rem;
   }
 
@@ -6208,12 +6208,12 @@ body {
   }
 
   .simple-page header h1 {
-    font-size: 1.0625rem;
+    font-size: var(--fs-title);
     line-height: 1.3;
   }
 
   .simple-page header p {
-    font-size: 0.75rem;
+    font-size: var(--fs-micro);
   }
 
   .simple-page .mesh-surface {
@@ -6403,7 +6403,7 @@ body {
    surface tightens proportionally, and clamp the few fixed-width floaters. --- */
 @media (max-width: 379px) {
   html {
-    font-size: 15px;
+    font-size: var(--fs-base);
   }
 
   /* Same floor, same reasoning as the 320px query below: the rem base is
@@ -6421,7 +6421,7 @@ body {
   }
 
   .mesh-topbar h1 {
-    font-size: 0.9375rem;
+    font-size: var(--fs-base);
   }
 
   /* Account menu dropdown is w-64 (16rem); keep it inside the viewport */
@@ -6443,7 +6443,7 @@ body {
 /* Smallest cover screens (≈280px, e.g. original Galaxy Fold front display) */
 @media (max-width: 320px) {
   html {
-    font-size: 13.5px;
+    font-size: var(--fs-caption);
   }
 
   /* THE LEGIBILITY FLOOR DOES NOT SCALE WITH THE LAYOUT.
@@ -6593,9 +6593,9 @@ body {
   transform: translateX(-50%);
   z-index: 3;
   padding: 4px 12px;
-  border-radius: 9999px;
-  font-size: 11px;
-  font-weight: 600;
+  border-radius: var(--r-xs);
+  font-size: var(--fs-micro);
+  font-weight: 500;
   letter-spacing: 0.02em;
   color: #dfe4ff;
   background: var(--accent-wash);
@@ -6627,9 +6627,9 @@ body {
   align-items: center;
   gap: 4px;
   padding: 5px 12px;
-  border-radius: 9999px;
-  font-size: 11px;
-  font-weight: 600;
+  border-radius: var(--r-sm);
+  font-size: var(--fs-micro);
+  font-weight: 400;
   color: rgba(255, 255, 255, 0.82);
   background: rgba(8, 12, 22, 0.55);
   border: 1px solid rgba(255, 255, 255, 0.12);
@@ -6698,13 +6698,13 @@ body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
 .mesh-entry-identity-form .mesh-entry-input {
   height: 4rem;
   border: 1px solid rgba(148, 163, 210, 0.14);
-  border-radius: 1rem;
+  border-radius: var(--r-lg);
   background: rgba(12, 16, 27, 0.55);
   backdrop-filter: blur(18px) saturate(150%);
   -webkit-backdrop-filter: blur(18px) saturate(150%);
   box-shadow: 0 24px 60px -36px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.04);
   color: var(--text-primary);
-  font-size: 1.0625rem;
+  font-size: var(--fs-title);
   font-weight: 500;
   letter-spacing: -0.01em;
   text-align: left;
@@ -6789,7 +6789,7 @@ body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
   border: 2px solid var(--bg-primary, #06070f);
   background: #33333c;
   padding: 3px 8px;
-  font-size: 12px;
+  font-size: var(--fs-micro);
   line-height: 1;
   color: #fff;
   box-shadow: 0 3px 10px rgba(0, 0, 0, 0.35);
@@ -7080,7 +7080,7 @@ body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
   justify-content: center;
   height: 2.2rem;
   width: 2.2rem;
-  border-radius: 999px;
+  border-radius: var(--r-md);
   /* Was `color: #fff` on `var(--brand-gradient)`. A MULTI-STOP GRADIENT HAS NO
      SINGLE CORRECT INK — white measured 3.26:1 on the default fill and 1.04:1
      under the `mono` preset, where the gradient runs #fafafa -> #d4d4d8 and the
@@ -7110,21 +7110,21 @@ body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
 .mesh-gate-peek:hover { color: #f3f5fb; }
 
 .mesh-gate-hint {
-  font-size: 0.75rem;
+  font-size: var(--fs-micro);
   font-weight: 500;
   letter-spacing: 0.02em;
   color: rgba(154, 163, 188, 0.55);
 }
 .mesh-gate-msg {
-  font-size: 0.8125rem;
-  font-weight: 600;
+  font-size: var(--fs-caption);
+  font-weight: 400;
   color: #fecaca;
   max-width: 26rem;
 }
 
 .mesh-gate-textlink {
-  font-size: 0.8125rem;
-  font-weight: 600;
+  font-size: var(--fs-caption);
+  font-weight: 500;
   color: rgba(179, 190, 220, 0.82);
   transition: color 150ms ease;
 }
@@ -7163,9 +7163,9 @@ body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
   position: relative;
   max-width: 22rem;
   padding: 0.6rem 1rem;
-  border-radius: 1rem;
+  border-radius: var(--r-lg);
   font-size: clamp(0.86rem, 2.6vw, 0.98rem);
-  font-weight: 600;
+  font-weight: 400;
   color: rgba(233, 239, 247, 0.95);
   background: rgba(14, 19, 34, 0.72);
   border: 1px solid rgba(125, 155, 255, 0.24);
@@ -7201,19 +7201,19 @@ body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
   flex-direction: column;
   gap: 0.2rem;
   text-align: left;
-  font-size: 0.75rem;
-  font-weight: 600;
+  font-size: var(--fs-micro);
+  font-weight: 500;
   letter-spacing: 0.02em;
   color: rgba(154, 163, 188, 0.72);
 }
 .mesh-gate-primary {
   height: 3.3rem;
-  border-radius: 999px;
+  border-radius: var(--r-md);
   /* Same as .mesh-gate-go above: the gradient could not carry a legible label in
      any preset, and this is the first button a new account ever presses. */
   background: var(--accent);
   color: var(--accent-contrast);
-  font-weight: 600;
+  font-weight: 500;
   font-size: var(--text-base);
   display: inline-flex;
   align-items: center;
@@ -7262,7 +7262,7 @@ body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
   align-items: center;
   gap: clamp(0.9rem, 4vw, 1.6rem);
   font-size: clamp(0.76rem, 2.6vw, 0.84rem);
-  font-weight: 600;
+  font-weight: 500;
   color: rgba(179, 190, 220, 0.72);
 }
 .mesh-gate-links > * {
@@ -7346,8 +7346,8 @@ body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
   position: absolute;
   top: -10px;
   right: -6px;
-  font-size: 0.9375rem;
-  font-weight: 600;
+  font-size: var(--fs-base);
+  font-weight: 400;
   color: rgba(190, 205, 255, 0.9);
   animation: meshOwnerZzz 3s ease-in-out infinite;
 }
@@ -7355,14 +7355,14 @@ body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
 .mesh-owner-zzz:nth-of-type(2) {
   top: -18px;
   right: -14px;
-  font-size: 0.75rem;
+  font-size: var(--fs-micro);
   opacity: 0.8;
   animation-delay: 0.7s;
 }
 .mesh-owner-zzz:nth-of-type(3) {
   top: -25px;
   right: -21px;
-  font-size: 0.75rem;
+  font-size: var(--fs-micro);
   opacity: 0.65;
   animation-delay: 1.4s;
 }
@@ -7857,13 +7857,13 @@ body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
 }
 
 .watch-brand {
-  font-size: 0.9375rem;
+  font-size: var(--fs-base);
   font-weight: 600;
   letter-spacing: -0.02em;
 }
 
 .watch-muted {
-  font-size: 0.75rem;
+  font-size: var(--fs-micro);
   line-height: 1.35;
   color: rgba(255, 255, 255, 0.6);
 }
@@ -7881,15 +7881,15 @@ body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
   flex-direction: column;
   justify-content: center;
   gap: 0.1rem;
-  border-radius: 0.9rem;
+  border-radius: var(--r-lg);
   background: rgba(255, 255, 255, 0.09);
   padding: 0.55rem 0.75rem;
 }
 
 .watch-item-title {
   overflow: hidden;
-  font-size: 0.75rem;
-  font-weight: 600;
+  font-size: var(--fs-micro);
+  font-weight: 500;
   line-height: 1.3;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -7900,7 +7900,7 @@ body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
-  font-size: 0.75rem;
+  font-size: var(--fs-micro);
   color: rgba(255, 255, 255, 0.55);
 }
 
@@ -7909,8 +7909,8 @@ body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
   align-items: center;
   background: #fff;
   color: #000;
-  font-size: 0.8125rem;
-  font-weight: 600;
+  font-size: var(--fs-caption);
+  font-weight: 500;
 }
 
 /* ── Reduced motion, everywhere ─────────────────────────────────────────

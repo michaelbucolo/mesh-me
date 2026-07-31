@@ -370,6 +370,13 @@
   --fs-micro: 0.75rem;
   --t-micro: 400 0.75rem/1.33 var(--font-sans);
 
+  /* Size-only steps of the SAME five-step scale, for rules that set size
+     without the full shorthand. 12/13/15/17; page titles use the --t-h* set.
+     A size not on this ladder is a defect, not a choice. */
+  --fs-caption: 0.8125rem;
+  --fs-base: 0.9375rem;
+  --fs-title: 1.0625rem;
+
   --track-display: -0.022em;   /* was -0.028 */
   --track-h1: -0.021em;        /* was -0.022 */
   --track-h2: -0.019em;        /* was -0.018 */
