@@ -4446,8 +4446,11 @@ body,
   transform: translateY(-1px) !important;
 }
 
+/* `.insta-feed-tab-active` is deliberately not in this group. These are filled
+   chips; the feed tab is an underline tab. Filling it painted half the phone's
+   width as a grey block against the band's black — a two-tone slab where the
+   base rule's 2px accent underline already says "active" quietly. */
 .mesh-choice.mesh-choice-active,
-.insta-feed-tab-active,
 .mobile-mesh-slot-active,
 .app-x-nav-link-active {
   border-color: transparent !important;
@@ -7997,10 +8000,13 @@ body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
   transform: none !important;
 }
 
-/* The text-only post had a hardcoded slate gradient fighting the palette. */
+/* The text-only post had a hardcoded slate gradient fighting the palette.
+   Transparent, not `--paper-1`: the card paints its own face, and any fill here
+   renders as a darker recessed slab behind the copy — text-only posts must sit
+   on the card exactly like a media post's caption does. */
 .insta-text-post {
   border-block: 0;
-  background: var(--paper-1);
+  background: transparent;
 }
 
 /* Panels and cards elsewhere get the same plate treatment.
