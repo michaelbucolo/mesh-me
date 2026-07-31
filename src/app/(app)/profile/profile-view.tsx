@@ -33,7 +33,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { getAnalyticsDashboardData } from "@/lib/analytics-dashboard";
 import { hasAnalyticsConsent } from "@/lib/consent";
 import { isUserLiveNow } from "@/lib/mesh-presence-store";
-import { getSavedPostCount, getSavedPosts, getUserCommunities, getUserPosts, getUserProfile } from "@/lib/queries";
+import { getSavedFlowItems, getSavedPostCount, getSavedPosts, getUserCommunities, getUserPosts, getUserProfile } from "@/lib/queries";
 import { formatCount, formatLastActive, formatRelativeTime, safeHref } from "@/lib/utils";
 import { FollowButton } from "./[username]/follow-button";
 import { BlockUserButton } from "@/components/privacy/block-controls";
@@ -72,13 +72,14 @@ export async function InstagramProfileView({ username, tab }: { username: string
   // "Active now" in MeChat, not a decorative badge. It needs the profile's id,
   // so it chains off the profile promise but overlaps with the other queries.
   const profilePromise = getUserProfile(username);
-  const [profile, posts, allMemberships, [savedPosts, savedPostCount], isLiveNow] = await Promise.all([
+  const [profile, posts, allMemberships, [savedPosts, savedPostCount], savedFlowItems, isLiveNow] = await Promise.all([
     profilePromise,
     getUserPosts(username, 1, 24),
     getUserCommunities(username),
     isSelf
       ? Promise.all([getSavedPosts(1, 24), getSavedPostCount()])
       : Promise.resolve<[Awaited<ReturnType<typeof getSavedPosts>>, number]>([[], 0]),
+    isSelf ? getSavedFlowItems(48) : Promise.resolve<Awaited<ReturnType<typeof getSavedFlowItems>>>([]),
     profilePromise.then((p) => (p ? isUserLiveNow(p.id) : false)),
   ]);
 
@@ -92,7 +93,7 @@ export async function InstagramProfileView({ username, tab }: { username: string
   const links = profile.links ?? [];
   const postCount = profile._count.posts;
   const communityCount = memberships.length;
-  const collectionCount = savedPostCount;
+  const collectionCount = savedPostCount + savedFlowItems.length;
 
   // Live-now is presence data, so it obeys the same gate as the last-online
   // timestamp: a profile the viewer can't open — private, or either side of a
@@ -455,6 +456,54 @@ export async function InstagramProfileView({ username, tab }: { username: string
 
         {canViewProfile && activeTab === "collections" && isOwnProfile && (
           <div className="space-y-4">
+            {/* Saved FLOW content first — YouTube videos, tweets, clips —
+                rendered from their snapshots, since the supply rows behind
+                them are pruned on retention schedules. One saved list,
+                whatever platform things came from. */}
+            {savedFlowItems.map((item) => {
+              const open = item.url ? safeHref(item.url) : undefined;
+              const card = (
+                <div className="flex items-start gap-3">
+                  {item.thumbnailUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element -- snapshot thumbnails are remote platform URLs; next/image adds a loader round-trip for a 64px preview.
+                    <img src={item.thumbnailUrl} alt="" className="h-16 w-16 shrink-0 rounded-xl object-cover" />
+                  ) : (
+                    <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-[var(--mesh-bg)]">
+                      <PlatformLogo platform={item.platform || "meshme"} size={28} className="rounded-full" />
+                    </span>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <PlatformLogo platform={item.platform || "meshme"} size={16} className="shrink-0 rounded-full" />
+                      {item.authorName && (
+                        <span className="truncate text-sm font-semibold text-[var(--mesh-text)]">{item.authorName}</span>
+                      )}
+                      <span className="text-xs text-[var(--mesh-text-muted)]">·</span>
+                      <span className="text-xs text-[var(--mesh-text-muted)]">{formatRelativeTime(item.createdAt)}</span>
+                    </div>
+                    {item.title && <p className="mt-1.5 line-clamp-2 text-sm leading-relaxed text-[var(--mesh-text)]">{item.title}</p>}
+                    <div className="mt-2 flex items-center gap-2 text-xs text-[var(--mesh-text-muted)]">
+                      {open && (
+                        <span className="flex items-center gap-1 text-[var(--accent-text)]">
+                          <ExternalLink size={12} /> Open source
+                        </span>
+                      )}
+                      <span className="ml-auto flex items-center gap-1.5 text-[var(--accent-text)]"><Bookmark size={14} /> Saved</span>
+                    </div>
+                  </div>
+                </div>
+              );
+              const cardClass = "block rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] p-5 transition-colors hover:border-[var(--mesh-border-active)]";
+              return open ? (
+                <a key={item.id} href={open} target="_blank" rel="noreferrer" className={cardClass}>
+                  {card}
+                </a>
+              ) : (
+                <div key={item.id} className={cardClass}>
+                  {card}
+                </div>
+              );
+            })}
             {savedPosts.length > 0 ? (
               savedPosts.map((post) => (
                 <Link
@@ -481,12 +530,14 @@ export async function InstagramProfileView({ username, tab }: { username: string
                   </div>
                 </Link>
               ))
-            ) : (
+            ) : savedFlowItems.length === 0 ? (
               <section className="flex flex-col items-center gap-3 rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] px-6 py-12 text-center">
-                <h2 className="text-lg font-semibold text-[var(--mesh-text)]">No saved posts yet</h2>
-                <p className="text-sm text-[var(--mesh-text-secondary)]">Bookmark posts in the Flow to collect them here.</p>
+                <h2 className="text-lg font-semibold text-[var(--mesh-text)]">Nothing saved yet</h2>
+                <p className="text-sm text-[var(--mesh-text-secondary)]">
+                  Tap the bookmark on anything in the Flow — mesh posts, YouTube videos, clips — and it collects here.
+                </p>
               </section>
-            )}
+            ) : null}
           </div>
         )}
 
