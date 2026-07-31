@@ -6,6 +6,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { getMeshiPreference } from "@/lib/actions";
 import { ToastProvider } from "@/components/ui/toast";
 import { AppShell } from "@/components/layout/app-shell";
+import { AutoSyncBeacon } from "@/components/auto-sync-beacon";
 import { NativeInit } from "@/components/native-init";
 import { MeshiPrefsBootstrap } from "@/components/meshi/meshi-prefs-bootstrap";
 import { OnboardingRedirect } from "@/components/onboarding-redirect";
@@ -104,6 +105,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     <ToastProvider>
       <MeshiPrefsBootstrap serverPref={meshiSeed} />
       <NativeInit />
+      {/* Signed-in only: keeps connected accounts fresh without a manual
+          Sync click. Guests have nothing to sync. */}
+      <AutoSyncBeacon />
       <AppShell
         user={{
           id: user.id,

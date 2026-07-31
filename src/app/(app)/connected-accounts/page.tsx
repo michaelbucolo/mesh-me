@@ -12,16 +12,23 @@ export const metadata: Metadata = { title: "One Account" };
 export default async function ConnectedAccountsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ connected?: string; error?: string; platform?: string }>;
+  searchParams: Promise<{ connected?: string; error?: string; platform?: string; preselect?: string }>;
 }) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
   // The OAuth callback returns here with ?connected=<platform> on success or
   // ?error=…&platform=<platform> on failure — surface either in the client.
-  const { connected, error } = await searchParams;
+  const { connected, error, preselect } = await searchParams;
   const justConnectedPlatform = (connected ?? "").trim().toLowerCase() || null;
   const connectError = (error ?? "").trim() || null;
+  // Onboarding's "which platforms do you use?" step redirects here with
+  // ?preselect=<ids> — the answer a new user just gave. It was produced and
+  // never consumed, so the hand-off dropped their picks on the floor.
+  const requestedPreselect = (preselect ?? "")
+    .split(",")
+    .map((id) => id.trim().toLowerCase())
+    .filter(Boolean);
 
   const [dashboard, mergeCenter, personaRows] = await Promise.all([
     getConnectedAccountsDashboard(user.id),
@@ -50,6 +57,13 @@ export default async function ConnectedAccountsPage({
     accountCount: persona._count.connectedAccounts,
   }));
 
+  // Only ids the dashboard actually offers, and only ones not already
+  // connected — a pick that's since been linked has nothing left to say.
+  const connectedIds = new Set(dashboard.accounts.map((account) => account.platform));
+  const preselectPlatforms = requestedPreselect.filter(
+    (id) => !connectedIds.has(id) && dashboard.supportedPlatforms.some((platform) => platform.id === id),
+  );
+
   return (
     <div className="grid gap-6">
       {/* Answered BEFORE the connect buttons, deliberately. This page's whole
@@ -70,6 +84,7 @@ export default async function ConnectedAccountsPage({
         }}
         justConnectedPlatform={justConnectedPlatform}
         connectError={connectError}
+        preselectPlatforms={preselectPlatforms}
       />
     </div>
   );

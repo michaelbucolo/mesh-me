@@ -505,6 +505,7 @@ export function ConnectedAccountsClient({
   identity,
   justConnectedPlatform = null,
   connectError = null,
+  preselectPlatforms = [],
 }: {
   initialDashboard: ConnectedAccountsDashboard;
   /** Two-party account merge state: my open requests + requests targeting me. */
@@ -515,6 +516,9 @@ export function ConnectedAccountsClient({
   justConnectedPlatform?: string | null;
   /** OAuth failure message this visit (from ?error=). */
   connectError?: string | null;
+  /** Platform ids the user picked during onboarding (from ?preselect=),
+   *  already validated server-side and minus anything since connected. */
+  preselectPlatforms?: string[];
 }) {
   const [dashboard, setDashboard] = useState(initialDashboard);
   const [personas, setPersonas] = useState(initialPersonas);
@@ -588,7 +592,9 @@ export function ConnectedAccountsClient({
     } else if (connectError) {
       setActionState({ type: "error", message: connectError });
     }
-    if (justConnectedPlatform || connectError) {
+    // preselect is scrubbed too — the picks live in React state now, and a
+    // refresh shouldn't replay a stale onboarding hand-off.
+    if (justConnectedPlatform || connectError || preselectPlatforms.length > 0) {
       try {
         window.history.replaceState(null, "", window.location.pathname);
       } catch {
@@ -608,7 +614,7 @@ export function ConnectedAccountsClient({
 
   const filteredPlatforms = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
-    return dashboard.supportedPlatforms.filter((platform) => {
+    const matches = dashboard.supportedPlatforms.filter((platform) => {
       const matchesCategory = category === "all" || platform.category === category;
       const matchesQuery = !normalizedQuery
         || platform.name.toLowerCase().includes(normalizedQuery)
@@ -616,7 +622,14 @@ export function ConnectedAccountsClient({
         || platform.category.toLowerCase().includes(normalizedQuery);
       return matchesCategory && matchesQuery;
     });
-  }, [category, dashboard.supportedPlatforms, query]);
+    // Onboarding picks float to the front of the grid: the platforms the
+    // user just said they use should not be hunted for among seventeen tiles.
+    if (preselectPlatforms.length > 0) {
+      const rank = new Map(preselectPlatforms.map((id, index) => [id, index] as [string, number]));
+      matches.sort((a, b) => (rank.get(a.id) ?? rank.size) - (rank.get(b.id) ?? rank.size));
+    }
+    return matches;
+  }, [category, dashboard.supportedPlatforms, query, preselectPlatforms]);
 
   const categories = useMemo(() => {
     const values = new Set<PlatformAdapterCategory>();
@@ -884,6 +897,13 @@ export function ConnectedAccountsClient({
             ))}
           </div>
         </div>
+
+        {preselectPlatforms.length > 0 && (
+          <p className="text-sm text-[var(--text-secondary)]">
+            The platforms you picked during onboarding are first below — connect them and your
+            content starts flowing in on its own.
+          </p>
+        )}
 
         {filteredPlatforms.length > 0 ? (
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
