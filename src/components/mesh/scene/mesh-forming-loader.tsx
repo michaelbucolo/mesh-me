@@ -404,7 +404,10 @@ export function MeshFormingLoader({
   return (
     <div
       className={cn(
-        "relative flex min-h-[calc(100dvh-8rem)] w-full items-end justify-center overflow-hidden rounded-[28px] border border-[#17345d] bg-[#050b18]",
+        // The shell wears the app's own paper — the last navy literals on the
+        // login → loading → mesh journey (the canvas gradient above already
+        // reads paintTheme()).
+        "relative flex min-h-[calc(100dvh-8rem)] w-full items-end justify-center overflow-hidden rounded-[28px] border border-[var(--border-primary)] bg-[var(--paper-0,var(--bg-primary))]",
         className,
       )}
       role="status"

@@ -6837,8 +6837,11 @@ body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
   position: fixed;
   inset: 0;
   overflow: hidden;
-  background: #000005;
-  color: #f4f6ff;
+  /* The front door is made of the SAME paper as the app (user report: "the
+     colors of the log in screen don't match the rest of the site"). The old
+     #000005/#f4f6ff pair was a private blue-black that existed nowhere else. */
+  background: var(--paper-0, var(--bg-primary));
+  color: var(--text-primary);
   display: flex;
   flex-direction: column;
   -webkit-tap-highlight-color: transparent;
@@ -6851,13 +6854,17 @@ body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
   z-index: 0;
   pointer-events: none;
 }
-/* A whisper of light behind the question so the black never feels dead. */
+/* A whisper of light behind the question so the black never feels dead —
+   POOLED at the centre, not a film over the room. The old full-viewport
+   accent-wash fill tinted the whole entry navy, which was the exact "login
+   colors don't match the site" report: every other screen keeps its paper
+   pure and spends the wash locally. */
 .mesh-gate-halo {
   position: fixed;
   inset: 0;
   z-index: 1;
   pointer-events: none;
-  background: var(--accent-wash);
+  background: radial-gradient(42% 34% at 50% 44%, var(--accent-wash), transparent 70%);
 }
 
 .mesh-gate-core {
@@ -6908,18 +6915,18 @@ body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
   width: 100%;
   background: transparent;
   border: none;
-  border-bottom: 1px solid rgba(148, 163, 210, 0.22);
+  border-bottom: 1px solid var(--border-primary);
   outline: none;
   text-align: center;
-  color: #ffffff;
-  caret-color: #7d9bff;
+  color: var(--text-primary);
+  caret-color: var(--accent);
   font-size: clamp(1.05rem, 4vw, 1.5rem);
   font-weight: 500;
   letter-spacing: 0.01em;
   padding: 0.6rem 2.4rem;
   transition: border-color 220ms ease, box-shadow 220ms ease;
 }
-.mesh-gate-input::placeholder { color: rgba(148, 163, 210, 0.4); font-weight: 400; }
+.mesh-gate-input::placeholder { color: var(--text-muted); font-weight: 400; }
 .mesh-gate-input,
 .mesh-gate-input:focus,
 .mesh-gate-input:focus-visible {
@@ -6927,8 +6934,8 @@ body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
   border-radius: 0;
 }
 .mesh-gate-input:focus {
-  border-bottom-color: rgba(125, 155, 255, 0.85);
-  box-shadow: 0 14px 40px -30px rgba(125, 155, 255, 0.9);
+  border-bottom-color: var(--accent);
+  box-shadow: 0 14px 40px -30px color-mix(in srgb, var(--accent) 90%, transparent);
 }
 .mesh-gate-input:disabled { opacity: 0.55; }
 .mesh-gate-input-line { text-align: left; padding: 0.55rem 0.2rem; font-size: 1rem; font-weight: 500; }
@@ -6971,28 +6978,28 @@ body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
   color: rgba(154, 163, 188, 0.65);
   padding: 0.3rem;
 }
-.mesh-gate-peek:hover { color: #f3f5fb; }
+.mesh-gate-peek:hover { color: var(--text-primary); }
 
 .mesh-gate-hint {
   font-size: var(--fs-micro);
   font-weight: 500;
   letter-spacing: 0.02em;
-  color: rgba(154, 163, 188, 0.55);
+  color: var(--text-muted);
 }
 .mesh-gate-msg {
   font-size: var(--fs-caption);
   font-weight: 400;
-  color: #fecaca;
+  color: var(--danger, #fecaca);
   max-width: 26rem;
 }
 
 .mesh-gate-textlink {
   font-size: var(--fs-caption);
   font-weight: 500;
-  color: rgba(179, 190, 220, 0.82);
+  color: var(--text-secondary);
   transition: color 150ms ease;
 }
-.mesh-gate-textlink:hover { color: #ffffff; }
+.mesh-gate-textlink:hover { color: var(--text-primary); }
 .mesh-gate-inline { display: flex; gap: 1.4rem; }
 .mesh-gate-providers { width: 100%; margin-top: 0.2rem; }
 
@@ -7030,9 +7037,9 @@ body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
   border-radius: var(--r-lg);
   font-size: clamp(0.86rem, 2.6vw, 0.98rem);
   font-weight: 400;
-  color: rgba(233, 239, 247, 0.95);
-  background: rgba(14, 19, 34, 0.72);
-  border: 1px solid rgba(125, 155, 255, 0.24);
+  color: var(--text-primary);
+  background: color-mix(in srgb, var(--bg-elevated) 82%, transparent);
+  border: 1px solid var(--border-primary);
   backdrop-filter: blur(12px);
   box-shadow: var(--shadow-lift);
   animation: meshEntryIn 0.45s ease 0.12s both;
@@ -7045,9 +7052,9 @@ body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
   width: 12px;
   height: 12px;
   transform: translateX(-50%) rotate(45deg);
-  background: rgba(14, 19, 34, 0.72);
-  border-left: 1px solid rgba(125, 155, 255, 0.24);
-  border-top: 1px solid rgba(125, 155, 255, 0.24);
+  background: color-mix(in srgb, var(--bg-elevated) 82%, transparent);
+  border-left: 1px solid var(--border-primary);
+  border-top: 1px solid var(--border-primary);
 }
 
 /* Signup / reset keep the same bare, boxless language. */
@@ -7113,12 +7120,12 @@ body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
   gap: 0.45rem;
   font-size: clamp(0.66rem, 2.4vw, 0.74rem);
   font-weight: 500;
-  color: rgba(154, 163, 188, 0.62);
+  color: var(--text-muted);
 }
 .mesh-gate-shield svg {
   flex-shrink: 0;
 }
-.mesh-gate-shield svg { color: #7d9bff; }
+.mesh-gate-shield svg { color: var(--accent-text); }
 .mesh-gate-links {
   display: flex;
   flex-wrap: wrap;

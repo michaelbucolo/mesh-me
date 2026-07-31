@@ -33,13 +33,40 @@ type Node = {
 // A spark born at the caret that races outward to a perimeter node.
 type Spark = { idx: number; t: number };
 
+// The constellation is drawn from the APP'S OWN theme, resolved live at mount
+// (user report: the entry's colors didn't match the rest of the site — this
+// table used to be a private periwinkle/violet/cyan triple that existed
+// nowhere else). Calm strands are the page's ink; energy warms them toward
+// the one accent. The values below are only the SSR/no-DOM fallback.
 const COLORS = {
-  strand: [130, 150, 255], // periwinkle-blue (calm)
-  strandHot: [168, 120, 250], // violet (warming)
-  strandAurora: [52, 228, 234], // Aurora cyan #34e4ea (hot)
-  node: [200, 214, 255],
-  success: [236, 130, 200],
+  strand: [235, 235, 245], // calm: ink (resolved from --text-primary)
+  strandHot: [10, 132, 255], // warming: the accent (resolved from --accent)
+  strandAurora: [10, 132, 255], // hot: the same accent, brighter by alpha
+  node: [174, 174, 178], // resolved from --text-secondary
+  success: [10, 132, 255], // success is the accent doing its job
+  core: [235, 235, 245], // star cores: ink, not hardcoded white
 };
+
+function resolveThemeColor(varName: string, fallback: number[]): number[] {
+  if (typeof document === "undefined") return fallback;
+  const probe = document.createElement("span");
+  probe.style.color = `var(${varName})`;
+  probe.style.display = "none";
+  document.body.appendChild(probe);
+  const m = getComputedStyle(probe).color.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+  probe.remove();
+  return m ? [Number(m[1]), Number(m[2]), Number(m[3])] : fallback;
+}
+
+function resolveThemeColors(): void {
+  COLORS.strand = resolveThemeColor("--text-primary", COLORS.strand);
+  COLORS.core = COLORS.strand;
+  COLORS.node = resolveThemeColor("--text-secondary", COLORS.node);
+  const accent = resolveThemeColor("--accent", COLORS.strandHot);
+  COLORS.strandHot = accent;
+  COLORS.strandAurora = accent;
+  COLORS.success = accent;
+}
 
 function rgba(c: number[], a: number) {
   return `rgba(${c[0]}, ${c[1]}, ${c[2]}, ${a})`;
@@ -80,6 +107,7 @@ export function MeshBorderConstellation({
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
+    resolveThemeColors();
 
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     let width = 0;
@@ -293,7 +321,7 @@ export function MeshBorderConstellation({
           const fade = Math.sin(Math.PI * t); // rise then settle at the node
           const rad = (3.1 + fade * 2.1) * 2.2;
           const g = ctx.createRadialGradient(sx, sy, 0, sx, sy, rad);
-          g.addColorStop(0, rgba([255, 255, 255], 0.9 * fade));
+          g.addColorStop(0, rgba(COLORS.core, 0.9 * fade));
           g.addColorStop(0.4, rgba(COLORS.strandAurora, 0.8 * fade));
           g.addColorStop(1, rgba(COLORS.strandAurora, 0));
           ctx.fillStyle = g;
@@ -314,7 +342,7 @@ export function MeshBorderConstellation({
         ctx.beginPath();
         ctx.arc(n.x, n.y, n.r * 4, 0, Math.PI * 2);
         ctx.fill();
-        ctx.fillStyle = rgba([255, 255, 255], 0.55 + energy * 0.35);
+        ctx.fillStyle = rgba(COLORS.core, 0.55 + energy * 0.35);
         ctx.beginPath();
         ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
         ctx.fill();

@@ -352,6 +352,27 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
             className={`mesh-gate-focus${leaving ? " mesh-gate-leaving" : ""}`}
             noValidate
           >
+            {/* Meshi at the door, WATCHING YOU TYPE: the gaze vars track the
+                caret (centered text grows rightward, so look-x follows length)
+                and drop to the field while you write. It winks when what you
+                typed reads as a complete email. At the password step this
+                becomes YOUR Meshi and closes its eyes — one character, two
+                beats of the same bit. */}
+            <div
+              className="mesh-gate-meshi"
+              aria-hidden="true"
+              style={{
+                "--meshi-look-x": identifier ? Math.max(-0.2, Math.min(1, identifier.length / 14)) : 0,
+                "--meshi-look-y": identifier ? 0.7 : 0,
+              } as React.CSSProperties}
+            >
+              <MeshiMascot
+                size={84}
+                mood={message ? "surprised" : isPending ? "thinking" : identity.kind === "email" ? "wink" : "happy"}
+                animate
+                bouncy={!identifier}
+              />
+            </div>
             <h1 className="mesh-gate-q">Log in</h1>
             <div ref={anchorRef} className="mesh-gate-inputwrap">
               <input
