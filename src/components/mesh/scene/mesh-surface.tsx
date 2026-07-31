@@ -120,6 +120,15 @@ export function MeshScene({ viewUserId, viewMode = "mesh", viewerIsPro = false }
     mq.addEventListener("change", update);
     return () => mq.removeEventListener("change", update);
   }, [rtRef]);
+  // THE LOOM DESK tokens (tokens.css `html.mesh-loom`) apply while this scene
+  // is mounted. Hoisted to <html> — not the wrapper — because paintTheme()
+  // reads the document root and keys its cache on the root's className, so
+  // the canvas re-reads the loom palette the frame after this flips, with no
+  // bridge change and no per-frame cost.
+  useEffect(() => {
+    document.documentElement.classList.add("mesh-loom");
+    return () => document.documentElement.classList.remove("mesh-loom");
+  }, []);
   useEffect(() => {
     if (!presenceToast) return;
     const t = setTimeout(() => setPresenceToast(null), 3600);

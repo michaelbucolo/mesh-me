@@ -30,12 +30,15 @@ const BOTTOM = Math.PI / 2;
 // Exported: the background's orbit contours draw at these SAME radii, so the
 // map's rings are the layout's real semantic distances, never a second set of
 // numbers that drifts from where things actually sit.
-export const PERSON_NEAR = 240;
-const PERSON_SPREAD = 290;
-export const PLATFORM_RADIUS = 380;
+// LOOM COMPRESSION (FINAL-SPEC §3.1): the world tightened ~35% so the framed
+// panel reads dense instead of vast — the desk's loom is a woven field, not a
+// sky. Same deterministic id-hash math; only the distances changed.
+export const PERSON_NEAR = 150;
+const PERSON_SPREAD = 180;
+export const PLATFORM_RADIUS = 260;
 // Content rings: post cards are wide, so they live well beyond the sources.
-export const CONTENT_RADIUS = 620;
-export const RING_GAP = 210;
+export const CONTENT_RADIUS = 410;
+export const RING_GAP = 140;
 // World-units of arc one content card needs before cards start crowding.
 const CARD_SPACING = 300;
 // Breathing room between zones so wedges never visually touch.
