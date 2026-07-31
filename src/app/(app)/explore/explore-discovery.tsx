@@ -342,7 +342,11 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ ...spring, delay: 0.05 }}
-          className="glass-card flex items-center gap-1 overflow-x-auto rounded-2xl p-1.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          /* No tray. This was a `glass-card` box around a row of keys — a box in
+             a box, and the only chip rail in the app with its own material
+             (MeChat's sits straight on the page). The keys are the material;
+             the py-1 keeps their plinth shadows clear of the overflow clip. */
+          className="flex items-center gap-1 overflow-x-auto py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
         {/* A TABLIST MAY OWN ONLY TABS. The Filters disclosure sat inside this
             one, which axe-core flags as aria-required-children and which would
