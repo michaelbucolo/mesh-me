@@ -364,7 +364,7 @@ export function MeChatConversationList({
                 onClick={() => setActiveFilter(filter.key)}
                 className={`mechat-key mechat-key-chip key inline-flex min-h-11 items-center gap-1.5 px-3 py-1 text-xs font-semibold ${
                   selected
-                    ? "key-lit [--mould:var(--mould-jade)] [--mould-ink:var(--mould-jade-ink)] [--mould-plinth:var(--mould-jade-plinth)]"
+                    ? "key-selected"
                     : "text-[var(--mesh-text-secondary)]"
                 }`}
               >
@@ -652,7 +652,7 @@ export function MeChatConversationList({
                 type="button"
                 onClick={startConversation}
                 disabled={isPending || selectedMembers.length === 0}
-                className="mechat-key key key-lit [--mould:var(--mould-jade)] [--mould-ink:var(--mould-jade-ink)] [--mould-plinth:var(--mould-jade-plinth)] flex min-h-11 w-full items-center justify-center py-2.5 text-sm font-semibold disabled:opacity-40"
+                className="mechat-key key key-lit [--mould:var(--mould-cobalt)] [--mould-ink:var(--mould-cobalt-ink)] [--mould-plinth:var(--mould-cobalt-plinth)] flex min-h-11 w-full items-center justify-center py-2.5 text-sm font-semibold disabled:opacity-40"
               >
                 {isPending ? "Starting..." : "Chat"}
               </button>
@@ -708,7 +708,7 @@ export function MeChatConversationList({
               type="button"
               onClick={saveNote}
               disabled={isPending}
-              className="mechat-key key key-lit [--mould:var(--mould-jade)] [--mould-ink:var(--mould-jade-ink)] [--mould-plinth:var(--mould-jade-plinth)] ml-auto inline-flex min-h-11 items-center px-5 py-2 text-sm font-semibold disabled:opacity-50"
+              className="mechat-key key key-lit [--mould:var(--mould-cobalt)] [--mould-ink:var(--mould-cobalt-ink)] [--mould-plinth:var(--mould-cobalt-plinth)] ml-auto inline-flex min-h-11 items-center px-5 py-2 text-sm font-semibold disabled:opacity-50"
             >
               {isPending ? "Sharing..." : "Share"}
             </button>

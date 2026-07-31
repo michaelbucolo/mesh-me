@@ -182,11 +182,14 @@ export function NotificationsClient({ initialPayload }: { initialPayload: Notifi
           {isPending ? <PaperWait size="sm" /> : <RefreshCw size={15} aria-hidden="true" />}
           <span className="hidden sm:inline">Refresh</span>
         </button>
+        {/* Housekeeping, not a call to action (tone reset R4): a 13px
+            accent-text TEXT button, never a filled slab — the page has no
+            saturated fill at all. */}
         <button
           type="button"
           onClick={() => requestNotificationAction("mark-read")}
           disabled={isPending || payload.unreadCount === 0}
-          className="mesh-action mesh-action-primary px-4 text-sm"
+          className="inline-flex min-h-11 items-center gap-1.5 px-3 text-sm font-medium text-[var(--accent-text)] transition hover:opacity-80 disabled:opacity-40"
           data-testid="mark-all-notifications-read"
         >
           <Check size={15} aria-hidden="true" />
@@ -228,21 +231,24 @@ export function NotificationsClient({ initialPayload }: { initialPayload: Notifi
                     key={category}
                     type="button"
                     onClick={() => setActiveCategory(category)}
-                    className={`mesh-choice relative shrink-0 rounded-full px-3 py-2 text-xs font-semibold ${active ? "border-[var(--accent)]" : "text-[var(--text-secondary)]"}`}
+                    className={`mesh-choice relative shrink-0 rounded-full px-3 py-2 text-xs font-medium ${active ? "" : "text-[var(--text-secondary)]"}`}
                     aria-pressed={active}
                   >
+                    {/* Selected is neutral raised paper (tone reset R4) — the
+                        sliding pill stays, the hue goes. Counts are plain ink,
+                        not badges. */}
                     {active && (
                       <motion.span
                         layoutId="notif-category-pill"
                         transition={pillSpring}
-                        className="absolute inset-0 rounded-full bg-[var(--accent)]"
+                        className="absolute inset-0 rounded-full bg-[var(--paper-3)]"
                         aria-hidden="true"
                       />
                     )}
-                    <span className={`relative flex items-center gap-1.5 ${active ? "text-[var(--accent-contrast)]" : ""}`}>
+                    <span className={`relative flex items-center gap-1.5 ${active ? "text-[var(--text-primary)]" : ""}`}>
                       <Icon size={14} aria-hidden="true" />
                       {getNotificationCategoryLabel(category)}
-                      {counts.unread > 0 ? <span className={`rounded-full px-1.5 py-0.5 text-micro ${active ? "bg-white/25 text-[var(--accent-contrast)]" : "bg-[var(--accent-subtle)] text-[var(--accent-text)]"}`}>{counts.unread}</span> : null}
+                      {counts.unread > 0 ? <span className="text-micro text-[var(--text-muted)] tabular-nums">{counts.unread}</span> : null}
                     </span>
                   </button>
                 );
@@ -356,12 +362,13 @@ group.priority === "high" ? "bg-[var(--mould-crimson)] text-[var(--mould-crimson
           </div>
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <h2 className="min-w-0 truncate text-base font-semibold text-[var(--text-primary)]">{group.title}</h2>
+              {/* Unread is ONE encoding (tone reset R4): a 6px accent dot
+                  beside the 600 title. The filled "N unread" pill and the
+                  accent ring around the card both said the same thing. */}
               {group.unreadCount > 0 && (
-                <span className="rounded-full bg-[var(--accent-subtle)] px-2 py-0.5 text-micro font-semibold text-[var(--accent-text)]">
-                  {group.unreadCount} unread
-                </span>
+                <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--accent)]" aria-hidden="true" />
               )}
+              <h2 className="min-w-0 truncate text-base font-semibold text-[var(--text-primary)]">{group.title}</h2>
               {group.priority === "high" && (
                 <span className="rounded-full border border-[var(--mesh-danger)]/30 px-2 py-0.5 text-micro font-semibold text-[var(--mesh-danger)]">
                   Priority
@@ -384,7 +391,7 @@ group.priority === "high" ? "bg-[var(--mould-crimson)] text-[var(--mould-crimson
 
   return (
     <article
-      className={`mesh-surface mesh-pressable rounded-lg p-4 transition ${group.unreadCount > 0 ? "ring-1 ring-[var(--accent-muted)]" : ""} ${group.priority === "high" ? "mesh-priority-ring" : ""}`}
+      className={`mesh-surface mesh-pressable rounded-lg p-4 transition ${group.priority === "high" ? "mesh-priority-ring" : ""}`}
       data-testid="notification-group"
     >
       <div className="flex items-start gap-2">

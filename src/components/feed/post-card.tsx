@@ -828,13 +828,11 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
               aria-label={liked ? "Unlike post" : "Like post"}
               className={cn(
                 "insta-post-action relative",
-                // ON is a material change, not a hue swap. `.key-lit` + the
-                // pinned crimson triple is the idiom ui/button.tsx:26 uses; the
-                // ink that rides with it is contrast-verified, which the old
-                // `text-rose-400` over an unknown background was not.
-                liked
-                  ? "key-lit [--mould:var(--mould-crimson)] [--mould-ink:var(--mould-crimson-ink)] [--mould-plinth:var(--mould-crimson-plinth)]"
-                  : "hover:text-[var(--mould-crimson)]",
+                // Liked is a filled glyph in the like token, background
+                // transparent (tone reset R4). The crimson TILE this used to
+                // mould was the loudest element on the feed — state is
+                // metadata, not a call to action.
+                liked ? "text-[var(--like)]" : "hover:text-[var(--like)]",
               )}
             >
               <span className={cn("like-burst", likeAnimating && "like-burst-active")} aria-hidden="true" />
@@ -880,7 +878,7 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
               aria-label={saved ? "Unsave post" : "Save post"}
               className={cn(
                 "insta-post-action",
-                saved && "key-lit [--mould:var(--mould-cobalt)] [--mould-ink:var(--mould-cobalt-ink)] [--mould-plinth:var(--mould-cobalt-plinth)]",
+                saved && "text-[var(--accent-text)]",
               )}
             >
               <Bookmark className={cn("h-5 w-5 transition-transform", saved && "fill-current", saveAnimating && "animate-bookmark-pop")} />

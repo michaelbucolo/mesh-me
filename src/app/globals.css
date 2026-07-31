@@ -715,18 +715,9 @@ select:focus-visible {
   position: relative;
 }
 
-.mesh-nav-item-active::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 3px;
-  height: 60%;
-  border-radius: 0 4px 4px 0;
-  background: var(--accent);
-  box-shadow: 0 0 10px color-mix(in srgb, var(--accent) 65%, transparent);
-}
+/* No ::before accent bar here: the shell renders ONE shared indicator (a
+   framer layoutId span) that slides between rows. A second CSS-drawn bar with
+   a glow was a duplicate opinion about the same fact. */
 
 @media (prefers-reduced-motion: reduce) {
   .mesh-nav-item,
@@ -4594,33 +4585,18 @@ body,
   color: var(--text-primary);
 }
 
-/* WHICH SECTION YOU ARE ON, said in plastic — the pattern already shipped for
-   the main nav at the end of this file (`.mesh-nav-item[aria-current="page"]`).
-   Ten sections, six plastics, paired the way the component itself pairs them:
-   the file's own comments keep Privacy+Mesh adjacent as the "who can see you"
-   pair and Appearance+Meshi as the "make it yours" pair. Crimson is not here —
-   it is destruction, never a section. */
-.settings-nav-account,
-.settings-nav-profile     { --domain: var(--mould-teal); }
-.settings-nav-privacy,
-.settings-nav-security    { --domain: var(--mould-jade); }
-.settings-nav-mesh        { --domain: var(--mould-tomato); }
-.settings-nav-notifications { --domain: var(--mould-amber); }
-.settings-nav-appearance,
-.settings-nav-meshi       { --domain: var(--mould-grape); }
-.settings-nav-data,
-.settings-nav-billing     { --domain: var(--mould-cobalt); }
-
+/* One nav, one voice (tone reset R4) — matches the main sidebar. The rail
+   used to tint every section icon in its own plastic and fill the active row
+   18% in that hue; a settings page that changes colour per section reads as
+   candy. Active is a flat ink wash + a 3px accent rule, identical everywhere. */
 .settings-nav-item-active,
 .settings-nav-item[aria-current="page"] {
-  background: color-mix(in srgb, var(--domain, var(--accent)) 18%, transparent);
-  box-shadow: inset 3px 0 0 0 var(--domain, var(--accent));
+  background: var(--paper-hover);
+  box-shadow: inset 3px 0 0 0 var(--accent);
   color: var(--text-primary);
 }
 
-/* The icon wears the plastic even when the row is idle, so the rail reads as
-   six things rather than nine greys and a highlight. */
-.settings-nav-item svg:first-of-type { color: var(--domain, currentColor); opacity: 0.85; }
+.settings-nav-item svg:first-of-type { opacity: 0.85; }
 .settings-nav-item[aria-current="page"] svg:first-of-type,
 .settings-nav-item-active svg:first-of-type { opacity: 1; }
 
@@ -5391,6 +5367,15 @@ body,
   background: var(--mould, var(--mould-cobalt));
   color: var(--mould-ink, var(--mould-cobalt-ink));
   --plinth-1: var(--mould-plinth, var(--mould-cobalt-plinth));
+}
+
+/* SELECTED is neutral (tone reset R4). A chip, tab or toggle that is "on" is
+   state, not a call to action — it raises to --paper-3 with primary ink and
+   keeps the key's own wall. `.key-lit` remains for true primaries only (one
+   fill per screen). Sits after `.key` so source order wins the face. */
+.key-selected {
+  background: var(--paper-3);
+  color: var(--text-primary);
 }
 
 /* ═══ OLED SURFACE DOCTRINE — dark theme only ═══════════════════════════════
@@ -6846,7 +6831,7 @@ body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
   height: 18px;
   transform: translate(-50%, -50%) scale(0.2);
   border-radius: 999px;
-  border: 2px solid rgba(251, 113, 133, 0.9);
+  border: 2px solid var(--like);
   opacity: 0;
   pointer-events: none;
 }
@@ -8054,65 +8039,42 @@ button, [role="button"] {
   translate: none;
 }
 
-/* SELECTED is moulded from the brand plastic — filled, with its own side wall —
-   instead of an outline with a faint tint. This is the one place on the feed
-   where colour says "you are here".
-
-   Three sibling chip rows sit within 40px of each other. Moulding one and
-   tinting the other two read as half-finished work, so all three selected
-   states are the same plastic now. */
+/* SELECTED is a neutral raised paper, not a hue (tone reset R4). Selection is
+   state, and state never gets a saturated fill — the screen's one accent fill
+   belongs to its primary action. All three sibling chip rows share the same
+   treatment so none reads louder than another. */
 .feed-mode-button-active,
 .feed-layout-button-active,
 .feed-control-chip-active,
 .feed-mode-button[aria-pressed="true"],
 .feed-control-chip[aria-pressed="true"] {
-  background: var(--mould-cobalt);
-  color: var(--mould-cobalt-ink);
+  background: var(--paper-3, var(--bg-tertiary));
+  color: var(--text-primary);
   border-color: transparent;
-  box-shadow:
-    inset 0 0 0 var(--edge-w) var(--edge),
-    0 var(--plinth-h-chip) 0 0 var(--mould-cobalt-plinth);
+  box-shadow: inset 0 0 0 var(--edge-w) var(--edge);
 }
 .feed-mode-button-active:hover,
 .feed-layout-button-active:hover,
 .feed-control-chip-active:hover,
 .feed-mode-button[aria-pressed="true"]:hover,
 .feed-control-chip[aria-pressed="true"]:hover {
-  background: var(--mould-cobalt);
-  color: var(--mould-cobalt-ink);
-}
-.feed-mode-button-active:active,
-.feed-layout-button-active:active,
-.feed-control-chip-active:active,
-.feed-mode-button[aria-pressed="true"]:active,
-.feed-control-chip[aria-pressed="true"]:active {
-  background: var(--mould-cobalt);
-  color: var(--mould-cobalt-ink);
-  box-shadow:
-    inset 0 0 0 var(--edge-w) var(--edge),
-    0 0 0 0 var(--mould-cobalt-plinth);
+  background: var(--paper-3, var(--bg-tertiary));
+  color: var(--text-primary);
 }
 
 /* ── 3. COLOUR DOES SOMETHING ─────────────────────────────────────────────── */
 
-/* Six domains, six plastics. Colour is WHICH, never HOW LOUD: it marks the
-   surface you are on and nothing else competes for it. The nav already carries
-   aria-current="page", so this needs no markup change. */
-.mesh-nav-item[href="/mesh"]     { --domain: var(--mould-tomato); }
-.mesh-nav-item[href="/flow"]     { --domain: var(--mould-cobalt); }
-.mesh-nav-item[href="/messages"] { --domain: var(--mould-jade); }
-.mesh-nav-item[href="/explore"]  { --domain: var(--mould-grape); }
-.mesh-nav-item[href="/profile"]  { --domain: var(--mould-teal); }
-.mesh-nav-item[href="/feed"]     { --domain: var(--mould-amber); }
-
+/* One nav, one voice (tone reset R4). Six per-section plastics used to tint
+   every icon and fill the active row 18% in that section's hue — the sidebar
+   changed colour as you moved through the app, which reads as candy, not
+   navigation. Active is now a flat ink wash identical on every page; the one
+   accent is the shared sliding indicator the shell renders. Icons take the
+   row's ink. */
 .mesh-nav-item[aria-current="page"],
 .mesh-nav-item-active {
-  background: color-mix(in srgb, var(--domain, var(--accent)) 18%, transparent);
-  box-shadow: inset 3px 0 0 0 var(--domain, var(--accent));
+  background: var(--paper-hover);
 }
-/* The icon wears the plastic even when the row is not active, so the sidebar
-   reads as six things rather than five greys and a highlight. */
-.mesh-nav-item svg { color: var(--domain, currentColor); opacity: 0.85; }
+.mesh-nav-item svg { opacity: 0.85; }
 .mesh-nav-item[aria-current="page"] svg,
 .mesh-nav-item-active svg { opacity: 1; }
 .mesh-nav-item:hover:not([aria-current="page"]):not(.mesh-nav-item-active) {
@@ -8217,42 +8179,10 @@ button, [role="button"] {
   box-shadow: var(--focus-ring);
 }
 
-/* LIKED and SAVED are moulded from plastic, not tinted.
-
-   Before this, the entire on/off state of the two stateful controls on a post
-   was a hue swap on a flat glyph — `text-rose-400` for liked, `--accent` for
-   saved. That is Law 2 inverted: colour was carrying "how loud", and an
-   unpinned Tailwind rose was carrying it over an unknown background. The
-   element wears `.key-lit` plus a pinned --mould / --mould-ink / --mould-plinth
-   triple, exactly as ui/button.tsx:26 does, so the ink is contrast-pinned and
-   the state is a material change rather than a brightness change.
-   `.key-lit` is the authored idiom at :4905 — used, not re-declared.
-
-   The compound selector is not belt-and-braces, it is required. `.key-lit` and
-   `.insta-post-action` are both one class, and this block sits LATER in the
-   file, so a bare `.key-lit` would lose its own background and ink to the
-   `--face` rule above on source order alone. Measured by looking, not assumed:
-   equal specificity means position decides. */
-.insta-post-action.key-lit,
-.insta-post-action.key-lit:hover,
-.insta-post-action.key-lit:active {
-  background: var(--mould, var(--mould-cobalt));
-  color: var(--mould-ink, var(--mould-cobalt-ink));
-}
-.insta-post-action.key-lit {
-  box-shadow:
-    inset 0 0 0 var(--edge-w) var(--edge),
-    var(--mould-line),
-    0 var(--plinth-h) 0 0 var(--mould-plinth, var(--mould-cobalt-plinth)),
-    var(--shadow-rest);
-}
-.insta-post-action.key-lit:active {
-  box-shadow:
-    inset 0 0 0 var(--edge-w) var(--edge),
-    var(--mould-line),
-    0 0 0 0 var(--mould-plinth, var(--mould-cobalt-plinth)),
-    var(--shadow-press);
-}
+/* Liked / saved state is a GLYPH TINT set in the markup (the like token for
+   the heart, accent text for the bookmark) on the transparent ghost button
+   above — never a fill. The moulded .key-lit tiles that used to sit here were
+   the loudest element on the feed (tone reset R4: state is metadata). */
 
 /* CREATE POST outranks the three controls beside it.
 

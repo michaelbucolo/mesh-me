@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { motion, useReducedMotion } from "framer-motion";
-import { Ghost } from "lucide-react";
+import { EyeOff } from "lucide-react";
 import { setGhostMode } from "@/lib/actions";
 import { broadcastGhostMode, GHOST_EVENT, GHOST_STORAGE_KEY, readGhostMode } from "@/lib/ghost-mode";
 import { playSound } from "@/lib/sound";
@@ -83,20 +83,16 @@ export function GhostModeToggle({ compact = false, initialGhost = false }: { com
       aria-pressed={ghost}
       aria-label={ghost ? "Ghost Mode is on — tap to become visible" : "Turn on Ghost Mode"}
       title={ghost ? "Ghost Mode on: others can't see you live" : "Ghost Mode: hide your live presence"}
-      /* ON was `border-violet-400/50 bg-violet-500/20 text-violet-300`: three
-         raw Tailwind palette steps, two of them translucent, over an unknown
-         background — the state of a privacy control carried by a tint. OFF was a
-         --paper-1 fill inside a 1px --rule border with no --edge ring and no
-         wall. It is a `.key` in both states now, and ON is a MATERIAL change:
-         `.key-lit` (globals.css:4996) moulded from --mould-grape, the purple
-         plastic, whose ink and plinth are pinned together in tokens.css:92 and
-         verified by contrast:check. Same idiom as the liked/saved controls in
-         feed/post-card.tsx:790,837. */
+      /* ON is state, not a call to action (tone reset R4): the neutral
+         selected key. The grape plastic this once wore was the only purple
+         fill in the chrome — a per-feature hue, which the color budget
+         forbids. The eye-off glyph replaces the cartoon ghost so the control
+         reads stroke-matched next to the bell (#26). */
       className={`key inline-flex items-center gap-1.5 ${
         compact ? "h-11 w-11 justify-center px-0" : "h-11 px-3"
       } ${
         ghost
-          ? "key-lit [--mould:var(--mould-grape)] [--mould-ink:var(--mould-grape-ink)] [--mould-plinth:var(--mould-grape-plinth)]"
+          ? "key-selected"
           : "text-[var(--mesh-text-muted)] hover:text-[var(--mesh-text)]"
       }`}
     >
@@ -110,7 +106,7 @@ export function GhostModeToggle({ compact = false, initialGhost = false }: { com
                 Tailwind's palette that would have vanished into the fill. */}
             <motion.span
               key={`ripple-${burst}`}
-              className="pointer-events-none absolute inset-0 rounded-full border border-[var(--mould-grape-ink)] opacity-60"
+              className="pointer-events-none absolute inset-0 rounded-full border border-[var(--text-secondary)] opacity-60"
               initial={{ opacity: 0.5, scale: 0.5 }}
               animate={{ opacity: 0, scale: 2.6 }}
               transition={{ duration: 0.55, ease: "easeOut" }}
@@ -118,12 +114,12 @@ export function GhostModeToggle({ compact = false, initialGhost = false }: { com
             {[0, 1, 2].map((i) => (
               <motion.span
                 key={`afterimage-${burst}-${i}`}
-                className="pointer-events-none absolute inset-0 flex items-center justify-center text-[var(--mould-grape-ink)]"
+                className="pointer-events-none absolute inset-0 flex items-center justify-center text-[var(--text-secondary)]"
                 initial={{ opacity: 0.55, y: 0, scale: 1 }}
                 animate={{ opacity: 0, y: -10 - i * 4, scale: 1.15 + i * 0.08 }}
                 transition={{ duration: 0.6, ease: "easeOut", delay: i * 0.06 }}
               >
-                <Ghost size={15} />
+                <EyeOff size={15} />
               </motion.span>
             ))}
           </>
@@ -145,7 +141,7 @@ export function GhostModeToggle({ compact = false, initialGhost = false }: { com
                 opacity: { duration: 0.25 },
               }}
             >
-              <Ghost size={15} />
+              <EyeOff size={15} />
             </motion.span>
           ) : (
             // Quick re-materialize when becoming visible again
@@ -156,11 +152,11 @@ export function GhostModeToggle({ compact = false, initialGhost = false }: { com
               animate={{ scale: 1, opacity: 1 }}
               transition={{ type: "spring", stiffness: 440, damping: 24 }}
             >
-              <Ghost size={15} />
+              <EyeOff size={15} />
             </motion.span>
           )
         ) : (
-          <Ghost size={15} />
+          <EyeOff size={15} />
         )}
       </span>
       {!compact && <span className="text-xs font-semibold">{ghost ? "Ghosting" : "Ghost"}</span>}

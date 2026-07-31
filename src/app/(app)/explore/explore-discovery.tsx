@@ -396,7 +396,7 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
                 onClick={() => setTab(item.id)}
                 className={`key inline-flex min-h-11 shrink-0 items-center gap-1.5 px-3.5 py-2 text-xs font-semibold ${
                   selected
-                    ? "key-lit [--mould:var(--mould-cobalt)] [--mould-ink:var(--mould-cobalt-ink)] [--mould-plinth:var(--mould-cobalt-plinth)]"
+                    ? "key-selected"
                     : "text-[var(--text-secondary)]"
                 }`}
               >
@@ -407,24 +407,24 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
           })}
           </div>
           {isPostTab && (
-            /* Same treatment. The "on" state was --accent ink on nothing; it is
-               the cobalt plastic now, and the active-filter dot rides that
-               plastic's PINNED ink instead of --accent, which would have been
-               near-invisible against a cobalt face. */
+            /* "On" is the neutral selected key (tone reset R4); the active-
+               filter dot is the one accent mark. aria-pressed carries the
+               toggle state the paint shows; aria-expanded the disclosure. */
             <button
               type="button"
               onClick={() => setShowFilters((value) => !value)}
               className={`key ml-auto inline-flex min-h-11 shrink-0 items-center gap-1.5 px-3 py-2 text-xs font-semibold ${
                 showFilters || hasActiveFilters
-                  ? "key-lit [--mould:var(--mould-cobalt)] [--mould-ink:var(--mould-cobalt-ink)] [--mould-plinth:var(--mould-cobalt-plinth)]"
+                  ? "key-selected"
                   : "text-[var(--text-secondary)]"
               }`}
+              aria-pressed={showFilters || hasActiveFilters}
               aria-expanded={showFilters}
               aria-label="Toggle filters"
             >
               <SlidersHorizontal className="h-3.5 w-3.5" aria-hidden />
               Filters
-              {hasActiveFilters && <span className="h-1.5 w-1.5 rounded-full bg-[var(--mould-cobalt-ink)]" aria-hidden />}
+              {hasActiveFilters && <span className="h-1.5 w-1.5 rounded-full bg-[var(--accent)]" aria-hidden />}
             </button>
           )}
         </motion.div>
@@ -462,7 +462,7 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
                       onClick={() => setMediaFilter(filter.id)}
                       className={`key explore-chip inline-flex shrink-0 items-center gap-1.5 px-3 py-1.5 text-xs font-semibold ${
                         selected
-                          ? "key-lit [--mould:var(--mould-cobalt)] [--mould-ink:var(--mould-cobalt-ink)] [--mould-plinth:var(--mould-cobalt-plinth)]"
+                          ? "key-selected"
                           : "text-[var(--text-secondary)]"
                       }`}
                     >
@@ -495,7 +495,7 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
                         onClick={() => setActivePlatform(selected ? null : platform)}
                         className={`key explore-chip inline-flex items-center gap-1.5 px-3 py-1 text-micro font-semibold ${
                           selected
-                            ? "key-lit [--mould:var(--mould-cobalt)] [--mould-ink:var(--mould-cobalt-ink)] [--mould-plinth:var(--mould-cobalt-plinth)]"
+                            ? "key-selected"
                             : "text-[var(--text-secondary)]"
                         }`}
                         style={{ "--i": platformIndex + 1 } as React.CSSProperties}
@@ -556,7 +556,7 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
                 aria-pressed={selected}
                 className={`key explore-chip inline-flex shrink-0 items-center gap-1 px-3.5 py-1.5 text-xs font-semibold ${
                   selected
-                    ? "key-lit [--mould:var(--mould-cobalt)] [--mould-ink:var(--mould-cobalt-ink)] [--mould-plinth:var(--mould-cobalt-plinth)]"
+                    ? "key-selected"
                     : "text-[var(--text-secondary)]"
                 }`}
               >
@@ -991,27 +991,18 @@ function TrendingHero({ posts }: { posts: FeedCardPost[] }) {
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={still} alt={getPostMediaAlt(post, authorName)} loading="lazy" decoding="async" className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
                 ) : (
-                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(47,124,255,0.35),transparent_60%),radial-gradient(circle_at_75%_80%,rgba(168,85,247,0.28),transparent_55%)]" />
+                  <div className="absolute inset-0 bg-[var(--bg-tertiary)]" />
                 )}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-transparent" />
                 <motion.span
-                  initial={{ scale: 0, rotate: index === 0 ? -14 : 0 }}
-                  animate={{ scale: 1, rotate: 0 }}
-                  transition={
-                    index === 0
-                      ? { type: "spring", stiffness: 520, damping: 13, delay: 0.06 * index + 0.16 }
-                      : { type: "spring", stiffness: 380, damping: 22, delay: 0.06 * index + 0.12 }
-                  }
-                  /* The #1 badge was an accent→violet gradient carrying white: 2.24:1 on
-                     the first stop and 4.23:1 on the second, so neither end cleared AA and
-                     no single ink could fix a two-stop fill. Flat accent with the ink that
-                     belongs to it is 8.24:1. Ranks 2+ keep white — they sit on a 60% black
-                     scrim over the thumbnail, which is where white is correct. */
-                  className={`absolute left-2.5 top-2.5 flex h-7 min-w-7 items-center justify-center rounded-full px-1.5 text-xs font-semibold shadow-lg ${
-                    index === 0
-                      ? "bg-[var(--accent)] text-[var(--accent-contrast)]"
-                      : "bg-black/60 text-white backdrop-blur"
-                  }`}
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: "spring", stiffness: 380, damping: 22, delay: 0.06 * index + 0.12 }}
+                  /* Rank is metadata, not a prize (tone reset R4): every rank
+                     rides the same 60% black scrim where white ink is correct.
+                     The accent fill on #1 (and the -14° confetti spin before
+                     it) spent the page's color budget on a number. */
+                  className="absolute left-2.5 top-2.5 flex h-7 min-w-7 items-center justify-center rounded-full bg-black/60 px-1.5 text-xs font-semibold text-white shadow-lg backdrop-blur"
                 >
                   #{index + 1}
                 </motion.span>
