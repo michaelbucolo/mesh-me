@@ -205,6 +205,36 @@ export function parseDeliveryNotificationMessage(
   return { messageId: match[1], text: message.slice(match[0].length) };
 }
 
+/**
+ * The Web Push shape for a just-created Notification row, built from the SAME
+ * classify/href logic the notification center uses — one voice, whether the
+ * words arrive in the inbox or on a lock screen. `title` is the substance
+ * ("Maya commented on your post") because that is the line phones embolden;
+ * `tag` coalesces repeat pushes about the same thing instead of stacking them.
+ */
+export function buildPushPayload(input: {
+  type: string;
+  message: string | null;
+  postId?: string | null;
+}): { title: string; body: string; url: string; tag: string; category: NotificationCategory } {
+  const category = classifyNotificationType(input.type);
+  const title =
+    parseDeliveryNotificationMessage(input.message?.trim()).text || labelForCategory(category);
+  const url = getNotificationHref({
+    category,
+    postId: input.postId ?? null,
+    actor: null,
+    post: null,
+  });
+  return {
+    title,
+    body: "",
+    url,
+    tag: input.postId ? `${category}:${input.postId}` : category,
+    category,
+  };
+}
+
 function serializeNotification(notification: NotificationRecord): SerializedNotification {
   const createdAt = notification.createdAt instanceof Date ? notification.createdAt.toISOString() : notification.createdAt;
   // Strip the meshi-delivery message-id marker — machine data never renders.

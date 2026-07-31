@@ -6,6 +6,8 @@ import { GLOBAL_MESH_BRANCHES } from "./global-mesh";
 import { ABOUT_FIELDS, type AboutField, aboutFieldMaxLen, isAboutPrivacyLevel } from "./profile-info";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
+import { after } from "next/server";
+import { sendPushForNotification } from "./push";
 import { getTrustedClientIp } from "./client-ip";
 import { revalidatePath } from "next/cache";
 import { normalizeProfileLinks } from "@/lib/profile-links";
@@ -1323,15 +1325,18 @@ export async function toggleReaction(postId: string) {
 
       // Create notification
       if (post.authorId !== user.id) {
+        const message = `${user.displayName} liked your post`;
         await prisma.notification.create({
           data: {
             type: "like",
             recipientId: post.authorId,
             actorId: user.id,
             postId,
-            message: `${user.displayName} liked your post`,
+            message,
           },
         });
+        // After the response — a push failure must never fail the like.
+        after(() => sendPushForNotification(post.authorId, { type: "like", message, postId }));
       }
     } catch (e) {
       // A concurrent double-tap can race two creates against the
@@ -1488,15 +1493,17 @@ export async function createComment(formData: FormData) {
 
   // Create notification
   if (post.authorId !== user.id) {
+    const message = `${user.displayName} commented on your post`;
     await prisma.notification.create({
       data: {
         type: "comment",
         recipientId: post.authorId,
         actorId: user.id,
         postId,
-        message: `${user.displayName} commented on your post`,
+        message,
       },
     });
+    after(() => sendPushForNotification(post.authorId, { type: "comment", message, postId }));
   }
 
   revalidatePath("/feed");
@@ -1558,23 +1565,26 @@ export async function toggleFollow(targetUserId: string) {
     });
     isFriend = Boolean(reciprocalFollow);
 
+    const followMessage = `${user.displayName} started following you`;
     await prisma.notification.create({
       data: {
         type: "follow",
         recipientId: targetUserId,
         actorId: user.id,
-        message: `${user.displayName} started following you`,
+        message: followMessage,
       },
     });
+    after(() => sendPushForNotification(targetUserId, { type: "follow", message: followMessage }));
 
     if (isFriend) {
+      const friendMessage = `${user.displayName}'s Mesh is now connected with yours`;
       await prisma.notification.createMany({
         data: [
           {
             type: "mesh_friend",
             recipientId: targetUserId,
             actorId: user.id,
-            message: `${user.displayName}'s Mesh is now connected with yours`,
+            message: friendMessage,
           },
           {
             type: "mesh_friend",
@@ -1584,6 +1594,8 @@ export async function toggleFollow(targetUserId: string) {
           },
         ],
       });
+      // Only the OTHER side gets buzzed — you were here, doing the following.
+      after(() => sendPushForNotification(targetUserId, { type: "mesh_friend", message: friendMessage }));
     }
   }
 
@@ -1892,16 +1904,19 @@ async function sendMessage(formData: FormData) {
   const isGroupThread = threadForNotification?.threadType === "group";
 
   for (const member of threadMembers) {
+    const message = isGroupThread
+      ? `${user.displayName} sent a message in ${threadForNotification.title || "a MeChat group"}`
+      : `${user.displayName} sent you a message`;
     await prisma.notification.create({
       data: {
         type: "message",
         recipientId: member.userId,
         actorId: user.id,
-        message: isGroupThread
-          ? `${user.displayName} sent a message in ${threadForNotification.title || "a MeChat group"}`
-          : `${user.displayName} sent you a message`,
+        message,
       },
     });
+    const recipientId = member.userId;
+    after(() => sendPushForNotification(recipientId, { type: "message", message }));
   }
 
   revalidatePath("/messages");
@@ -2384,15 +2399,17 @@ export async function repost(postId: string) {
   });
 
   if (original.authorId !== user.id) {
+    const message = `${user.displayName} reposted your post`;
     await prisma.notification.create({
       data: {
         type: "repost",
         recipientId: original.authorId,
         actorId: user.id,
         postId,
-        message: `${user.displayName} reposted your post`,
+        message,
       },
     });
+    after(() => sendPushForNotification(original.authorId, { type: "repost", message, postId }));
   }
 
   revalidatePath("/feed");
