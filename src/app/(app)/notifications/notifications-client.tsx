@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { AnimatePresence, motion, type Transition } from "framer-motion";
-import { AlertTriangle, AtSign, Bell, Check, Heart, LockKeyhole, MessageCircle, RefreshCw, Repeat, Search, ShieldCheck, Trash2, UserPlus, Users, X } from "lucide-react";
+import { AlertTriangle, AtSign, Bell, Check, ChevronDown, Heart, LockKeyhole, MessageCircle, RefreshCw, Repeat, Search, ShieldCheck, Trash2, UserPlus, Users, X } from "lucide-react";
 import { PaperWait } from "@/components/loading/paper-wait";
 import { Avatar } from "@/components/ui/avatar";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -328,14 +328,16 @@ function NotificationGroupCard({
 }) {
   const Icon = categoryIcons[group.category];
   const primary = group.notifications[0];
+  const isStack = group.notifications.length > 1;
 
-  return (
-    <article
-      className={`mesh-surface mesh-pressable rounded-lg p-4 transition ${group.unreadCount > 0 ? "ring-1 ring-[var(--accent-muted)]" : ""} ${group.priority === "high" ? "mesh-priority-ring" : ""}`}
-      data-testid="notification-group"
-    >
-      <div className="flex flex-col gap-4 md:flex-row md:items-start">
-        <Link href={group.href} className="flex min-w-0 flex-1 items-start gap-3">
+  // The row is the control. A stack expands on tap (the chevron says so); a
+  // single notification navigates on tap. The old card put a labelled
+  // "Details" button on every row — including single rows, where the panel it
+  // opened just repeated the message — and a labelled Read/Unread beside it,
+  // so every notification wore a two-button toolbar. Mark read/unread is the
+  // one per-row control left, and it is an icon.
+  const identity = (
+    <>
           <div className="relative shrink-0">
             {primary.actor ? (
               <Avatar src={primary.actor.avatarUrl} alt={primary.actor.displayName} size="md" />
@@ -377,25 +379,47 @@ group.priority === "high" ? "bg-[var(--mould-crimson)] text-[var(--mould-crimson
               {group.count > 1 ? ` · ${group.count} related` : ""}
             </p>
           </div>
-        </Link>
+    </>
+  );
 
-        <div className="flex flex-wrap gap-2 md:justify-end">
-          <button type="button" onClick={onToggle} className="mesh-action mesh-action-secondary px-3 text-xs">
-            {expanded ? "Hide" : "Details"}
+  return (
+    <article
+      className={`mesh-surface mesh-pressable rounded-lg p-4 transition ${group.unreadCount > 0 ? "ring-1 ring-[var(--accent-muted)]" : ""} ${group.priority === "high" ? "mesh-priority-ring" : ""}`}
+      data-testid="notification-group"
+    >
+      <div className="flex items-start gap-2">
+        {isStack ? (
+          <button
+            type="button"
+            onClick={onToggle}
+            aria-expanded={expanded}
+            className="flex min-w-0 flex-1 items-start gap-3 text-left"
+          >
+            {identity}
+            <ChevronDown
+              size={16}
+              aria-hidden="true"
+              className={`ml-auto mt-2.5 shrink-0 text-[var(--text-muted)] transition-transform duration-200 ${expanded ? "rotate-180" : ""}`}
+            />
           </button>
-          {/* One accent statement per view: "Mark all read" is the page's
-              primary. A filled per-row copy of it competed on every card. */}
-          {group.unreadCount > 0 ? (
-            <button type="button" onClick={onMarkRead} disabled={busy} className="mesh-action mesh-action-secondary px-3 text-xs" aria-label={`Mark ${group.title} read`}>
-              <Check size={13} aria-hidden="true" />
-              Read
-            </button>
-          ) : (
-            <button type="button" onClick={onMarkUnread} disabled={busy} className="mesh-action mesh-action-secondary px-3 text-xs" aria-label={`Mark ${group.title} unread`}>
-              Unread
-            </button>
-          )}
-        </div>
+        ) : (
+          <Link href={group.href} className="flex min-w-0 flex-1 items-start gap-3">
+            {identity}
+          </Link>
+        )}
+
+        {/* One accent statement per view: "Mark all read" is the page's
+            primary; this stays a quiet secondary. The unread mark is a dot —
+            the same glyph the expanded rows use for unread state. */}
+        {group.unreadCount > 0 ? (
+          <button type="button" onClick={onMarkRead} disabled={busy} className="mesh-action mesh-action-secondary h-11 w-11 shrink-0 justify-center px-0" aria-label={`Mark ${group.title} read`} title="Mark read">
+            <Check size={15} aria-hidden="true" />
+          </button>
+        ) : (
+          <button type="button" onClick={onMarkUnread} disabled={busy} className="mesh-action mesh-action-secondary h-11 w-11 shrink-0 justify-center px-0" aria-label={`Mark ${group.title} unread`} title="Mark unread">
+            <span className="h-2 w-2 rounded-full bg-current" aria-hidden="true" />
+          </button>
+        )}
       </div>
 
       <AnimatePresence>
