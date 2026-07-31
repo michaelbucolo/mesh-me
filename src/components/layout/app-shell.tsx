@@ -236,9 +236,9 @@ function ShellTopBar({
         <div className="flex min-w-0 items-center gap-2">
           <h1 className="truncate text-[1.25rem] font-semibold tracking-tight text-[var(--mesh-text)] lg:text-xl">{routeInfo.title}</h1>
         </div>
-        {routeInfo.description && (
-          <p className="mt-0.5 hidden text-sm text-[var(--mesh-text-muted)] lg:block">{routeInfo.description}</p>
-        )}
+        {/* No subtitle (tone reset R7): a marketing line under every H1 is the
+            product captioning itself. routeInfo.description survives only as
+            the share-sheet text. */}
       </div>
 
       <form onSubmit={submitSearch} className="mx-auto hidden w-full max-w-md items-center gap-2 rounded-xl border border-[var(--mesh-border)] bg-[var(--mesh-panel)] px-3.5 py-2 lg:flex">

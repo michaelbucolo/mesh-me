@@ -342,7 +342,7 @@ export function MeChatConversationList({
         <div
           role="group"
           aria-label="Filter conversations"
-          className="flex gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          className="rail-fade flex gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
           {FILTERS.map((filter) => {
             const selected = activeFilter === filter.key;

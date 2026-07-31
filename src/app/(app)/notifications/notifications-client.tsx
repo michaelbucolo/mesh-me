@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { AnimatePresence, motion, type Transition } from "framer-motion";
-import { AlertTriangle, AtSign, Bell, Check, ChevronDown, Heart, LockKeyhole, MessageCircle, RefreshCw, Repeat, Search, ShieldCheck, Trash2, UserPlus, Users, X } from "lucide-react";
+import { AtSign, Bell, BellDot, Check, ChevronDown, Heart, LockKeyhole, MessageCircle, RefreshCw, Repeat, Search, ShieldCheck, Trash2, UserPlus, Users, X } from "lucide-react";
 import { PaperWait } from "@/components/loading/paper-wait";
 import { Avatar } from "@/components/ui/avatar";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -23,7 +23,8 @@ type NoticeState = {
 
 const categoryIcons: Record<NotificationCategory, typeof Bell> = {
   all: Bell,
-  unread: AlertTriangle,
+  // A dot-marked bell, not a warning triangle: unread is state, not danger.
+  unread: BellDot,
   likes: Heart,
   comments: MessageCircle,
   follows: UserPlus,
@@ -221,7 +222,7 @@ export function NotificationsClient({ initialPayload }: { initialPayload: Notifi
               )}
             </label>
 
-            <div className="mt-3 flex gap-2 overflow-x-auto pb-1" data-testid="notification-category-tabs">
+            <div className="rail-fade mt-3 flex gap-2 overflow-x-auto pb-1" data-testid="notification-category-tabs">
               {visibleCategories.map((category) => {
                 const Icon = categoryIcons[category];
                 const counts = payload.categories[category];

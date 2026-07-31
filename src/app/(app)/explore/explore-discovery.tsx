@@ -346,7 +346,7 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
              a box, and the only chip rail in the app with its own material
              (MeChat's sits straight on the page). The keys are the material;
              the py-1 keeps their plinth shadows clear of the overflow clip. */
-          className="flex items-center gap-1 overflow-x-auto py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          className="rail-fade flex items-center gap-1 overflow-x-auto py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
         {/* A TABLIST MAY OWN ONLY TABS. The Filters disclosure sat inside this
             one, which axe-core flags as aria-required-children and which would
