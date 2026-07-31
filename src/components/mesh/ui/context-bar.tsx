@@ -67,7 +67,7 @@ export function MeshContextBar({
   if (viewedUser) {
     const name = viewedUser.displayName || `@${viewedUser.username}`;
     return (
-      <div className="mesh-context lg-regular lg-sm absolute z-30 flex items-center gap-1.5 p-1.5">
+      <div className="mesh-rim-context lg-regular lg-sm absolute z-30 flex items-center gap-1.5 p-1.5">
         <button
           type="button"
           onClick={onBack}
@@ -108,7 +108,7 @@ export function MeshContextBar({
   // the prefetch keeps URL parity, and back/refresh behave.
   return (
     <div
-      className="mesh-context lg-regular lg-sm absolute z-30 flex items-center gap-1.5 p-1.5"
+      className="mesh-rim-context lg-regular lg-sm absolute z-30 flex items-center gap-1.5 p-1.5"
       role="group"
       aria-label="Which mesh"
     >

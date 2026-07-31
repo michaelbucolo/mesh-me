@@ -203,7 +203,7 @@ function DockPopover({
       id={id}
       role="group"
       aria-label={label}
-      className="mesh-dock-pop plate absolute bottom-full right-0 mb-2 flex w-56 flex-col gap-0.5 p-1.5"
+      className="mesh-dock-pop plate absolute top-full right-0 mt-2 flex w-56 flex-col gap-0.5 p-1.5"
       onPointerDown={(e) => e.stopPropagation()}
     >
       {children}
@@ -320,11 +320,16 @@ export function MeshDock({
       data-testid="mesh-action-bar"
       role="toolbar"
       aria-label="Mesh actions"
-      className="mesh-dock lg-regular lg-sm absolute z-30 flex items-center gap-1.5 p-1.5"
+      className="mesh-rim-keys lg-regular lg-sm absolute z-30 flex items-center gap-1.5 p-1.5"
     >
       <DockKey label={copy.searchLabel} icon={<Search size={17} />} onClick={onSearch} />
       <DockKey label="Explore as a list" icon={<LayoutList size={17} />} onClick={onList} />
-      <DockKey label="Recenter the view" icon={<Crosshair size={17} />} onClick={onRecenter} />
+      {/* Below sm the rim shares its row with the Mesh|Global switch inside a
+          ~366px panel — Recenter yields (double-tap-empty still zooms, and
+          the world re-fits on load). */}
+      <span className="hidden sm:block">
+        <DockKey label="Recenter the view" icon={<Crosshair size={17} />} onClick={onRecenter} />
+      </span>
 
       <div className="relative">
         <DockKey
