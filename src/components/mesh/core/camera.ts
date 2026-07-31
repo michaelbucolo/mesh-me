@@ -17,7 +17,10 @@ export const MAX_ZOOM = 2.4;
 
 /** The camera every mesh starts with, before fit-to-content takes over. */
 export function createCamera(): Camera {
-  return { panX: 0, panY: 0, zoom: 0.6 };
+  // 0.85 rest zoom (was 0.6): with the loom-compressed radii the world sits
+  // closer, so the camera starts near reading distance — post cards legible
+  // at rest is the whole point of the desk.
+  return { panX: 0, panY: 0, zoom: 0.85 };
 }
 
 export function clampZoom(zoom: number): number {

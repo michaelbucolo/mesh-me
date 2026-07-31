@@ -747,8 +747,9 @@ select:focus-visible {
    top edge lands underneath it unless it knows how tall the bar is. It used to
    "know" by way of a hardcoded `top-20` on the old mode-tabs — 80px, chosen to
    clear 72px, written in a component, and silently wrong the moment either
-   number moved. `--mesh-topbar-h` is that number, declared once here and read
-   by `.mesh-context` / `.mesh-marquee`. */
+   number moved. `--mesh-topbar-h` is that number, declared once here. (The
+   desk's rim chrome now anchors inside the loom window, so nothing on /mesh
+   reads it anymore — other surfaces' sticky bars still do.) */
 .mesh-topbar {
   min-height: var(--mesh-topbar-h);
 }
@@ -5902,7 +5903,8 @@ body {
      standard topbar stays hidden here — and the token must say so, because in
      the foldable band (600–767.98px) the phone-tier feed rules also apply and
      stick the feed tabs at `top: var(--mesh-topbar-h)`. */
-  .mesh-shell-feed {
+  .mesh-shell-feed,
+  .mesh-shell-mesh {
     --mesh-topbar-h: 0rem;
   }
 }
@@ -7473,84 +7475,113 @@ body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
     color-mix(in srgb, var(--accent) 42%, transparent)
   );
 }
-/* ── THE MESH CHROME: TWO OBJECTS ────────────────────────────────────────────
+/* ── THE LOOM DESK (FINAL-SPEC §3, slice 1) ─────────────────────────────────
 
-   Photographed on the running build before this: SEVEN absolutely-positioned
-   islands on /mesh at 1440×900 — a Mesh|Global pill dead-centre over a post
-   card, a three-pill visiting row top-left, a 46×440 column of eight identical
-   discs down the right edge, a bottom-left column of unseen chip-pairs, an
-   ambient toast, a live-paused pip, a continuum handle. At 390×844 that rail
-   was 46×408: forty-eight percent of the screen height, down the edge a hand
-   holds.
+   /mesh is a dashboard whose hero panel is the living mesh. The page is the
+   desk: a Today strip across the top, the framed loom panel as the largest
+   object, and a right rail of readout modules. No pixel is uncommitted
+   background — the void is dead by construction.
 
-   Two anchors now. `.mesh-context` top-left says WHERE YOU ARE. `.mesh-dock`
-   bottom-right says WHAT YOU CAN DO. Both are `.tray` — a recess holding
-   `.key`s, which is the same material the rest of the product is built from,
-   and the reason the mesh stopped looking like an embedded graph widget.
+   The chrome that used to float over a full-viewport canvas now sits on the
+   loom's RIM: `.mesh-rim-context` top-left of the window says WHERE YOU ARE,
+   `.mesh-rim-keys` top-right says WHAT YOU CAN DO IN THE WORLD, and the one
+   ambient slot is `.mesh-tray`, woven into the strip. The centre of the
+   world is left alone — that is where your own node sits. */
 
-   The middle of the canvas is left alone. That is where your own node sits. */
-
-.mesh-context {
-  /* BELOW the top bar, which on this surface is `position: absolute; top: 0`
-     over the canvas. The first draft of this pinned it at a flat `top: 0.75rem`
-     and it rendered UNDERNEATH the bar — photographed, half a Mesh|Global
-     switch peeking out from behind "Your digital world. Connected by you."
-     The old code cleared it with a hardcoded `top-20`; this reads the bar's
-     own height, which is 0 on phones where the bar is hidden. */
-  top: calc(var(--mesh-topbar-h) + 0.75rem);
-  left: 0.75rem;
-  /* Never wider than the canvas minus the dock's breathing room, so a long
-     display name truncates instead of running under the world. */
-  max-width: min(20rem, calc(100% - 1.5rem));
+.mesh-desk {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-height: 100%;
+  padding: 0.75rem;
+  /* The mesh topbar overlays this surface (absolute over the content), so the
+     desk reserves its height from the ONE token that states it — which is
+     0rem wherever the bar is hidden. */
+  padding-top: calc(var(--mesh-topbar-h, 0rem) + 0.75rem);
 }
+.mesh-desk-main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-height: 0;
+}
+.mesh-desk-strip {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  border: 1px solid var(--mesh-border);
+  border-radius: 16px;
+  background: var(--paper-1);
+  padding: 0.625rem 1rem;
+}
+.mesh-loom-panel {
+  position: relative;
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--mesh-border);
+  border-radius: 16px;
+  background: var(--paper-1);
+  padding: 0.5rem;
+  /* The loom card: a real object on mobile, the hero fold on desktop. */
+  height: min(52dvh, 26rem);
+}
+.mesh-loom-window {
+  border-radius: 10px;
+}
+.mesh-desk-rail {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.mesh-desk-module {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+  border: 1px solid var(--mesh-border);
+  border-radius: 16px;
+  background: var(--paper-1);
+}
+/* Desktop: the desk fits the fold — strip row, then loom + rail sharing the
+   remaining height. 1024, not 768: the rail needs real width, and below it
+   the stacked layout reads better on tablets too. */
 @media (min-width: 1024px) {
-  .mesh-context { left: 1rem; }
+  .mesh-desk {
+    height: 100%;
+  }
+  .mesh-desk-main {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 21.25rem;
+    flex: 1 1 auto;
+  }
+  .mesh-loom-panel {
+    height: auto;
+    min-height: 0;
+  }
+  .mesh-desk-rail {
+    overflow-y: auto;
+  }
+}
+
+.mesh-rim-context {
+  /* Inside the loom window now — the panel frames it, nothing overlaps it. */
+  top: 0.5rem;
+  left: 0.5rem;
+  max-width: min(20rem, calc(100% - 1rem));
 }
 /* The Mesh|Global switch's active half is `.key-selected`, NOT a lit fill.
-   It used to be moulded from the mesh plastic (tomato) "like the dock's
-   Create key" — which put TWO lit fills on one screen. Tone reset R4 draws
-   the line this crossed: a toggle's "on" half is STATE, not a call to
-   action; `.key-lit` is for the one true primary per screen, and on the
-   mesh that is Create. The mesh domain plastic still names this surface in
-   the sidebar, the tab bar, and the Create key — the switch just stops
-   competing with them. */
+   A toggle's "on" half is STATE, not a call to action; `.key-lit` is for the
+   one true primary per screen, and on the desk that is the strip's Create. */
 
-/* The ambient slot: directly under the context bar, left-aligned with it, so
-   every word of chrome on this surface reads down one column. */
-.mesh-marquee {
-  /* One context-bar height (h-9 key + 2×p-1.5 tray = 3rem) plus its own
-     0.75rem gap, below the context bar — which is itself below the top bar. */
-  top: calc(var(--mesh-topbar-h) + 4.5rem);
-  left: 0.75rem;
-  max-width: calc(100% - 1.5rem);
-}
-@media (min-width: 1024px) {
-  .mesh-marquee { left: 1rem; }
-}
-
-/* The dock. Bottom-right on every size — right-anchored so it never fights the
-   bottom-centre continuum handle, horizontal so it costs one row of height
-   instead of half the screen's height. On phones it clears the mobile tab bar
-   AND the home indicator; `--mobile-nav-h` is the tab bar's own height, so the
-   two can never drift apart. */
-.mesh-dock {
-  right: 0.75rem;
-  bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px) + var(--mobile-nav-h, 0px));
-  max-width: calc(100% - 1.5rem);
+/* The rim keys: the world's own tools (Find · List · Center · New · More),
+   top-right of the window, opposite the context. Popovers open DOWNWARD. */
+.mesh-rim-keys {
+  top: 0.5rem;
+  right: 0.5rem;
+  max-width: calc(100% - 1rem);
   flex-wrap: nowrap;
-}
-/* 768px, matching the tab bar's own `md:hidden` — NOT the 1024px used above
-   for spacing. The bar disappears at exactly this width, so this is the width
-   at which the dock must stop reserving room for it. Picking a different
-   number here would leave a 3.5rem hole between 768 and 1024 that nothing
-   occupies, which is the same class of bug as any other second opinion about
-   one fact. */
-@media (min-width: 768px) {
-  .mesh-dock {
-    right: 1rem;
-    /* The tab bar is gone at this width; the continuum handle is not. */
-    bottom: 1rem;
-  }
 }
 /* A dock key is at least a 44px touch target in both axes (WCAG 2.5.5 / iOS
    HIG), which `h-11 min-w-11` gives, and the tray's own padding keeps two

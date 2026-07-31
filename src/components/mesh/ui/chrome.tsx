@@ -18,7 +18,6 @@
 
 "use client";
 
-import { Sparkles, UserRound } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { BranchKey } from "../scene/scene-model";
 import type { UnseenBranchCount } from "../scene/seen-marks";
@@ -180,65 +179,11 @@ export function pickMarqueeItem(items: {
   return null;
 }
 
-/**
- * ONE LOOK FOR ALL THREE.
- *
- * These were `bg-cyan-400/10` + `border-cyan-300/30` + `text-cyan-100`, then
- * emerald, then violet — three raw Tailwind palette hues used as FILLS, on a
- * surface whose design system reserves pigment for ink and never for a fill.
- * Three ambient signals in three colours read as three unrelated systems all
- * shouting; the hue carried no meaning a person could learn, because you never
- * see two of them at once (this slot is a priority queue — that is its whole
- * point).
- *
- * So the hue is gone and the ICON carries the difference. Catch-up is a key,
- * because it is the only one you can press. The other two are `.plate` —
- * information, and information does not get a side wall.
- */
-function MeshMarquee({ item }: { item: MarqueeItem | null }) {
-  if (!item) return null;
-  if (item.kind === "catchup") {
-    // What arrived while you were away — one tap starts a flying tour
-    // through it, right in the world.
-    return (
-      <button
-        type="button"
-        onClick={item.onStart}
-        onPointerDown={(e) => e.stopPropagation()}
-        className="mesh-marquee key ds-focus-ring absolute z-30 flex items-center gap-2 px-3.5 py-2 text-xs font-semibold text-[var(--text-primary)]"
-      >
-        <Sparkles size={13} aria-hidden="true" />
-        Catch up on {item.count === 1 ? "1 new thing" : `${item.count} new things`}
-      </button>
-    );
-  }
-  if (item.kind === "weave") {
-    // Something just wove itself into the mesh, live.
-    return (
-      <div
-        key={item.key}
-        role="status"
-        className="mesh-marquee plate pointer-events-none absolute z-30 flex items-center gap-2 px-3.5 py-2 text-xs font-semibold text-[var(--text-secondary)]"
-        style={{ animation: "meshWeaveToast 4s ease forwards" }}
-      >
-        <Sparkles size={13} aria-hidden="true" />
-        {item.count === 1 ? "Something new just arrived" : `${item.count} new things just arrived`}
-      </div>
-    );
-  }
-  // Someone just walked into your mesh.
-  return (
-    <div
-      key={item.key}
-      role="status"
-      className="mesh-marquee plate pointer-events-none absolute z-30 flex items-center gap-2 px-3.5 py-2 text-xs font-semibold text-[var(--text-secondary)]"
-      style={{ animation: "meshWeaveToast 3.5s ease forwards" }}
-    >
-      <UserRound size={13} aria-hidden="true" />
-      {item.text}
-    </div>
-  );
-}
+// The marquee's RENDERING lives in the desk's Today strip now (ui/desk.tsx,
+// `.mesh-tray`): the same one-item priority queue, woven into the page as a
+// row instead of floating over the world. This module keeps the queue's
+// contract (the type + picker above) so the ambient slot still has exactly
+// one owner.
 
 // ---------------------------------------------------------------------------
 // MeshChrome — the persistent chrome group. TWO objects: the context bar
@@ -258,7 +203,6 @@ export function MeshChrome({
   oldestMoment,
   rewindAt,
   rewindValue,
-  marquee,
   unseen,
   chrome,
   onRewindInput,
@@ -279,7 +223,6 @@ export function MeshChrome({
   oldestMoment: number | null;
   rewindAt: number | null;
   rewindValue: number;
-  marquee: MarqueeItem | null;
   /** Unseen-per-branch, already gated by the caller to own-mesh + present
    *  time (marks are viewer-side, and Rewind's past has no "new"). */
   unseen: UnseenBranchCount[];
@@ -340,8 +283,6 @@ export function MeshChrome({
         onFocusBranch={onFocusBranch}
         onMarkSeen={onMarkSeen}
       />
-      {/* ONE ambient message at a time, under the context bar. */}
-      <MeshMarquee item={marquee} />
       {/* Rewind — drag through time and watch this world re-assemble. */}
       {chrome.isOpen("rewind") && oldestMoment != null && status === "ready" && (
         <MeshRewindPanel

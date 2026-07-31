@@ -75,7 +75,7 @@ const uiFiles = readdirSync(join(ROOT, UI_DIR)).filter((f) => f.endsWith(".tsx")
 // while the surface does not mount persistent chrome around it.
 {
   const chrome = strip(read(`${UI_DIR}/chrome.tsx`));
-  for (const required of ["MeshContextBar", "MeshDock", "MeshMarquee"]) {
+  for (const required of ["MeshContextBar", "MeshDock"]) {
     // The name must END here. `chrome.includes("<MeshDock")` was the first
     // draft, and mutation M7 walked straight through it: renaming the element
     // to <MeshDockDisabled kept the substring and the gate reported green
@@ -84,6 +84,16 @@ const uiFiles = readdirSync(join(ROOT, UI_DIR)).filter((f) => f.endsWith(".tsx")
       fail("2 one owner", `chrome.tsx does not render <${required}> — the chrome group has been split again`);
     } else ok();
   }
+  // The ambient slot moved into the desk's Today strip (`.mesh-tray` in
+  // desk.tsx) — the DESK owns it now, and chrome.tsx must not grow a second
+  // renderer for the same queue.
+  if (/<MeshMarquee(?![A-Za-z0-9_])/.test(chrome)) {
+    fail("2 one owner", "chrome.tsx renders <MeshMarquee> again — the ambient slot lives in the desk's tray; two renderers for one queue is the pile-up this gate exists to stop");
+  } else ok();
+  const desk = strip(read(`${UI_DIR}/desk.tsx`));
+  if (!/\bmesh-tray\b/.test(desk)) {
+    fail("2 one owner", "desk.tsx has no .mesh-tray — the one ambient slot has no home");
+  } else ok();
   const surface = strip(read("src/components/mesh/scene/mesh-surface.tsx"));
   // The surface may mount overlays (they are layers, not anchors) but must not
   // mount a second persistent toolbar.
@@ -103,34 +113,44 @@ const uiFiles = readdirSync(join(ROOT, UI_DIR)).filter((f) => f.endsWith(".tsx")
   const dock = strip(read(`${UI_DIR}/dock.tsx`));
   const context = strip(read(`${UI_DIR}/context-bar.tsx`));
   const chrome = strip(read(`${UI_DIR}/chrome.tsx`));
+  const desk = strip(read(`${UI_DIR}/desk.tsx`));
 
-  // The two objects each anchor exactly once, through a named class whose
+  // The two rim objects each anchor exactly once, through a named class whose
   // position lives in CSS rather than in a Tailwind soup of edge utilities.
-  if (!/className="[^"]*\bmesh-dock\b[^"]*\babsolute\b/.test(dock)) {
-    fail("3 anchors", "the dock's root is not a single `.mesh-dock absolute` — its position has scattered back into utilities");
+  // They float INSIDE the loom window (the panel frames them) — the desk
+  // itself is in normal flow and is not an anchor at all.
+  if (!/className={`mesh-rim-keys\b[^`]*\babsolute\b|className="[^"]*\bmesh-rim-keys\b[^"]*\babsolute\b/.test(dock)) {
+    fail("3 anchors", "the rim keys' root is not a single `.mesh-rim-keys absolute` — its position has scattered back into utilities");
   } else ok();
-  if (!/className="[^"]*\bmesh-context\b[^"]*\babsolute\b/.test(context)) {
-    fail("3 anchors", "the context bar's root is not a single `.mesh-context absolute`");
+  if (!/className="[^"]*\bmesh-rim-context\b[^"]*\babsolute\b/.test(context)) {
+    fail("3 anchors", "the context bar's root is not a single `.mesh-rim-context absolute`");
+  } else ok();
+  // The tray is a ROW in the strip, never a floating island — if it goes
+  // absolute the ambient slot has left the page again.
+  if (/className="[^"]*\bmesh-tray\b[^"]*\babsolute\b/.test(desk)) {
+    fail("3 anchors", "the desk's .mesh-tray is absolutely positioned — the ambient slot belongs in the strip's flow, not floating over the world");
   } else ok();
 
-  // Count edge-pinned islands the chrome group declares. Three is the budget:
-  // context bar, marquee, dock. The rewind panel is a layer, not an anchor.
+  // Count edge-pinned islands the chrome group declares. Two is the budget:
+  // rim context and rim keys. The rewind panel is a layer, not an anchor.
   const anchorClasses = new Set<string>();
   for (const src of [dock, context, chrome]) {
     for (const m of src.matchAll(/className="([^"]*\babsolute\b[^"]*)"/g)) {
       const cls = m[1];
       // A popover anchored to its own key is not an island — it is part of the
-      // object that owns it, and it moves with it.
+      // object that owns it, and it moves with it. Same for the badge pinned
+      // to a key's corner.
       if (/\bbottom-full\b|\btop-full\b/.test(cls)) continue;
-      const named = /\b(mesh-dock|mesh-context|mesh-marquee)\b/.exec(cls)?.[1];
+      if (/\bmesh-dock-badge\b/.test(cls)) continue;
+      const named = /\b(mesh-rim-keys|mesh-rim-context)\b/.exec(cls)?.[1];
       if (named) anchorClasses.add(named);
       else anchorClasses.add(cls.replace(/\s+/g, " ").trim());
     }
   }
-  if (anchorClasses.size > 3) {
+  if (anchorClasses.size > 2) {
     fail(
       "3 anchors",
-      `${anchorClasses.size} persistent chrome anchors on the mesh (budget 3: context bar, marquee, dock). New: ${[...anchorClasses].join(" | ")}`,
+      `${anchorClasses.size} persistent chrome anchors on the mesh (budget 2: rim context, rim keys). New: ${[...anchorClasses].join(" | ")}`,
     );
   } else ok();
 }
@@ -195,7 +215,7 @@ const uiFiles = readdirSync(join(ROOT, UI_DIR)).filter((f) => f.endsWith(".tsx")
     return m ? Number(m[1]) * 16 : null;
   };
   const [lg, md] = [radius("lg"), radius("md")];
-  const padded = /className="mesh-dock lg-regular[^"]*\bp-1\.5\b/.test(dock);
+  const padded = /className={`mesh-rim-keys lg-regular[^`]*\bp-1\.5\b|className="mesh-rim-keys lg-regular[^"]*\bp-1\.5\b/.test(dock);
   if (lg === null || md === null) {
     fail("4 material", "the radius ladder has moved out of globals.css; concentricity is no longer measurable");
   } else if (!padded) {
@@ -228,20 +248,22 @@ const uiFiles = readdirSync(join(ROOT, UI_DIR)).filter((f) => f.endsWith(".tsx")
   }
 }
 
-// ── 6. The dock clears the tab bar from ONE number ───────────────────────────
+// ── 6. Whatever still floats near the tab bar clears it from ONE number ──────
 //
-// The dock sits above the mobile tab bar. If it clears it with a literal
-// height copied out of the nav, the two drift the first time either changes —
-// the exact shape of failure that took production down over schema.prisma vs
-// ensure-schema.sql.
+// The desk is in normal flow (the page scroller handles the tab bar), so the
+// rim chrome never meets it. The continuum handle is the one element on this
+// surface still pinned near the bottom edge; if it clears the bar with a
+// literal height copied out of the nav, the two drift the first time either
+// changes — the exact shape of failure that took production down over
+// schema.prisma vs ensure-schema.sql.
 {
   const css = read("src/app/globals.css");
   if (!/--mobile-nav-h\s*:/.test(css)) {
-    fail("6 one number", "--mobile-nav-h is not declared; the dock's clearance is a magic number again");
+    fail("6 one number", "--mobile-nav-h is not declared; bottom clearance is a magic number again");
   } else ok();
-  const dockRule = /\.mesh-dock\s*\{([^}]*)\}/.exec(css)?.[1] ?? "";
-  if (!/var\(--mobile-nav-h/.test(dockRule)) {
-    fail("6 one number", ".mesh-dock does not read var(--mobile-nav-h) — it will sit under the tab bar the moment the bar's height changes");
+  const handleRule = /\.mesh-continuum-handle-down\s*\{([^}]*)\}/.exec(css)?.[1] ?? "";
+  if (!/var\(--mobile-nav-h/.test(handleRule)) {
+    fail("6 one number", ".mesh-continuum-handle-down does not read var(--mobile-nav-h) — it will sit under the tab bar the moment the bar's height changes");
   } else ok();
   const navRule = /\.mobile-bottom-nav\s*\{([^}]*)\}/g;
   let navReadsToken = false;
@@ -249,14 +271,7 @@ const uiFiles = readdirSync(join(ROOT, UI_DIR)).filter((f) => f.endsWith(".tsx")
     if (/var\(--mobile-nav-h/.test(m[1])) navReadsToken = true;
   }
   if (!navReadsToken) {
-    fail("6 one number", ".mobile-bottom-nav does not apply --mobile-nav-h, so the token describes nothing and the dock is clearing a number nobody enforces");
-  } else ok();
-  // The breakpoint at which the dock stops reserving room must be the one at
-  // which the bar actually disappears (`md:hidden` = 768px). A 1024px override
-  // leaves a 3.5rem hole nothing occupies between the two.
-  const dockMedia = /@media \(min-width: (\d+)px\) \{\s*\.mesh-dock\s*\{/.exec(css)?.[1];
-  if (dockMedia !== "768") {
-    fail("6 one number", `.mesh-dock drops its tab-bar clearance at ${dockMedia ?? "no"}px, but .mobile-bottom-nav is md:hidden (768px)`);
+    fail("6 one number", ".mobile-bottom-nav does not apply --mobile-nav-h, so the token describes nothing and the clearance is a number nobody enforces");
   } else ok();
 }
 
@@ -280,19 +295,17 @@ const uiFiles = readdirSync(join(ROOT, UI_DIR)).filter((f) => f.endsWith(".tsx")
     fail("7 top clearance", ".mesh-topbar does not size itself from --mesh-topbar-h, so the token describes nothing");
   } else ok();
 
-  for (const cls of [".mesh-context", ".mesh-marquee"]) {
+  // The rim chrome lives INSIDE the loom window — the panel frames it, the
+  // top bar never overlaps it. Reading --mesh-topbar-h from inside the frame
+  // would be a stale opinion about a bar it no longer meets.
+  for (const cls of [".mesh-rim-context", ".mesh-rim-keys"]) {
     const rule = new RegExp(`\\${cls}\\s*\\{([^}]*)\\}`).exec(css)?.[1] ?? "";
-    if (!/top:\s*calc\([^)]*var\(--mesh-topbar-h/.test(rule)) {
-      fail("7 top clearance", `${cls} does not derive its top from var(--mesh-topbar-h) — it will render under the top bar the moment that bar's height changes`);
+    if (!rule) {
+      fail("7 top clearance", `${cls} has no rule in globals.css — the rim anchor's position has no owner`);
+    } else if (/--mesh-topbar-h/.test(rule)) {
+      fail("7 top clearance", `${cls} reads --mesh-topbar-h, but it is framed by the loom panel and never meets the top bar`);
     } else ok();
   }
-
-  // The dock is bottom-anchored, so it must NOT reserve top-bar room — doing so
-  // would be a third opinion about a bar it never touches.
-  const dockRule = /\.mesh-dock\s*\{([^}]*)\}/.exec(css)?.[1] ?? "";
-  if (/--mesh-topbar-h/.test(dockRule)) {
-    fail("7 top clearance", ".mesh-dock reads --mesh-topbar-h, but it is anchored to the bottom and never meets the top bar");
-  } else ok();
 }
 
 if (failures.length) {

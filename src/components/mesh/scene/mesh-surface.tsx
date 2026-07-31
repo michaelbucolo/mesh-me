@@ -19,6 +19,7 @@ import { MeshiLayer } from "../live/meshi-layer";
 import { useLivePresence } from "../live/use-live-presence";
 import { useMeshiDomSync } from "../live/use-meshi-dom-sync";
 import { MeshChrome, pickMarqueeItem, useMeshChrome, type MeshChromeController } from "../ui/chrome";
+import { MeshActiveNow, MeshLatest, MeshPulse, MeshTodayStrip } from "../ui/desk";
 import { ContentLens } from "../ui/content-lens";
 import { MeshComposeModal } from "../ui/compose-modal";
 import { meshCopy } from "../ui/copy";
@@ -120,6 +121,15 @@ export function MeshScene({ viewUserId, viewMode = "mesh", viewerIsPro = false }
     mq.addEventListener("change", update);
     return () => mq.removeEventListener("change", update);
   }, [rtRef]);
+  // THE LOOM DESK tokens (tokens.css `html.mesh-loom`) apply while this scene
+  // is mounted. Hoisted to <html> — not the wrapper — because paintTheme()
+  // reads the document root and keys its cache on the root's className, so
+  // the canvas re-reads the loom palette the frame after this flips, with no
+  // bridge change and no per-frame cost.
+  useEffect(() => {
+    document.documentElement.classList.add("mesh-loom");
+    return () => document.documentElement.classList.remove("mesh-loom");
+  }, []);
   useEffect(() => {
     if (!presenceToast) return;
     const t = setTimeout(() => setPresenceToast(null), 3600);
@@ -253,6 +263,13 @@ export function MeshScene({ viewUserId, viewMode = "mesh", viewerIsPro = false }
     presence: presenceToast,
   });
 
+  // What the desk's strip and Pulse read: unseen across all branches, under
+  // the same own-mesh/present-time gate the dock's New key uses.
+  const deskUnseenTotal =
+    viewer.isOwner && world.status === "ready" && world.rewindAt == null
+      ? world.unseen.reduce((sum, u) => sum + u.count, 0)
+      : 0;
+
   // The lens's stream, derived from the STATE model (identical object to the
   // runtime's — refreshed on every load/rewind rebuild).
   const lensList = useMemo(() => contentListOf(world.model, tourIds), [world.model, tourIds]);
@@ -288,14 +305,46 @@ export function MeshScene({ viewUserId, viewMode = "mesh", viewerIsPro = false }
     selectedNode.kind !== "activity";
 
   return (
-    <div
-      ref={(el) => {
-        rtRef.current.containerEl = el;
-      }}
-      data-testid="mesh-scene"
-      className="relative h-full min-h-0 w-full min-w-0 flex-1 touch-none overflow-hidden bg-[var(--paper-0)] select-none"
-      onWheel={input.onWheel}
-    >
+    <div className="mesh-desk" data-testid="mesh-desk">
+      {/* THE TODAY STRIP — the desk's glance row. The marquee's one ambient
+          slot lives here now (the tray), woven into the page instead of
+          floating over the world. */}
+      <MeshTodayStrip
+        ownerName={world.meshData?.user.displayName ?? world.viewedUser?.displayName ?? null}
+        isOwner={viewer.isOwner}
+        isGlobal={viewer.isGlobal}
+        canPost={viewer.canPost && !!world.meshUser}
+        marquee={marqueeItem}
+        unseenTotal={deskUnseenTotal}
+        onCompose={() => chrome.open("compose")}
+        onSearch={() => chrome.open("search")}
+        onSync={
+          viewer.isOwner
+            ? async () => {
+                // Same budget-guarded endpoint the auto-sync beacon uses; a
+                // quiet reload folds whatever arrived into the loom.
+                try {
+                  await fetch("/api/sync/auto", { method: "POST", credentials: "same-origin" });
+                } catch {
+                  // The reload below still shows the freshest state we have.
+                }
+                await world.loadScene({ quiet: true });
+              }
+            : undefined
+        }
+      />
+
+      <div className="mesh-desk-main">
+        {/* THE LOOM PANEL — the framed hero window onto the world. */}
+        <div className="mesh-loom-panel">
+          <div
+            ref={(el) => {
+              rtRef.current.containerEl = el;
+            }}
+            data-testid="mesh-scene"
+            className="mesh-loom-window relative h-full min-h-0 w-full min-w-0 flex-1 touch-none overflow-hidden bg-[var(--paper-0)] select-none"
+            onWheel={input.onWheel}
+          >
       {/* The canvas draws Meshi at the pointer itself, so it owns the BODY
           layer here and the global DOM sprite stands down over it —
           `data-meshi-canvas-pointer` is what tells the sprite that.
@@ -359,13 +408,14 @@ export function MeshScene({ viewUserId, viewMode = "mesh", viewerIsPro = false }
         copy={copy}
         viewUserId={viewUserId}
         viewedUser={world.viewedUser}
-        canCompose={viewer.canPost && !!world.meshUser}
+        // The Today strip owns the one lit Create key now — the rim keys stay
+        // neutral world tools (Find / List / Center / New / More).
+        canCompose={false}
         shareUsername={world.meshData?.user.username ?? null}
         status={world.status}
         oldestMoment={world.oldestMoment}
         rewindAt={world.rewindAt}
         rewindValue={world.rewindValue}
-        marquee={marqueeItem}
         // "What piled up where" rides the dock's New key now, instead of its
         // own floating column of chip-pairs bottom-left. SAME gate as before —
         // own mesh, present time only, because the marks are viewer-side and
@@ -517,6 +567,27 @@ export function MeshScene({ viewUserId, viewMode = "mesh", viewerIsPro = false }
           }}
         />
       )}
+          </div>
+        </div>
+
+        {/* THE RIGHT RAIL — readouts of the loom. Global degrades module by
+            module (no Active Now, no Pulse) instead of leaving a void. */}
+        <aside className="mesh-desk-rail" aria-label="Mesh dashboard">
+          {!viewer.isGlobal && (
+            <MeshActiveNow
+              presences={live.remotePresences}
+              onJump={(userId) => {
+                const person = world.model
+                  ? [...world.model.nodes.values()].find((n) => n.kind === "person" && n.userId === userId)
+                  : undefined;
+                if (person) input.jumpToNode(person);
+              }}
+            />
+          )}
+          <MeshLatest model={world.model} onOpen={(node) => input.jumpToNode(node)} />
+          {viewer.isOwner && <MeshPulse model={world.model} unseenTotal={deskUnseenTotal} />}
+        </aside>
+      </div>
     </div>
   );
 }
