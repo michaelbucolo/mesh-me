@@ -2114,32 +2114,20 @@ export function MeshiFloat() {
                 </span>
               )}
 
-              {/* Active ring when actions/speech open */}
-              {view !== "closed" && view !== "chat" && (
-                <motion.div className="absolute inset-0 rounded-full pointer-events-none"
-                  style={{ border: "2px solid var(--accent)" }}
-                  animate={{ scale: [1, 1.15, 1], opacity: [0.5, 0.2, 0.5] }}
-                  transition={{ duration: 2, repeat: Infinity }} />
-              )}
-
-              {/* First-time pulse indicator — draws attention to Meshi for new users */}
+              {/* First-time hint. This used to be TWO perpetual rings — a 2px
+                  accent circle pulsing 1->1.4 around the mascot while unvisited,
+                  and another breathing ring the whole time the panel was open.
+                  Rings orbiting forever are the ambient glow-noise this system
+                  keeps deleting ("a weird aura around him"); the open state is
+                  visible as the open panel, and the little Tap chip says the
+                  whole first-time message by itself. */}
               {isFirstTimeMeshi && view === "closed" && (
-                <>
-                  <motion.div
-                    className="absolute -inset-2 rounded-full pointer-events-none"
-                    style={{ border: "2px solid var(--accent)" }}
-                    animate={{ scale: [1, 1.4, 1], opacity: [0.6, 0, 0.6] }}
-                    transition={{ duration: 2, repeat: Infinity, ease: "easeOut" }}
-                  />
-                  <motion.div
-                    className="absolute -top-1 -right-1 px-1.5 py-0.5 rounded-full text-micro font-semibold text-[var(--accent-contrast)] pointer-events-none shadow-lg"
-                    style={{ background: "var(--accent)" }}
-                    animate={{ scale: [1, 1.1, 1] }}
-                    transition={{ duration: 1.5, repeat: Infinity }}
-                  >
-                    Tap
-                  </motion.div>
-                </>
+                <div
+                  className="absolute -top-1 -right-1 rounded-full px-1.5 py-0.5 text-micro font-semibold text-[var(--accent-contrast)] pointer-events-none shadow-lg"
+                  style={{ background: "var(--accent)" }}
+                >
+                  Tap
+                </div>
               )}
             </motion.div>
           </motion.div>
