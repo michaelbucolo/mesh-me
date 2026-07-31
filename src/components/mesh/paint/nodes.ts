@@ -289,7 +289,7 @@ function paintPostCard(
   const gap = 5 * scale;
   let mx = x + pad;
   if (likes != null) {
-    drawGlyphHeart(ctx, mx, footY, gsz, withAlpha(paintTheme().warm, 0.95));
+    drawGlyphHeart(ctx, mx, footY, gsz, withAlpha(paintTheme().like, 0.95));
     mx += gsz + gap * 0.7;
     ctx.fillStyle = metaColor;
     const s = String(likes);
@@ -303,7 +303,9 @@ function paintPostCard(
     ctx.fillText(String(comments), mx, footY);
   }
 
-  // Source chip (pill) on the right.
+  // Source chip (pill) on the right. Chip material is the DOM's: --paper-2
+  // body under a --rule hairline (rule carries its own alpha), ink-3 label —
+  // not ad-hoc ink washes that only approximate the recess colour.
   const chipText = "Source";
   ctx.font = `600 ${Math.max(7, 8 * scale)}px ui-sans-serif, system-ui, sans-serif`;
   const chipTW = ctx.measureText(chipText).width;
@@ -313,9 +315,9 @@ function paintPostCard(
   const chipX = x + w - pad - chipW;
   const chipY = footY - chipH / 2;
   roundRectPath(ctx, chipX, chipY, chipW, chipH, chipH / 2);
-  ctx.fillStyle = withAlpha(paintTheme().ink1, 0.06);
+  ctx.fillStyle = paintTheme().paper2;
   ctx.fill();
-  ctx.strokeStyle = withAlpha(paintTheme().ink1, 0.16);
+  ctx.strokeStyle = paintTheme().rule;
   ctx.lineWidth = 1;
   ctx.stroke();
   ctx.fillStyle = withAlpha(paintTheme().ink3, 0.95);
@@ -331,10 +333,14 @@ function paintPostCard(
   ctx.lineWidth = isSelected || isHover ? 1.8 : 1.1;
   ctx.stroke();
 
-  // Arrived since your last visit — a bright, unmissable mark.
+  // Arrived since your last visit. Was a solid warm-filled pill — with several
+  // new posts on screen that's several loud fills, and warm is the affection
+  // pigment, not the news pigment. The DOM's "New" idiom (MeChat's unread
+  // divider) is accent INK on quiet paper; the full-alpha pill on the card
+  // edge keeps it unmissable without a second fill colour per card.
   if (node.isNew) {
     ctx.globalAlpha = 1;
-    drawPill(ctx, x + 26 * scale, y, "New", withAlpha(paintTheme().warm, 0.94), withAlpha(paintTheme().warm, 0.9), paintTheme().inkInverse, Math.max(8, 9 * scale), 7);
+    drawPill(ctx, x + 26 * scale, y, "New", paintTheme().paper1, withAlpha(paintTheme().accent, 0.55), paintTheme().accent, Math.max(8, 9 * scale), 7);
   }
 
   ctx.restore();

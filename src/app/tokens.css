@@ -287,6 +287,13 @@
   --skeleton-2: #262626;
   --skeleton-3: #333333;
   --canvas-shadow: rgba(0, 0, 0, 0.75);
+  /* Same value as :root — --like is deliberately theme-invariant (see the R1
+     note there: 3.4:1 on white, 5.9:1 on black as ONE value). Declared here
+     anyway because the canvas bridge (paint/theme.ts) carries a DOM-less
+     fallback for it, and palette-check rule 6 holds every bridged token to
+     account per theme block — a token the dark block never states can't be
+     audited. Precedent: --canvas-shadow, one line up. */
+  --like: #e8496b;
 }
 
 /* ─────────────────────────────────────────────────────────────────

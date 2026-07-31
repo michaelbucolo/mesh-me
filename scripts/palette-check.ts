@@ -178,7 +178,7 @@ const BRIDGE_FIELDS: Record<string, string> = {
   paper0: "--paper-0", paper1: "--paper-1", paper2: "--paper-2",
   ink1: "--ink-1", ink2: "--ink-2", ink3: "--ink-3", ink4: "--ink-4",
   edge: "--edge", inkInverse: "--ink-inverse", accent: "--accent",
-  warm: "--warm", success: "--success", warning: "--warning", danger: "--danger",
+  like: "--like", success: "--success", warning: "--warning", danger: "--danger",
 };
 for (const [constName, tokenSet, label] of [
   ["WORKLIGHT", DARK, ".dark"],
