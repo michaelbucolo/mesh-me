@@ -7488,113 +7488,52 @@ body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
     color-mix(in srgb, var(--accent) 42%, transparent)
   );
 }
-/* ── THE LOOM DESK (FINAL-SPEC §3, slice 1) ─────────────────────────────────
+/* ── THE FULL-SCREEN WORLD + THE HUD ────────────────────────────────────────
 
-   /mesh is a dashboard whose hero panel is the living mesh. The page is the
-   desk: a Today strip across the top, the framed loom panel as the largest
-   object, and a right rail of readout modules. No pixel is uncommitted
-   background — the void is dead by construction.
-
-   The chrome that used to float over a full-viewport canvas now sits on the
-   loom's RIM: `.mesh-rim-context` top-left of the window says WHERE YOU ARE,
-   `.mesh-rim-keys` top-right says WHAT YOU CAN DO IN THE WORLD, and the one
-   ambient slot is `.mesh-tray`, woven into the strip. The centre of the
-   world is left alone — that is where your own node sits. */
-
-.mesh-desk {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  min-height: 100%;
-  padding: 0.75rem;
-  /* The mesh topbar overlays this surface (absolute over the content), so the
-     desk reserves its height from the ONE token that states it — which is
-     0rem wherever the bar is hidden. */
-  padding-top: calc(var(--mesh-topbar-h, 0rem) + 0.75rem);
-}
-.mesh-desk-main {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  min-height: 0;
-}
-.mesh-desk-strip {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  border: 1px solid var(--mesh-border);
-  border-radius: 16px;
-  background: var(--paper-1);
-  padding: 0.625rem 1rem;
-}
-.mesh-loom-panel {
-  position: relative;
-  display: flex;
-  min-height: 0;
-  flex-direction: column;
-  overflow: hidden;
-  border: 1px solid var(--mesh-border);
-  border-radius: 16px;
-  background: var(--paper-1);
-  padding: 0.5rem;
-  /* The loom card: a real object on mobile, the hero fold on desktop. */
-  height: min(52dvh, 26rem);
-}
-.mesh-loom-window {
-  border-radius: 10px;
-}
-.mesh-desk-rail {
-  display: flex;
-  min-height: 0;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-.mesh-desk-module {
-  display: flex;
-  min-height: 0;
-  flex-direction: column;
-  border: 1px solid var(--mesh-border);
-  border-radius: 16px;
-  background: var(--paper-1);
-}
-/* Desktop: the desk fits the fold — strip row, then loom + rail sharing the
-   remaining height. 1024, not 768: the rail needs real width, and below it
-   the stacked layout reads better on tablets too. */
-@media (min-width: 1024px) {
-  .mesh-desk {
-    height: 100%;
-  }
-  .mesh-desk-main {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) 21.25rem;
-    flex: 1 1 auto;
-  }
-  .mesh-loom-panel {
-    height: auto;
-    min-height: 0;
-  }
-  .mesh-desk-rail {
-    overflow-y: auto;
-  }
-}
+   The mesh owns every pixel: it is a way of exploring the internet and
+   expressing your presence, not a widget on a page. (The framed "desk" grid
+   shipped for one day and was rejected in exactly those words.) Three
+   floating objects ride over the world: `.mesh-rim-context` top-left says
+   WHERE YOU ARE, `.mesh-rim-keys` top-right says WHAT YOU CAN DO, and
+   `.mesh-hud` at the right edge is the one collapsible ledger (ambient tray
+   + Active Now + Latest + Pulse). The centre of the world is left alone —
+   that is where your own node sits. */
 
 .mesh-rim-context {
-  /* Inside the loom window now — the panel frames it, nothing overlaps it. */
-  top: 0.5rem;
-  left: 0.5rem;
-  max-width: min(20rem, calc(100% - 1rem));
+  /* BELOW the top bar, which on this surface is absolute over the canvas —
+     read its height from the one token that states it (0 where hidden). */
+  top: calc(var(--mesh-topbar-h, 0rem) + 0.75rem);
+  left: 0.75rem;
+  max-width: min(20rem, calc(100% - 1.5rem));
 }
 /* The Mesh|Global switch's active half is `.key-selected`, NOT a lit fill.
    A toggle's "on" half is STATE, not a call to action; `.key-lit` is for the
    one true primary per screen, and on the desk that is the strip's Create. */
 
-/* The rim keys: the world's own tools (Find · List · Center · New · More),
-   top-right of the window, opposite the context. Popovers open DOWNWARD. */
+/* The rim keys: the world's tools (Find · List · Center · New · More ·
+   Create), top-right opposite the context. Popovers open DOWNWARD. */
 .mesh-rim-keys {
-  top: 0.5rem;
-  right: 0.5rem;
-  max-width: calc(100% - 1rem);
+  top: calc(var(--mesh-topbar-h, 0rem) + 0.75rem);
+  right: 0.75rem;
+  max-width: calc(100% - 1.5rem);
   flex-wrap: nowrap;
+}
+
+/* THE HUD. Right edge, below the rim keys, above the tab bar — the one
+   number for each of those clearances. Collapsed it is just the tray + a
+   reopen key in the same corner. */
+.mesh-hud {
+  top: calc(var(--mesh-topbar-h, 0rem) + 4.25rem);
+  right: 0.75rem;
+  width: 19rem;
+  max-width: calc(100% - 1.5rem);
+  max-height: calc(
+    100% - var(--mesh-topbar-h, 0rem) - 5.25rem -
+      (env(safe-area-inset-bottom, 0px) + var(--mobile-nav-h, 0px))
+  );
+}
+.mesh-hud-closed {
+  width: auto;
 }
 /* A dock key is at least a 44px touch target in both axes (WCAG 2.5.5 / iOS
    HIG), which `h-11 min-w-11` gives, and the tray's own padding keeps two
