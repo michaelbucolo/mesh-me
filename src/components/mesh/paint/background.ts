@@ -33,9 +33,6 @@ export interface BackgroundInputs {
   atmosphere?: string | null;
   /** Lamplit paper when true (the DOM theme), daylit when false. */
   dark?: boolean;
-  /** Vestigial: the surface no longer has a star field. Kept so existing
-   *  callers compile; ignored by the painter and removed with them. */
-  stars?: { x: number; y: number; r: number; tw: number }[];
 }
 
 /**
@@ -154,7 +151,6 @@ export class BackgroundLayer {
   private lastWidth = 0;
   private lastHeight = 0;
   private lastAtmo: string | null = null;
-  private lastStars: BackgroundInputs["stars"] | null = null;
   private lastPanX = NaN;
   private lastPanY = NaN;
   private lastTime = -Infinity;
@@ -206,7 +202,6 @@ export class BackgroundLayer {
       this.lastWidth = o.width;
       this.lastHeight = o.height;
       this.lastAtmo = atmoId;
-      this.lastStars = o.stars;
       this.lastPanX = o.camera.panX;
       this.lastPanY = o.camera.panY;
       this.lastTime = o.time;

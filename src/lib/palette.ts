@@ -114,3 +114,29 @@ export function inkForFill(fill: string): string {
   const hit = Object.values(MOULD).find((p) => p.fill.toLowerCase() === fill.trim().toLowerCase());
   return hit ? hit.ink : "var(--chip-ink)";
 }
+
+/**
+ * Platform brand colours — the one set of literals that is not ours to choose:
+ * #1db954 is Spotify's green whether it suits us or not. Everything else on
+ * the canvas names a plastic; a platform hub names its owner's brand.
+ * scripts/palette-check.ts pins this exemption to THIS module — the data
+ * layers it scans must import from here rather than spell colours.
+ */
+export const PLATFORM_COLORS: Record<string, string> = {
+  instagram: "#E4405F",
+  youtube: "#FF0000",
+  tiktok: "#69C9D0",
+  twitter: "#1DA1F2",
+  twitch: "#9146FF",
+  spotify: "#1DB954",
+  soundcloud: "#FF5500",
+  linkedin: "#0A66C2",
+  github: "#8B5CF6",
+  discord: "#5865F2",
+  snapchat: "#FFFC00",
+  pinterest: "#E60023",
+  reddit: "#FF4500",
+  facebook: "#1877F2",
+  threads: "#ffffff",
+  bluesky: "#0085FF",
+};

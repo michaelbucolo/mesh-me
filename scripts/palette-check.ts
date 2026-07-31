@@ -117,9 +117,10 @@ for (const [section, file] of [
 }
 
 // PLATFORM_COLORS is the one allowed exception and it is not ours to choose:
-// #1db954 is Spotify's green whether it suits us or not.
-if (!read("src/components/mesh/mesh-types.ts").includes("PLATFORM_COLORS")) {
-  fail("3 mesh", "PLATFORM_COLORS moved — the brand-colour exemption above no longer describes the code");
+// #1db954 is Spotify's green whether it suits us or not. It lives in the
+// palette module itself (mesh-types.ts, its old home, was deleted as a husk).
+if (!palette.includes("PLATFORM_COLORS")) {
+  fail("3 mesh", "PLATFORM_COLORS moved out of src/lib/palette.ts — the brand-colour exemption above no longer describes the code");
 } else ok();
 
 // ── 5. --chip-ink is never put on a palette fill ─────────────────────────────

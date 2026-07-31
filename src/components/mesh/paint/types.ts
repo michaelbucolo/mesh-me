@@ -31,7 +31,6 @@ export interface ScenePaintOptions {
   focusId: string | null;
   hoverId?: string | null;
   images: Map<string, HTMLImageElement>;
-  backgroundStars: { x: number; y: number; r: number; tw: number }[];
   /** MeshPro visuals chosen by this mesh's OWNER — visitors see them too. */
   visuals?: {
     connectionColor?: string | null;

@@ -6038,39 +6038,11 @@ body {
   }
 }
 
-/* --- MeChat: responsive panels --- */
-@media (max-width: 767px) {
-  .mechat-layout {
-    flex-direction: column;
-    height: calc(100dvh - 3.25rem - 5rem - env(safe-area-inset-bottom));
-  }
-
-  .mechat-sidebar {
-    width: 100% !important;
-    border-right: 0 !important;
-    flex: 1;
-    min-height: 0;
-  }
-
-  .mechat-sidebar.mechat-sidebar-hidden {
-    display: none;
-  }
-
-  /* When viewing a thread/room, hide sidebar and show only the thread panel */
-  .mechat-layout[data-view="thread"] .mechat-sidebar,
-  .mechat-layout[data-view="room"] .mechat-sidebar {
-    display: none;
-  }
-
-  .mechat-thread-panel {
-    width: 100% !important;
-    flex: 1;
-  }
-
-  .mechat-detail-panel {
-    display: none !important;
-  }
-}
+/* The ".mechat-layout / .mechat-sidebar / .mechat-thread-panel /
+   .mechat-detail-panel" responsive-panel rule family was deleted: the MeChat
+   rebuild dropped those classes from the DOM (only .mechat-key /
+   .mechat-bubble-* survive in components), so the rules — including the
+   thread-view height math — matched nothing. */
 
 /* --- Settings: mobile improvements --- */
 @media (max-width: 767px) {
@@ -6291,12 +6263,6 @@ body {
 
   .mesh-main {
     padding-bottom: 0 !important;
-  }
-
-  /* Phone MeChat height subtracts the 5rem bottom nav that is hidden here;
-     the icon-rail top bar in this band is 3.5rem tall. */
-  .mechat-layout {
-    height: calc(100dvh - 3.5rem) !important;
   }
 
   .app-shell-layout-feed .app-main-feed {

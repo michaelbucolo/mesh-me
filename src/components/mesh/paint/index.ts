@@ -1,7 +1,7 @@
 // The layered paint engine — the mesh's renderer.
 // One engine per mounted mesh surface. Layers, in draw order:
 //
-//   background — offscreen-cached sky (stars/nebulae/vignette), blitted
+//   background — offscreen-cached sky (paper gradient/vignette), blitted
 //   edges      — strands (physics control points ride sim's spatial grid)
 //   nodes      — sprite-atlas orbs/avatars/tiles/cards + immediate garnish
 //   fx         — pulses/bursts, drawn inline by edges/nodes at their z-order
@@ -77,7 +77,6 @@ export function createPaintEngine(options: PaintEngineOptions = {}): PaintEngine
         time: o.time,
         camera: o.camera,
         atmosphere: o.visuals?.atmosphere,
-        stars: o.backgroundStars,
         // WITHOUT THIS THE MESH IS DARK IN DAYLIGHT. `paintSky` reads
         // `o.dark !== false`, and `dark` was never put on this object — so
         // `undefined !== false` chose the lamplit paper on every frame, in
