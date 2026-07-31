@@ -8,7 +8,7 @@ import { FlowReels } from "./flow-reels";
 import { PaperWait } from "@/components/loading/paper-wait";
 import { PostCard } from "@/components/feed/post-card";
 import { PostComposer } from "@/components/feed/post-composer";
-import { UserMeshiBadge } from "@/components/meshi/meshi-identity";
+import { Avatar } from "@/components/ui/avatar";
 import { MeshiMascot, type MeshiColor, type MeshiHat } from "@/components/meshi/meshi-mascot";
 import { readGhostMode } from "@/lib/ghost-mode";
 import { readWhereShare } from "@/lib/where-share";
@@ -618,7 +618,7 @@ export function FeedTimelineClient({
       <aside className="insta-right-rail">
         <div className="flex items-center justify-between gap-3">
           <Link href={`/profile/${user.username}`} className="flex min-w-0 items-center gap-3">
-            <UserMeshiBadge displayName={user.displayName} username={user.username} compact size={42} />
+            <Avatar src={user.avatarUrl} alt={user.displayName} size="md" />
             <span className="min-w-0">
               <span className="block truncate text-sm font-semibold text-[var(--text-primary)]">@{user.username}</span>
               <span className="block truncate text-xs text-[var(--text-muted)]">{user.displayName}</span>

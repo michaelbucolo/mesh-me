@@ -26,7 +26,7 @@ export function MeshTipsCard({
         onPointerDown={(e) => e.stopPropagation()}
       >
         <div className="mb-2 flex items-start justify-between">
-          <p className="text-sm font-semibold text-[var(--text-primary)]">This is your world</p>
+          <p className="text-sm font-semibold text-[var(--text-primary)]">Your mesh</p>
           <button
             type="button"
             aria-label="Close"

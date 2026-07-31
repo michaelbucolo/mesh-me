@@ -80,11 +80,13 @@ const ok = () => { checks += 1; };
   // Both entry points, because the brand lockup reaches MeshiMascot directly and
   // slipped past a UserMeshi-only pattern.
   const OPT_IN = /<(?:UserMeshi|MeshiMascot)[^>]*\banimate(?!\s*=\s*\{false\})/;
+  // meshi-cursor.tsx used to be in this list; the cursor sprite was deleted
+  // outright by the tone reset (R5), which is the strongest form of "this
+  // portrait does not move".
   const CONSUMERS = [
     "src/components/meshi/meshi-identity.tsx",
     "src/components/meshi/meshi-chat.tsx",
     "src/components/meshi/meshi-actions-menu.tsx",
-    "src/components/meshi/meshi-cursor.tsx",
     "src/components/brand/meshi-brand-mark.tsx",
     "src/components/loading/meshi-wait.tsx",
   ];

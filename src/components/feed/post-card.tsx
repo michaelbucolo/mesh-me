@@ -5,7 +5,7 @@ import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/toast";
 import { cn, formatRelativeTime, formatCount, safeHref } from "@/lib/utils";
-import { Heart, MessageCircle, Bookmark, MoreHorizontal, Share2, Flag, Trash2, Pin, Copy, ExternalLink, Link2, Globe, Lock, Users, BadgeCheck, Ban } from "lucide-react";
+import { Heart, MessageCircle, Bookmark, MoreHorizontal, Share2, Flag, Trash2, Pin, Copy, ExternalLink, Link2, Globe, Lock, Users, BadgeCheck, Ban, FileText, ShieldCheck, ScanSearch } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { AutoplayVideo } from "@/components/feed/autoplay-video";
@@ -14,6 +14,8 @@ import { useState, useTransition, useRef, useEffect, memo, type ReactNode } from
 import { toggleReaction, toggleSavePost, repost, deletePost, reportPost } from "@/lib/actions";
 import { BlockAuthorConfirmDialog } from "@/components/privacy/block-controls";
 import { getPlatformActionCapability } from "@/lib/platform-capabilities";
+import { askMeshiAboutContent } from "@/lib/meshi-events";
+import { getFocusedContentPrompt, type MeshiContentMode } from "@/lib/meshi-content";
 import { getVideoEmbedUrl } from "@/lib/video-embed";
 import { Play } from "lucide-react";
 import { playSound } from "@/lib/sound";
@@ -175,6 +177,10 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
   const { addToast } = useToast();
   const [likeAnimating, setLikeAnimating] = useState(false);
   const [bursts, setBursts] = useState<{ id: number; x: number; y: number }[]>([]);
+  // Monotonic burst ids. Date.now() worked, but the React Compiler's purity
+  // rule can't see that handleLike only runs from events, so it refuses to
+  // compile the component over it; a ref increment carries no such suspicion.
+  const burstIdRef = useRef(0);
   const [saveAnimating, setSaveAnimating] = useState(false);
   const [removedFromView, setRemovedFromView] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -221,7 +227,10 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
       next: "/feed",
       reason: action,
     });
-    window.location.href = `/connected-accounts?${params.toString()}`;
+    // assign() rather than an href assignment: same navigation, but the React
+    // Compiler's immutability rule treats the property write as a global
+    // mutation and refuses to compile the component.
+    window.location.assign(`/connected-accounts?${params.toString()}`);
   };
 
   useEffect(() => {
@@ -302,10 +311,11 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
       playSound("heart");
       setTimeout(() => setLikeAnimating(false), 520);
       if (viaDoubleTap) {
-        const now = Date.now();
+        burstIdRef.current += 1;
+        const burstId = burstIdRef.current;
         const point = coords ?? { x: 50, y: 50 };
-        setBursts((current) => [...current.slice(-3), { id: now, x: point.x, y: point.y }]);
-        window.setTimeout(() => setBursts((current) => current.filter((b) => b.id !== now)), 850);
+        setBursts((current) => [...current.slice(-3), { id: burstId, x: point.x, y: point.y }]);
+        window.setTimeout(() => setBursts((current) => current.filter((b) => b.id !== burstId)), 850);
       }
     }
     startTransition(async () => {
@@ -377,6 +387,24 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
         addToast(result?.error || "Couldn't send your report. Please try again.", "error");
       }
     });
+  };
+
+  // Meshi's content actions live here, in the post's own menu — not in a
+  // floating popover over the feed. The event carries this post's payload so
+  // the answer is about this post, not whichever card is most visible.
+  const handleMeshiAction = (mode: MeshiContentMode) => {
+    setShowMenu(false);
+    const content = {
+      id: post.id,
+      platform: originPlatform || "meshme",
+      author: post.author.displayName,
+      text: post.content.slice(0, 900),
+      mediaTypes,
+      externalUrl: post.externalUrl || `/feed/${post.id}`,
+      contentRating: post.contentRating || (post.isNsfw ? "adult" : "general"),
+      mediaSignals,
+    };
+    askMeshiAboutContent({ prompt: getFocusedContentPrompt(content, mode), content });
   };
 
   const handleCopyLink = () => {
@@ -584,6 +612,15 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
                 <Link href={postHref} className="flex items-center gap-2.5 w-full px-3 py-2 text-sm hover:opacity-80 transition-colors" style={{ color: "var(--text-secondary)" }}>
                   <ExternalLink className="h-4 w-4" /> Open post
                 </Link>
+                <button type="button" onClick={() => handleMeshiAction("summary")} className="flex items-center gap-2.5 w-full px-3 py-2 text-sm hover:opacity-80 transition-colors" style={{ color: "var(--text-secondary)" }}>
+                  <FileText className="h-4 w-4" /> Summarize
+                </button>
+                <button type="button" onClick={() => handleMeshiAction("fact-check")} className="flex items-center gap-2.5 w-full px-3 py-2 text-sm hover:opacity-80 transition-colors" style={{ color: "var(--text-secondary)" }}>
+                  <ShieldCheck className="h-4 w-4" /> Fact-check
+                </button>
+                <button type="button" onClick={() => handleMeshiAction("verify")} className="flex items-center gap-2.5 w-full px-3 py-2 text-sm hover:opacity-80 transition-colors" style={{ color: "var(--text-secondary)" }}>
+                  <ScanSearch className="h-4 w-4" /> Verify media
+                </button>
                 {!isOwner && (
                   <button
                     type="button"

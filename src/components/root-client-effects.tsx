@@ -15,9 +15,6 @@ const PwaRegister = dynamic(() => import("@/components/pwa-register").then((mod)
 const MeshiFloat = dynamic(() => import("@/components/meshi/meshi-float").then((mod) => mod.MeshiFloat), {
   ssr: false,
 });
-const MeshiCursor = dynamic(() => import("@/components/meshi/meshi-cursor").then((mod) => mod.MeshiCursor), {
-  ssr: false,
-});
 const MeshiDelivery = dynamic(() => import("@/components/meshi/meshi-delivery").then((mod) => mod.MeshiDelivery), {
   ssr: false,
 });
@@ -54,10 +51,6 @@ export function RootClientEffects() {
       {lightEffectsReady ? <DynamicFavicon /> : null}
       {lightEffectsReady ? <SpatialInit /> : null}
       {lightEffectsReady ? <PwaRegister /> : null}
-      {/* Earlier than the other companions: this is the pointer, and the 650ms
-          companion delay would be 650ms of a cursor that is only its shadow.
-          The CSS floor covers the gap before even this. */}
-      {lightEffectsReady ? <MeshiCursor /> : null}
       {companionReady ? <MeshiFloat /> : null}
       {companionReady ? <MeshiDelivery /> : null}
       {companionReady ? <BugReportWidget /> : null}

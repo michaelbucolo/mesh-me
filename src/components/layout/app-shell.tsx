@@ -24,7 +24,8 @@ import { readWhereShare } from "@/lib/where-share";
 import { useTheme } from "@/components/theme-provider";
 import { useToast } from "@/components/ui/toast";
 import { shareContent } from "@/lib/native/share";
-import { MeshiBrandLockup, UserMeshiBadge } from "@/components/meshi/meshi-identity";
+import { MeshiBrandLockup } from "@/components/meshi/meshi-identity";
+import { Avatar } from "@/components/ui/avatar";
 import { GhostModeToggle } from "@/components/layout/ghost-mode-toggle";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { sidebarNavItems, resolveNavHref, isNavItemActive, type NavItem } from "@/components/layout/navigation-config";
@@ -62,7 +63,7 @@ type RouteInfo = {
 };
 
 const routeInfoMap: Record<string, RouteInfo> = {
-  "/mesh": { title: "The Mesh", description: "Your digital world. Connected by you." },
+  "/mesh": { title: "The Mesh", description: "Your accounts and connections in one graph." },
   "/feed": { title: "Home", description: "Your timeline across all connected platforms." },
   // NOT "your universal messaging hub, all your conversations in one place".
   // Measured from src/lib/platform-capabilities.ts: 0 of the 9 messengers
@@ -298,7 +299,7 @@ function ShellTopBar({
           </summary>
           <div className="mesh-account-panel absolute right-0 top-[calc(100%+0.5rem)] w-64 rounded-xl border border-[var(--mesh-border)] bg-[var(--mesh-panel-solid)] p-2 shadow-lg z-50">
             <div className="flex items-center gap-3 rounded-lg bg-[var(--mesh-bg-elevated)] p-3">
-              <UserMeshiBadge displayName={user.displayName} username={user.username} compact size={34} />
+              <Avatar src={user.avatarUrl} alt={user.displayName} size="sm" />
               <div className="min-w-0">
                 <p className="truncate text-sm font-semibold text-[var(--mesh-text)]">{user.displayName}</p>
                 <p className="truncate text-xs text-[var(--mesh-text-muted)]">@{user.username}</p>

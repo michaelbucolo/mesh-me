@@ -1,35 +1,27 @@
 /**
- * "DON'T COVER WHAT YOU CAN CLICK" IS NOT "DON'T COVER WHAT YOU CAN READ".
+ * THE FLOAT DOES NOT MOVE. THAT IS THE WHOLE OCCLUSION STORY NOW.
  *
- * The floating Meshi has an avoidance system — candidate positions, overlap
- * scoring, a safe-position search. It worked. It was simply never told that
- * text counts.
+ * This check used to guard a text-measuring avoidance system — candidate
+ * positions, overlap scoring, a leaf-text walk, a drag cache — because the
+ * float wandered: it trailed the pointer, dodged scrolls, flew to per-route
+ * arrival points, and so needed several hundred lines of geometry to avoid
+ * parking on the Email verification row. The tone reset (R5: mascot presence
+ * policy) removed the wandering itself. The float is chrome: ONE instance,
+ * pinned to the corner by `.meshi-float-shell` in globals.css — above the tab
+ * bar and the compose FAB on phones, plain corner inset from 768px up — and
+ * the component computes no position at all.
  *
- * `MESHI_AVOID_SELECTOR` names chrome (sidebars, toolbars, dialogs) and
- * INTERACTIVE roles (button, a[href], input, textbox). Read-only content
- * appears nowhere in it, so the float treated it as free space. Photographed
- * on /settings at 1440x900 in both themes: the shell at (696, 466), 48x48,
- * sitting fully inside the Email verification row at (608, 461, 791x44) with
- * its "Tap" badge over the word "verification". That row is a <div> holding a
- * <span> and a <strong> — nothing in it is clickable, so nothing matched.
+ * A fixed dock cannot drift onto content, so the invariant this file guards
+ * flipped from "the avoidance system stays complete" to "the positioning
+ * system stays ABSENT". Every assertion below names a piece of the old
+ * wandering apparatus and fails if it grows back, because each one grew out
+ * of a real photographed defect and each one is exactly what R5 deleted:
+ * a follow effect puts the mascot over content; a drag handler makes the
+ * corner negotiable; an avoid-rect walk means something moves that needs to
+ * avoid; an inline left/top means CSS no longer owns the corner.
  *
- * TWO FIXES WERE TRIED. Adding `.plate` — the design system's own word for
- * "INFORMATION. Cards, feed posts, panels." — moved the float off the settings
- * row and left it sitting on the page titles of /notifications, /billing and
- * /privacy-controls, because a heading on the mat is inside no card at all.
- * Rendered text is not a class, so it is measured instead.
- *
- * WHAT THAT MADE LOAD-BEARING, and what most of this file is about: measuring
- * text means walking the document, and the walk is only affordable because
- * every hot path already caches. A drag samples the avoid set ONCE at
- * pointerdown and reuses it for every pointermove. Before this change that
- * cache was an optimisation; now it is the difference between a drag that
- * moves and a drag that walks the DOM sixty times a second. It is asserted
- * here because nothing else would notice it going away.
- *
- * WHAT THIS CANNOT DO: check that the float actually clears text on a rendered
- * page. That was measured directly — ten authenticated routes at 390, 834 and
- * 1440px, thirty combinations, zero covering any leaf text and none off-screen.
+ * WHAT THIS CANNOT DO: check the rendered dock clears the FAB and tab bar.
+ * That was measured directly at 390 and 1440px when the dock CSS landed.
  */
 
 import { readFileSync } from "node:fs";
@@ -37,6 +29,7 @@ import { join } from "node:path";
 
 const ROOT = process.cwd();
 const src = readFileSync(join(ROOT, "src/components/meshi/meshi-float.tsx"), "utf8");
+const css = readFileSync(join(ROOT, "src/app/globals.css"), "utf8");
 const stripped = src
   .replace(/\/\*[\s\S]*?\*\//g, (m) => " ".repeat(m.length))
   .replace(/^\s*\/\/.*$/gm, (m) => " ".repeat(m.length));
@@ -48,150 +41,114 @@ const ok = () => {
   checks += 1;
 };
 
-/** Body of a top-level `function name(...) { ... }`, brace-matched. */
-function functionBody(name: string): string | null {
-  const at = stripped.search(new RegExp(`function\\s+${name}\\s*\\(`));
-  if (at === -1) return null;
-  const open = stripped.indexOf("{", at);
-  if (open === -1) return null;
-  let depth = 0;
-  for (let i = open; i < stripped.length; i++) {
-    if (stripped[i] === "{") depth += 1;
-    else if (stripped[i] === "}") {
-      depth -= 1;
-      if (depth === 0) return stripped.slice(open + 1, i);
-    }
-  }
-  return null;
-}
-
-// ── 1. TEXT IS PART OF THE AVOID SET ────────────────────────────────────────
-{
-  const text = functionBody("getReadableTextRects");
-  const avoid = functionBody("getMeshiAvoidRects");
-
-  if (!text) {
-    fail(
-      "1 text counts",
-      "`getReadableTextRects` is gone. Without it the avoid set is chrome plus clickable roles, which\n" +
-        "  is what let the float park on top of the Email verification row: that row holds a <span> and a\n" +
-        "  <strong>, and neither is something you can click.",
-    );
-  } else ok();
-
-  if (!avoid) {
-    fail("1 text counts", "`getMeshiAvoidRects` is gone; this check has lost its subject");
-  } else if (!/getReadableTextRects\s*\(/.test(avoid)) {
-    fail(
-      "1 text counts",
-      "`getMeshiAvoidRects` no longer folds in the text rects, so the float is back to avoiding only\n" +
-        "  what can be clicked.",
-    );
-  } else ok();
-}
-
-// ── 2. ONLY LEAVES ──────────────────────────────────────────────────────────
+// ── 1. NO POSITIONING APPARATUS IN THE COMPONENT ────────────────────────────
 //
-// An element WITH element children is a layout box; its rect is the union of
-// its parts, and the gaps between those parts hold nothing to read. Measure
-// those and whole columns become unavailable, which leaves the float nowhere
-// to stand and pushes it into the least-bad-overlap fallback — a worse place
-// than where it started.
+// Each name below is a limb of the deleted wandering system. Any one of them
+// reappearing means the float has started computing where to stand again.
 {
-  const text = functionBody("getReadableTextRects") ?? "";
-  if (!/childElementCount/.test(text)) {
+  const FORBIDDEN = [
+    "getMeshiAvoidRects",
+    "getReadableTextRects",
+    "findSafeMeshiPosition",
+    "getSafePosition",
+    "getPointerFollowPosition",
+    "getPageArrivalPosition",
+    "MESHI_AVOID_SELECTOR",
+    "dragAvoidRectsRef",
+    "useMotionValue",
+    "useSpring",
+    "handlePointerDown",
+    "handlePointerMove",
+    "cursorSpriteOwnsPointer",
+  ];
+  const found = FORBIDDEN.filter((name) => stripped.includes(name));
+  if (found.length) {
     fail(
-      "2 leaves only",
-      "`getReadableTextRects` no longer restricts itself to leaf elements.\n" +
-        "  A container's rect is the union of its children's, so measuring it blacklists the empty space\n" +
-        "  between them too. That is the one condition keeping this from making whole columns\n" +
-        "  unavailable and dropping the float into its least-bad-overlap fallback.",
+      "1 no positioning",
+      `the wandering apparatus is growing back: ${found.join(", ")}.\n` +
+        "  The float is docked chrome — CSS owns its corner. A float that computes positions needs the\n" +
+        "  whole avoidance system back (text rects, drag cache, safe-position search), and that system\n" +
+        "  existed to serve behaviors (pointer-follow, scroll-dodge, arrival flights) the tone reset\n" +
+        "  deliberately removed.",
     );
   } else ok();
 
-  // Off-screen text is not covered by anything, and measuring it would drag
-  // the float toward wherever a long page happens to be scrolled.
-  if (!/innerHeight|innerWidth/.test(text)) {
-    fail("2 leaves only", "`getReadableTextRects` no longer rejects text outside the viewport");
+  // The shell must not position itself inline; `.meshi-float-shell` in
+  // globals.css is the single authority for where Meshi stands.
+  const shellTag = /className="meshi-float-shell[^"]*"/.exec(stripped)?.[0] ?? "";
+  if (!shellTag) {
+    fail("1 no positioning", "the `.meshi-float-shell` class is gone; the dock CSS has lost its subject");
   } else ok();
-
-  // Meshi's own speech bubble and chat panel are text. It may sit on those.
-  if (!/data-meshi-owned|data-meshi-primary/.test(text)) {
+  if (/style=\{\{[^}]*(left|top|right|bottom)\s*:/.test(stripped)) {
     fail(
-      "2 leaves only",
-      "`getReadableTextRects` no longer excludes Meshi's own surfaces.\n" +
-        "  Its speech bubble and chat panel are text; treating them as obstacles makes the float flee\n" +
-        "  from itself.",
+      "1 no positioning",
+      "an inline left/top/right/bottom style has appeared in the float. CSS owns the corner; a second\n" +
+        "  opinion in JS is how the last system ended up with three bodies on one screen.",
     );
   } else ok();
 }
 
-// ── 3. THE DRAG CACHE IS NOW LOAD-BEARING ───────────────────────────────────
-//
-// This was an optimisation before the walk existed. It is a correctness-of-feel
-// requirement now, and it is invisible: recomputing per move would still
-// produce the right POSITION, just at a frame rate nobody would ship.
+// ── 2. THE DOCK CSS EXISTS AND CLEARS THE PHONE CHROME ──────────────────────
 {
-  const down = functionBody("handlePointerDown") ?? stripped;
-  const move = /const handlePointerMove = useCallback\(([\s\S]*?)\n  \}, \[/.exec(stripped)?.[1] ?? "";
-
-  if (!/dragAvoidRectsRef\.current\s*=\s*getMeshiAvoidRects\s*\(/.test(down) && !/dragAvoidRectsRef\.current\s*=\s*getMeshiAvoidRects\s*\(/.test(stripped)) {
-    fail("3 drag cache", "the avoid set is no longer sampled once at pointerdown");
-  } else ok();
-
-  if (!move) {
-    fail("3 drag cache", "`handlePointerMove` has moved; this check has lost its subject");
-  } else if (!/findSafeMeshiPosition\([^)]*dragAvoidRectsRef\.current/.test(move)) {
-    fail(
-      "3 drag cache",
-      "`handlePointerMove` no longer passes the cached avoid set, so every pointermove re-walks the\n" +
-        "  document. That was merely wasteful when the avoid set was a querySelectorAll over chrome; it\n" +
-        "  now includes a pass over every leaf text node on the page, sixty times a second, during the\n" +
-        "  one interaction where the user is watching the float move.",
-    );
-  } else ok();
-}
-
-// ── 4. THE CHROME LIST STAYS A CHROME LIST ──────────────────────────────────
-//
-// The failure mode this whole change exists to end is the list growing one
-// page-specific selector at a time. A settings row, a feed caption, a profile
-// bio: each fixes one surface and teaches the list nothing.
-//
-// The first spelling of this rule rejected names by PREFIX — anything starting
-// `.settings-`, `.feed-`, and so on — and it failed `.feed-x-topbar`, which is
-// a topbar and has always been chrome. A prefix says which surface a thing
-// belongs to; it says nothing about whether it is chrome or content. So the
-// rule is positive instead: a class in this list must NAME a piece of chrome.
-// `.settings-row`, `.feed-post-body` and `.profile-bio` all fail it; every
-// entry present today passes.
-const CHROME_NOUNS = /(bar|nav|navigation|toolbar|widget|fab|progress|dock|rail|sheet|overlay|dialog|menu|drawer|banner|tabs|hud)$/;
-{
-  const list = /const MESHI_AVOID_SELECTOR = \[([\s\S]*?)\]\.join/.exec(stripped)?.[1];
-  if (!list) {
-    fail("4 chrome only", "`MESHI_AVOID_SELECTOR` has moved; this check has lost its subject");
+  const dock = /\.meshi-float-shell\s*\{([\s\S]*?)\}/.exec(css)?.[1];
+  if (!dock) {
+    fail("2 dock css", "`.meshi-float-shell` has no rule in globals.css; nothing places the float");
   } else {
-    const entries = list
-      .split("\n")
-      .map((line) => /"([^"]+)"/.exec(line)?.[1])
-      .filter((s): s is string => Boolean(s));
-    if (entries.length < 5) {
-      fail("4 chrome only", "`MESHI_AVOID_SELECTOR` has been emptied out; the float would ignore chrome entirely");
-    } else ok();
-
-    // Attribute, element and role selectors name generic roles rather than a
-    // surface, so only class selectors are held to the naming rule.
-    const notChrome = entries.filter((s) => s.startsWith(".") && !CHROME_NOUNS.test(s));
-    if (notChrome.length) {
+    if (!/bottom:\s*calc\([^)]*--mobile-nav-h/.test(dock)) {
       fail(
-        "4 chrome only",
-        `\`MESHI_AVOID_SELECTOR\` has grown a class that does not name chrome: ${notChrome.join(", ")}.\n` +
-          "  This list is for chrome, which is a genuinely fixed set. Content is measured by\n" +
-          "  \`getReadableTextRects\` precisely so this list does not have to learn every surface in the\n" +
-          "  product one bug report at a time — which is how it got long enough to hide the defect.",
+        "2 dock css",
+        "the phone dock no longer clears the tab bar from its token (`--mobile-nav-h`). A literal here\n" +
+          "  is a guess that goes stale the day the bar changes height.",
       );
     } else ok();
+    if (!/env\(safe-area-inset-bottom\)/.test(dock)) {
+      fail("2 dock css", "the phone dock ignores the home indicator (`safe-area-inset-bottom`)");
+    } else ok();
   }
+}
+
+// ── 3. ONE BODY, SINGLETON-MARKED, YIELDING TO THE CANVAS ───────────────────
+//
+// The mesh canvas draws the same character; the DOM body must yield there so
+// Meshi stays a strict singleton (this is also asserted at runtime by
+// meshi:singleton against the rendered page).
+{
+  if (!/\{!isMeshSurface && \(/.test(stripped)) {
+    fail("3 one body", "the float no longer yields to the canvas Meshi on the mesh surface");
+  } else ok();
+  if (!/data-meshi-singleton="true"/.test(stripped)) {
+    fail("3 one body", "the singleton marker attribute is gone; the runtime singleton check loses its subject");
+  } else ok();
+  const mascotMounts = (stripped.match(/<MeshiMascot/g) ?? []).length;
+  if (mascotMounts !== 1) {
+    fail(
+      "3 one body",
+      `the float renders ${mascotMounts} MeshiMascot bodies; the policy is exactly one.`,
+    );
+  } else ok();
+}
+
+// ── 4. NO PERMANENT BALLOONS ────────────────────────────────────────────────
+//
+// The "Tap" chip and the "Fact-check ready" popover floated over content on
+// six of eleven screens. Meshi speaks only inside its own opened panel; the
+// content actions live in the post ⋯ menu and arrive via MESHI_PROMPT_EVENT.
+{
+  if (/>\s*Tap\s*</.test(stripped) || /Fact-check ready/.test(stripped)) {
+    fail(
+      "4 no balloons",
+      "a permanent balloon (\"Tap\" chip or \"Fact-check ready\" popover) is back on the float.\n" +
+        "  Meshi speaks only inside its own opened panel; content actions belong to the post ⋯ menu.",
+    );
+  } else ok();
+  if (!/MESHI_PROMPT_EVENT/.test(stripped)) {
+    fail(
+      "4 no balloons",
+      "the float no longer listens for MESHI_PROMPT_EVENT, so the post ⋯ menu's Summarize/Fact-check/\n" +
+        "  Verify media actions have nowhere to land — deleting the popover without this listener\n" +
+        "  deletes the feature, not just its costume.",
+    );
+  } else ok();
 }
 
 if (failures.length) {
@@ -201,10 +158,9 @@ if (failures.length) {
   process.exit(1);
 }
 console.log(
-  `meshi-occlusion OK — ${checks} assertions. The float avoids what you can READ, not just what you\n` +
-    "  can click, and it measures rendered text rather than naming a selector per surface. Only leaf\n" +
-    "  elements count, so a container's rect never blacklists the gaps between its children. The drag\n" +
-    "  path still samples the avoid set once at pointerdown, which the document walk makes load-bearing.\n" +
-    "  Does NOT cover: whether the float clears text on a rendered page. That was measured directly —\n" +
-    "  ten routes at 390 / 834 / 1440px, thirty combinations, zero covering any leaf text.",
+  `meshi-occlusion OK — ${checks} assertions. The float is docked chrome: no positioning code in the\n` +
+    "  component, CSS owns the corner (tab bar + safe-area aware on phones), one singleton body that\n" +
+    "  yields to the canvas, and no permanent balloons — content actions arrive via MESHI_PROMPT_EVENT\n" +
+    "  from the post ⋯ menu. Does NOT cover: the rendered dock clearing the FAB; that was measured\n" +
+    "  directly at 390 and 1440px when the dock CSS landed.",
 );
