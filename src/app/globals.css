@@ -7493,15 +7493,14 @@ body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
 @media (min-width: 1024px) {
   .mesh-context { left: 1rem; }
 }
-/* The selected half of the Mesh|Global switch is moulded from the mesh's own
-   plastic — the same tomato the Mesh tab in the sidebar and the mobile tab bar
-   already use (--domain-mesh). One surface, one plastic, everywhere it is
-   named. Emphasis here is material, never brightness. */
-.mesh-context-on {
-  --mould: var(--mould-tomato);
-  --mould-ink: var(--mould-tomato-ink);
-  --mould-plinth: var(--mould-tomato-plinth);
-}
+/* The Mesh|Global switch's active half is `.key-selected`, NOT a lit fill.
+   It used to be moulded from the mesh plastic (tomato) "like the dock's
+   Create key" — which put TWO lit fills on one screen. Tone reset R4 draws
+   the line this crossed: a toggle's "on" half is STATE, not a call to
+   action; `.key-lit` is for the one true primary per screen, and on the
+   mesh that is Create. The mesh domain plastic still names this surface in
+   the sidebar, the tab bar, and the Create key — the switch just stops
+   competing with them. */
 
 /* The ambient slot: directly under the context bar, left-aligned with it, so
    every word of chrome on this surface reads down one column. */

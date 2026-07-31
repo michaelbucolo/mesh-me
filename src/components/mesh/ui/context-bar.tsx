@@ -118,7 +118,7 @@ export function MeshContextBar({
         onPointerDown={(e) => e.stopPropagation()}
         aria-pressed={!isGlobal}
         className={`key ds-focus-ring h-9 px-3.5 text-xs font-semibold ${
-          !isGlobal ? "key-lit mesh-context-on" : "text-[var(--text-secondary)]"
+          !isGlobal ? "key-selected" : "text-[var(--text-secondary)]"
         }`}
       >
         Mesh
@@ -129,7 +129,7 @@ export function MeshContextBar({
         onPointerDown={(e) => e.stopPropagation()}
         aria-pressed={isGlobal}
         className={`key ds-focus-ring h-9 px-3.5 text-xs font-semibold ${
-          isGlobal ? "key-lit mesh-context-on" : "text-[var(--text-secondary)]"
+          isGlobal ? "key-selected" : "text-[var(--text-secondary)]"
         }`}
       >
         Global
