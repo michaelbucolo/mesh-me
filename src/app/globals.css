@@ -5948,6 +5948,14 @@ body {
   .mesh-shell-feed {
     --mesh-topbar-h: 0rem;
   }
+
+  /* The shell's backdrop is --mesh-bg-deep (--paper-2, an elevated tone). On a
+     phone the main pane IS the page and every surface paints --bg-primary over
+     it — except the bottom padding that clears the tab bar, where the elevated
+     tone leaked through as a grey strip above the nav on every surface. */
+  .mesh-main {
+    background: var(--bg-primary);
+  }
 }
 
 /* --- Sidebar: icon-rail mode for tablets (md to lg) and unfolded foldables.
