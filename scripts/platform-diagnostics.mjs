@@ -10,13 +10,22 @@
 // `missingEnv` — a check confirming an endpoint nobody requested could report
 // missing credentials to nobody.
 //
-// The fix is not to relax the check. `check` now also runs
-// `diagnostics:strict` (--strict --skip-http), which is strict about everything
-// that can be judged from source and skips only the checks that genuinely need
-// a running server. Those still run strict in CI, where a server exists.
+// The fix is not to relax the check — it is to point it at where the invariant
+// actually lives. `platform-authorization-catalog` now reads platform-adapters
+// (which computes missingEnv) and platform-sheet (which renders it), which is
+// strictly stronger than what it replaced.
+//
+// `diagnostics:strict` (--strict --skip-http) exists for verifying that class
+// of thing locally. It is NOT part of `npm run check`, and the attempt to add
+// it there failed twice for a reason worth writing down: --skip-http removes
+// the need for a SERVER, but not the need for a seeded DATABASE.
+// `auth-fixture-user` is a P1 that asserts at least one User row exists, and in
+// CI `check` runs before the seed step, so under --strict it failed with "No
+// User rows found". Run diagnostics:strict against a seeded database, or the
+// only thing it measures is whether you have seeded one.
 //
 // Deliberately NOT done: turning "no server reachable" into a SKIP so that
-// plain --strict passes locally. CI would then silently skip every HTTP check
+// plain --strict passes anywhere. CI would then silently skip every HTTP check
 // on any run where the server failed to boot, and a silent skip is
 // indistinguishable from a pass.
 
