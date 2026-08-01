@@ -3,7 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { motion, useReducedMotion } from "framer-motion";
-import { ArrowDown, CheckCheck, Image as ImageIcon, Link2, MessageCircleReply, Paperclip, Pencil, Search, Send, SmilePlus, Undo2, X } from "lucide-react";
+import { ArrowDown, CheckCheck, Image as ImageIcon, Link2, MessageCircleReply, Paperclip, Pencil, Search, Send, SmilePlus, Undo2, Users, X } from "lucide-react";
+import { CoBrowseRoom } from "@/components/mechat/co-browse-room";
 import { PaperWait } from "@/components/loading/paper-wait";
 import { Avatar } from "@/components/ui/avatar";
 import { NativeAspectMedia } from "@/components/ui/native-aspect-media";
@@ -267,6 +268,11 @@ export function MeChatThread({
   const [attachmentType, setAttachmentType] = useState<MeChatAttachmentType>("image");
   const [attachments, setAttachments] = useState<MeChatAttachment[]>([]);
   const [error, setError] = useState("");
+  // The shared room for this conversation. Null until someone opens one — a
+  // co-browse session is a real row with participants and invites, so it is
+  // created on the first deliberate tap, never speculatively on thread open.
+  const [roomId, setRoomId] = useState<string | null>(null);
+  const [roomOpening, setRoomOpening] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState("");
   // Which bubble's action bar is pinned open (tap on touch, since there's no hover).
@@ -754,6 +760,51 @@ export function MeChatThread({
             <span className="text-xs font-semibold text-[var(--text-muted)]">{searchCount}</span>
           )}
         </label>
+
+        {/* WATCH TOGETHER — the door onto the co-browse API.
+            Offered on mesh conversations only: an external thread is a mirror of
+            somebody else's platform, and a shared queue there would imply a room
+            the other person is not actually in. */}
+        {!isExternalThread && (
+          roomId ? (
+            <div className="mt-2">
+              <CoBrowseRoom sessionId={roomId} viewerId={currentUser.id} onClose={() => setRoomId(null)} />
+            </div>
+          ) : (
+            <button
+              type="button"
+              data-testid="mechat-open-room"
+              disabled={roomOpening}
+              onClick={async () => {
+                setRoomOpening(true);
+                setError("");
+                try {
+                  const res = await fetch("/api/mechat/sessions", {
+                    method: "POST",
+                    credentials: "same-origin",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      title: "Watching together",
+                      sessionType: "co_browse",
+                      participantIds: recipientId ? [recipientId] : [],
+                    }),
+                  });
+                  const data = await res.json().catch(() => ({}));
+                  if (!res.ok) throw new Error(typeof data?.error === "string" ? data.error : "Could not open a room");
+                  if (data?.session?.id) setRoomId(data.session.id);
+                } catch (e) {
+                  setError(e instanceof Error ? e.message : "Could not open a room");
+                } finally {
+                  setRoomOpening(false);
+                }
+              }}
+              className="ds-focus-ring mt-2 inline-flex min-h-11 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
+            >
+              <Users size={14} aria-hidden="true" />
+              {roomOpening ? "Opening…" : "Watch something together"}
+            </button>
+          )
+        )}
       </div>
 
       <div
