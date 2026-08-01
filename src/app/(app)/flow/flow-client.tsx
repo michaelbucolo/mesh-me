@@ -410,13 +410,18 @@ function ReelMedia({
       >
         {post.content}
       </p>
+      {/* The host chip sits on top of whatever is playing. It used to be a 0.40
+          fill under a 0.90 ink — both translucent, so they composited twice and
+          the label measured 2.61:1 over a white video frame, well under AA. An
+          opaque ink on a 0.70 fill is 8.45:1, and matches the refreshing pill
+          and the guest bar already on this surface. */}
       {linkMedia && linkHost && (
         <a
           href={linkMedia.url}
           target="_blank"
           rel="noopener noreferrer"
           onClick={(e) => e.stopPropagation()}
-          className="flex items-center gap-2 rounded-full bg-black/40 px-4 py-2 text-sm font-semibold text-white/90 backdrop-blur transition hover:bg-black/55"
+          className="flex items-center gap-2 rounded-full bg-black/70 px-4 py-2 text-sm font-semibold text-white backdrop-blur transition hover:bg-black/80"
         >
           <Link2 size={15} />
           {linkHost}
