@@ -6,6 +6,7 @@
 
 import { platformLogoDataUri } from "@/components/platform/platform-logo";
 import type { SceneNode } from "../scene/scene-model";
+import { canvasSans } from "../paint/fonts";
 
 // Rasterized brand marks (YouTube, Instagram, TikTok, …) for canvas drawing.
 // Public brand SVGs only — never user content — so a module-level cache is
@@ -173,7 +174,7 @@ export function drawPill(
   padX: number,
 ) {
   ctx.save();
-  ctx.font = `600 ${fontSize}px ui-sans-serif, system-ui, sans-serif`;
+  ctx.font = `600 ${fontSize}px ${canvasSans()}`;
   const textW = ctx.measureText(text).width;
   const h = fontSize + 8;
   const w = textW + padX * 2;

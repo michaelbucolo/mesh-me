@@ -17,6 +17,7 @@
 
 import { projectPoint, type Camera } from "../core/camera";
 import type { BranchKey, SceneModel, SceneNode } from "../scene/scene-model";
+import { canvasDisplay } from "../paint/fonts";
 
 interface HitCircle {
   x: number;
@@ -134,7 +135,9 @@ export function nodeEmphasis(
 
 /** Posts float as rich cards only once the camera is close enough to READ
  * them — the one LOD decision paint and hit-testing must share. */
-export const POST_CARD_MIN_ZOOM = 0.42;
+// 0.30, was 0.42: cards resolve into readable paper EARLIER on the way in —
+// zooming toward content should never pass through a dead-dot valley.
+export const POST_CARD_MIN_ZOOM = 0.30;
 export const POST_CARD_MIN_EMPH = 0.2;
 
 /** Post-card scale at this zoom and content weight. */
@@ -155,7 +158,8 @@ export function postCardSize(scale: number, hasImage: boolean): { w: number; h: 
 // marked); the drift risk retires with the legacy painter in PR3/4.
 // ---------------------------------------------------------------------------
 
-const FONT_STACK = "ui-sans-serif, system-ui, sans-serif";
+// Branch pills draw in the display face; measuring must match the drawing.
+const fontStack = () => canvasDisplay();
 
 let measureCtx: CanvasRenderingContext2D | null = null;
 
@@ -225,7 +229,7 @@ export function rebuildHitmap(hitmap: Hitmap, o: HitmapInputs): void {
       // to screen, centre avoidance) including the birth spring-out scale.
       const fontSize = 13;
       const label = node.count != null ? `${node.label} · ${node.count}` : node.label;
-      const textW = measureText(`600 ${fontSize}px ${FONT_STACK}`, label);
+      const textW = measureText(`600 ${fontSize}px ${fontStack()}`, label);
       let pillR = r;
       if (born < 1) {
         const t1 = born - 1;
