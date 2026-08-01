@@ -117,7 +117,7 @@ export const helpArticles: HelpArticle[] = [
     id: "customize-meshi",
     category: "meshi",
     title: "Customize Meshi",
-    summary: "Change Meshi colors, eyes, hats, hair, accessories, outfits, and badges from Settings.",
+    summary: "Change Meshi colors, face, eyes, hats, hair, accessories, and badges from Settings.",
     steps: [
       "Open Settings and find the Meshi customization section.",
       "Pick visual options that still keep Meshi simple and readable.",

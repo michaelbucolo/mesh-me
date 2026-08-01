@@ -16,7 +16,6 @@ const DEFAULT_MESHI = {
   accessory: "none",
   eye: "regular",
   badge: "none",
-  outfit: "none",
 };
 
 const NO_STORE_HEADERS = {
@@ -81,7 +80,6 @@ export async function GET(request: Request) {
           accessoryStyle: true,
           eyeStyle: true,
           badgeStyle: true,
-          outfitStyle: true,
         },
       },
     },
@@ -105,7 +103,6 @@ export async function GET(request: Request) {
         accessory: preference?.accessoryStyle ?? DEFAULT_MESHI.accessory,
         eye: preference?.eyeStyle ?? DEFAULT_MESHI.eye,
         badge: preference?.badgeStyle ?? DEFAULT_MESHI.badge,
-        outfit: preference?.outfitStyle ?? DEFAULT_MESHI.outfit,
       },
     },
     { headers: NO_STORE_HEADERS },

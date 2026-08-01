@@ -9,7 +9,6 @@ import type {
   MeshiHair,
   MeshiHat,
   MeshiMood,
-  MeshiOutfit,
 } from "@/components/meshi/meshi-mascot";
 import { getMeshiPreference } from "@/lib/actions";
 
@@ -21,7 +20,6 @@ export interface MeshiPreferences {
   accessory: MeshiAccessory;
   eye: MeshiEyeStyle;
   badge: MeshiBadge;
-  outfit: MeshiOutfit;
   enabled: boolean;
   appLogo: "default" | "custom";
   appLogoColor: MeshiColor;
@@ -38,7 +36,6 @@ const STORAGE_KEYS = {
   accessory: "meshiAccessory",
   eye: "meshiEye",
   badge: "meshiBadge",
-  outfit: "meshiOutfit",
   enabled: "meshiEnabled",
   appLogo: "meshiAppLogo",
   appLogoColor: "meshiAppLogoColor",
@@ -53,7 +50,6 @@ const DEFAULTS: MeshiPreferences = {
   accessory: "none",
   eye: "regular",
   badge: "none",
-  outfit: "none",
   enabled: true,
   appLogo: "default",
   appLogoColor: "blue",
@@ -82,7 +78,6 @@ function readMeshiPreferencesFromStorage(): MeshiPreferences {
     accessory: ((storedAccessory === "lashes" ? "none" : storedAccessory) as MeshiAccessory) || DEFAULTS.accessory,
     eye: ((localStorage.getItem(STORAGE_KEYS.eye) || (storedAccessory === "lashes" ? "lashes" : "")) as MeshiEyeStyle) || DEFAULTS.eye,
     badge: (localStorage.getItem(STORAGE_KEYS.badge) as MeshiBadge) || DEFAULTS.badge,
-    outfit: (localStorage.getItem(STORAGE_KEYS.outfit) as MeshiOutfit) || DEFAULTS.outfit,
     enabled: localStorage.getItem(STORAGE_KEYS.enabled) !== "false",
     appLogo: (localStorage.getItem(STORAGE_KEYS.appLogo) as "default" | "custom") || DEFAULTS.appLogo,
     appLogoColor: (localStorage.getItem(STORAGE_KEYS.appLogoColor) as MeshiColor) || DEFAULTS.appLogoColor,
@@ -100,7 +95,6 @@ function writeMeshiPreferencesToStorage(prefs: MeshiPreferences) {
   localStorage.setItem(STORAGE_KEYS.accessory, prefs.accessory);
   localStorage.setItem(STORAGE_KEYS.eye, prefs.eye);
   localStorage.setItem(STORAGE_KEYS.badge, prefs.badge);
-  localStorage.setItem(STORAGE_KEYS.outfit, prefs.outfit);
   localStorage.setItem(STORAGE_KEYS.enabled, String(prefs.enabled));
   localStorage.setItem(STORAGE_KEYS.appLogo, prefs.appLogo);
   localStorage.setItem(STORAGE_KEYS.appLogoColor, prefs.appLogoColor);
@@ -147,7 +141,6 @@ export function applyServerMeshiPreferences(serverPref: ServerMeshiPreference): 
     accessory: (serverPref.accessoryStyle as MeshiAccessory) || local.accessory,
     eye: (serverPref.eyeStyle as MeshiEyeStyle) || local.eye,
     badge: (serverPref.badgeStyle as MeshiBadge) || local.badge,
-    outfit: (serverPref.outfitStyle as MeshiOutfit) || local.outfit,
   };
 
   writeMeshiPreferencesToStorage(merged);

@@ -43,7 +43,6 @@ export async function GET() {
                 accessoryStyle: true,
                 eyeStyle: true,
                 badgeStyle: true,
-                outfitStyle: true,
               },
             },
           },
@@ -114,7 +113,6 @@ export async function GET() {
       meshiAccessory: n.actor?.meshiPreference?.accessoryStyle || "none",
       meshiEyeStyle: n.actor?.meshiPreference?.eyeStyle || "regular",
       meshiBadge: n.actor?.meshiPreference?.badgeStyle || "none",
-      meshiOutfit: n.actor?.meshiPreference?.outfitStyle || "none",
       timestamp: n.createdAt.getTime(),
     }));
 

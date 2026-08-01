@@ -119,7 +119,6 @@ function buildFixture() {
       accessoryStyle: "none",
       eyeStyle: "regular",
       badgeStyle: "none",
-      outfitStyle: "none",
     },
     stats: {
       followingCount: 10,

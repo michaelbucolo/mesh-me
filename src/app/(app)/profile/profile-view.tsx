@@ -24,7 +24,6 @@ import {
   type MeshiHair,
   type MeshiHat,
   type MeshiMood,
-  type MeshiOutfit,
 } from "@/components/meshi/meshi-mascot";
 import { Avatar } from "@/components/ui/avatar";
 import { PostCard } from "@/components/feed/post-card";
@@ -50,7 +49,6 @@ const DEFAULT_MESHI = {
   accessoryStyle: "none",
   eyeStyle: "regular",
   badgeStyle: "none",
-  outfitStyle: "none",
 };
 
 function PlatformIcon({ platform }: { platform: string }) {
@@ -317,7 +315,6 @@ export async function InstagramProfileView({ username, tab }: { username: string
                   accessory={meshi.accessoryStyle as MeshiAccessory}
                   eyeStyle={meshi.eyeStyle as MeshiEyeStyle}
                   badge={meshi.badgeStyle as MeshiBadge}
-                  outfit={meshi.outfitStyle as MeshiOutfit}
                   animate
                   interactive={isOwnProfile}
                   showGlow={false}

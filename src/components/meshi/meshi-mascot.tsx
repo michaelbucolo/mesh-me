@@ -676,105 +676,6 @@ const BADGES: Record<string, React.ReactNode> = {
   ),
 };
 
-const OUTFITS: Record<string, React.ReactNode> = {
-  none: null,
-  scarf: (
-    <g transform="translate(0, 7)">
-      <path d="M-12 -1.5 Q0 3 12 -1.5 L12 2.5 Q0 7 -12 2.5 Z" fill="currentColor" opacity="0.96" />
-      <path d="M-12 0.5 Q0 5 12 0.5 L12 2.5 Q0 7 -12 2.5 Z" fill="rgba(0,0,0,0.2)" />
-      <rect x="4.6" y="1.4" width="4.4" height="9.2" rx="1.4" fill="currentColor" opacity="0.92" />
-      <path d="M5.5 10.8 L5.5 12.8 M7 10.8 L7 12.8 M8.5 10.8 L8.5 12.8" stroke="currentColor" strokeWidth="1" strokeLinecap="round" opacity="0.85" />
-    </g>
-  ),
-  hoodie: (
-    <g transform="translate(0, 8)">
-      <path d="M-13 -1 Q-9 -7.5 0 -7.5 Q9 -7.5 13 -1 L12 12 H-12 Z" fill="currentColor" opacity="0.34" />
-      <path d="M-6.5 -5.5 Q0 -1.5 6.5 -5.5 Q4 -2.4 0 -2.4 Q-4 -2.4 -6.5 -5.5 Z" fill="currentColor" opacity="0.6" />
-      <line x1="-2.8" y1="-2.2" x2="-3.3" y2="4.6" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" opacity="0.9" />
-      <line x1="2.8" y1="-2.2" x2="3.3" y2="4.6" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" opacity="0.9" />
-      <circle cx="-3.3" cy="5.4" r="0.9" fill="currentColor" />
-      <circle cx="3.3" cy="5.4" r="0.9" fill="currentColor" />
-      <path d="M-7.5 7.5 Q0 9.5 7.5 7.5" fill="none" stroke="rgba(255,255,255,0.22)" strokeWidth="1" strokeLinecap="round" />
-    </g>
-  ),
-  jacket: (
-    <g transform="translate(0, 8)">
-      <path d="M-14 0 Q-8 -5 0 -5 Q8 -5 14 0 L12 12 H-12 Z" fill="currentColor" opacity="0.3" />
-      <path d="M-14 0 Q-8 -5 0 -5 L0 12 H-12 Z" fill="rgba(0,0,0,0.1)" />
-      <path d="M0 -5 L-4.6 0.4 L-1.4 1.6 L0 -3 Z M0 -5 L4.6 0.4 L1.4 1.6 L0 -3 Z" fill="currentColor" opacity="0.55" />
-      <path d="M0 -3 L0 12" stroke="currentColor" strokeWidth="1.4" opacity="0.8" />
-      <path d="M-0.7 0 H0.7 M-0.7 3 H0.7 M-0.7 6 H0.7 M-0.7 9 H0.7" stroke="rgba(255,255,255,0.3)" strokeWidth="0.6" />
-      <path d="M-8.6 6 L-5.6 6.6 M8.6 6 L5.6 6.6" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" opacity="0.7" />
-    </g>
-  ),
-  overalls: (
-    <g transform="translate(0, 8)">
-      <path d="M-10 -3 H10 L12 12 H-12 Z" fill="currentColor" opacity="0.34" />
-      <path d="M-6.4 -5.5 L-6 4 M6.4 -5.5 L6 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" opacity="0.85" />
-      <rect x="-6.9" y="-2.6" width="1.9" height="1.9" rx="0.4" fill="#fbbf24" />
-      <rect x="5" y="-2.6" width="1.9" height="1.9" rx="0.4" fill="#fbbf24" />
-      <rect x="-4.4" y="0.6" width="8.8" height="5.6" rx="1.1" fill="rgba(255,255,255,0.24)" stroke="currentColor" strokeWidth="0.9" />
-      <path d="M-3.4 1.7 H3.4" stroke="currentColor" strokeWidth="0.7" opacity="0.6" strokeDasharray="1 0.8" />
-      <path d="M-9.4 10.4 Q0 12 9.4 10.4" fill="none" stroke="rgba(0,0,0,0.18)" strokeWidth="0.9" strokeLinecap="round" />
-    </g>
-  ),
-  turtleneck: (
-    <g transform="translate(0, 9)">
-      <path d="M-11 -2 Q0 2 11 -2 L11 12 H-11 Z" fill="currentColor" opacity="0.36" />
-      <path d="M-6.4 -3.4 Q0 0.6 6.4 -3.4 L6.4 0.6 Q0 4.6 -6.4 0.6 Z" fill="currentColor" opacity="0.6" />
-      <path d="M-5 -1.6 L-5 1.4 M-2.5 -0.7 L-2.5 2.3 M0 -0.4 L0 2.6 M2.5 -0.7 L2.5 2.3 M5 -1.6 L5 1.4" stroke="rgba(0,0,0,0.22)" strokeWidth="0.8" strokeLinecap="round" />
-      <path d="M-7 5 Q0 7 7 5 M-7.6 8.4 Q0 10.4 7.6 8.4" stroke="rgba(0,0,0,0.14)" strokeWidth="0.8" fill="none" strokeLinecap="round" />
-    </g>
-  ),
-  varsity: (
-    <g transform="translate(0, 8)">
-      <path d="M-13 0 Q-7 -5 0 -5 Q7 -5 13 0 L12 12 H-12 Z" fill="currentColor" opacity="0.3" />
-      <path d="M-13 0 Q-10 -2.6 -6.6 -3.9 L-6 12 H-12 Z M13 0 Q10 -2.6 6.6 -3.9 L6 12 H12 Z" fill="#f8fafc" opacity="0.18" />
-      <path d="M0 -5 L0 12" stroke="#f8fafc" strokeWidth="1.4" opacity="0.6" />
-      <circle cx="-1.6" cy="0" r="0.55" fill="#f8fafc" opacity="0.75" />
-      <circle cx="-1.6" cy="3.4" r="0.55" fill="#f8fafc" opacity="0.75" />
-      <circle cx="-1.6" cy="6.8" r="0.55" fill="#f8fafc" opacity="0.75" />
-      <path d="M-11.8 10 Q0 12.4 11.8 10 M-11.9 11.4 Q0 13.8 11.9 11.4" stroke="#f8fafc" strokeWidth="0.8" fill="none" opacity="0.5" />
-      <path d="M2.6 2.2 L3.2 3.6 L4.7 3.7 L3.6 4.7 L3.9 6.2 L2.6 5.4 L1.3 6.2 L1.6 4.7 L0.5 3.7 L2 3.6 Z" fill="#f8fafc" opacity="0.55" />
-    </g>
-  ),
-  tux: (
-    <g transform="translate(0, 9)">
-      <path d="M-12 -1 Q-6 -6 0 -6 Q6 -6 12 -1 L11 11 H-11 Z" fill="#111827" opacity="0.88" />
-      <path d="M0 -6 L-4 -1 L0 8 L4 -1 Z" fill="#f8fafc" opacity="0.92" />
-      <path d="M0 -6 L-4 -1 L-2.2 -0.4 L0 -3.6 Z M0 -6 L4 -1 L2.2 -0.4 L0 -3.6 Z" fill="#1f2937" />
-      <path d="M-4 -1 L-6.8 5.4 L-4.4 4 Z M4 -1 L6.8 5.4 L4.4 4 Z" fill="#0b1120" opacity="0.9" />
-      <path d="M0 -3.4 L-2.4 -4.8 L2.4 -4.8 Z" fill="#111827" />
-      <circle cx="0" cy="0.5" r="0.65" fill="#111827" />
-      <circle cx="0" cy="3.2" r="0.65" fill="#111827" />
-      <circle cx="0" cy="5.9" r="0.65" fill="#111827" />
-      <path d="M-8.4 2.6 L-5.8 2.2 L-6.2 3.8 Z" fill="#f8fafc" opacity="0.85" />
-    </g>
-  ),
-  cape: (
-    <g transform="translate(0, 7)">
-      <path d="M-13 -4 Q0 2 13 -4 L11 15 Q0 10 -11 15 Z" fill="#7c3aed" opacity="0.4" />
-      <path d="M-13 -4 Q-6.5 -1 0 -1 L-1 12.4 Q-6 11 -11 15 Z" fill="rgba(0,0,0,0.14)" />
-      <path d="M-8.6 -1.4 L-7.4 12 M8.6 -1.4 L7.4 12 M0 -1 L0 11.2" stroke="rgba(255,255,255,0.14)" strokeWidth="0.9" strokeLinecap="round" />
-      <path d="M11 15 Q0 10 -11 15" fill="none" stroke="#a78bfa" strokeWidth="1" opacity="0.55" />
-      <circle cx="-5" cy="-2.5" r="1.3" fill="#fbbf24" stroke="#f59e0b" strokeWidth="0.4" />
-      <circle cx="5" cy="-2.5" r="1.3" fill="#fbbf24" stroke="#f59e0b" strokeWidth="0.4" />
-      <path d="M-3.8 -2.5 H3.8" stroke="#fbbf24" strokeWidth="0.8" />
-    </g>
-  ),
-  spacesuit: (
-    <g transform="translate(0, 8)">
-      <path d="M-13 0 Q-7 -6 0 -6 Q7 -6 13 0 L12 12 H-12 Z" fill="rgba(226,232,240,0.5)" stroke="currentColor" strokeWidth="1" />
-      <path d="M-9.6 -2.6 Q-9 4 -9.6 10.4 M9.6 -2.6 Q9 4 9.6 10.4" stroke="rgba(15,23,42,0.2)" strokeWidth="0.8" fill="none" />
-      <rect x="-4.8" y="-1.8" width="9.6" height="6" rx="1.6" fill="rgba(15,23,42,0.26)" stroke="currentColor" strokeWidth="0.9" />
-      <circle cx="-2.4" cy="0.4" r="0.8" fill="#22c55e" />
-      <circle cx="0" cy="0.4" r="0.8" fill="#fbbf24" />
-      <circle cx="2.4" cy="0.4" r="0.8" fill="#ef4444" />
-      <rect x="-3.6" y="2.2" width="7.2" height="1.1" rx="0.55" fill="rgba(255,255,255,0.45)" />
-      <path d="M-4.8 1 Q-8 1.6 -8.6 4.6 M4.8 1 Q8 1.6 8.6 4.6" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" opacity="0.7" />
-    </g>
-  ),
-};
 
 const EYE_STYLES: Record<string, React.ReactNode> = {
   regular: null,
@@ -809,7 +710,7 @@ const COLOR_THEMES: Record<string, { primary: string; glow: string; bg: string }
   obsidian: { primary: "#475569", glow: "rgba(71, 85, 105, 0.4)", bg: "rgba(71, 85, 105, 0.15)" },
 };
 
-// Wearables (hats, hair, outfits, accessories) render in a LIGHTER tint of
+// Wearables (hats, hair, accessories) render in a LIGHTER tint of
 // the Meshi's color. In the theme color itself they blended into the body and
 // the dark backdrop — picking a hat looked like nothing happened.
 function lightenHex(hex: string, amount: number): string {
@@ -850,7 +751,6 @@ export type MeshiAccessory = keyof typeof ACCESSORIES;
 export type MeshiEyeStyle = keyof typeof EYE_STYLES;
 export type MeshiColor = keyof typeof COLOR_THEMES;
 export type MeshiBadge = keyof typeof BADGES;
-export type MeshiOutfit = keyof typeof OUTFITS;
 
 // Page-to-prop mapping: which prop Meshi holds on each page
 export const PAGE_PROPS: Record<string, MeshiProp> = {
@@ -875,7 +775,6 @@ interface MeshiMascotProps {
   accessory?: MeshiAccessory;
   eyeStyle?: MeshiEyeStyle;
   badge?: MeshiBadge;
-  outfit?: MeshiOutfit;
   animate?: boolean;
   onClick?: () => void;
   className?: string;
@@ -896,7 +795,6 @@ export function MeshiMascot({
   accessory = "none",
   eyeStyle = "regular",
   badge = "none",
-  outfit = "none",
   animate = true,
   onClick,
   className = "",
@@ -918,7 +816,6 @@ export function MeshiMascot({
   const eyeStyleElement = EYE_STYLES[effectiveEyeStyle] || null;
   const accessoryElement = ACCESSORIES[effectiveAccessory] || null;
   const badgeElement = BADGES[badge] || null;
-  const outfitElement = OUTFITS[outfit] || null;
   const containerRef = useRef<HTMLDivElement>(null);
   const uniqueId = useId();
 
@@ -937,7 +834,6 @@ export function MeshiMascot({
   const hairSway = useSpring(0, { stiffness: 120, damping: 11, mass: 0.85 });
   const hairLift = useTransform(hatLift, (v) => v * 0.6);
   const dangleSway = useSpring(0, { stiffness: 100, damping: 6.5, mass: 1 });
-  const outfitSway = useSpring(0, { stiffness: 150, damping: 13, mass: 0.7 });
   const travelSquash = useSpring(0, { stiffness: 240, damping: 18, mass: 0.5 });
   const travelScaleX = useTransform(travelSquash, (v) => 1 + v);
   const travelScaleY = useTransform(travelSquash, (v) => 1 - v * 0.8);
@@ -974,7 +870,6 @@ export function MeshiMascot({
           hatLift.set(clamp(-vy * 0.012, 2.6));
           hairSway.set(clamp(-vx * 0.016, 9));
           dangleSway.set(clamp(-vx * 0.06, 32));
-          outfitSway.set(clamp(vx * 0.02, 9));
           travelSquash.set(Math.min(Math.sqrt(vx * vx + vy * vy) * 0.00009, 0.05));
         }
       }
@@ -984,7 +879,7 @@ export function MeshiMascot({
     };
     raf = requestAnimationFrame(step);
     return () => cancelAnimationFrame(raf);
-  }, [animate, hatSway, hatLift, hairSway, dangleSway, outfitSway, travelSquash]);
+  }, [animate, hatSway, hatLift, hairSway, dangleSway, travelSquash]);
 
   // Smooth eye tracking via spring-based motion values
   const eyeOffsetX = useMotionValue(0);
@@ -1246,13 +1141,6 @@ export function MeshiMascot({
               : { duration: 3.5, repeat: Infinity, ease: "easeInOut" }
             }
           />
-          {/* Simple outfits stay inside the bubble so Meshi remains minimal.
-              Draped ones trail slightly against the direction of travel. */}
-          <motion.g
-            style={{ color: wearable, rotate: outfitSway, transformBox: "fill-box", transformOrigin: "50% 0%" }}
-          >
-            {outfitElement}
-          </motion.g>
         </g>
 
         {/* Headwear, face and accessories render OUTSIDE the body clip so tall

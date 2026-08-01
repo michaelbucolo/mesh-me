@@ -254,7 +254,7 @@ function createCommands(username: string): CommandItem[] {
     {
       id: "settings-meshi",
       title: "Meshi Studio",
-      description: "Customize color, hat, hair, eyes, accessories, badges, and outfits.",
+      description: "Customize color, face, eyes, hair, hats, accessories, and badges.",
       category: "Settings",
       href: "/settings#meshi",
       icon: Palette,

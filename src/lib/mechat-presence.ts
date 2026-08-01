@@ -5,7 +5,6 @@ export type TypingMeshi = {
   accessory: string;
   eyeStyle: string;
   badge: string;
-  outfit: string;
 };
 
 export type MeChatPresenceMode = "typing" | "viewing";

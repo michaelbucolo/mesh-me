@@ -34,7 +34,6 @@ export async function getCachedMeshiFor(userId: string): Promise<TypingMeshi | n
         accessory: pref.accessoryStyle,
         eyeStyle: pref.eyeStyle,
         badge: pref.badgeStyle,
-        outfit: pref.outfitStyle,
       }
     : null;
   // Opportunistically evict expired entries (this runs only on a cache miss, so

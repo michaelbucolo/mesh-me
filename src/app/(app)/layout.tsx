@@ -98,7 +98,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         accessoryStyle: meshiPref.accessoryStyle,
         eyeStyle: meshiPref.eyeStyle,
         badgeStyle: meshiPref.badgeStyle,
-        outfitStyle: meshiPref.outfitStyle,
       }
     : null;
 
