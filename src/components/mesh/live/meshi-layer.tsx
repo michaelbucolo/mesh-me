@@ -233,7 +233,8 @@ export function MeshiLayer({
                 size={54}
                 color={prefs.color}
                 hat={prefs.hat}
-                mood={showCompose ? "thinking" : hoverNode ? "excited" : behaviorMood ?? prefs.face}
+                mood={showCompose ? "thinking" : hoverNode ? "excited" : behaviorMood ?? "happy"}
+                face={prefs.face}
                 hair={prefs.hair}
                 accessory={prefs.accessory}
                 eyeStyle={prefs.eye}

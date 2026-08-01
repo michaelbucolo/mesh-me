@@ -185,6 +185,13 @@ export function MeshiFloat() {
       return ((storedAccessory === "lashes" ? "none" : storedAccessory) || "none") as MeshiAccessory;
     } catch { return "none" as MeshiAccessory; }
   });
+  // The face is identity and persists; `mood` beside it is whatever Meshi is
+  // reacting to right now. They used to be the same state, which is why a
+  // chosen "expression" vanished the moment anything happened.
+  const [meshiFace, setMeshiFace] = useState<string>(() => {
+    if (typeof window === "undefined") return "bean";
+    try { return localStorage.getItem("meshiFace") || "bean"; } catch { return "bean"; }
+  });
   const [meshiEye, setMeshiEye] = useState<MeshiEyeStyle>(() => {
     if (typeof window === "undefined") return "regular";
     try {
@@ -385,7 +392,7 @@ export function MeshiFloat() {
     const timer = window.setTimeout(() => {
       getMeshiPreference().then((pref) => {
         if (pref) {
-          if (pref.faceStyle) setMood(pref.faceStyle as MeshiMood);
+          if (pref.faceStyle) setMeshiFace(pref.faceStyle);
           if (pref.colorTheme) setMeshiColor(pref.colorTheme as MeshiColor);
           if (pref.hatStyle) setMeshiHat(pref.hatStyle as MeshiHat);
           if (pref.hairStyle) setMeshiHair(pref.hairStyle as MeshiHair);
@@ -419,7 +426,7 @@ export function MeshiFloat() {
       if (prefs.accessory) setMeshiAccessory(prefs.accessory);
       if (prefs.eye) setMeshiEye(prefs.eye);
       if (prefs.badge) setMeshiBadge(prefs.badge);
-      if (prefs.face) setMood(prefs.face);
+      if (prefs.face) setMeshiFace(prefs.face);
       if (typeof prefs.enabled === "boolean") setMeshiEnabled(prefs.enabled);
     };
 
@@ -431,7 +438,7 @@ export function MeshiFloat() {
       if (e.key === "meshiAccessory") setMeshiAccessory(((e.newValue === "lashes" ? "none" : e.newValue) || "none") as MeshiAccessory);
       if (e.key === "meshiEye") setMeshiEye((e.newValue || "regular") as MeshiEyeStyle);
       if (e.key === "meshiBadge") setMeshiBadge((e.newValue || "none") as MeshiBadge);
-      if (e.key === "meshiFace") setMood((e.newValue || "happy") as MeshiMood);
+      if (e.key === "meshiFace") setMeshiFace(e.newValue || "bean");
     };
     const handlePreferenceEvent = (event: Event) => {
       const customEvent = event as CustomEvent<MeshiPreferences>;
@@ -976,6 +983,7 @@ export function MeshiFloat() {
                 mood={isFullscreenVideo ? "learning" : isSearching ? "searching" as MeshiMood : mood}
                 color={meshiColor}
                 hat={meshiHat}
+                face={meshiFace}
                 hair={meshiHair}
                 accessory={isFullscreenVideo || isSearching ? "glasses" : meshiAccessory}
                 eyeStyle={meshiEye}

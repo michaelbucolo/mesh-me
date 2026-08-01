@@ -8,14 +8,14 @@ import type {
   MeshiEyeStyle,
   MeshiHair,
   MeshiHat,
-  MeshiMood,
 } from "@/components/meshi/meshi-mascot";
 import { getMeshiPreference } from "@/lib/actions";
 
 export interface MeshiPreferences {
   color: MeshiColor;
   hat: MeshiHat;
-  face: MeshiMood;
+  /** A face id — a persistent eye shape, not a mood. */
+  face: string;
   hair: MeshiHair;
   accessory: MeshiAccessory;
   eye: MeshiEyeStyle;
@@ -45,7 +45,7 @@ const STORAGE_KEYS = {
 const DEFAULTS: MeshiPreferences = {
   color: "blue",
   hat: "none",
-  face: "happy",
+  face: "bean",
   hair: "none",
   accessory: "none",
   eye: "regular",
@@ -73,7 +73,7 @@ function readMeshiPreferencesFromStorage(): MeshiPreferences {
   return {
     color: (localStorage.getItem(STORAGE_KEYS.color) as MeshiColor) || DEFAULTS.color,
     hat: (localStorage.getItem(STORAGE_KEYS.hat) as MeshiHat) || DEFAULTS.hat,
-    face: (localStorage.getItem(STORAGE_KEYS.face) as MeshiMood) || DEFAULTS.face,
+    face: localStorage.getItem(STORAGE_KEYS.face) || DEFAULTS.face,
     hair: (localStorage.getItem(STORAGE_KEYS.hair) as MeshiHair) || DEFAULTS.hair,
     accessory: ((storedAccessory === "lashes" ? "none" : storedAccessory) as MeshiAccessory) || DEFAULTS.accessory,
     eye: ((localStorage.getItem(STORAGE_KEYS.eye) || (storedAccessory === "lashes" ? "lashes" : "")) as MeshiEyeStyle) || DEFAULTS.eye,
@@ -136,7 +136,7 @@ export function applyServerMeshiPreferences(serverPref: ServerMeshiPreference): 
     ...local,
     color: (serverPref.colorTheme as MeshiColor) || local.color,
     hat: (serverPref.hatStyle as MeshiHat) || local.hat,
-    face: (serverPref.faceStyle as MeshiMood) || local.face,
+    face: serverPref.faceStyle || local.face,
     hair: (serverPref.hairStyle as MeshiHair) || local.hair,
     accessory: (serverPref.accessoryStyle as MeshiAccessory) || local.accessory,
     eye: (serverPref.eyeStyle as MeshiEyeStyle) || local.eye,

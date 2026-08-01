@@ -1,6 +1,11 @@
 "use server";
 
 import { prisma } from "./prisma";
+// Ids only — the module's single dependency on the mascot is `import type`, so
+// nothing from the client component reaches this server bundle.
+import { MESHI_FACE_IDS, MESHI_LASH_IDS } from "@/components/meshi/meshi-face";
+import { MESHI_HAIR_IDS } from "@/components/meshi/meshi-hair";
+import { ALL_ACCESSORY_ITEMS, parseAccessories, serializeAccessories } from "@/components/meshi/meshi-slots";
 import { getCurrentUser, hashPassword, createSession, destroySession, verifyPassword, invalidateAllUserSessions } from "./auth";
 import { GLOBAL_MESH_BRANCHES } from "./global-mesh";
 import { ABOUT_FIELDS, type AboutField, aboutFieldMaxLen, isAboutPrivacyLevel } from "./profile-info";
@@ -773,6 +778,17 @@ export async function resetPassword(token: string, newPassword: string) {
 
 // ─── Onboarding Actions ──────────────────────────────────────
 
+/**
+ * Accessories are a SET now, not one value, so they cannot be validated by
+ * membership in a list. Parsing drops every token that is not a known item and
+ * re-serialising puts what survives into canonical order — which sanitises and
+ * normalises in one step, and means a malformed or hostile string can only ever
+ * shrink to something valid rather than reach the renderer.
+ */
+function cleanMeshiAccessories(value: unknown): string {
+  return serializeAccessories(parseAccessories(typeof value === "string" ? value : ""));
+}
+
 export async function completeOnboarding(formData: FormData) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
@@ -817,7 +833,7 @@ export async function completeOnboarding(formData: FormData) {
     hatStyle: cleanMeshiOption(String(formData.get("meshiHat") || ""), MESHI_OPTION_VALUES.hats, "none") ?? "none",
     faceStyle: cleanMeshiOption(String(formData.get("meshiFace") || ""), MESHI_OPTION_VALUES.faces, "happy") ?? "happy",
     hairStyle: cleanMeshiOption(String(formData.get("meshiHair") || ""), MESHI_OPTION_VALUES.hairs, "none") ?? "none",
-    accessoryStyle: cleanMeshiOption(String(formData.get("meshiAccessory") || ""), MESHI_OPTION_VALUES.accessories, "none") ?? "none",
+    accessoryStyle: cleanMeshiAccessories(formData.get("meshiAccessory")),
     eyeStyle: cleanMeshiOption(String(formData.get("meshiEyes") || ""), MESHI_OPTION_VALUES.eyes, "regular") ?? "regular",
     badgeStyle: cleanMeshiOption(String(formData.get("meshiBadge") || ""), MESHI_OPTION_VALUES.badges, "none") ?? "none",
     // The username being CLAIMED, not the pre-onboarding one: a founder picks
@@ -2997,11 +3013,17 @@ export async function sendCommunityMessageFromForm(formData: FormData): Promise<
 
 const MESHI_OPTION_VALUES = {
   hats: new Set(["none", "tophat", "beanie", "cap", "party", "crown", "flower", "headphones", "halo", "wizard", "astronaut", "pirate", "chef", "beret", "headband", "bow", "cowboy", "graduation"]),
-  faces: new Set(["happy", "excited", "thinking", "sleepy", "surprised", "love", "cool", "wink", "searching", "learning", "celebrating", "shy", "giggle", "synergy1017"]),
+  // faceStyle now stores a FACE — a persistent eye shape — not a mood. The old
+  // values were mood names, and resolveFace() maps anything unknown to "bean",
+  // so existing rows land on the default face instead of failing validation.
+  faces: new Set<string>(MESHI_FACE_IDS),
   colors: new Set(["blue", "purple", "pink", "green", "orange", "cyan", "gold", "rainbow", "crimson", "midnight", "rose", "emerald", "arctic", "obsidian"]),
-  hairs: new Set(["none", "fluffy", "bangs", "spikes", "curls"]),
-  accessories: new Set(["none", "glasses", "sunglasses", "monocle", "earrings", "bowtie", "freckles", "blush", "eyepatch", "star", "mustache", "necklace"]),
-  eyes: new Set(["regular", "lashes"]),
+  hairs: new Set<string>(MESHI_HAIR_IDS),
+  accessories: new Set<string>(ALL_ACCESSORY_ITEMS),
+  // eyeStyle now stores a LASH style. "regular" is the legacy value for "no
+  // lashes" and keeps working via resolveLash(), so nobody's Meshi changes
+  // under them.
+  eyes: new Set<string>(["regular", ...MESHI_LASH_IDS]),
   badges: new Set(["none", "spark", "heart", "shield", "verified", "creator", "founder"]),
 };
 
@@ -3091,7 +3113,7 @@ export async function updateMeshiPreference(data: MeshiPreferenceUpdate) {
     faceStyle: cleanMeshiOption(data.faceStyle, MESHI_OPTION_VALUES.faces),
     colorTheme: cleanMeshiOption(data.colorTheme, MESHI_OPTION_VALUES.colors),
     hairStyle: cleanMeshiOption(data.hairStyle, MESHI_OPTION_VALUES.hairs),
-    accessoryStyle: cleanMeshiOption(data.accessoryStyle, MESHI_OPTION_VALUES.accessories),
+    accessoryStyle: cleanMeshiAccessories(data.accessoryStyle),
     eyeStyle: cleanMeshiOption(data.eyeStyle, MESHI_OPTION_VALUES.eyes),
     badgeStyle: cleanMeshiOption(data.badgeStyle, MESHI_OPTION_VALUES.badges),
   };
