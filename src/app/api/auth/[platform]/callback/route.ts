@@ -267,8 +267,28 @@ export async function GET(
     }
 
     if (!hasSecretEncryptionKey()) {
+      // "PLEASE CONTACT SUPPORT" IS A DEAD END WHEN YOU ARE SUPPORT.
+      //
+      // This is the one failure on this path that no user can do anything
+      // about and no operator can diagnose from the message: it named neither
+      // the variable nor the shape, so the only way to find out what was wrong
+      // was to read secret-store.ts. It also fires AFTER the provider redirect,
+      // so whoever sees it has already authorized the connection and has every
+      // reason to think the fault is theirs.
+      //
+      // The variable name and the expected shape are safe to say — they are in
+      // .env.example and LAUNCH-GUIDE.md. The VALUE is never touched here, and
+      // hasSecretEncryptionKey() returns a boolean precisely so nothing about
+      // the key can leak into a URL that lands in browser history and logs.
+      console.error(
+        `[oauth:${platform}] token exchange succeeded but no usable encryption key is configured; ` +
+          "set APP_DATA_ENCRYPTION_KEY to 32 bytes (openssl rand -hex 32). Tokens were NOT stored.",
+      );
       return NextResponse.redirect(
-        `${connectedAccountsUrl}?error=${encodeURIComponent("Server encryption key is not configured. Please contact support.")}&platform=${encodedPlatform}`
+        `${connectedAccountsUrl}?error=${encodeURIComponent(
+          "This server has no encryption key set, so we could not store the connection securely. " +
+            "Nothing was saved. An admin needs to set APP_DATA_ENCRYPTION_KEY to a 32-byte key.",
+        )}&platform=${encodedPlatform}`
       );
     }
 
