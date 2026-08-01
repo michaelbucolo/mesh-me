@@ -8,6 +8,7 @@ import { PaperWait } from "@/components/loading/paper-wait";
 import { Avatar } from "@/components/ui/avatar";
 import { Modal } from "@/components/ui/modal";
 import { useContactPresence } from "./use-contact-presence";
+import { getDisplayNameForAnyPlatform } from "@/lib/platform-capabilities";
 import { formatRelativeTime } from "@/lib/utils";
 
 type Person = {
@@ -69,9 +70,11 @@ type FilterKey = (typeof FILTERS)[number]["key"];
 // Shared overlay physics: mobile sheets ride up on it, desktop panels scale-fade.
 
 function platformLabel(platform: string) {
-  if (platform.toLowerCase() === "twitter") return "X";
+  // "meshme" is not a platform in the allow-list — it is this product — so it
+  // stays here. Every real platform name now comes from the one table, which
+  // is what makes TikTok and LinkedIn keep their inner capitals.
   if (platform.toLowerCase() === "meshme") return "Mesh.me";
-  return platform.charAt(0).toUpperCase() + platform.slice(1);
+  return getDisplayNameForAnyPlatform(platform);
 }
 
 function platformBadgeClass(platform: string): string {

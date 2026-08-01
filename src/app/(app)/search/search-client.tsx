@@ -18,6 +18,7 @@ import {
   UsersRound,
 } from "lucide-react";
 import { publishMeshiCause } from "@/lib/meshi-bus";
+import { getDisplayNameForAnyPlatform } from "@/lib/platform-capabilities";
 import { Avatar } from "@/components/ui/avatar";
 import { formatCount, formatRelativeTime, safeHref } from "@/lib/utils";
 
@@ -165,8 +166,11 @@ const sectionVariant: Variants = {
 const rowStyle = (index: number) => ({ ["--i" as string]: index }) as CSSProperties;
 
 function platformLabel(value: string | null | undefined) {
+  // Was: twitter -> "X", everything else first-letter-uppercased, which spelled
+  // TikTok "Tiktok" and LinkedIn "Linkedin". One table now, in
+  // lib/platform-capabilities.
   if (!value) return "Source";
-  return value.toLowerCase() === "twitter" ? "X" : value[0]?.toUpperCase() + value.slice(1);
+  return getDisplayNameForAnyPlatform(value);
 }
 
 function ResultEmpty({ query }: { query: string }) {

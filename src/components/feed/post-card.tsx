@@ -13,7 +13,7 @@ import { NativeAspectMedia } from "@/components/ui/native-aspect-media";
 import { useState, useTransition, useRef, useEffect, memo, type ReactNode } from "react";
 import { toggleReaction, toggleSavePost, repost, deletePost, reportPost } from "@/lib/actions";
 import { BlockAuthorConfirmDialog } from "@/components/privacy/block-controls";
-import { getPlatformActionCapability } from "@/lib/platform-capabilities";
+import { getDisplayNameForAnyPlatform, getPlatformActionCapability } from "@/lib/platform-capabilities";
 import { askMeshiAboutContent } from "@/lib/meshi-events";
 import { getFocusedContentPrompt, type MeshiContentMode } from "@/lib/meshi-content";
 import { getVideoEmbedUrl } from "@/lib/video-embed";
@@ -21,18 +21,22 @@ import { Play } from "lucide-react";
 import { playSound } from "@/lib/sound";
 
 // Platform colors for origin badges
-const PLATFORM_BADGE: Record<string, { label: string; color: string; abbr: string }> = {
-  instagram: { label: "Instagram", color: "#E4405F", abbr: "IG" },
-  youtube: { label: "YouTube", color: "#FF0000", abbr: "YT" },
-  tiktok: { label: "TikTok", color: "#69C9D0", abbr: "TT" },
-  twitter: { label: "X", color: "#1DA1F2", abbr: "X" },
-  twitch: { label: "Twitch", color: "#9146FF", abbr: "TW" },
-  spotify: { label: "Spotify", color: "#1DB954", abbr: "SP" },
-  linkedin: { label: "LinkedIn", color: "#0A66C2", abbr: "IN" },
-  reddit: { label: "Reddit", color: "#FF4500", abbr: "RD" },
-  facebook: { label: "Facebook", color: "#1877F2", abbr: "FB" },
-  discord: { label: "Discord", color: "#5865F2", abbr: "DC" },
-  meshme: { label: "mesh.me", color: "#2d7ff9", abbr: "M" },
+// COLOR AND ABBREVIATION ONLY — the NAME comes from lib/platform-capabilities.
+// A `label` lived here too, which made this the fifth place in the codebase that
+// stated what a platform is called. These are brand pigments and two-letter
+// marks, which nothing else owns; the name is not ours to restate.
+const PLATFORM_BADGE: Record<string, { color: string; abbr: string }> = {
+  instagram: { color: "#E4405F", abbr: "IG" },
+  youtube: { color: "#FF0000", abbr: "YT" },
+  tiktok: { color: "#69C9D0", abbr: "TT" },
+  twitter: { color: "#1DA1F2", abbr: "X" },
+  twitch: { color: "#9146FF", abbr: "TW" },
+  spotify: { color: "#1DB954", abbr: "SP" },
+  linkedin: { color: "#0A66C2", abbr: "IN" },
+  reddit: { color: "#FF4500", abbr: "RD" },
+  facebook: { color: "#1877F2", abbr: "FB" },
+  discord: { color: "#5865F2", abbr: "DC" },
+  meshme: { color: "#2d7ff9", abbr: "M" },
 };
 
 interface PostCardProps {
@@ -190,7 +194,13 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
   const connectedPlatformSet = new Set(connectedPlatforms.map((platform) => normalizePlatform(platform)).filter(Boolean));
   const requiresSourceAccount = Boolean(originPlatform && originPlatform !== "meshme");
   const hasSourceAccount = !requiresSourceAccount || connectedPlatformSet.has(originPlatform);
-  const platformLabel = originPlatform && PLATFORM_BADGE[originPlatform]?.label;
+  // "meshme" is this product, not a platform in the allow-list, so it keeps its
+  // own spelling; everything else reads from the one table.
+  const platformLabel = originPlatform
+    ? originPlatform === "meshme"
+      ? "mesh.me"
+      : getDisplayNameForAnyPlatform(originPlatform)
+    : undefined;
   // Native posts don't get an origin badge — "mesh.me" printed on every
   // mesh.me post was self-labeling that helped the meta row wrap to three
   // lines on a phone. The badge exists to say a post came from SOMEWHERE ELSE.
@@ -528,7 +538,7 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
                         style={{ backgroundColor: platformBadge.color }}
                         aria-hidden="true"
                       />
-                      {platformBadge.label}
+                      {platformLabel}
                     </span>
                   </>
                 )}
