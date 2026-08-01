@@ -273,6 +273,50 @@ export function MeChatThread({
   // created on the first deliberate tap, never speculatively on thread open.
   const [roomId, setRoomId] = useState<string | null>(null);
   const [roomOpening, setRoomOpening] = useState(false);
+  // A room the two of you are ALREADY in. Local state alone could not know
+  // this, and that was the bug: the invitee's client started at null, so their
+  // button offered to start something and made a second room instead of taking
+  // them to the one they had just been invited to.
+  const [openRoom, setOpenRoom] = useState<{ id: string; hostId: string } | null>(null);
+  // Ask once, on opening a mesh conversation, whether a room for exactly these
+  // two people is already open. Failure is silent on purpose — the button still
+  // works, it just offers the generic wording instead of naming what is waiting.
+  useEffect(() => {
+    if (isExternalThread || !recipientId) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch("/api/mechat/sessions", { credentials: "same-origin" });
+        if (!res.ok) return;
+        const data = await res.json().catch(() => ({}));
+        const wanted = [currentUser.id, recipientId].sort().join("|");
+        const sessions: unknown[] = Array.isArray(data?.sessions) ? data.sessions : [];
+        const match = sessions.find((entry) => {
+          const s = entry as {
+            sessionType?: string;
+            callMode?: string;
+            status?: string;
+            participants?: { userId?: string }[];
+          };
+          if (s.sessionType !== "co_browse" || s.callMode !== "none" || s.status === "ended") return false;
+          if (!Array.isArray(s.participants)) return false;
+          const ids = s.participants.map((p) => p?.userId).filter((id): id is string => Boolean(id));
+          // Exactly these two. A room with a third person in it is a different
+          // room, and walking someone into it uninvited is not a shortcut.
+          return Array.from(new Set(ids)).sort().join("|") === wanted;
+        }) as { id?: string; hostId?: string } | undefined;
+        if (!cancelled && match?.id && match?.hostId) {
+          setOpenRoom({ id: match.id, hostId: match.hostId });
+        }
+      } catch {
+        // No room named; the button falls back to its plain wording.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isExternalThread, recipientId, currentUser.id]);
+
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState("");
   // Which bubble's action bar is pinned open (tap on touch, since there's no hover).
@@ -776,6 +820,13 @@ export function MeChatThread({
               data-testid="mechat-open-room"
               disabled={roomOpening}
               onClick={async () => {
+                // Already know the room? Walk in. No request, no chance of a
+                // second one, and no waiting on the network to re-derive
+                // something we were told when the thread opened.
+                if (openRoom) {
+                  setRoomId(openRoom.id);
+                  return;
+                }
                 setRoomOpening(true);
                 setError("");
                 try {
@@ -791,7 +842,15 @@ export function MeChatThread({
                   });
                   const data = await res.json().catch(() => ({}));
                   if (!res.ok) throw new Error(typeof data?.error === "string" ? data.error : "Could not open a room");
-                  if (data?.session?.id) setRoomId(data.session.id);
+                  if (data?.session?.id) {
+                    setRoomId(data.session.id);
+                    // The route is idempotent on the participant set, so this
+                    // may be a room that already existed. Remember it either
+                    // way, so closing and reopening does not ask again.
+                    if (typeof data.session.hostId === "string") {
+                      setOpenRoom({ id: data.session.id, hostId: data.session.hostId });
+                    }
+                  }
                 } catch (e) {
                   setError(e instanceof Error ? e.message : "Could not open a room");
                 } finally {
@@ -801,7 +860,13 @@ export function MeChatThread({
               className="ds-focus-ring mt-2 inline-flex min-h-11 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
             >
               <Users size={14} aria-hidden="true" />
-              {roomOpening ? "Opening…" : "Watch something together"}
+              {roomOpening
+                ? "Opening…"
+                : openRoom
+                  ? openRoom.hostId === currentUser.id
+                    ? "Back to your room"
+                    : "Join the room"
+                  : "Watch something together"}
             </button>
           )
         )}
