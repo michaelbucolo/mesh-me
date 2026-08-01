@@ -46,7 +46,6 @@ const protectedApiPrefixes = [
   "/api/notifications",
   "/api/platform-content",
   "/api/search",
-  "/api/security-hub",
   "/api/settings",
   "/api/status",
   "/api/stripe/checkout",
