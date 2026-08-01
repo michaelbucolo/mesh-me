@@ -8,6 +8,7 @@ import {
   getOAuthMissingEnv,
   isPlatformOAuth,
 } from "@/lib/oauth";
+import { hasSecretEncryptionKey } from "@/lib/secret-store";
 import { cookies } from "next/headers";
 import { randomBytes } from "crypto";
 
@@ -56,6 +57,35 @@ export async function GET(
     return NextResponse.redirect(
       connectedAccountsUrl
     );
+  }
+
+  // THE THIRD PRECONDITION, AND THE ONE THAT WAS STILL COSTING PEOPLE A REAL
+  // AUTHORIZATION.
+  //
+  // The comment above describes this exact failure for the client secret. The
+  // encryption key is the same shape of problem one step further along: the
+  // token exchange SUCCEEDS, and then the callback refuses to store the token
+  // because it cannot encrypt it. Reported from production, on every platform:
+  //
+  //     "This server has no encryption key set, so we could not store the
+  //      connection securely. Nothing was saved."
+  //
+  // That message is true and it arrives far too late. By then the person has
+  // signed in at the provider and granted mesh.me real access to their account
+  // — access that is now live, that we did not keep, and that they have to go
+  // and revoke by hand. Every attempt leaves another dead grant behind.
+  //
+  // hasSecretEncryptionKey() is a pure shape check over one env var, no I/O, so
+  // there is no reason this was ever discovered downstream of a consent screen.
+  if (!hasSecretEncryptionKey()) {
+    connectedAccountsUrl.searchParams.set(
+      "error",
+      "This deployment has no encryption key, so a connection could not be stored securely — " +
+        "you have not been sent to " + config.name + ". An admin needs to set APP_DATA_ENCRYPTION_KEY " +
+        "to a 32-byte key and redeploy.",
+    );
+    connectedAccountsUrl.searchParams.set("platform", platform);
+    return NextResponse.redirect(connectedAccountsUrl);
   }
 
   // Non-null by construction: missingEnv above is empty, which means both

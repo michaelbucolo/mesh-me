@@ -143,6 +143,7 @@ export function ConnectedAccountsClient({
   identity,
   supplyNotes = {},
   browsableCount = 0,
+  serverKeyMissing = false,
   justConnectedPlatform = null,
   connectError = null,
   preselectPlatforms = [],
@@ -156,6 +157,9 @@ export function ConnectedAccountsClient({
   supplyNotes?: Record<string, SupplyNote>;
   /** How many platforms feed the Flow with nothing linked at all. */
   browsableCount?: number;
+  /** No APP_DATA_ENCRYPTION_KEY on this deployment: nothing can store a token,
+   *  so every platform is unconnectable until an admin sets it. */
+  serverKeyMissing?: boolean;
   /** Platform id just connected via OAuth this visit (from ?connected=). */
   justConnectedPlatform?: string | null;
   /** OAuth failure message this visit (from ?error=). */
@@ -208,7 +212,12 @@ export function ConnectedAccountsClient({
 
     const built = dashboard.supportedPlatforms.map((platform) => {
       const accounts = accountsByPlatform.get(platform.id) ?? [];
-      const canConnect = platform.authType !== "oauth" || (platform.configured && Boolean(platform.connectHref));
+      // The server key gates EVERY platform. A tile that still offers a tap
+      // sends someone to a real consent screen to grant real access that this
+      // deployment then cannot keep.
+      const canConnect =
+        !serverKeyMissing
+        && (platform.authType !== "oauth" || (platform.configured && Boolean(platform.connectHref)));
       const note = supplyNotes[platform.id] ?? null;
 
       let state: TileState;
@@ -231,7 +240,7 @@ export function ConnectedAccountsClient({
               : "Merged";
       } else if (!canConnect) {
         state = "locked";
-        caption = "Needs setup";
+        caption = serverKeyMissing ? "Server not ready" : "Needs setup";
       } else {
         state = "open";
         // The registry's own researched label. "Browse freely" under an
@@ -264,7 +273,7 @@ export function ConnectedAccountsClient({
     });
 
     return built.map((entry) => entry.tile);
-  }, [accountsByPlatform, dashboard.supportedPlatforms, preselectPlatforms, supplyNotes]);
+  }, [accountsByPlatform, dashboard.supportedPlatforms, preselectPlatforms, supplyNotes, serverKeyMissing]);
 
   const openPlatform = useMemo<SupportedPlatformView | null>(
     () => dashboard.supportedPlatforms.find((platform) => platform.id === openPlatformId) ?? null,
@@ -454,6 +463,28 @@ export function ConnectedAccountsClient({
         </Button>
       </header>
 
+      {/* SAID ONCE, AND FIRST. This is one deployment setting, not twelve
+          per-platform ones, and it is the reason every tile below is inert —
+          so it goes above the mesh rather than under it, and is not repeated
+          inside twelve sheets. */}
+      {serverKeyMissing && (
+        <section className="flex items-start gap-2.5 rounded-[var(--ds-radius-md)] border border-[var(--ds-danger-border)] bg-[var(--ds-danger-bg)] px-3.5 py-3">
+          <AlertCircle className="mt-0.5 size-4 shrink-0 text-[var(--ds-danger)]" aria-hidden="true" />
+          <div className="min-w-0 text-sm leading-6 text-[var(--ds-danger)]">
+            <p className="font-semibold">Connecting is switched off on this deployment</p>
+            <p>
+              There is no encryption key, so nothing here can be stored securely — and sending you to
+              sign in and grant access we cannot keep would be worse than saying so. An admin needs to
+              set{" "}
+              <code className="rounded bg-[var(--ds-surface)] px-1 py-0.5 font-mono text-[0.6875rem]">
+                APP_DATA_ENCRYPTION_KEY
+              </code>{" "}
+              to a 32-byte key and redeploy.
+            </p>
+          </div>
+        </section>
+      )}
+
       {/* The One Mesh — your mesh.me identity at the center, every merged
           platform threading home to it. */}
       <section className="grid gap-3 rounded-[var(--ds-radius-lg)] border border-[var(--ds-border)] bg-[var(--ds-surface)] p-4 sm:p-5">
@@ -536,6 +567,7 @@ export function ConnectedAccountsClient({
         platform={openPlatform}
         accounts={openPlatformId ? accountsByPlatform.get(openPlatformId) ?? [] : []}
         supplyNote={openPlatformId ? supplyNotes[openPlatformId] ?? null : null}
+        serverKeyMissing={serverKeyMissing}
         busyKey={busyKey}
         onClose={() => setOpenPlatformId(null)}
         onSync={syncAccount}

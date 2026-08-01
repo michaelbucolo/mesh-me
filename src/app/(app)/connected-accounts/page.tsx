@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { ConnectedAccountsClient } from "./connected-accounts-client";
 import { browsableCount, getSupplyNotes } from "./public-supply-status";
+import { hasSecretEncryptionKey } from "@/lib/secret-store";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getConnectedAccountsDashboard } from "@/lib/connected-accounts";
@@ -82,6 +83,11 @@ export default async function ConnectedAccountsPage({
       }}
       supplyNotes={getSupplyNotes()}
       browsableCount={browsableCount()}
+      // A DEPLOYMENT-WIDE blocker, not a per-platform one. Without an
+      // encryption key nothing can store a token, so no platform is
+      // connectable — and offering twelve buttons that each end in a wasted
+      // authorization is worse than saying so once, up front.
+      serverKeyMissing={!hasSecretEncryptionKey()}
       justConnectedPlatform={justConnectedPlatform}
       connectError={connectError}
       preselectPlatforms={preselectPlatforms}
