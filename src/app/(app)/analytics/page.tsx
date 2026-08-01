@@ -2,9 +2,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AnalyticsDashboard } from "@/components/analytics/analytics-dashboard";
+import { ContentInventoryCard } from "@/components/analytics/content-inventory-card";
 import { ProInsights } from "@/components/analytics/pro-insights";
 import { getCurrentUserRedirectState } from "@/lib/auth";
 import { getAnalyticsDashboardData } from "@/lib/analytics-dashboard";
+import { getContentInventory } from "@/lib/content-inventory";
 import { getProAnalytics } from "@/lib/pro-analytics";
 import { hasAnalyticsConsent } from "@/lib/consent";
 
@@ -22,11 +24,18 @@ export default async function AnalyticsPage() {
   // it is withdrawn, so they are fetched together rather than sequenced: the
   // Pro insights are an additional READ of the same activity, not a different
   // permission.
+  // The lifetime inventory rides the same Analytics consent as everything else
+  // on this page — it is a read of your own activity, so it belongs behind the
+  // same permission and is not fetched when that permission is withdrawn.
   const [data, pro] = await Promise.all([getAnalyticsDashboardData(), getProAnalytics()]);
   if (data) {
+    const inventory = await getContentInventory(user.id);
     return (
       <>
         <AnalyticsDashboard data={data} />
+        <div className="mx-auto w-full max-w-7xl px-4 pb-6 sm:px-6">
+          <ContentInventoryCard inventory={inventory} />
+        </div>
         {pro && (
           <div className="mx-auto w-full max-w-7xl px-4 pb-6 sm:px-6">
             <ProInsights data={pro} />
