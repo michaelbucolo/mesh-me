@@ -1,5 +1,34 @@
 #!/usr/bin/env node
 
+// A P1 WARNING IS FATAL IN CI AND INVISIBLE LOCALLY, WHICH IS HOW ONE GOT THROUGH.
+//
+// CI runs `npm run diagnostics -- --strict`, and --strict promotes every P1
+// warning to a failure. `npm run check` ran this WITHOUT --strict, so a warning
+// printed in yellow, the run exited 0, and the same code failed in CI minutes
+// later. That happened: deleting the caller-less /api/auth/platforms tripped
+// `platform-authorization-catalog`, which asserted that route mentioned
+// `missingEnv` — a check confirming an endpoint nobody requested could report
+// missing credentials to nobody.
+//
+// The fix is not to relax the check — it is to point it at where the invariant
+// actually lives. `platform-authorization-catalog` now reads platform-adapters
+// (which computes missingEnv) and platform-sheet (which renders it), which is
+// strictly stronger than what it replaced.
+//
+// `diagnostics:strict` (--strict --skip-http) exists for verifying that class
+// of thing locally. It is NOT part of `npm run check`, and the attempt to add
+// it there failed twice for a reason worth writing down: --skip-http removes
+// the need for a SERVER, but not the need for a seeded DATABASE.
+// `auth-fixture-user` is a P1 that asserts at least one User row exists, and in
+// CI `check` runs before the seed step, so under --strict it failed with "No
+// User rows found". Run diagnostics:strict against a seeded database, or the
+// only thing it measures is whether you have seeded one.
+//
+// Deliberately NOT done: turning "no server reachable" into a SKIP so that
+// plain --strict passes anywhere. CI would then silently skip every HTTP check
+// on any run where the server failed to boot, and a silent skip is
+// indistinguishable from a pass.
+
 import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
@@ -262,17 +291,27 @@ const checks = [
     id: "platform-authorization-catalog",
     severity: "P1",
     description: "Social platform authorization catalog covers OAuth, manual fallback, and permission sync",
-    fix: "Restore src/lib/oauth.ts, src/lib/platform-permissions.ts, and /api/auth/platforms.",
+    fix: "Restore src/lib/oauth.ts, src/lib/platform-permissions.ts, and the missingEnv reporting in src/lib/platform-adapters.ts + src/components/accounts/platform-sheet.tsx.",
     run: async () => {
       const oauthSource = read("src/lib/oauth.ts");
       const permissionSource = read("src/lib/platform-permissions.ts");
-      const catalogRoute = read("src/app/api/auth/platforms/route.ts");
+      // This used to read src/app/api/auth/platforms/route.ts and assert that it
+      // mentioned `missingEnv`. That route was an HTTP wrapper around
+      // getConnectedAccountsDashboard with NO CALLER — so the check was
+      // confirming that an endpoint nobody requested was capable of reporting
+      // missing credentials to nobody. The invariant is worth keeping; its
+      // location was wrong. missingEnv is computed in platform-adapters and
+      // RENDERED in the platform sheet, which is where a person actually finds
+      // out that a connect button would go nowhere.
+      const adapterSource = read("src/lib/platform-adapters.ts");
+      const sheetSource = read("src/components/accounts/platform-sheet.tsx");
       const requiredProviders = ["youtube", "instagram", "twitter", "threads", "facebook", "discord", "tiktok", "snapchat", "reddit", "linkedin", "pinterest", "twitch"];
       const missingProviders = requiredProviders.filter((provider) => !oauthSource.includes(`platform: "${provider}"`));
       assert(missingProviders.length === 0, `Missing OAuth providers: ${missingProviders.join(", ")}`);
       assert(permissionSource.includes("syncConnectedAccountPermissions"), "Permission sync helper is missing");
-      assert(catalogRoute.includes("missingEnv"), "Authorization diagnostics route is missing configured/missing env reporting");
-      return { evidence: `${requiredProviders.length} high-priority OAuth providers configured` };
+      assert(adapterSource.includes("missingEnv"), "Platform adapters no longer compute which credentials are missing");
+      assert(sheetSource.includes("missingEnv"), "The platform sheet no longer TELLS anyone which credentials are missing");
+      return { evidence: `${requiredProviders.length} high-priority OAuth providers configured; missing-credential reporting reaches the UI` };
     },
   },
   {

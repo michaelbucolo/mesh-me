@@ -204,6 +204,110 @@ checks += 1;
       "  an exemption is a decision; an orphan is nobody having made one.",
   );
   checks += 1;
+
+  // ── 3. EVERY API ROUTE MUST HAVE A CALLER, OR A STATED REASON NOT TO ───────
+  //
+  // Same failure, different shape. /api/security-hub/overview was forty working
+  // lines that counted a real thing and that nothing had ever called; its only
+  // mention in the repo was the proxy's route list, so that a request nobody
+  // made would be authenticated correctly. Three more were HTTP wrappers around
+  // server actions the UI already called directly — a second writer for one
+  // fact, which is the failure this codebase keeps repeating.
+  //
+  // knip cannot see any of this: a route.ts is an entry point by definition, so
+  // an endpoint with no client is dead code that is structurally invisible to
+  // the dead-code checker.
+  //
+  // Plenty of endpoints are legitimately called by someone who is not us, and
+  // those are named here rather than guessed at from a naming convention.
+  const EXTERNAL_CALLERS: Record<string, string> = {
+    "/api/health": "Uptime monitoring. Called by things outside this repo, by design.",
+    "/api/status": "Public status surface, polled externally.",
+    "/api/stripe/webhook": "Stripe posts here. Verified by signature, never called by us.",
+    "/api/auth/[platform]/callback": "The OAuth redirect target. The platform sends the browser here.",
+    "/api/auth/identity/[provider]": "Sign-in with a third-party identity provider; entered by navigation.",
+    "/api/auth/identity/[provider]/callback": "The identity provider's redirect target.",
+    "/api/auth/meta/deauthorize": "Meta calls this when someone removes the app there. Required by Meta.",
+    "/api/auth/meta/deletion": "Meta's data-deletion callback. Required by Meta.",
+    "/api/adult-verification/callback": "The verification provider's redirect target.",
+    "/api/public-supply/refresh": "Hourly Vercel cron. Fails closed without PUBLIC_SUPPLY_CRON_SECRET.",
+    "/api/auth/logout": "Posted to by a form, which names it as an action rather than as a fetch URL.",
+    "/api/avatar": "An <img src> target — referenced as a URL in markup, not fetched in code.",
+    "/api/banner": "An <img src> target, same as /api/avatar.",
+  };
+
+  // A DIFFERENT THING FROM AN EXEMPTION, AND KEPT SEPARATE SO IT CANNOT ROT
+  // INTO ONE. These endpoints have no caller and no external one either. They
+  // are finished, correct, and waiting on a surface that has not been built.
+  // Every entry must name what will call it, so the list reads as work owed
+  // rather than as a place to put things nobody wants to think about.
+  const UNWIRED_PENDING_UI: Record<string, string> = {
+    "/api/account/alter-egos":
+      "Personas. GET/POST/DELETE, rate-limited, MAX_ALTER_EGOS enforced, username uniqueness checked " +
+      "against both User and AlterEgo — finished and correct. But this is NOT simply a missing front " +
+      "door. /connected-accounts displays personas under the line 'Fold a separate persona's " +
+      "connections into your one mesh.me account — nothing stays split off', and its only action is " +
+      "foldPersonaIntoMainIdentity, which deactivates the persona and nulls alterEgoId on its " +
+      "accounts. A create button there would contradict the sentence above it. ConnectedAccount." +
+      "alterEgoId is modelled but written by no application code at all, so the 'group accounts under " +
+      "a persona' capability has no writer either. Owed: a product decision before a form — either " +
+      "build personas properly (one account, more than one face, with that page's copy reconciled) or " +
+      "delete POST/DELETE and keep GET for personas that arrive by merge. Tier 2 in " +
+      "docs/SURFACE_AUDIT.md.",
+  };
+
+  const apiRoutes: string[] = [];
+  const walkApi = (dir: string, url: string) => {
+    let entries;
+    try {
+      entries = readdirSync(join(ROOT, dir), { withFileTypes: true });
+    } catch {
+      return;
+    }
+    if (existsSync(join(ROOT, dir, "route.ts"))) apiRoutes.push(url);
+    for (const entry of entries) {
+      if (entry.isDirectory()) walkApi(`${dir}/${entry.name}`, `${url}/${entry.name}`);
+    }
+  };
+  walkApi("src/app/api", "/api");
+
+  assert.ok(apiRoutes.length > 20, `only ${apiRoutes.length} API routes found; a walk that finds nothing passes everything.`);
+  checks += 1;
+
+  // An entry that does not say what will call it is not a plan, so it does not
+  // count as one.
+  for (const [url, reason] of Object.entries(UNWIRED_PENDING_UI)) {
+    assert.ok(
+      /\bOwed:/.test(reason),
+      `${url} is listed as unwired without saying what will call it. State the owed work, or delete the route.`,
+    );
+    checks += 1;
+  }
+
+  const uncalled: string[] = [];
+  for (const url of apiRoutes) {
+    if (url in EXTERNAL_CALLERS) continue;
+    if (url in UNWIRED_PENDING_UI) continue;
+    const dir = `src/app${url}`;
+    const pattern = routePattern(url);
+    // A route calling itself is not a caller. Nor is the proxy's allowlist,
+    // which only decides how a request would be authenticated IF one arrived.
+    const called = sources.some(
+      (s) => !s.file.startsWith(`${dir}/`) && s.file !== "src/proxy.ts" && pattern.test(s.text),
+    );
+    if (!called) uncalled.push(url);
+  }
+
+  assert.deepEqual(
+    uncalled,
+    [],
+    "these API routes exist and nothing calls them:\n" +
+      uncalled.map((p) => `    ${p}`).join("\n") +
+      "\n  An endpoint with no client is dead code that knip cannot see, because a route.ts is an\n" +
+      "  entry point by definition. Delete it, wire it up, or add it to EXTERNAL_CALLERS with the\n" +
+      "  name of whoever outside this repo actually calls it.",
+  );
+  checks += 1;
 }
 
 console.log(
@@ -212,5 +316,8 @@ console.log(
     "  listed as deliberately URL-only with a stated reason. Dynamic [param] segments are matched\n" +
     "  through their `${...}` interpolations, and the corpus includes public/ so a route named\n" +
     "  only by the service worker still counts as reached.\n" +
+    "  Every API route has a caller, an external one named in EXTERNAL_CALLERS, or a stated debt in\n" +
+    "  UNWIRED_PENDING_UI saying what is owed — knip cannot see any of that, because a route.ts is\n" +
+    "  an entry point by definition and an endpoint with no client is invisible dead code.\n" +
     "  Does NOT cover: whether a human can FIND the link, only that one exists.",
 );

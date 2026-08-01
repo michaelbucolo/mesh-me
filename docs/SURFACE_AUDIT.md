@@ -54,13 +54,25 @@ Legitimate externals — OAuth callbacks, `meta/deauthorize`, `meta/deletion`,
 `public-supply/refresh` (hourly Vercel cron, fails closed without
 `PUBLIC_SUPPLY_CRON_SECRET`) — are correctly caller-less and are not listed.
 
+`reachability:check` now covers these too, so the list below is enforced rather
+than remembered. The audit found five; the gate found four more.
+
 | Route | Lines | Disposition |
 |---|---|---|
-| `/api/security-hub/overview` | 40 | **Surface it.** Works. Returns a lifetime content inventory across native and platform rows. Copy must say "across your connected platforms", never "everywhere" — counts derive from `PlatformPost`/`PlatformComment`, so the six no-capability platforms contribute zero and `unified-claim:check` will correctly fail an overclaim. |
-| `/api/account/alter-egos` | 136 | **Surface it.** GET/POST/DELETE, rate-limited, `MAX_ALTER_EGOS` enforced, username uniqueness checked against both `User` and `AlterEgo`. Nothing calls any method. |
-| `/api/communities` | 54 | **Delete.** Communities go through server actions. |
-| `/api/auth/platforms` | 33 | **Delete.** Duplicates what `/connected-accounts` resolves server-side. |
-| `/api/account/email-verification` | 25 | **Delete.** Thin HTTP wrapper around the `requestEmailVerification` server action the UI already calls directly — a second writer for one fact. |
+| `/api/security-hub/overview` | 40 | **DONE.** Counting moved to `src/lib/content-inventory.ts`, rendered server-side on `/analytics`, route deleted. |
+| `/api/communities` | 54 | **DELETED.** GET-only; the page uses `getCommunitiesHubData()` server-side. |
+| `/api/auth/platforms` | 33 | **DELETED.** Wrapped `getConnectedAccountsDashboard`, which `/connected-accounts` calls server-side. |
+| `/api/account/email-verification` | 25 | **DELETED.** Wrapped the `requestEmailVerification` server action that `settings-control-center.tsx` calls directly. |
+| `/api/explore` | 70 | **DELETED.** Wrapped `getExplorePosts`/`getDiscoverUsers`/`getTrendingCommunities`, all called server-side by the explore page. |
+| `/api/feed` | 27 | **DELETED.** Wrapped `getCombinedFeedPosts`, which the feed page calls server-side; the client uses `/api/feed/paginated`. |
+| `/api/settings` | 15 | **DELETED.** Wrapped `getUserSettings`/`getBlockedUsers`, both called server-side by the settings page. |
+| `/api/sync` | 92 | **DELETED.** POST took a `connectedAccountId` and called `syncPlatform` — exactly `/api/connected-accounts/[id]/sync`, which has two real callers. GET duplicated the connected-accounts page's own load. |
+| `/api/account/alter-egos` | 136 | **KEPT, unwired.** GET/POST/DELETE, rate-limited, `MAX_ALTER_EGOS` enforced, username uniqueness checked against both `User` and `AlterEgo`. Listed in the gate's `UNWIRED_PENDING_UI` with the work owed, because deleting correct code we want is worse than recording the debt. See Tier 2 below. |
+
+Worth recording: `foundation-check.mjs` **asserted the existence of three of the
+deleted routes**, so the build would have failed anyone who tried to remove
+them. A foundation check that pins an unreachable endpoint in place is enforcing
+the opposite of a foundation.
 
 ### Prisma models never read or written
 
@@ -88,23 +100,44 @@ orphans.
 
 ## Remaining backlog, ranked by (value if surfaced) / (work to surface)
 
-**Tier 1 — hours**
+**Tier 1**
 
-1. Surface `/api/security-hub/overview` on `/analytics`. Forty working lines and
-   zero callers. "Everything you have ever posted, counted in one place" is a
-   satisfying, screenshot-able, *non-compulsive* reason to open the app. Mind the
-   copy caveat above.
-2. Delete the three duplicate API routes; drop `Mute`, `MeshNode`, `MeshEdge`,
-   `RedeemCode`.
+1. ~~Surface `/api/security-hub/overview` on `/analytics`.~~ **Done.**
+2. ~~Delete the duplicate API routes.~~ **Done — seven of them.**
+3. Drop `Mute`, `MeshNode`, `MeshEdge`, `RedeemCode`. **Not done, deliberately.**
+   Unlike deleting a route, dropping a table is irreversible against production
+   data, and this session cannot inspect production row counts — only that
+   nothing in the code reads or writes them. That is good evidence and not
+   proof. Worth doing; worth doing with the row counts in hand.
 
 **Tier 2 — days**
 
-3. **Alter egos: surface creation.** Full CRUD API, model, and connect-page
-   display all exist; the only way to get a persona today is as a side effect of
-   merging another mesh.me account. Separate identities — alt, professional vs.
+3. **Personas: decide what they are, then build or delete.** The first version of
+   this entry said "surface creation — the backend is done, it just needs a
+   form." That was wrong, and the correction is the useful part:
+
+   `/connected-accounts` displays personas under the line *"Fold a separate
+   persona's connections into your one mesh.me account — nothing stays split
+   off"*, and the only action offered is `foldPersonaIntoMainIdentity`, which
+   deactivates the persona and nulls `alterEgoId` on its accounts. **Personas
+   currently exist only in order to be dissolved.** A "create a persona" button
+   on that page would be the product arguing with itself in adjacent sentences.
+
+   `ConnectedAccount.alterEgoId` is modelled but written by **no application
+   code** — it appears only in generated Prisma types — so even the "group your
+   accounts under a persona" capability the schema describes has no writer.
+
+   The feature is still worth having. Separate identities — alt, professional vs.
    personal, pseudonymous — is a primitive Instagram and LinkedIn structurally
    cannot offer well, because their business is one legible identity per human.
-   The fold-back path already exists via `foldPersonaIntoMainIdentity`.
+   And it does not actually conflict with One Account: *one account* is about not
+   being scattered across platforms, which is compatible with choosing which face
+   a given connection wears. **One account ≠ one identity.**
+
+   But that is a product decision plus reconciled copy plus a definition of what
+   a persona *does* (scope the mesh? tag posts? group connected accounts?) — not
+   a form. Until it is made, the endpoints sit in the gate's
+   `UNWIRED_PENDING_UI` with this stated.
 4. **Achievements.** Seed rows, award logic, display `activeTitle`. Explicitly
    the **earned-milestone kind — fixed, legible thresholds** — not
    variable-reward. `threshold`, `isLimited` and `maxHolders` are already
