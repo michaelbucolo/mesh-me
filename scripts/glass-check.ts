@@ -230,6 +230,130 @@ function resolve(css: string, theme: "light" | "dark", value: string | null): st
   }
 }
 
+// ── 1b. EVERY STEP OF THE TRANSLUCENCY SLIDER HOLDS THE SAME FLOOR ──────────
+//
+// Section 1 proves the DEFAULT alpha. iOS 27 added a control that changes it,
+// and the moment a person can move that number the default being safe stops
+// meaning anything — the reachable minimum is what has to be safe.
+//
+// This is the exact shape of hole this gate exists to close, one level up: a
+// fact proven in one place while the product reads a different place. So each
+// `[data-lg="N"]` block is found, its alpha (and its ink, where a step
+// brightens one to buy range) is read, and section 1's floor is run again on
+// it. A step that cannot be proven cannot ship, which is also why the slider
+// has detents instead of being continuous — a continuous range is a number
+// this cannot enumerate.
+{
+  const grounds = [
+    { name: "light", theme: "light" as const, isDark: false },
+    { name: "dark", theme: "dark" as const, isDark: true },
+  ];
+
+  for (const ground of grounds) {
+    // The ground's own defaults, which a step inherits unless it overrides them.
+    const baseBlocks = [...tokens.matchAll(/(^|\n)([^{}\n][^{}]*)\{([^{}]*--lg-fill[^{}]*)\}/g)];
+    const base = baseBlocks.find((b) =>
+      ground.isDark ? /(^|\s)\.dark\b/.test(b[2]) : !/(^|\s)\.dark\b/.test(b[2]),
+    );
+    if (!base) {
+      fail("1b slider", `no --lg-fill block for the ${ground.name} ground`);
+      continue;
+    }
+    const baseGet = (p: string) =>
+      new RegExp(`${p}\\s*:\\s*([^;]+);`).exec(base[3])?.[1].trim() ?? null;
+    const fill = baseGet("--lg-fill");
+    if (!fill) {
+      fail("1b slider", `the ${ground.name} ground declares no --lg-fill`);
+      continue;
+    }
+
+    // Every block whose selector mentions this ground AND a data-lg step.
+    const steps = new Map<string, { alpha: number; inks: Record<string, string> }>();
+    for (const m of tokens.matchAll(/(^|\n)([^{}\n][^{}]*)\{([^{}]*)\}/g)) {
+      const selector = m[2];
+      const step = /\[data-lg="(\d)"\]/.exec(selector);
+      if (!step) continue;
+      const selectorIsDark = /(^|\s|,)\.dark\[data-lg/.test(selector);
+      if (selectorIsDark !== ground.isDark) continue;
+      const body = m[3];
+      const alphaRaw = /--lg-alpha\s*:\s*([^;]+);/.exec(body)?.[1].trim();
+      if (!alphaRaw) continue;
+      const inks: Record<string, string> = {};
+      for (const inkProp of ["--lg-ink", "--lg-ink-2"] as const) {
+        const v = new RegExp(`${inkProp}\\s*:\\s*([^;]+);`).exec(body)?.[1].trim();
+        if (v) inks[inkProp] = v;
+      }
+      steps.set(step[1], { alpha: Number(alphaRaw), inks });
+    }
+
+    if (steps.size !== 5) {
+      fail(
+        "1b slider",
+        `the ${ground.name} ground declares ${steps.size} translucency steps, expected 5 ` +
+          "— src/lib/glass-level.ts offers five, and a step the CSS does not define silently " +
+          "falls back to the default while the slider claims it moved.",
+      );
+      continue;
+    }
+
+    for (const [stepId, { alpha, inks }] of [...steps].sort()) {
+      if (!Number.isFinite(alpha) || alpha <= 0 || alpha > 1) {
+        fail("1b slider", `${ground.name} step ${stepId}: --lg-alpha "${alpha}" is not a fraction`);
+        continue;
+      }
+      for (const inkProp of ["--lg-ink", "--lg-ink-2"] as const) {
+        const raw = inks[inkProp] ?? baseGet(inkProp);
+        const ink = resolve(tokens, ground.theme, raw);
+        if (!ink) {
+          fail("1b slider", `${ground.name} step ${stepId}: cannot resolve ${inkProp}`);
+          continue;
+        }
+        const { r, backdrop } = worstOverAnyBackdrop(ink, fill, alpha);
+        if (r < AA) {
+          fail(
+            "1b slider",
+            `${ground.name} step ${stepId}: ${inkProp} ${ink} on ${fill} at alpha ${alpha} is ` +
+              `${r.toFixed(2)}:1 over a ${backdrop} backdrop, below AA ${AA}:1.\n` +
+              "    This step is REACHABLE from Settings > Appearance > Liquid Glass. Either raise its\n" +
+              "    alpha, or brighten that step's ink the way the two clearest dark steps do.",
+          );
+        } else {
+          checks += 1;
+        }
+      }
+    }
+
+    // The middle detent must be the ground's own default, so that a person who
+    // never opens the control sees no change at all.
+    const middle = steps.get("2");
+    const baseAlpha = Number(baseGet("--lg-alpha"));
+    if (middle && Number.isFinite(baseAlpha) && middle.alpha !== baseAlpha) {
+      fail(
+        "1b slider",
+        `${ground.name}: step 2 is alpha ${middle.alpha} but the ground's default is ${baseAlpha}. ` +
+          "Step 2 is what an untouched install renders, so the two have to agree.",
+      );
+    } else if (middle) {
+      checks += 1;
+    }
+
+    // And the steps have to actually run clear-to-tinted, or the slider's
+    // direction is a lie.
+    const ordered = [0, 1, 2, 3, 4].map((i) => steps.get(String(i))!.alpha);
+    for (let i = 1; i < ordered.length; i += 1) {
+      if (!(ordered[i] < ordered[i - 1])) {
+        fail(
+          "1b slider",
+          `${ground.name}: step ${i} (alpha ${ordered[i]}) is not clearer than step ${i - 1} ` +
+            `(alpha ${ordered[i - 1]}). The control is labelled Solid -> Clearest.`,
+        );
+      } else {
+        checks += 1;
+      }
+    }
+  }
+}
+
 // ── 2. THE INK THAT CANNOT SURVIVE LIGHT GLASS IS NOT USED ON IT ────────────
 //
 // --ink-3 needs alpha 0.880 on a white fill to clear AA over any backdrop, past
