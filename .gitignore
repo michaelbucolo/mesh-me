@@ -58,3 +58,9 @@ prisma/dev.db
 # Throwaway browser-driving scripts and probe output. The reusable harness
 # lives in scripts/drive.mjs; anything here is a one-off.
 scratchpad/
+
+# Raw research/agent output. Kept out of the repo because it is long, redundant,
+# and dated the moment it is written. Anything from it worth keeping gets
+# distilled into docs/ — see docs/SURFACE_AUDIT.md, which exists because the
+# first copy of that audit was lost to a /tmp sweep.
+.research/

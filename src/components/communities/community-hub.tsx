@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRef, useState, type CSSProperties } from "react";
 import { motion, useReducedMotion } from "framer-motion";
-import { ArrowLeft, ArrowRight, ChevronDown, Lock, ShieldCheck } from "lucide-react";
+import { ArrowLeft, ArrowRight, ChevronDown, Lock, Plus, ShieldCheck } from "lucide-react";
 import type { getCommunitiesHubData } from "@/lib/community-hub";
 import { Button } from "@/components/ui/button";
 import { formatCount, formatRelativeTime } from "@/lib/utils";
@@ -144,6 +144,29 @@ export function CommunityHub({ data }: { data: CommunitiesHubData }) {
     <div className="mx-auto grid w-full max-w-7xl gap-6 px-4 py-6 xl:grid-cols-[minmax(0,1fr)_380px] animate-page-enter">
       {/* Main column */}
       <div className="min-w-0 space-y-6">
+        {/* THE FRONT DOOR THIS SURFACE DID NOT HAVE.
+            /communities/create is a real page wrapping a real form, and a grep
+            across the whole repo for "communities/create" returned NOTHING —
+            no button, no link, no menu entry. The only way to reach the sole
+            creation path for an entire surface was to type the URL.
+            The page metadata has said "Create, discover, post, chat, and
+            moderate" this whole time; only four of those five were reachable. */}
+        <header className="flex flex-wrap items-center justify-between gap-3">
+          <div className="min-w-0">
+            <h1 className="text-xl font-semibold text-[var(--mesh-text)]">Communities</h1>
+            <p className="text-sm text-[var(--mesh-text-secondary)]">
+              Places built around one thing, run by the people in them.
+            </p>
+          </div>
+          <Link
+            href="/communities/create"
+            className="ds-focus-ring inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-[var(--accent-contrast,#fff)] transition-opacity hover:opacity-90"
+          >
+            <Plus size={16} aria-hidden="true" />
+            Create a community
+          </Link>
+        </header>
+
         {/* Featured communities carousel */}
         <section>
           <div className="mb-4 flex items-center justify-between">
