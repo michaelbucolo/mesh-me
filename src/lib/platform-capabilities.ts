@@ -264,6 +264,31 @@ const PLATFORM_ACTION_CAPABILITIES: Record<string, Partial<Record<PlatformConten
 
 const CAPABILITY_BY_ID = new Map(PLATFORM_CAPABILITIES.map((capability) => [capability.id, capability]));
 
+/** Every name ever declared, INCLUDING retired platforms. See below. */
+const NAME_BY_ID_INCLUDING_RETIRED = new Map(
+  RAW_PLATFORM_CAPABILITIES.map((capability) => [capability.id, capability.name]),
+);
+
+/**
+ * A human name for a platform id that is no longer offered.
+ *
+ * Retiring a platform does not delete anyone's rows: a person who connected
+ * Spotify before it left still has that ConnectedAccount, and still has to be
+ * able to see it and disconnect it. Every lookup keyed to the CURRENT roster
+ * returns null for them, and the surfaces fell back to the raw storage key —
+ * so the card for a real connection read "spotify", lowercase, like a bug.
+ *
+ * The raw declarations above are kept precisely because they remember these
+ * names. This reads them, and title-cases anything even they have forgotten so
+ * the answer is never the bare id.
+ */
+export function getDisplayNameForAnyPlatform(platform: string): string {
+  const id = normalizePlatformId(platform);
+  const known = CAPABILITY_BY_ID.get(id)?.name ?? NAME_BY_ID_INCLUDING_RETIRED.get(id);
+  if (known) return known;
+  return id.charAt(0).toUpperCase() + id.slice(1);
+}
+
 export function normalizePlatformId(platform?: string | null) {
   if (!platform) return "";
   const value = platform.toLowerCase().trim();
