@@ -8,7 +8,11 @@ import {
   type PlatformPermissionDefinition,
   type SupportedPlatformAdapter,
 } from "@/lib/platform-adapters";
-import { getPlatformCapability, type PlatformCapability } from "@/lib/platform-capabilities";
+import {
+  getDisplayNameForAnyPlatform,
+  getPlatformCapability,
+  type PlatformCapability,
+} from "@/lib/platform-capabilities";
 
 type ConnectedPermissionView = PlatformPermissionDefinition & {
   state: "granted" | "revoked" | "pending";
@@ -33,7 +37,7 @@ export type ConnectedAccountView = {
   expiresAt: string | null;
   hasCredential: boolean;
   hasRefreshToken: boolean;
-  health: "ready" | "paused" | "needs_reconnect" | "sync_error" | "manual";
+  health: "ready" | "paused" | "needs_reconnect" | "sync_error" | "manual" | "retired";
   healthLabel: string;
   counts: {
     posts: number;
@@ -80,9 +84,17 @@ function getAccountHealth(account: {
   accessToken: string | null;
   expiresAt: Date | null;
 }, adapter: SupportedPlatformAdapter | null): ConnectedAccountView["health"] {
+  // A platform mesh.me no longer offers has no adapter, which means nothing
+  // will ever sync it again. It was still reporting "Ready" — the health check
+  // only asked whether a token existed, and a retired platform's token is as
+  // present as any other. So the page told someone a dead connection was live,
+  // and counted it in "N of N syncing". Retired is checked FIRST because it
+  // outranks every other state: paused, expired or erroring is a description of
+  // a connection that could still work.
+  if (!adapter) return "retired";
   if (!account.isActive) return "paused";
   if (account.syncStatus === "error" || account.syncError) return "sync_error";
-  if (adapter?.authType === "manual") return "manual";
+  if (adapter.authType === "manual") return "manual";
   if (!account.accessToken) return "needs_reconnect";
   if (account.expiresAt && account.expiresAt.getTime() < Date.now()) return "needs_reconnect";
   return "ready";
@@ -98,6 +110,8 @@ function getHealthLabel(health: ConnectedAccountView["health"]) {
       return "Paused";
     case "sync_error":
       return "Needs review";
+    case "retired":
+      return "No longer supported";
     case "ready":
     default:
       return "Ready";
@@ -262,7 +276,9 @@ export async function getConnectedAccountsDashboard(userId: string): Promise<Con
     return {
       id: account.id,
       platform: account.platform,
-      platformName: adapter?.name ?? account.platform,
+      // Never the bare storage key: a retired platform still has a name, and
+      // "spotify" in a card that says Spotify everywhere else reads as a bug.
+      platformName: adapter?.name ?? getDisplayNameForAnyPlatform(account.platform),
       platformUsername: account.platformUsername,
       platformId: account.platformId,
       accountLabel: account.accountLabel,
@@ -304,7 +320,11 @@ export async function getConnectedAccountsDashboard(userId: string): Promise<Con
     supportedPlatforms: supportedViews,
     summary: {
       connected: accountViews.length,
-      active: accountViews.filter((account) => account.isActive).length,
+      // "N of M syncing" must not count a connection nothing syncs. A retired
+      // platform's row still has isActive = true — it was true the day the
+      // platform left and no migration touched it — so counting isActive alone
+      // reported a dead account as one of the live ones.
+      active: accountViews.filter((account) => account.isActive && account.health !== "retired").length,
       oauthReady: supportedViews.filter((platform) => platform.authType === "oauth" && platform.configured).length,
       manualAvailable: supportedViews.filter((platform) => platform.authType === "manual").length,
       syncErrors: accountViews.filter((account) => account.health === "sync_error").length,

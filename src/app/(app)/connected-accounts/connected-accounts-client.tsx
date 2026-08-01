@@ -128,6 +128,10 @@ function formatDate(value: string | null) {
 function statusVariant(account: ConnectedAccountView): "success" | "warning" | "danger" | "secondary" {
   if (account.health === "ready") return "success";
   if (account.health === "manual") return "secondary";
+  // Retired is neutral, not red. Mesh.me stopped offering the platform; the
+  // person did nothing wrong and nothing is failing. Danger styling here would
+  // read as "your account is broken" for a state that is purely our decision.
+  if (account.health === "retired") return "secondary";
   if (account.health === "paused") return "warning";
   return "danger";
 }
@@ -252,11 +256,17 @@ function AccountCard({
             <PlugZap className="h-4 w-4" aria-hidden="true" />
             Reconnect
           </Link>
-        ) : account.authType === "manual" ? (
+        ) : account.authType === "manual" || account.health === "retired" ? (
           /* No Sync control for a public reference: manual accounts carry no
              credential, so the button could only ever render disabled — dead
              chrome promising an import that cannot happen. The Details panel
-             states what a reference does instead. */
+             states what a reference does instead.
+
+             A retired platform is the same shape for a different reason: there
+             is no adapter left to sync it, so canSync is false and the button
+             could only render disabled. Named explicitly rather than relying on
+             its authType falling back to "manual", which is not true of an
+             account that really was connected over OAuth. */
           null
         ) : (
           <Button
@@ -273,6 +283,17 @@ function AccountCard({
           </Button>
         )}
       </div>
+
+      {account.health === "retired" && (
+        <div className="mx-4 mb-3 flex items-start gap-2 rounded-[var(--ds-radius-md)] border border-[var(--ds-border)] bg-[var(--bg-primary)]/55 px-3 py-2 text-xs leading-5">
+          <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--text-muted)]" aria-hidden="true" />
+          <span className="text-[var(--text-secondary)]">
+            Mesh.me no longer supports {account.platformName}, so this connection has stopped
+            syncing. Anything it already brought in stays on your mesh. Disconnect it whenever
+            you like — that also deletes the stored tokens.
+          </span>
+        </div>
+      )}
 
       {(account.syncError || needsReconnect) && (
         <div className="mx-4 mb-3 flex items-start gap-2 rounded-[var(--ds-radius-md)] border border-[var(--ds-warning-border,var(--ds-border))] bg-[var(--bg-primary)]/55 px-3 py-2 text-xs leading-5">
