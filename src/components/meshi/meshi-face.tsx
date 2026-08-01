@@ -55,8 +55,6 @@ type FaceGeometry = {
   shape: "ellipse" | "rounded" | "ring" | "bar";
   /** Outer-corner tilt in degrees; positive lifts the outer corner. */
   tilt?: number;
-  /** A specular dot — reads as glossy/awake rather than flat. */
-  highlight?: boolean;
   /** Stroke weight for ring eyes. */
   ringWidth?: number;
 };
@@ -67,18 +65,18 @@ type FaceGeometry = {
  * rules out anything that depends on fine interior detail to be recognisable.
  */
 const FACE_TABLE = {
-  bean:       { rx: 2.4, ry: 3.7, spacing: 5,   cy: 0,    shape: "ellipse", highlight: true },
+  bean:       { rx: 2.4, ry: 3.7, spacing: 5,   cy: 0,    shape: "ellipse" },
   dot:        { rx: 1.8, ry: 1.8, spacing: 4.6, cy: 0.2,  shape: "ellipse" },
-  wide:       { rx: 3.2, ry: 3.9, spacing: 5.6, cy: 0,    shape: "ellipse", highlight: true },
-  almond:     { rx: 3.1, ry: 2.5, spacing: 5.2, cy: 0,    shape: "ellipse", tilt: 8, highlight: true },
+  wide:       { rx: 3.2, ry: 3.9, spacing: 5.6, cy: 0,    shape: "ellipse" },
+  almond:     { rx: 3.1, ry: 2.5, spacing: 5.2, cy: 0,    shape: "ellipse", tilt: 8 },
   upturned:   { rx: 2.9, ry: 2.9, spacing: 5.2, cy: -0.2, shape: "ellipse", tilt: 18 },
   downturned: { rx: 2.9, ry: 2.9, spacing: 5.2, cy: 0.2,  shape: "ellipse", tilt: -16 },
   square:     { rx: 2.5, ry: 2.9, spacing: 5.2, cy: 0,    shape: "rounded" },
-  tall:       { rx: 1.9, ry: 4.3, spacing: 4.8, cy: 0,    shape: "rounded", highlight: true },
+  tall:       { rx: 1.9, ry: 4.3, spacing: 4.8, cy: 0,    shape: "rounded" },
   ring:       { rx: 3.0, ry: 3.0, spacing: 5.4, cy: 0,    shape: "ring", ringWidth: 1.5 },
-  halo:       { rx: 3.4, ry: 3.4, spacing: 5.8, cy: 0,    shape: "ring", ringWidth: 0.9, highlight: true },
+  halo:       { rx: 3.4, ry: 3.4, spacing: 5.8, cy: 0,    shape: "ring", ringWidth: 0.9 },
   visor:      { rx: 4.2, ry: 2.2, spacing: 4.6, cy: 0,    shape: "bar" },
-  sleepylid:  { rx: 3.2, ry: 3.4, spacing: 5.2, cy: 0.3,  shape: "ellipse", highlight: true },
+  sleepylid:  { rx: 3.2, ry: 3.4, spacing: 5.2, cy: 0.3,  shape: "ellipse" },
 } satisfies Record<string, FaceGeometry>;
 
 export type MeshiFace = keyof typeof FACE_TABLE;
@@ -418,16 +416,6 @@ export function renderMeshiEyes({ face, mood, lash, color }: FaceRenderOptions) 
         {shape.glyph
           ? glyphBody(shape.glyph, geom.ry * scale, color, "glyph")
           : eyeBody(geom, rx, ry, openness, curve, color, "body")}
-        {/* A highlight belongs to an open, solid eye — not to a glyph or a
-            closed lid, where it would float free of anything. */}
-        {geom.highlight && !shape.glyph && openness > 0.45 && geom.shape !== "bar" && (
-          <circle
-            cx={r(-rx * 0.3)}
-            cy={r(-ry * 0.34)}
-            r={r(Math.max(0.35, Math.min(rx, ry) * 0.26))}
-            fill="rgba(255,255,255,0.85)"
-          />
-        )}
         {lash !== "none" && !shape.glyph && lashes(lash, rx, ry, side, color)}
       </g>
     );
