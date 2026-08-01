@@ -4464,8 +4464,31 @@ body,
 
 /* Top-align the columns so the sticky sidebar isn't stretched to the panel's
    height (a stretched item can't stick). */
+/* THE COLUMN, NOT THE CONTENT, IS WHAT OVERFLOWED.
+   Below `lg` the markup sets no grid-template-columns, so this is a single
+   IMPLICIT column, and an implicit column is sized `auto` — which never shrinks
+   below the min-content of what is in it. The rail's widest row therefore set
+   the column's width, the column set the aside's, and on a 390px phone the
+   measured result was a 435px column inside a 369px grid: the search field, the
+   section names and their descriptions all ran off the right edge, chopped by
+   the viewport rather than ellipsised.
+
+   `minmax(0, 1fr)` is the whole fix. It says the column may be as wide as the
+   grid and no wider, which is what a single-column layout meant all along; the
+   `lg:` two-column template already spelled its content column exactly this way
+   for exactly this reason. Everything inside already carries `truncate`, and
+   truncation cannot engage until something upstream refuses to grow. */
 .settings-traditional-grid {
+  grid-template-columns: minmax(0, 1fr);
   align-items: start;
+}
+
+@media (min-width: 1024px) {
+  /* The two-column template in the markup wins here; restated so the
+     single-column rule above cannot leak into the desktop layout. */
+  .settings-traditional-grid {
+    grid-template-columns: 18rem minmax(0, 1fr);
+  }
 }
 
 .settings-nav-scroll,
@@ -4487,9 +4510,21 @@ body,
    Left as pills deliberately: joining them into a grouped list is a visual
    change to a navigation rail, not part of unifying the separator, and it
    belongs in its own slice with its own screenshots. */
+/* `min-width: max-content` USED TO BE HERE, AND IT BROKE SETTINGS ON EVERY
+   PHONE. The rail is `flex flex-col` in the markup — a vertical column at every
+   width — but this rule, plus `white-space: nowrap` and `scroll-snap-type: x`
+   in the max-width block below, are the CSS of a HORIZONTAL chip rail. On a
+   column they mean: every row must be as wide as its longest unwrapped line.
+   The Privacy row's description is "Who can see you, blocked accounts, and
+   sensitive content", so the rail measured 435px inside a 369px cell on a
+   390px phone and the whole aside — search field, section names, descriptions —
+   ran off the right edge, chopped by the viewport rather than ellipsised.
+
+   The rows already carry `truncate` in the markup. `truncate` cannot do
+   anything without a constrained width, so it never fired once. 0 lets it. */
 .settings-nav-item {
   display: inline-flex;
-  min-width: max-content;
+  min-width: 0;
   align-items: center;
   gap: 0.65rem;
   border: 0;
@@ -4943,12 +4978,6 @@ body,
   .settings-meshi-preview,
   .settings-toggle-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (min-width: 1024px) {
-  .settings-nav-item {
-    min-width: 0;
   }
 }
 
@@ -5907,17 +5936,19 @@ body {
   .settings-nav-scroll {
     gap: 0.25rem !important;
     padding: 0.5rem !important;
-    scroll-snap-type: x mandatory;
     -webkit-overflow-scrolling: touch;
   }
 
+  /* `scroll-snap-type: x mandatory` above and `scroll-snap-align: start` and
+     `white-space: nowrap` here were the rest of the horizontal chip rail this
+     was once going to be. The markup is a vertical column, so x-snapping
+     snapped nothing and nowrap only forbade the one thing that would have let
+     a long section description fit. */
   .settings-nav-item {
     min-height: 2.75rem;
-    scroll-snap-align: start;
     font-size: var(--fs-micro);
     padding: 0.5rem 0.65rem;
     gap: 0.4rem;
-    white-space: nowrap;
   }
 
   .settings-nav-item svg {
