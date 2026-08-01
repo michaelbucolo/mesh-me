@@ -8,6 +8,7 @@ import {
   type MeshiFace,
   type MeshiLash,
 } from "@/components/meshi/meshi-face";
+import { MESHI_HAIR_IDS, MESHI_HAIR_LABELS } from "@/components/meshi/meshi-hair";
 
 import Link from "next/link";
 import { effectiveProfileVisibility } from "@/lib/profile-visibility";
@@ -192,10 +193,11 @@ const faces = MESHI_FACE_IDS;
 function optionLabel(group: string, value: string): string {
   if (group === "faces") return MESHI_FACE_LABELS[value as MeshiFace] ?? value;
   if (group === "eyes") return MESHI_LASH_LABELS[value as MeshiLash] ?? value;
+  if (group === "hairs") return MESHI_HAIR_LABELS[value] ?? value;
   return value;
 }
 
-const hairs = ["none", "fluffy", "bangs", "spikes", "curls"];
+const hairs = MESHI_HAIR_IDS;
 // Lash styles, from the same engine. ("regular" remains accepted on the way in
 // as the legacy spelling of "none"; it is not offered as a choice.)
 const eyes = MESHI_LASH_IDS;

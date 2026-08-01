@@ -11,6 +11,7 @@ import {
   type MeshiFace,
   type MeshiLash,
 } from "./meshi-face";
+import { HAT_BRIM_Y, renderMeshiHair, resolveHair, type MeshiHair } from "./meshi-hair";
 
 const FLOWER_POSITIONS = [0, 60, 120, 180, 240, 300].map((deg) => ({
   deg,
@@ -273,8 +274,6 @@ const DANGLING_ACCESSORIES = new Set(["earrings", "necklace"]);
 // Hats that leave the crown open — hair renders at full size under these.
 // Every other hat compresses the hair so strands tuck under the brim instead
 // of poking through the shell.
-const OPEN_HATS = new Set(["none", "halo", "headband", "bow", "flower"]);
-const HAIR_TUCK_TRANSFORM = "translate(0, 2.4) scale(0.88)";
 
 const HOLDING_POSES = {
   single: {
@@ -496,41 +495,6 @@ const HATS: Record<string, React.ReactNode> = {
   ),
 };
 
-const HAIRS: Record<string, React.ReactNode> = {
-  none: null,
-  fluffy: (
-    <g transform="translate(0, -13)">
-      <path d="M-12,3 Q-12.6,-4 -7.6,-6 Q-6,-9.4 -2.4,-8.6 Q0,-11.6 3.4,-9.2 Q7.6,-10 9.2,-6.2 Q12.6,-4.4 12,2 Q8,-2 5.4,-5 Q3,-2.6 0.4,-6 Q-2.6,-2.8 -5.6,-5.4 Q-8.6,-2 -12,3 Z" fill="currentColor" opacity="0.9" />
-      <path d="M-7 -5.8 Q-4 -8.2 -1 -7.4" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="0.9" strokeLinecap="round" />
-      <path d="M1.6 -8 Q4.4 -8.8 6.6 -6.8" fill="none" stroke="rgba(255,255,255,0.24)" strokeWidth="0.9" strokeLinecap="round" />
-    </g>
-  ),
-  bangs: (
-    <g transform="translate(0, -12)">
-      <path d="M-13,3 Q-13,-9 0,-9 Q13,-9 13,3 L9.4,3 Q8.4,-2.6 5.4,0.6 Q3.4,-3.2 0.4,0.2 Q-2.4,-3.4 -5,0.4 Q-7.6,-2.8 -9.2,3 Z" fill="currentColor" opacity="0.92" />
-      <path d="M-9 -6.4 Q-4 -8.8 0 -8.6" fill="none" stroke="rgba(255,255,255,0.28)" strokeWidth="0.9" strokeLinecap="round" />
-      <path d="M-5 0.4 Q-4.4 -1.8 -3.6 -2.8 M0.4 0.2 Q1 -2 1.8 -3 M5.4 0.6 Q6 -1.4 6.8 -2.4" stroke="rgba(0,0,0,0.16)" strokeWidth="0.8" fill="none" strokeLinecap="round" />
-    </g>
-  ),
-  spikes: (
-    <g transform="translate(0, -13)">
-      <path d="M-12,3 L-10.4,-6.6 Q-9.6,-7.6 -9,-6.4 L-6.4,1.4 L-3,-8.4 Q-2.2,-9.6 -1.6,-8.2 L1.6,1.6 L5.4,-7 Q6.2,-8.2 6.8,-6.8 L9.6,1.4 L12,3 Z" fill="currentColor" opacity="0.92" />
-      <path d="M-10.4,-6.6 L-9.4,-2 M-3,-8.4 L-1.9,-4 M5.4,-7 L6.4,-2.6" stroke="rgba(255,255,255,0.26)" strokeWidth="0.8" strokeLinecap="round" />
-    </g>
-  ),
-  curls: (
-    <g transform="translate(0, -12)">
-      <circle cx="-8.4" cy="0.4" r="4" fill="currentColor" opacity="0.86" />
-      <circle cx="-2.4" cy="-2" r="4.6" fill="currentColor" opacity="0.9" />
-      <circle cx="4.4" cy="-1.4" r="4.3" fill="currentColor" opacity="0.88" />
-      <circle cx="9.8" cy="0.8" r="3.5" fill="currentColor" opacity="0.84" />
-      <path d="M-9.6 -0.4 Q-8.2 -2.4 -6.4 -1 Q-6.8 0.8 -8.6 0.6" fill="none" stroke="rgba(0,0,0,0.2)" strokeWidth="0.8" strokeLinecap="round" />
-      <path d="M-3.6 -3.4 Q-1.6 -4.8 -0.2 -2.9 Q-1 -1 -3 -1.6" fill="none" stroke="rgba(0,0,0,0.2)" strokeWidth="0.8" strokeLinecap="round" />
-      <path d="M3.2 -3 Q5.2 -4 6.2 -2.2 Q5.2 -0.6 3.6 -1.4" fill="none" stroke="rgba(0,0,0,0.2)" strokeWidth="0.8" strokeLinecap="round" />
-      <path d="M-4 -4.6 Q-2 -6 0 -5" fill="none" stroke="rgba(255,255,255,0.28)" strokeWidth="0.9" strokeLinecap="round" />
-    </g>
-  ),
-};
 
 const ACCESSORIES: Record<string, React.ReactNode> = {
   none: null,
@@ -741,7 +705,7 @@ export type MeshiMood =
   | "celebrating"
   | "blinking";
 export type MeshiHat = keyof typeof HATS;
-export type MeshiHair = keyof typeof HAIRS;
+export type { MeshiHair };
 export type MeshiAccessory = keyof typeof ACCESSORIES;
 export type MeshiEyeStyle = MeshiLash | "regular";
 export type MeshiColor = keyof typeof COLOR_THEMES;
@@ -806,9 +770,13 @@ export function MeshiMascot({
 }: MeshiMascotProps) {
   const theme = COLOR_THEMES[color] || COLOR_THEMES.blue;
   const wearable = lightenHex(theme.primary, 0.42);
+  // Hair is DARKER than the body, not lighter. Sharing the wearable tint made
+  // it read as a lump of the same material rather than as hair.
+  const hairTone = lightenHex(theme.primary, -0.42);
+  const resolvedHair = resolveHair(hair);
   const hatElement = HATS[hat] || null;
   const scale = size / 48;
-  const hairElement = HAIRS[hair] || null;
+
   // "lashes" used to be BOTH an accessory and an eye style, drawn twice at
   // fixed coordinates. It is neither: it is a property of an eye. The legacy
   // accessory value keeps working by selecting a lash style instead.
@@ -1093,6 +1061,11 @@ export function MeshiMascot({
           <clipPath id={`${uniqueId}-clip`}>
             <circle cx="0" cy="0" r="22" />
           </clipPath>
+          {/* Everything ABOVE a hat's brim line — hair tucks by being clipped
+              to this, so a brim hides it without moving it. */}
+          <clipPath id={`${uniqueId}-brim`}>
+            <rect x="-30" y="-40" width="60" height={40 + (hat && HAT_BRIM_Y[hat] !== undefined ? HAT_BRIM_Y[hat] : 0)} />
+          </clipPath>
           {/* Glossy body fill — light gathers top-left, deepens toward the rim
               so Meshi reads as a living, dimensional bubble rather than a flat disc. */}
           <radialGradient id={`${uniqueId}-body`} cx="36%" cy="30%" r="80%">
@@ -1147,8 +1120,18 @@ export function MeshiMascot({
         {/* Headwear, face and accessories render OUTSIDE the body clip so tall
             hats are never chopped off by the bubble's circular mask. Hair tucks
             under closed hats so strands never poke through the shell. */}
-        <motion.g style={{ color: wearable, rotate: hairSway, y: hairLift, transformBox: "fill-box", transformOrigin: "50% 100%" }}>
-          {hairElement && hat && !OPEN_HATS.has(hat) ? <g transform={HAIR_TUCK_TRANSFORM}>{hairElement}</g> : hairElement}
+        <motion.g style={{ rotate: hairSway, y: hairLift, transformBox: "fill-box", transformOrigin: "50% 100%" }}>
+          {/* Tucking under a hat is a CLIP, not a scale. The old transform
+              scaled about the origin — the point between the eyes — so it
+              dragged hair down onto the face instead of hiding it under a
+              brim. Each covering hat declares where its brim sits. */}
+          {resolvedHair !== "none" && (
+            hat && HAT_BRIM_Y[hat] !== undefined ? (
+              <g clipPath={`url(#${uniqueId}-brim)`}>{renderMeshiHair(resolvedHair, hairTone)}</g>
+            ) : (
+              renderMeshiHair(resolvedHair, hairTone)
+            )
+          )}
         </motion.g>
 
         {/* Face — eyes with smooth tracking and blinking. The outer group lets a

@@ -4,6 +4,7 @@ import { prisma } from "./prisma";
 // Ids only — the module's single dependency on the mascot is `import type`, so
 // nothing from the client component reaches this server bundle.
 import { MESHI_FACE_IDS, MESHI_LASH_IDS } from "@/components/meshi/meshi-face";
+import { MESHI_HAIR_IDS } from "@/components/meshi/meshi-hair";
 import { getCurrentUser, hashPassword, createSession, destroySession, verifyPassword, invalidateAllUserSessions } from "./auth";
 import { GLOBAL_MESH_BRANCHES } from "./global-mesh";
 import { ABOUT_FIELDS, type AboutField, aboutFieldMaxLen, isAboutPrivacyLevel } from "./profile-info";
@@ -3005,7 +3006,7 @@ const MESHI_OPTION_VALUES = {
   // so existing rows land on the default face instead of failing validation.
   faces: new Set<string>(MESHI_FACE_IDS),
   colors: new Set(["blue", "purple", "pink", "green", "orange", "cyan", "gold", "rainbow", "crimson", "midnight", "rose", "emerald", "arctic", "obsidian"]),
-  hairs: new Set(["none", "fluffy", "bangs", "spikes", "curls"]),
+  hairs: new Set<string>(MESHI_HAIR_IDS),
   accessories: new Set(["none", "glasses", "sunglasses", "monocle", "earrings", "bowtie", "freckles", "blush", "eyepatch", "star", "mustache", "necklace"]),
   // eyeStyle now stores a LASH style. "regular" is the legacy value for "no
   // lashes" and keeps working via resolveLash(), so nobody's Meshi changes

@@ -5,6 +5,7 @@ import { AnimatePresence, motion, useReducedMotion, type Variants } from "framer
 import { ArrowLeft, ArrowRight, Bell, Check, LayoutGrid, Palette, Shield, Sparkles, UserRound } from "lucide-react";
 import { PaperWait } from "@/components/loading/paper-wait";
 import { MESHI_FACE_IDS, MESHI_LASH_IDS } from "@/components/meshi/meshi-face";
+import { MESHI_HAIR_IDS } from "@/components/meshi/meshi-hair";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -70,7 +71,7 @@ const steps = [
 
 const colors = ["blue", "purple", "pink", "green", "orange", "cyan", "gold"];
 const hats = ["none", "cap", "beanie", "flower", "headphones", "crown"];
-const hairs = ["none", "fluffy", "bangs", "spikes", "curls"];
+const hairs = MESHI_HAIR_IDS.slice(0, 8);
 // A curated opening subset; the full set lives in Settings.
 const faces = MESHI_FACE_IDS.slice(0, 6);
 const eyes = MESHI_LASH_IDS;
