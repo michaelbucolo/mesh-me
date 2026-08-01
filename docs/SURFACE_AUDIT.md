@@ -318,7 +318,49 @@ orphans.
    topic keys while the agents emitted free-text topics, so it silently selected
    nothing and reported zero refutations. A filter that matches nothing and
    returns a confident empty result is the same defect this audit keeps finding
-   in shipped code. Everything above is single-sourced until that pass is redone.
+   in shipped code.
+
+   ### It was redone, and it corrected four things above
+
+   Ten refuters, one claim held. The refuters were told to default to *refuted*
+   when they could not independently confirm, so the count overstates the damage
+   — but four corrections are substantive and change what to build.
+
+   **1. zip.js has no configurable decompression cap.** The earlier entry offered
+   the library's mid-stream `ERR_INVALID_UNCOMPRESSED_SIZE` throw as a reason to
+   choose it. That check fires against the entry's *own declared* size, so it
+   catches a lying header and nothing else — **you must enforce every real limit
+   yourself**, on `getEntries()` before `getData()`. The genuine differentiator
+   is central-directory-first random access, which is what lets you read a
+   declared size *before* inflating. The choice stands; the reason was wrong.
+
+   **2. A ratio cap has almost no usable dynamic range.** This is the sharpest
+   correction. Legitimate entries in these exports routinely run 5:1 to 100:1,
+   and export-shaped JSON with real per-record variation tops out nearer **4–15:1
+   typical, ~64:1 worst constructible** — the 95:1 and 294:1 figures came from
+   synthetic indent-heavy JSON. The band between "rejects a real LinkedIn or
+   Meta-HTML export" and "permits a near-ceiling bomb" is too narrow to defend.
+   **Guard on bytes actually emitted, not on a ratio.** This reinforces the
+   ranking — the running total was already #2 and ratio caps already last — while
+   removing any pretence that a specific ratio number is protective.
+
+   **3. PRODUCTION NEVER RUNS MIGRATIONS.** Verified here: `npm run build` is
+   `prisma generate && node scripts/ensure-remote-schema.mjs && next build`, and
+   that script applies `prisma/ensure-schema.sql`. There is no
+   `prisma migrate deploy` anywhere in the deploy path. **Any index or column the
+   importer needs must land in two files** — the Prisma schema *and*
+   `ensure-schema.sql` — or it exists in development and silently does not exist
+   in production.
+
+   **4. `id` and `updatedAt` are NOT NULL with no database-level default** on both
+   `ContentSource` and `SyncedContent`. Prisma Client fills them; any raw-SQL or
+   libSQL-batch writer must supply them explicitly.
+
+   Two smaller ones worth keeping: do not derive anything from the Meta archive's
+   root folder name — locate a known anchor file and compute the prefix from it,
+   because the root is an independent axis from the JSON/HTML choice and varies
+   by vintage. And the Web Worker CSP allowance exists in *two* places, one
+   dev-only (`next.config.ts:81`) and one production (`src/proxy.ts:215`).
 
    Still needed alongside the caps: refuse **before** inflating, on
    `uncompressedSize / compressedSize` read from the central directory (the
