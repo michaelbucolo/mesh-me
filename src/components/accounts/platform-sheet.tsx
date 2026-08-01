@@ -197,6 +197,7 @@ export function PlatformSheet({
   platform,
   accounts,
   supplyNote,
+  serverKeyMissing = false,
   busyKey,
   onClose,
   onSync,
@@ -207,6 +208,9 @@ export function PlatformSheet({
   platform: SupportedPlatformView | null;
   accounts: ConnectedAccountView[];
   supplyNote: SupplyNote | null;
+  /** Deployment has no encryption key: nothing can store a token, so no
+   *  platform offers a connect regardless of its own configuration. */
+  serverKeyMissing?: boolean;
   busyKey: string | null;
   onClose: () => void;
   onSync: (account: ConnectedAccountView) => void;
@@ -215,7 +219,8 @@ export function PlatformSheet({
 }) {
   const open = platform !== null;
   const canConnect = platform
-    ? platform.authType !== "oauth" || (platform.configured && Boolean(platform.connectHref))
+    ? !serverKeyMissing
+      && (platform.authType !== "oauth" || (platform.configured && Boolean(platform.connectHref)))
     : false;
   const enabledCapabilities = platform
     ? (Object.entries(platform.capabilities)
@@ -291,10 +296,28 @@ export function PlatformSheet({
             </Link>
           )}
 
+          {/* The deployment-wide blocker outranks the per-platform one: with no
+              encryption key, this platform's own credentials are irrelevant
+              because nothing could be stored either way. Saying "set the
+              Instagram app id" here would send someone to fix the wrong thing. */}
+          {serverKeyMissing && (
+            <div className="grid gap-2 rounded-[var(--ds-radius-md)] border border-[var(--ds-danger-border)] bg-[var(--ds-danger-bg)] p-3.5">
+              <p className="text-sm font-semibold text-[var(--ds-danger)]">Connecting is switched off on this deployment</p>
+              <p className="text-xs leading-5 text-[var(--ds-danger)]">
+                Not a {platform.name} problem — there is no encryption key, so no connection on this
+                server could be stored securely. An admin needs to set{" "}
+                <code className="rounded bg-[var(--ds-surface)] px-1 py-0.5 font-mono text-[0.6875rem]">
+                  APP_DATA_ENCRYPTION_KEY
+                </code>{" "}
+                to a 32-byte key and redeploy.
+              </p>
+            </div>
+          )}
+
           {/* "Coming soon" was a promise nobody scheduled. The platform is inert
               because this deployment lacks the provider credentials — say that,
               and hand the owner the exact switch. */}
-          {!canConnect && platform.missingEnv.length > 0 && (
+          {!canConnect && !serverKeyMissing && platform.missingEnv.length > 0 && (
             <div className="grid gap-2 rounded-[var(--ds-radius-md)] border border-[var(--ds-border)] bg-[var(--bg-primary)]/45 p-3.5">
               <p className="text-sm font-semibold text-[var(--text-primary)]">Not set up on this deployment</p>
               <p className="text-xs leading-5 text-[var(--text-secondary)]">
