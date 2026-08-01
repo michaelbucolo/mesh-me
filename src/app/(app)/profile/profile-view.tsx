@@ -15,6 +15,8 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { linkDisplayHost } from "@/lib/profile-links";
+import { getAchievementBoard } from "@/lib/achievements/award";
+import { MilestonesBoard } from "@/components/profile/milestones-board";
 import {
   MeshiMascot,
   type MeshiAccessory,
@@ -103,8 +105,18 @@ export async function InstagramProfileView({ username, tab }: { username: string
   const basePath = isOwnProfile ? "/profile" : `/profile/${username}`;
   // Analytics is a primary tab at /analytics now, not a profile tab — the
   // header's Analytics button below links there.
-  const tabs = ["posts", "about", "communities", ...(isOwnProfile ? ["collections"] : []), "links"];
+  // Milestones is yours alone. "Connected six platforms" is a fact about
+  // somebody's other accounts, so the board is not offered on anyone else's
+  // profile — the title they chose to wear is the only part that travels.
+  const tabs = [
+    "posts",
+    "about",
+    "communities",
+    ...(isOwnProfile ? ["collections", "milestones"] : []),
+    "links",
+  ];
   const activeTab = tabs.includes(tab ?? "") ? (tab as string) : "posts";
+  const achievements = isOwnProfile && activeTab === "milestones" ? await getAchievementBoard(profile.id) : null;
 
   return (
     <div className="profile-layout mx-auto grid w-full max-w-6xl gap-6 px-4 py-6 lg:grid-cols-[minmax(0,1fr)_340px] animate-page-enter">
@@ -163,6 +175,15 @@ export async function InstagramProfileView({ username, tab }: { username: string
                 {/* Name row */}
                 <div className="flex flex-wrap items-center gap-2.5">
                   <h1 className="profile-name text-2xl font-semibold text-[var(--mesh-text)]">{profile.displayName}</h1>
+                  {/* The only public part of the milestone board, and only
+                      because wearing it is a choice. The board itself is
+                      private: "connected six platforms" is a fact about
+                      somebody's other accounts. */}
+                  {profile.activeTitle && (
+                    <span className="inline-flex items-center rounded-lg bg-[var(--accent-text)]/10 px-2.5 py-0.5 text-xs font-semibold text-[var(--accent-text)]">
+                      {profile.activeTitle}
+                    </span>
+                  )}
                   {profile.isVerified && (
                     <ShieldCheck className="h-5 w-5 shrink-0 text-[var(--accent-text)]" aria-label="Verified" />
                   )}
@@ -380,6 +401,9 @@ export async function InstagramProfileView({ username, tab }: { username: string
             {isOwnProfile && (
               <ProfileTab label="Collections" count={collectionCount} href={`${basePath}?tab=collections`} active={activeTab === "collections"} />
             )}
+            {isOwnProfile && (
+              <ProfileTab label="Milestones" href={`${basePath}?tab=milestones`} active={activeTab === "milestones"} />
+            )}
             <ProfileTab label="Creator Links" count={links.length} href={`${basePath}?tab=links`} active={activeTab === "links"} />
           </nav>
         )}
@@ -519,6 +543,10 @@ export async function InstagramProfileView({ username, tab }: { username: string
               </section>
             ) : null}
           </div>
+        )}
+
+        {canViewProfile && activeTab === "milestones" && isOwnProfile && achievements && (
+          <MilestonesBoard achievements={achievements} currentTitle={profile.activeTitle ?? null} />
         )}
 
         {canViewProfile && activeTab === "links" && (
