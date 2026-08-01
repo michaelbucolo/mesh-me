@@ -164,8 +164,14 @@ orphans.
    - There is **no object-storage dependency at all** — no Blob, no S3, nothing
      in `package.json` that could hold a large file.
    - `vercel.json` configures a cron and nothing else. Serverless request bodies
-     are capped far below archive scale, and an Instagram export runs to
-     hundreds of megabytes; Facebook's can pass a gigabyte.
+     are capped far below archive scale.
+
+   On archive size: widely reported figures put Instagram exports in the hundreds
+   of megabytes and Facebook's past a gigabyte, but **that number has not been
+   measured against a real export here** and should not be quoted as if it had.
+   It is not load-bearing — the 2 MB cap, the absent object storage and the
+   serverless body limit each independently rule out the POST design, and they
+   were checked directly.
 
    So the first thing that happens to a real archive on a POST route is a
    rejection at the edge, before any of the zip-bomb defences anyone wrote ever
@@ -187,10 +193,49 @@ orphans.
    - The zip-bomb surface moves into the user's own tab, where a decompression
      ratio cap costs them a browser tab rather than a shared server.
 
-   Still needs, and still its own slice: a ZIP reader (there is no zip dependency
-   yet — `fflate` is the small zero-dep candidate), explicit caps on entry count,
-   per-entry size and total decompression ratio, the traversal rejection
-   `parse-export.ts` already performs on media paths, and a gate over all of it.
+   ### The ZIP library: `@zip.js/zip.js`, and why not the small one
+
+   This entry first said *"`fflate` is the small zero-dep candidate."* That was a
+   guess, and measurement refutes it. `fflate` is a third the size and it is the
+   wrong tool here for three separate reasons, each verified rather than argued:
+
+   - **It needs the whole archive in memory.** `unzip`/`unzipSync` take a single
+     `Uint8Array`; JSZip reads a Blob fully through `FileReader`. Browser
+     `ArrayBuffer` limits (~2 GB on Chrome, lower on iOS) make that a wall, not a
+     slow path. zip.js lists the central directory through ranged `Blob.slice`
+     reads — measured at **169 bytes pulled to enumerate a 51,540-byte archive**.
+   - **It truncates silently when a header lies.** A central directory patched to
+     declare 1024 bytes for a 50 MB entry: fflate returned 1024 bytes and did not
+     throw. zip.js threw `ERR_INVALID_UNCOMPRESSED_SIZE` mid-stream, ~1 MB of
+     heap in. For a repo whose parser rule is *may skip, never invent*, silent
+     truncation is the wrong failure mode.
+   - **It never verifies CRC-32 on the read path.** Every `crc` use in fflate's
+     browser build is gzip or zip-*writing*. zip.js checks per entry and throws.
+
+   Costs ~44 KB gzip against fflate's ~5 KB, absorbed by a dynamic import on the
+   import route alone. Zero dependencies, BSD-3-Clause, actively maintained.
+   Keep the specifier a **string literal** — `await import("@zip.js/zip.js")` —
+   because knip resolves literal dynamic imports and not computed ones.
+
+   **`DecompressionStream` alone is disqualified outright**, and not only because
+   it does raw deflate with no ZIP container (`new DecompressionStream('zip')`
+   throws). `ios/App/App.xcodeproj/project.pbxproj` sets
+   `IPHONEOS_DEPLOYMENT_TARGET = 15.0`; `DecompressionStream` needs iOS 16.4. On
+   the Capacitor build it would simply be `undefined`. zip.js already falls back
+   to its bundled codec when the native stream is missing.
+
+   Nothing in the repo blocks the dependency: no bundle budget, no license gate,
+   no dependency-count gate. `foundation-check.mjs` only asserts deps are
+   *present*. CSP is already fine — `worker-src 'self' blob:` is in both
+   `next.config.ts:81` and `src/proxy.ts:215`, and zip.js builds its worker from a
+   runtime blob URI, so webpack needs no worker configuration.
+
+   Still needs, and still its own slice: explicit caps on entry count, per-entry
+   size and total decompression ratio (refuse **before** inflating, on
+   `uncompressedSize / compressedSize` from the central directory — the library's
+   own check is a backstop against a lying header, not a knob you can tighten),
+   the traversal rejection `parse-export.ts` already performs on media paths, and
+   a gate over all of it.
 
    The copy constraint is permanent: **"your history", never "your connections".**
    W3C's data-portability minutes record the follower graph as "the primary asset
