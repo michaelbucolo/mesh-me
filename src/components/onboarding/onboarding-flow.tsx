@@ -4,6 +4,7 @@ import { Children, type CSSProperties, type FormEvent, type ReactNode, useMemo, 
 import { AnimatePresence, motion, useReducedMotion, type Variants } from "framer-motion";
 import { ArrowLeft, ArrowRight, Bell, Check, LayoutGrid, Palette, Shield, Sparkles, UserRound } from "lucide-react";
 import { PaperWait } from "@/components/loading/paper-wait";
+import { MESHI_FACE_IDS, MESHI_LASH_IDS } from "@/components/meshi/meshi-face";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -15,7 +16,6 @@ import {
   type MeshiEyeStyle,
   type MeshiHair,
   type MeshiHat,
-  type MeshiMood,
 } from "@/components/meshi/meshi-mascot";
 import { updateMeshiLocalPreferences } from "@/hooks/use-meshi-preferences";
 import { completeOnboarding } from "@/lib/actions";
@@ -71,8 +71,9 @@ const steps = [
 const colors = ["blue", "purple", "pink", "green", "orange", "cyan", "gold"];
 const hats = ["none", "cap", "beanie", "flower", "headphones", "crown"];
 const hairs = ["none", "fluffy", "bangs", "spikes", "curls"];
-const faces = ["happy", "wink", "thinking", "cool", "celebrating"];
-const eyes = ["regular", "lashes"];
+// A curated opening subset; the full set lives in Settings.
+const faces = MESHI_FACE_IDS.slice(0, 6);
+const eyes = MESHI_LASH_IDS;
 const accessories = ["none", "glasses", "sunglasses", "monocle"];
 const badges = ["none", "spark", "heart", "shield"];
 
@@ -239,7 +240,7 @@ export function OnboardingFlow({
     updateMeshiLocalPreferences({
       color: meshiState.colorTheme as MeshiColor,
       hat: meshiState.hatStyle as MeshiHat,
-      face: meshiState.faceStyle as MeshiMood,
+      face: meshiState.faceStyle,
       hair: meshiState.hairStyle as MeshiHair,
       accessory: meshiState.accessoryStyle as MeshiAccessory,
       eye: meshiState.eyeStyle as MeshiEyeStyle,
@@ -277,7 +278,7 @@ export function OnboardingFlow({
                 size={54}
                 color={meshiState.colorTheme as MeshiColor}
                 hat={meshiState.hatStyle as MeshiHat}
-                mood={meshiState.faceStyle as MeshiMood}
+                face={meshiState.faceStyle}
                 hair={meshiState.hairStyle as MeshiHair}
                 accessory={meshiState.accessoryStyle as MeshiAccessory}
                 eyeStyle={meshiState.eyeStyle as MeshiEyeStyle}
@@ -412,7 +413,7 @@ export function OnboardingFlow({
                       size={132}
                       color={meshiState.colorTheme as MeshiColor}
                       hat={meshiState.hatStyle as MeshiHat}
-                      mood={meshiState.faceStyle as MeshiMood}
+                      face={meshiState.faceStyle}
                       hair={meshiState.hairStyle as MeshiHair}
                       accessory={meshiState.accessoryStyle as MeshiAccessory}
                       eyeStyle={meshiState.eyeStyle as MeshiEyeStyle}
@@ -429,7 +430,7 @@ export function OnboardingFlow({
                             size={30}
                             color={color as MeshiColor}
                             hat={meshiState.hatStyle as MeshiHat}
-                            mood={meshiState.faceStyle as MeshiMood}
+                            face={meshiState.faceStyle}
                             hair={meshiState.hairStyle as MeshiHair}
                             accessory={meshiState.accessoryStyle as MeshiAccessory}
                             eyeStyle={meshiState.eyeStyle as MeshiEyeStyle}
@@ -447,7 +448,7 @@ export function OnboardingFlow({
                             size={30}
                             color={meshiState.colorTheme as MeshiColor}
                             hat={meshiState.hatStyle as MeshiHat}
-                            mood={meshiState.faceStyle as MeshiMood}
+                            face={meshiState.faceStyle}
                             hair={hair as MeshiHair}
                             accessory={meshiState.accessoryStyle as MeshiAccessory}
                             eyeStyle={meshiState.eyeStyle as MeshiEyeStyle}
@@ -465,7 +466,7 @@ export function OnboardingFlow({
                             size={30}
                             color={meshiState.colorTheme as MeshiColor}
                             hat={hat as MeshiHat}
-                            mood={meshiState.faceStyle as MeshiMood}
+                            face={meshiState.faceStyle}
                             hair={meshiState.hairStyle as MeshiHair}
                             accessory={meshiState.accessoryStyle as MeshiAccessory}
                             eyeStyle={meshiState.eyeStyle as MeshiEyeStyle}
@@ -483,7 +484,7 @@ export function OnboardingFlow({
                             size={30}
                             color={meshiState.colorTheme as MeshiColor}
                             hat={meshiState.hatStyle as MeshiHat}
-                            mood={meshiState.faceStyle as MeshiMood}
+                            face={meshiState.faceStyle}
                             hair={meshiState.hairStyle as MeshiHair}
                             accessory={meshiState.accessoryStyle as MeshiAccessory}
                             eyeStyle={eye as MeshiEyeStyle}
@@ -501,7 +502,7 @@ export function OnboardingFlow({
                             size={30}
                             color={meshiState.colorTheme as MeshiColor}
                             hat={meshiState.hatStyle as MeshiHat}
-                            mood={meshiState.faceStyle as MeshiMood}
+                            face={meshiState.faceStyle}
                             hair={meshiState.hairStyle as MeshiHair}
                             accessory={accessory as MeshiAccessory}
                             eyeStyle={meshiState.eyeStyle as MeshiEyeStyle}
@@ -519,7 +520,7 @@ export function OnboardingFlow({
                             size={30}
                             color={meshiState.colorTheme as MeshiColor}
                             hat={meshiState.hatStyle as MeshiHat}
-                            mood={meshiState.faceStyle as MeshiMood}
+                            face={meshiState.faceStyle}
                             hair={meshiState.hairStyle as MeshiHair}
                             accessory={meshiState.accessoryStyle as MeshiAccessory}
                             eyeStyle={meshiState.eyeStyle as MeshiEyeStyle}

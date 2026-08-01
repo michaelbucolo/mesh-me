@@ -23,7 +23,6 @@ import {
   type MeshiEyeStyle,
   type MeshiHair,
   type MeshiHat,
-  type MeshiMood,
 } from "@/components/meshi/meshi-mascot";
 import { Avatar } from "@/components/ui/avatar";
 import { PostCard } from "@/components/feed/post-card";
@@ -310,7 +309,7 @@ export async function InstagramProfileView({ username, tab }: { username: string
                   size={40}
                   color={meshi.colorTheme as MeshiColor}
                   hat={meshi.hatStyle as MeshiHat}
-                  mood={meshi.faceStyle as MeshiMood}
+                  face={meshi.faceStyle}
                   hair={meshi.hairStyle as MeshiHair}
                   accessory={meshi.accessoryStyle as MeshiAccessory}
                   eyeStyle={meshi.eyeStyle as MeshiEyeStyle}

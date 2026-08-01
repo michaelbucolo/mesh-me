@@ -1,5 +1,14 @@
 "use client";
 
+import {
+  MESHI_FACE_IDS,
+  MESHI_FACE_LABELS,
+  MESHI_LASH_IDS,
+  MESHI_LASH_LABELS,
+  type MeshiFace,
+  type MeshiLash,
+} from "@/components/meshi/meshi-face";
+
 import Link from "next/link";
 import { effectiveProfileVisibility } from "@/lib/profile-visibility";
 import { type Dispatch, type FormEvent, type ReactNode, type SetStateAction, useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
@@ -18,7 +27,6 @@ import {
   type MeshiEyeStyle,
   type MeshiHair,
   type MeshiHat,
-  type MeshiMood,
 } from "@/components/meshi/meshi-mascot";
 import { updateMeshiLocalPreferences } from "@/hooks/use-meshi-preferences";
 import { useTheme } from "@/components/theme-provider";
@@ -174,9 +182,23 @@ const colorHex: Record<string, string> = {
   gold: "#f59e0b",
 };
 const hats = ["none", "cap", "beanie", "beret", "headband", "bow", "flower", "party", "cowboy", "graduation", "headphones", "crown", "tophat", "wizard", "astronaut", "pirate", "chef", "halo"];
-const faces = ["happy", "wink", "excited", "thinking", "cool", "celebrating", "love", "shy", "giggle", "surprised"];
+// A face is an identity, so these are eye SHAPES, not moods. Meshi still shows
+// every mood on top of whichever one is chosen. Read from the engine rather
+// than restated here — a face added there appears in this picker for free, and
+// cannot appear in one and not the other.
+const faces = MESHI_FACE_IDS;
+
+/** Human labels where the stored id is not one: "sleepylid" -> "Half-lidded". */
+function optionLabel(group: string, value: string): string {
+  if (group === "faces") return MESHI_FACE_LABELS[value as MeshiFace] ?? value;
+  if (group === "eyes") return MESHI_LASH_LABELS[value as MeshiLash] ?? value;
+  return value;
+}
+
 const hairs = ["none", "fluffy", "bangs", "spikes", "curls"];
-const eyes = ["regular", "lashes"];
+// Lash styles, from the same engine. ("regular" remains accepted on the way in
+// as the legacy spelling of "none"; it is not offered as a choice.)
+const eyes = MESHI_LASH_IDS;
 const accessories = ["none", "glasses", "sunglasses", "monocle", "earrings", "bowtie", "freckles", "blush", "eyepatch", "star", "mustache", "necklace"];
 const badges = ["none", "spark", "heart", "shield", "verified", "creator", "founder"];
 const themePresets = [
@@ -540,7 +562,7 @@ export function SettingsControlCenter({
     updateMeshiLocalPreferences({
       color: meshiState.colorTheme as MeshiColor,
       hat: meshiState.hatStyle as MeshiHat,
-      face: meshiState.faceStyle as MeshiMood,
+      face: meshiState.faceStyle,
       hair: meshiState.hairStyle as MeshiHair,
       accessory: meshiState.accessoryStyle as MeshiAccessory,
       eye: meshiState.eyeStyle as MeshiEyeStyle,
@@ -621,7 +643,7 @@ export function SettingsControlCenter({
               size={52}
               color={meshiState.colorTheme as MeshiColor}
               hat={meshiState.hatStyle as MeshiHat}
-              mood={meshiState.faceStyle as MeshiMood}
+              face={meshiState.faceStyle}
               hair={meshiState.hairStyle as MeshiHair}
               accessory={meshiState.accessoryStyle as MeshiAccessory}
               eyeStyle={meshiState.eyeStyle as MeshiEyeStyle}
@@ -1925,7 +1947,7 @@ function MeshiSection({
             size={96}
             color={meshiState.colorTheme as MeshiColor}
             hat={meshiState.hatStyle as MeshiHat}
-            mood={meshiState.faceStyle as MeshiMood}
+            face={meshiState.faceStyle}
             hair={meshiState.hairStyle as MeshiHair}
             accessory={meshiState.accessoryStyle as MeshiAccessory}
             eyeStyle={meshiState.eyeStyle as MeshiEyeStyle}
@@ -2171,20 +2193,20 @@ function MeshiOptionGroup({
         const preview = {
           color: meshiState.colorTheme as MeshiColor,
           hat: group === "hats" ? value as MeshiHat : meshiState.hatStyle as MeshiHat,
-          mood: group === "faces" ? value as MeshiMood : meshiState.faceStyle as MeshiMood,
+          face: group === "faces" ? value : meshiState.faceStyle,
           hair: group === "hairs" ? value as MeshiHair : meshiState.hairStyle as MeshiHair,
           accessory: group === "accessories" ? value as MeshiAccessory : meshiState.accessoryStyle as MeshiAccessory,
-          eyeStyle: group === "eyes" ? value as MeshiEyeStyle : meshiState.eyeStyle as MeshiEyeStyle,
+          eyeStyle: (group === "eyes" ? value : meshiState.eyeStyle) as MeshiEyeStyle,
           badge: group === "badges" ? value as MeshiBadge : meshiState.badgeStyle as MeshiBadge,
         };
 
         return (
-          <GraphicOptionButton key={value} active={current === value} label={value} note={disabled ? "Pro" : undefined} disabled={disabled} onClick={() => onPick(value)}>
+          <GraphicOptionButton key={value} active={current === value} label={optionLabel(group, value)} note={disabled ? "Pro" : undefined} disabled={disabled} onClick={() => onPick(value)}>
             <MeshiMascot
               size={44}
               color={preview.color}
               hat={preview.hat}
-              mood={preview.mood}
+              face={preview.face}
               hair={preview.hair}
               accessory={preview.accessory}
               eyeStyle={preview.eyeStyle}

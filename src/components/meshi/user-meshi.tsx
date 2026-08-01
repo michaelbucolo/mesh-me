@@ -33,7 +33,8 @@ export function UserMeshi({
   return (
     <MeshiMascot
       size={size}
-      mood={mood ?? prefs.face}
+      mood={mood ?? "happy"}
+      face={prefs.face}
       color={prefs.color}
       hat={prefs.hat}
       hair={prefs.hair}

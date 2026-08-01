@@ -4,6 +4,14 @@ import { motion, useSpring, useMotionValue, useTransform } from "framer-motion";
 import { useRef, useState, useCallback, useEffect, useId } from "react";
 
 // Pre-compute trig values to avoid SSR/client hydration mismatches
+import {
+  renderMeshiEyes,
+  resolveFace,
+  resolveLash,
+  type MeshiFace,
+  type MeshiLash,
+} from "./meshi-face";
+
 const FLOWER_POSITIONS = [0, 60, 120, 180, 240, 300].map((deg) => ({
   deg,
   cx: Math.round(Math.cos((deg * Math.PI) / 180) * 4 * 1000) / 1000,
@@ -677,19 +685,6 @@ const BADGES: Record<string, React.ReactNode> = {
 };
 
 
-const EYE_STYLES: Record<string, React.ReactNode> = {
-  regular: null,
-  lashes: (
-    <g transform="translate(0, 0)">
-      <path d="M-8,-3 L-9.5,-5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
-      <path d="M-6,-3 L-6,-5.4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
-      <path d="M-4,-3 L-2.8,-5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
-      <path d="M4,-3 L2.8,-5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
-      <path d="M6,-3 L6,-5.4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
-      <path d="M8,-3 L9.5,-5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
-    </g>
-  ),
-};
 
 // Meshi color themes
 const COLOR_THEMES: Record<string, { primary: string; glow: string; bg: string }> = {
@@ -748,7 +743,7 @@ export type MeshiMood =
 export type MeshiHat = keyof typeof HATS;
 export type MeshiHair = keyof typeof HAIRS;
 export type MeshiAccessory = keyof typeof ACCESSORIES;
-export type MeshiEyeStyle = keyof typeof EYE_STYLES;
+export type MeshiEyeStyle = MeshiLash | "regular";
 export type MeshiColor = keyof typeof COLOR_THEMES;
 export type MeshiBadge = keyof typeof BADGES;
 
@@ -774,6 +769,8 @@ interface MeshiMascotProps {
   hair?: MeshiHair;
   accessory?: MeshiAccessory;
   eyeStyle?: MeshiEyeStyle;
+  /** The persistent face identity. Survives every mood. */
+  face?: MeshiFace | string;
   badge?: MeshiBadge;
   animate?: boolean;
   onClick?: () => void;
@@ -794,6 +791,7 @@ export function MeshiMascot({
   hair = "none",
   accessory = "none",
   eyeStyle = "regular",
+  face = "bean",
   badge = "none",
   animate = true,
   onClick,
@@ -811,9 +809,12 @@ export function MeshiMascot({
   const hatElement = HATS[hat] || null;
   const scale = size / 48;
   const hairElement = HAIRS[hair] || null;
-  const effectiveEyeStyle = accessory === "lashes" ? "lashes" : eyeStyle;
+  // "lashes" used to be BOTH an accessory and an eye style, drawn twice at
+  // fixed coordinates. It is neither: it is a property of an eye. The legacy
+  // accessory value keeps working by selecting a lash style instead.
+  const resolvedFace = resolveFace(face);
+  const resolvedLash = resolveLash(accessory === "lashes" ? "natural" : eyeStyle);
   const effectiveAccessory = accessory === "lashes" ? "none" : accessory;
-  const eyeStyleElement = EYE_STYLES[effectiveEyeStyle] || null;
   const accessoryElement = ACCESSORIES[effectiveAccessory] || null;
   const badgeElement = BADGES[badge] || null;
   const containerRef = useRef<HTMLDivElement>(null);
@@ -1167,11 +1168,15 @@ export function MeshiMascot({
             transform={`scale(${Math.min(scale, 1.2)})`}
             style={{ x: smoothEyeX, y: smoothEyeY }}
           >
-            {(SVG_FACES[renderedMood] || SVG_FACES.happy)(theme.primary)}
+            {renderMeshiEyes({
+              face: resolvedFace,
+              mood: renderedMood,
+              lash: resolvedLash,
+              color: theme.primary,
+            })}
           </motion.g>
         </g>
 
-        {eyeStyleElement && <g style={{ color: theme.primary }}>{eyeStyleElement}</g>}
         {accessoryElement &&
           (DANGLING_ACCESSORIES.has(effectiveAccessory) ? (
             <motion.g
