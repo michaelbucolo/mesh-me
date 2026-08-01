@@ -21,15 +21,22 @@ type HubIdentity = {
   avatarUrl: string | null;
 };
 
-// Ring radius as a share of the (square) hub box.
-const R = 37;
+// Ring radius as a share of the (square) hub box. A FULL ring needs a wider
+// one: at twelve accounts on a 240px box, 37% put adjacent nodes 40px apart
+// for 32px marks, and they touched — measured, four overlapping pairs. The
+// circumference grows with the radius, so the crowded case gets the room and
+// the common case (two or three accounts) keeps the tighter, calmer circle.
+function ringRadius(count: number): number {
+  return count > 8 ? 41 : 37;
+}
 
 function ringPositions(count: number): { x: number; y: number; angle: number }[] {
   if (count === 0) return [];
+  const r = ringRadius(count);
   return Array.from({ length: count }, (_, i) => {
     // Start at the top and go clockwise; a lone account sits neatly up top.
     const angle = -Math.PI / 2 + (i * 2 * Math.PI) / count;
-    return { x: 50 + R * Math.cos(angle), y: 50 + R * Math.sin(angle), angle };
+    return { x: 50 + r * Math.cos(angle), y: 50 + r * Math.sin(angle), angle };
   });
 }
 
@@ -213,7 +220,14 @@ export function OneMeshHub({
       })}
       </motion.div>
 
-      {/* The mesh.me identity at the core. */}
+      {/* The mesh.me identity at the core — the AVATAR ONLY.
+          The username and "one mesh.me account" used to sit right under it,
+          inside the ring. That reads fine with two accounts and is a collision
+          with a full one: measured at twelve, the eyebrow ran straight through
+          the LinkedIn, Twitch and Instagram nodes. Text stacked below a centre
+          point grows downward into the exact band the lower arc occupies, so
+          there is no size that fixes it — the caption belongs outside the
+          circle, and the line under the hub carries the handle now. */}
       <motion.div
         className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center"
         initial={reduce ? false : { scale: 0.85, opacity: 0 }}
@@ -230,12 +244,6 @@ export function OneMeshHub({
               {initials}
             </span>
           )}
-        </div>
-        <div className="mt-2 flex flex-col items-center">
-          <span className="text-sm font-semibold text-[var(--text-primary)]">@{identity.username}</span>
-          <span className="text-micro font-semibold mesh-eyebrow text-[var(--accent-text)]">
-            one mesh.me account
-          </span>
         </div>
       </motion.div>
     </div>

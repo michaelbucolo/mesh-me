@@ -458,10 +458,21 @@ export function ConnectedAccountsClient({
           platform threading home to it. */}
       <section className="grid gap-3 rounded-[var(--ds-radius-lg)] border border-[var(--ds-border)] bg-[var(--ds-surface)] p-4 sm:p-5">
         <OneMeshHub identity={identity} accounts={hubAccounts} justConnectedPlatform={justConnected} />
+        {/* The handle lives HERE, not under the avatar inside the ring. Text
+            stacked below the centre point grows down into the band the lower
+            arc occupies, so at a full ring it collided with three nodes. */}
         <p className="mx-auto max-w-sm text-center text-sm leading-6 text-[var(--text-secondary)]">
-          {hubAccounts.length > 0
-            ? "Every platform you merge threads back to this one identity."
-            : "This is your one mesh.me account. Tap a logo below and watch it thread in."}
+          {hubAccounts.length > 0 ? (
+            <>
+              Every platform you merge threads back to one identity —{" "}
+              <span className="font-semibold text-[var(--text-primary)]">@{identity.username}</span>.
+            </>
+          ) : (
+            <>
+              <span className="font-semibold text-[var(--text-primary)]">@{identity.username}</span> is your one
+              mesh.me account. Tap a logo below and watch it thread in.
+            </>
+          )}
         </p>
       </section>
 
