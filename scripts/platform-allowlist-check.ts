@@ -1,5 +1,5 @@
 /**
- * MESH.ME OFFERS NINE PLATFORMS AND THE MESSENGERS. NOT THIRTY-SIX.
+ * MESH.ME OFFERS THE TWELVE US-POPULAR SOCIAL PLATFORMS. NOT THIRTY-SIX.
  *
  * There were two lists. `PLATFORM_CAPABILITIES` in platform-capabilities.ts had
  * 17 entries; `CATEGORY_BY_PLATFORM` in platform-adapters.ts had 36. They
@@ -52,19 +52,23 @@ const ok = () => { checks += 1; };
   if (bad.length) fail("1 the list", `ids must be lowercase and unpunctuated (they are database values): ${bad.join(", ")}`);
   else ok();
 
-  // The nine the product is FOR. Named individually so quietly dropping one
-  // fails rather than passing with a shorter list.
-  for (const required of ["instagram", "snapchat", "threads", "twitter", "youtube", "twitch", "kick", "applemusic", "spotify"]) {
+  // The brief, verbatim: "only have the most popular social media apps in the
+  // US". These twelve, EXACTLY — named individually so quietly dropping one
+  // fails, and set-checked both ways so quietly ADDING one fails too, because
+  // additions are what the brief forbids.
+  const POPULAR_US = [
+    "instagram", "facebook", "twitter", "threads", "snapchat", "reddit",
+    "linkedin", "pinterest", "tiktok", "youtube", "twitch", "discord",
+  ];
+  for (const required of POPULAR_US) {
     if (!MESH_PLATFORM_IDS.includes(required)) {
-      fail("1 the list", `"${required}" is one of the nine platforms mesh.me is for, and it is not on the list`);
+      fail("1 the list", `"${required}" is one of the twelve US-popular platforms mesh.me is for, and it is not on the list`);
     } else ok();
   }
-
-  // Messaging is "all major", so a thin messenger set is a regression.
-  const messengers = ["whatsapp", "messenger", "telegram", "signal", "discord", "wechat", "line", "viber", "kakao"];
-  const missing = messengers.filter((m) => !MESH_PLATFORM_IDS.includes(m));
-  if (missing.length) fail("1 the list", `missing messenger(s): ${missing.join(", ")} — the brief is every major one`);
-  else ok();
+  const extras = MESH_PLATFORM_IDS.filter((id) => !POPULAR_US.includes(id));
+  if (extras.length) {
+    fail("1 the list", `extra platform(s) beyond the twelve: ${extras.join(", ")} — the brief is US-popular social apps ONLY`);
+  } else ok();
 }
 
 // ── 2. Capabilities offer exactly the allow-list ─────────────────────────────

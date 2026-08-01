@@ -36,7 +36,7 @@ import type { PlatformSupplyStatus, PublicSupplyLane } from "./types";
  *
  * ── THE SUPPLY IS NOW CREDENTIAL-GATED, AND THAT IS A REAL COST ─────────────
  *
- * mesh.me's platform list is the nine in lib/platforms.ts plus the messengers.
+ * mesh.me's platform list is the twelve US-popular ones in lib/platforms.ts.
  * Bluesky and Mastodon are not on it, so their lanes are gone — and they were
  * the ONLY two that ran without credentials. Measured before removal they were
  * supplying the entire Flow: 20 short videos with nothing configured.

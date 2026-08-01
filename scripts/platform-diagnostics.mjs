@@ -267,7 +267,7 @@ const checks = [
       const oauthSource = read("src/lib/oauth.ts");
       const permissionSource = read("src/lib/platform-permissions.ts");
       const catalogRoute = read("src/app/api/auth/platforms/route.ts");
-      const requiredProviders = ["youtube", "instagram", "twitter", "threads", "facebook", "discord", "tiktok", "soundcloud", "patreon", "dribbble"];
+      const requiredProviders = ["youtube", "instagram", "twitter", "threads", "facebook", "discord", "tiktok", "snapchat", "reddit", "linkedin", "pinterest", "twitch"];
       const missingProviders = requiredProviders.filter((provider) => !oauthSource.includes(`platform: "${provider}"`));
       assert(missingProviders.length === 0, `Missing OAuth providers: ${missingProviders.join(", ")}`);
       assert(permissionSource.includes("syncConnectedAccountPermissions"), "Permission sync helper is missing");

@@ -177,8 +177,9 @@ const RAW_PLATFORM_CAPABILITIES: PlatformCapability[] = [
 /**
  * What mesh.me actually offers: the raw declarations, restricted to the
  * allow-list, plus a conservative shell for any allowed platform that has no
- * declaration yet (Kick, and the messengers). A missing declaration must mean
- * "we claim nothing", never "this platform is absent from the product".
+ * declaration yet (today all twelve have one, so the fallback synthesizes
+ * nothing — it stays because a missing declaration must mean "we claim
+ * nothing", never "this platform is absent from the product").
  */
 const PLATFORM_CAPABILITIES: PlatformCapability[] = [
   ...RAW_PLATFORM_CAPABILITIES.filter((entry) => isMeshPlatform(entry.id)),
