@@ -11,7 +11,9 @@
  *
  *     18 platforms listed
  *      5 can import content        (X, YouTube, Twitch, Spotify, Discord)
- *      1 can cross-post            (X)
+ *      2 can cross-post            (X, Reddit — Reddit gained it later; this line said
+ *                                  "1 (X)" for a while after that, which is how a
+ *                                  gate about honest copy came to carry a stale count)
  *      3 can sync interactions
  *      0 of 9 messengers can sync a message — not one of WhatsApp, Messenger,
  *        Telegram, Signal, Discord, WeChat, LINE, Viber or KakaoTalk exposes a

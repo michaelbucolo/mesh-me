@@ -1,6 +1,7 @@
 "use client";
 
 import { PaperWait } from "@/components/loading/paper-wait";
+import { PlatformLogo } from "@/components/platform/platform-logo";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useRef, useState, useTransition, useEffect } from "react";
@@ -11,16 +12,29 @@ import { publishMeshiCause } from "@/lib/meshi-bus";
 import { playSound } from "@/lib/sound";
 import { Image as ImageIcon, Hash, Globe, X, Share2, ChevronDown, Info, CheckCircle2, AlertTriangle, Link as LinkIcon, Lock, Users, Video, Eye } from "lucide-react";
 
-// Connected platforms for cross-posting
-const CROSS_POST_PLATFORMS = [
-  { id: "instagram", name: "Instagram", color: "#E4405F", icon: "IG" },
-  { id: "twitter", name: "X / Twitter", color: "#1DA1F2", icon: "X" },
-  { id: "facebook", name: "Facebook", color: "#1877F2", icon: "FB" },
-  { id: "linkedin", name: "LinkedIn", color: "#0A66C2", icon: "IN" },
-  { id: "threads", name: "Threads", color: "#000000", icon: "TH" },
-  { id: "bluesky", name: "Bluesky", color: "#0085FF", icon: "BS" },
-  { id: "reddit", name: "Reddit", color: "#FF4500", icon: "RD" },
-];
+// THERE IS NO HARDCODED PLATFORM LIST HERE ANY MORE.
+//
+// It was seven entries — instagram, twitter, facebook, linkedin, threads,
+// bluesky, reddit — and both of the composer's derived lists were intersected
+// with it. Two things were wrong with that, and the second one is the reason
+// this changed:
+//
+//   1. `bluesky` is not in the roster at all (twelve platforms, no Bluesky), so
+//      that entry could never match either array. Dead, but only cosmetic.
+//
+//   2. THE ROSTER HAS TWELVE PLATFORMS AND THIS LIST HAD SEVEN. discord,
+//      twitch, youtube, tiktok, pinterest and snapchat were absent — so
+//      `connectedButNotPublishable`, whose entire job is to explain which of
+//      your connected accounts cannot receive a post, COULD NOT SEE SIX OF
+//      THEM. Connect YouTube and TikTok and the composer said nothing about
+//      either: not "these can't", not "these can" — nothing. The same failure
+//      as a grid where only the happy states are labelled.
+//
+// The API already returns every connected account with its real name and its
+// capability, so both lists come from there now and cannot fall behind the
+// roster. Marks come from PlatformLogo, the same drawn set the connect page and
+// the mesh canvas use.
+type ComposerPlatform = { id: string; name: string };
 
 interface PostComposerProps {
   user: {
@@ -135,8 +149,8 @@ export function PostComposer({ user, communityId, startExpanded = false, onPostP
     }
   }, []);
   const [selectedPlatforms, setSelectedPlatforms] = useState<Set<string>>(new Set());
-  const [connectedAccounts, setConnectedAccounts] = useState<string[]>([]);
-  const [publishableAccounts, setPublishableAccounts] = useState<string[]>([]);
+  const [connectedAccounts, setConnectedAccounts] = useState<ComposerPlatform[]>([]);
+  const [publishableAccounts, setPublishableAccounts] = useState<ComposerPlatform[]>([]);
   const [accountsLoaded, setAccountsLoaded] = useState(false);
   const [accountsLoading, setAccountsLoading] = useState(false);
   const [expanded, setExpanded] = useState(shouldFocusComposer);
@@ -160,14 +174,25 @@ export function PostComposer({ user, communityId, startExpanded = false, onPostP
         });
         if (res.ok) {
           const data = await res.json().catch(() => ({}));
-          const platforms = (data.accounts || [])
-            .filter((a: { platform: string; isActive?: boolean }) => a.isActive !== false)
-            .map((a: { platform: string }) => a.platform);
-          const publishablePlatforms = (data.accounts || [])
-            .filter((a: { platform: string; isActive?: boolean; capability?: { crossPost?: boolean } }) => a.isActive !== false && a.capability?.crossPost)
-            .map((a: { platform: string }) => a.platform);
-          setConnectedAccounts(platforms);
-          setPublishableAccounts(publishablePlatforms);
+          type ApiAccount = {
+            platform: string;
+            platformName?: string;
+            isActive?: boolean;
+            capability?: { crossPost?: boolean };
+          };
+          // One account per PLATFORM: two X accounts are one chip, not two.
+          const byPlatform = (accounts: ApiAccount[]): ComposerPlatform[] => {
+            const seen = new Map<string, ComposerPlatform>();
+            for (const a of accounts) {
+              if (!seen.has(a.platform)) {
+                seen.set(a.platform, { id: a.platform, name: a.platformName || a.platform });
+              }
+            }
+            return [...seen.values()].sort((x, y) => x.name.localeCompare(y.name));
+          };
+          const active = (data.accounts || []).filter((a: ApiAccount) => a.isActive !== false);
+          setConnectedAccounts(byPlatform(active));
+          setPublishableAccounts(byPlatform(active.filter((a: ApiAccount) => a.capability?.crossPost)));
         }
       } catch {
         /* ignore */
@@ -363,8 +388,9 @@ export function PostComposer({ user, communityId, startExpanded = false, onPostP
     });
   };
 
-  const availablePlatforms = CROSS_POST_PLATFORMS.filter((p) => publishableAccounts.includes(p.id));
-  const connectedButNotPublishable = CROSS_POST_PLATFORMS.filter((p) => connectedAccounts.includes(p.id) && !publishableAccounts.includes(p.id));
+  const availablePlatforms = publishableAccounts;
+  const publishableIds = new Set(publishableAccounts.map((p) => p.id));
+  const connectedButNotPublishable = connectedAccounts.filter((p) => !publishableIds.has(p.id));
 
   return (
     // `rounded-2xl glass-card` is gone. The composer is a TRAY — the recess its
@@ -577,12 +603,14 @@ export function PostComposer({ user, communityId, startExpanded = false, onPostP
                     >
                       {/* The brand hex was the button's whole fill when selected,
                           with `text-white` on top of it — #0085FF and #000000 in
-                          the same list, one ink assumed for both. It is a
-                          decorative swatch now, carrying no text, and SELECTED is
-                          the same cobalt plastic every other selected thing on
-                          this surface wears. Brand colour says which platform;
-                          the plastic says which are on. */}
-                      <span className="h-4 w-4 rounded" style={{ backgroundColor: p.color }} aria-hidden="true" />
+                          the same list, one ink assumed for both. Then it became
+                          a bare colour swatch. It is the platform's real mark
+                          now, the same drawn set the connect page and the mesh
+                          canvas use, so a chip is identifiable without reading
+                          it. SELECTED stays the cobalt plastic every other
+                          selected thing on this surface wears: the mark says
+                          which platform, the plastic says which are on. */}
+                      <PlatformLogo platform={p.id} size={16} className="shrink-0" />
                       {p.name}
                     </button>
                   ))}
@@ -590,11 +618,16 @@ export function PostComposer({ user, communityId, startExpanded = false, onPostP
               ) : (
                 <p className="text-micro text-[var(--text-muted)] flex items-center gap-1">
                   <Info className="h-3 w-3" />
+                  {/* NAME THEM. "Connected platforms are read-only" left you to
+                      guess which, and the list it was computed from could not
+                      see half your accounts anyway. */}
                   {accountsLoading
                     ? "Checking connected platforms..."
                     : connectedButNotPublishable.length > 0
-                      ? "Connected platforms are read-only until approved publishing scopes are enabled."
-                      : "Connect approved publishing platforms in Settings to cross-post."}
+                      ? `${connectedButNotPublishable.map((p) => p.name).join(", ")} ` +
+                        `${connectedButNotPublishable.length === 1 ? "does" : "do"} not offer an API mesh.me can post through, so ` +
+                        `${connectedButNotPublishable.length === 1 ? "it is" : "they are"} read-only here.`
+                      : "Connect a platform that allows publishing to cross-post."}
                 </p>
               )}
               <p className="text-micro text-[var(--text-muted)] mt-2 flex items-center gap-1">
