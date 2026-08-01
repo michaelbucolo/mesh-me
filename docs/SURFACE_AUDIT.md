@@ -237,6 +237,36 @@ orphans.
    the traversal rejection `parse-export.ts` already performs on media paths, and
    a gate over all of it.
 
+   ### Three archive facts that produce WRONG data, not missing data
+
+   `parse-export.ts` is shape-tolerant at the document level and needs no change.
+   The hazards live one layer up, in finding and decoding the right file — and
+   these three do not fail loudly, they fail plausibly, which is the failure the
+   parser's *may skip, never invent* rule exists to prevent.
+
+   - **Facebook JSON is UTF-8 bytes mis-encoded as Latin-1.** Decode it the
+     obvious way and every non-ASCII caption becomes mojibake. That is not a
+     dropped post; it is a post in someone's history with text they did not
+     write. The bytes must be re-decoded before `JSON.parse`.
+   - **LinkedIn's export is flat CSV, not JSON** — posts in `Shares.csv`, and the
+     archive ships in two variants where **`Basic_…zip` contains no posts at
+     all**. `parseExportDocument` cannot read any of it. LinkedIn needs its own
+     CSV path or an explicit, stated exclusion from v1 — silently importing
+     nothing while the connect page offers the option would be the worse choice.
+     (`Connections.csv` also opens with a three-line `Notes:` preamble before the
+     real header, so a naive CSV read yields shifted columns.)
+   - **Instagram's posts file has three vintages**: `your_instagram_activity/content/posts_1.json`
+     (2023+), `content/posts_1.json` (2022 and earlier), and a flat `media.json`
+     (pre-Dec-2020). Facebook's has three parent directories likewise. A reader
+     keyed to one vintage finds nothing on the others and reports a clean,
+     confident zero.
+
+   Also relevant to the UI rather than the parser: Meta splits exports over ~4 GB
+   into **multiple ZIP parts**, all of which are needed to reconstruct posts plus
+   media — so a single-file picker is wrong. And Threads normally has no archive
+   of its own; its posts ride inside the Instagram export at
+   `your_instagram_activity/threads/threads_and_replies.json`.
+
    The copy constraint is permanent: **"your history", never "your connections".**
    W3C's data-portability minutes record the follower graph as "the primary asset
    and normally not exported, not even upon GDPR request." The parser's output
