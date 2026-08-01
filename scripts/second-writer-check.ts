@@ -479,18 +479,30 @@ assert.match(
   "the callback must pass the scope source to syncConnectedAccountPermissions. Its default is\n" +
     "  \"oauth_scope\" — passing nothing asserts the provider confirmed scopes it never mentioned.",
 );
-const accountsCard = read("src/app/(app)/connected-accounts/connected-accounts-client.tsx");
+// WHICH FILE SHOWS THIS HAS MOVED ONCE ALREADY.
+//
+// It was the account card on the connect page; it is the platform sheet now,
+// opened from a logo tile. Pinning the assertion to one path meant a rename
+// could carry the guarantee off with it and leave a passing gate behind, so the
+// whole connect surface is read as one body of source: wherever the count is
+// rendered, it has to be the confirmed one, and nowhere may sum the two.
+const CONNECT_SURFACE = [
+  "src/app/(app)/connected-accounts/connected-accounts-client.tsx",
+  "src/components/accounts/platform-sheet.tsx",
+  "src/components/accounts/platform-grid.tsx",
+];
+const connectSurface = CONNECT_SURFACE.map((file) => read(file)).join("\n");
 assert.match(
-  accountsCard,
+  connectSurface,
   /permission\.state === "granted" && permission\.source === "oauth_scope"/,
-  "the connected-accounts card must count only PROVIDER-CONFIRMED scopes as granted. Counting the\n" +
+  "the connect surface must count only PROVIDER-CONFIRMED scopes as granted. Counting the\n" +
     "  assumed ones tells the user they authorized something they may have declined — the one number\n" +
-    "  on this screen whose whole job is to say what they agreed to.",
+    `  on this screen whose whole job is to say what they agreed to.\n  Searched: ${CONNECT_SURFACE.join(", ")}`,
 );
 assert.ok(
-  !/\{grantedCount\}/.test(accountsCard),
-  "the card still renders a single grantedCount. Confirmed and assumed scopes are different claims\n" +
-    "  and must not be summed into one figure labelled 'granted'.",
+  !/\{grantedCount\}/.test(connectSurface),
+  "the connect surface still renders a single grantedCount. Confirmed and assumed scopes are\n" +
+    "  different claims and must not be summed into one figure labelled 'granted'.",
 );
 
 console.log(

@@ -1,4 +1,3 @@
-import { Check, Link2, MinusCircle, Sparkles } from "lucide-react";
 import { browsableWithoutConnecting, PLATFORM_SUPPLY_STATUS } from "@/lib/public-supply/registry";
 import type { AnonymousReadVerdict } from "@/lib/public-supply/types";
 
@@ -17,17 +16,23 @@ import type { AnonymousReadVerdict } from "@/lib/public-supply/types";
  * in five seconds. Someone who finds an empty Instagram tab concludes the
  * product is broken — and they are not wrong to.
  *
- * Every verdict is read from PLATFORM_SUPPLY_STATUS, the same registry the
- * fetchers are built from, so this page cannot drift into promising something
- * no lane implements. A gate asserts that (scripts/public-supply-check.ts §10).
+ * ── WHY THIS IS NO LONGER A TWELVE-ROW LIST ──────────────────────────────────
+ *
+ * It used to render as a stacked list of every platform with its verdict and
+ * reason, above the connect grid. Every word of it was true and almost none of
+ * it was read: twelve paragraphs of policy, in a block, before you had picked a
+ * platform to care about.
+ *
+ * The verdicts are the same and they still come from PLATFORM_SUPPLY_STATUS.
+ * They are now delivered per platform — the short label rides on the tile, the
+ * full reason opens with the tile — so the sentence about Instagram arrives
+ * when you are looking at Instagram. The one number that is genuinely useful
+ * before you have chosen anything (how many platforms need no connection at
+ * all) stays on the page as a single line.
+ *
+ * A gate asserts this file exists and reads the registry rather than
+ * hardcoding verdicts (scripts/public-supply-check.ts §10).
  */
-
-const VERDICT_ORDER: Record<AnonymousReadVerdict, number> = {
-  permitted: 0,
-  permitted_with_limits: 1,
-  requires_connection: 2,
-  unavailable: 3,
-};
 
 const VERDICT_COPY: Record<AnonymousReadVerdict, { label: string; hint: string }> = {
   permitted: { label: "Browse freely", hint: "Public content shows up in your Flow and Explore without connecting anything." },
@@ -36,71 +41,35 @@ const VERDICT_COPY: Record<AnonymousReadVerdict, { label: string; hint: string }
   unavailable: { label: "Not available", hint: "This platform publishes no content API a reader like mesh.me can use, even with an account connected." },
 };
 
-function VerdictIcon({ verdict }: { verdict: AnonymousReadVerdict }) {
-  if (verdict === "permitted" || verdict === "permitted_with_limits") {
-    return <Check size={15} className="text-[var(--success)]" aria-hidden="true" />;
+/** What one platform can supply before you connect anything. */
+export type SupplyNote = {
+  verdict: AnonymousReadVerdict;
+  /** Two or three words, small enough to ride under a logo. */
+  label: string;
+  /** The registry's own reason when it has one — it is specific to that
+   *  platform's actual policy — otherwise the generic explanation. */
+  reason: string;
+};
+
+/**
+ * Supply notes keyed by platform id, for the connect grid to hand to each tile.
+ * Read from PLATFORM_SUPPLY_STATUS so the grid cannot promise a platform no
+ * lane implements.
+ */
+export function getSupplyNotes(): Record<string, SupplyNote> {
+  const notes: Record<string, SupplyNote> = {};
+  for (const platform of PLATFORM_SUPPLY_STATUS) {
+    const copy = VERDICT_COPY[platform.anonymousRead];
+    notes[platform.platform] = {
+      verdict: platform.anonymousRead,
+      label: copy.label,
+      reason: platform.reason || copy.hint,
+    };
   }
-  if (verdict === "requires_connection") {
-    return <Link2 size={15} className="text-[var(--text-tertiary)]" aria-hidden="true" />;
-  }
-  return <MinusCircle size={15} className="text-[var(--text-muted)]" aria-hidden="true" />;
+  return notes;
 }
 
-export function PublicSupplyStatus() {
-  const platforms = [...PLATFORM_SUPPLY_STATUS].sort(
-    (a, b) => VERDICT_ORDER[a.anonymousRead] - VERDICT_ORDER[b.anonymousRead] || a.name.localeCompare(b.name),
-  );
-  // From the registry, not recomputed here — one definition of "browsable".
-  const browsable = browsableWithoutConnecting();
-
-  return (
-    <section className="plate p-5">
-      <header className="flex items-start gap-3">
-        <Sparkles size={18} className="mt-0.5 shrink-0 text-[var(--accent-text)]" aria-hidden="true" />
-        <div className="min-w-0">
-          <h2 className="text-sm font-semibold text-[var(--text-primary)]">What you can see without connecting</h2>
-          <p className="mt-1 text-xs leading-5 text-[var(--text-secondary)]">
-            {browsable.length > 0 ? (
-              <>
-                {browsable.length} platform{browsable.length === 1 ? "" : "s"} already feed your Flow with nothing linked.
-                Connecting an account is for <em>interacting</em> — liking, replying, posting back.
-              </>
-            ) : (
-              <>
-                Connecting an account is for <em>interacting</em> — liking, replying, posting back.
-              </>
-            )}
-          </p>
-        </div>
-      </header>
-
-      <ul className="mt-4 grid gap-2">
-        {platforms.map((platform) => {
-          const copy = VERDICT_COPY[platform.anonymousRead];
-          return (
-            <li
-              key={platform.platform}
-              className="flex flex-wrap items-baseline gap-x-2 gap-y-1 rounded-lg border border-[var(--rule)] bg-[var(--paper-1)] px-3 py-2.5"
-            >
-              <span className="flex items-center gap-2">
-                <VerdictIcon verdict={platform.anonymousRead} />
-                <span className="text-sm font-semibold text-[var(--text-primary)]">{platform.name}</span>
-              </span>
-              <span className="text-micro font-semibold mesh-eyebrow text-[var(--text-tertiary)]">{copy.label}</span>
-              <p className="w-full text-xs leading-5 text-[var(--text-secondary)]">
-                {/* The registry's own reason when it has one — it is specific to
-                    the platform's actual policy — otherwise the generic line. */}
-                {platform.reason || copy.hint}
-              </p>
-            </li>
-          );
-        })}
-      </ul>
-
-      <p className="mt-3 text-micro leading-5 text-[var(--text-muted)]">
-        Mesh.me only uses each platform&apos;s official API. It never scrapes, never asks for your password on another
-        service, and never posts anywhere without you.
-      </p>
-    </section>
-  );
+/** How many platforms feed the Flow with nothing linked. From the registry. */
+export function browsableCount(): number {
+  return browsableWithoutConnecting().length;
 }
