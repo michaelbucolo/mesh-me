@@ -2,8 +2,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AnalyticsDashboard } from "@/components/analytics/analytics-dashboard";
+import { ProInsights } from "@/components/analytics/pro-insights";
 import { getCurrentUserRedirectState } from "@/lib/auth";
 import { getAnalyticsDashboardData } from "@/lib/analytics-dashboard";
+import { getProAnalytics } from "@/lib/pro-analytics";
 import { hasAnalyticsConsent } from "@/lib/consent";
 
 export const metadata: Metadata = { title: "Analytics" };
@@ -16,9 +18,22 @@ export default async function AnalyticsPage() {
   if (!user) redirect("/login");
   if (!user.onboarded) redirect("/onboarding");
 
-  const data = await getAnalyticsDashboardData();
+  // Both loaders gate on the same Analytics consent and both return null when
+  // it is withdrawn, so they are fetched together rather than sequenced: the
+  // Pro insights are an additional READ of the same activity, not a different
+  // permission.
+  const [data, pro] = await Promise.all([getAnalyticsDashboardData(), getProAnalytics()]);
   if (data) {
-    return <AnalyticsDashboard data={data} />;
+    return (
+      <>
+        <AnalyticsDashboard data={data} />
+        {pro && (
+          <div className="mx-auto w-full max-w-7xl px-4 pb-6 sm:px-6">
+            <ProInsights data={pro} />
+          </div>
+        )}
+      </>
+    );
   }
 
   // The loader returns null both for a real failure and for a withdrawn
