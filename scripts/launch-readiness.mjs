@@ -65,6 +65,57 @@ const checks = [
     fix: "Set DATABASE_URL for the production database.",
   },
   {
+    // THE GATE SAID READY WHILE EVERY OAUTH CONNECT WAS BROKEN.
+    //
+    // src/lib/secret-store.ts refuses to store an access token it cannot
+    // encrypt, and the OAuth callback checks that AFTER a successful token
+    // exchange — so a person authorized at the provider, came back, and was
+    // told "Server encryption key is not configured. Please contact support."
+    // Every platform, every time.
+    //
+    // Three P0 environment checks lived here and none of them was this one, so
+    // a deploy with the key unset — or still holding the "change-me-please"
+    // that .env.example ships — passed launch readiness and shipped an app
+    // whose entire connect flow could not work. A gate that clears the runway
+    // while the runway is closed is the failure, not the missing variable.
+    //
+    // The shape rules are getKey()'s rules, deliberately duplicated in full
+    // rather than approximated: "is it set" would still pass a 40-character
+    // string that getKey() rejects, and the whole point is that this agrees
+    // with the code that actually runs.
+    id: "env-encryption-key",
+    description: "Token encryption key is configured and is a usable 32-byte key",
+    severity: "P0",
+    run: () => {
+      const raw =
+        process.env.APP_DATA_ENCRYPTION_KEY ||
+        process.env.MESHME_TOKEN_ENCRYPTION_KEY ||
+        process.env.MESHME_SECRET_KEY ||
+        "";
+      const trimmed = raw.trim();
+      if (!trimmed) return false;
+      // The placeholders .env.example ships are publicly known.
+      if (
+        [
+          "change-me-please",
+          "change-me-to-a-long-random-secret",
+          "replace-me-with-a-long-random-secret",
+        ].includes(trimmed)
+      ) {
+        return false;
+      }
+      if (/^[0-9a-fA-F]{64}$/.test(trimmed)) return true;
+      if (Buffer.from(trimmed, "base64").length === 32) return true;
+      if (Buffer.from(trimmed, "utf8").length === 32) return true;
+      return false;
+    },
+    fix:
+      "Set APP_DATA_ENCRYPTION_KEY to a 32-byte key — `openssl rand -hex 32` (64 hex chars) is\n" +
+      "       what LAUNCH-GUIDE.md documents. MESHME_TOKEN_ENCRYPTION_KEY and MESHME_SECRET_KEY are\n" +
+      "       also read, in that order. Without it every OAuth connect fails after the provider\n" +
+      "       redirect, because tokens cannot be encrypted and are never stored in plaintext.",
+  },
+  {
     id: "env-example",
     description: ".env.example exists",
     severity: "P1",
