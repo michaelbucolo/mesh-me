@@ -112,12 +112,32 @@ orphans.
 
 **Tier 2 — days**
 
-3. **Alter egos: surface creation.** Full CRUD API, model, and connect-page
-   display all exist; the only way to get a persona today is as a side effect of
-   merging another mesh.me account. Separate identities — alt, professional vs.
+3. **Personas: decide what they are, then build or delete.** The first version of
+   this entry said "surface creation — the backend is done, it just needs a
+   form." That was wrong, and the correction is the useful part:
+
+   `/connected-accounts` displays personas under the line *"Fold a separate
+   persona's connections into your one mesh.me account — nothing stays split
+   off"*, and the only action offered is `foldPersonaIntoMainIdentity`, which
+   deactivates the persona and nulls `alterEgoId` on its accounts. **Personas
+   currently exist only in order to be dissolved.** A "create a persona" button
+   on that page would be the product arguing with itself in adjacent sentences.
+
+   `ConnectedAccount.alterEgoId` is modelled but written by **no application
+   code** — it appears only in generated Prisma types — so even the "group your
+   accounts under a persona" capability the schema describes has no writer.
+
+   The feature is still worth having. Separate identities — alt, professional vs.
    personal, pseudonymous — is a primitive Instagram and LinkedIn structurally
    cannot offer well, because their business is one legible identity per human.
-   The fold-back path already exists via `foldPersonaIntoMainIdentity`.
+   And it does not actually conflict with One Account: *one account* is about not
+   being scattered across platforms, which is compatible with choosing which face
+   a given connection wears. **One account ≠ one identity.**
+
+   But that is a product decision plus reconciled copy plus a definition of what
+   a persona *does* (scope the mesh? tag posts? group connected accounts?) — not
+   a form. Until it is made, the endpoints sit in the gate's
+   `UNWIRED_PENDING_UI` with this stated.
 4. **Achievements.** Seed rows, award logic, display `activeTitle`. Explicitly
    the **earned-milestone kind — fixed, legible thresholds** — not
    variable-reward. `threshold`, `isLimited` and `maxHolders` are already

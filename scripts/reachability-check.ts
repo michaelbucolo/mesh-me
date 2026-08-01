@@ -244,9 +244,15 @@ checks += 1;
   const UNWIRED_PENDING_UI: Record<string, string> = {
     "/api/account/alter-egos":
       "Personas. GET/POST/DELETE, rate-limited, MAX_ALTER_EGOS enforced, username uniqueness checked " +
-      "against both User and AlterEgo. The connected-accounts page already DISPLAYS personas; the only " +
-      "way to get one today is as a side effect of merging another mesh.me account. Owed: a create " +
-      "form on /connected-accounts calling POST, and a delete calling DELETE. Tracked as Tier 2 in " +
+      "against both User and AlterEgo — finished and correct. But this is NOT simply a missing front " +
+      "door. /connected-accounts displays personas under the line 'Fold a separate persona's " +
+      "connections into your one mesh.me account — nothing stays split off', and its only action is " +
+      "foldPersonaIntoMainIdentity, which deactivates the persona and nulls alterEgoId on its " +
+      "accounts. A create button there would contradict the sentence above it. ConnectedAccount." +
+      "alterEgoId is modelled but written by no application code at all, so the 'group accounts under " +
+      "a persona' capability has no writer either. Owed: a product decision before a form — either " +
+      "build personas properly (one account, more than one face, with that page's copy reconciled) or " +
+      "delete POST/DELETE and keep GET for personas that arrive by merge. Tier 2 in " +
       "docs/SURFACE_AUDIT.md.",
   };
 
