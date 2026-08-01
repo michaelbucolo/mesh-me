@@ -24,12 +24,14 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "weekly",
       priority: 0.8,
     },
-    {
-      url: `${siteUrl}/roadmap`,
-      lastModified: now,
-      changeFrequency: "weekly",
-      priority: 0.7,
-    },
+    // NO /roadmap ENTRY. There is no /roadmap route — `find src/app -ipath
+    // "*roadmap*"` returns nothing, and the only other match in the repo is
+    // scripts/roadmap-readiness.mjs, which is a build gate. This file was
+    // advertising a 404 to every crawler that read it.
+    //
+    // A sitemap is a list of promises to search engines, and nothing in the
+    // build checks that the promises resolve — which is exactly how this
+    // survived. If a roadmap page is ever built, the entry comes back with it.
     {
       url: `${siteUrl}/trust`,
       lastModified: now,
