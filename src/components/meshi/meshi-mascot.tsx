@@ -12,6 +12,7 @@ import {
   type MeshiLash,
 } from "./meshi-face";
 import { HAT_BRIM_Y, renderMeshiHair, resolveHair, type MeshiHair } from "./meshi-hair";
+import { parseAccessories, SLOTS, STACKING_SLOTS } from "./meshi-slots";
 
 const FLOWER_POSITIONS = [0, 60, 120, 180, 240, 300].map((deg) => ({
   deg,
@@ -20,110 +21,6 @@ const FLOWER_POSITIONS = [0, 60, 120, 180, 240, 300].map((deg) => ({
 }));
 
 
-// Crisp vector eyes for each mood. Tall, slightly elliptical solid eyes stay
-// consistent at any size (no unicode-glyph eyes).
-const SVG_FACES: Record<string, (color: string) => React.ReactNode> = {
-  happy: (color: string) => (
-    <g>
-      <ellipse cx="-5" cy="0" rx="2.4" ry="3.7" fill={color} />
-      <ellipse cx="5" cy="0" rx="2.4" ry="3.7" fill={color} />
-    </g>
-  ),
-  excited: (color: string) => (
-    <g>
-      <ellipse cx="-5" cy="-0.3" rx="2.9" ry="4" fill={color} />
-      <ellipse cx="5" cy="-0.3" rx="2.9" ry="4" fill={color} />
-    </g>
-  ),
-  thinking: (color: string) => (
-    <g>
-      <ellipse cx="-5" cy="-1" rx="2.2" ry="3.4" fill={color} />
-      <ellipse cx="5" cy="-1" rx="2.2" ry="3.4" fill={color} />
-    </g>
-  ),
-  sleepy: (color: string) => (
-    <g>
-      <path d="M -7.6 -0.6 Q -5 2.2 -2.4 -0.6" fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" />
-      <path d="M 2.4 -0.6 Q 5 2.2 7.6 -0.6" fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" />
-    </g>
-  ),
-  surprised: (color: string) => (
-    <g>
-      <circle cx="-5" cy="0" r="3.3" fill="none" stroke={color} strokeWidth="1.8" />
-      <circle cx="5" cy="0" r="3.3" fill="none" stroke={color} strokeWidth="1.8" />
-      <circle cx="-5" cy="0" r="1.3" fill={color} />
-      <circle cx="5" cy="0" r="1.3" fill={color} />
-    </g>
-  ),
-  love: (color: string) => (
-    <g>
-      <path d="M -5 2.4 C -8.2 -0.4 -7.6 -3.6 -5.7 -2.4 C -5 -1.9 -5 -1.5 -5 -1.5 C -5 -1.5 -5 -1.9 -4.3 -2.4 C -2.4 -3.6 -1.8 -0.4 -5 2.4 Z" fill={color} />
-      <path d="M 5 2.4 C 1.8 -0.4 2.4 -3.6 4.3 -2.4 C 5 -1.9 5 -1.5 5 -1.5 C 5 -1.5 5 -1.9 5.7 -2.4 C 7.6 -3.6 8.2 -0.4 5 2.4 Z" fill={color} />
-    </g>
-  ),
-  cool: (color: string) => (
-    <g>
-      <rect x="-7.6" y="-1.5" width="5.2" height="3" rx="1.5" fill={color} />
-      <rect x="2.4" y="-1.5" width="5.2" height="3" rx="1.5" fill={color} />
-    </g>
-  ),
-  wink: (color: string) => (
-    <g>
-      <ellipse cx="-5" cy="0" rx="2.4" ry="3.7" fill={color} />
-      <path d="M 2.5 0.5 Q 5 -2.6 7.5 0.5" fill="none" stroke={color} strokeWidth="1.9" strokeLinecap="round" />
-    </g>
-  ),
-  petted: (color: string) => (
-    <g>
-      <path d="M -7.6 0.6 Q -5 -2.4 -2.4 0.6" fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" />
-      <path d="M 2.4 0.6 Q 5 -2.4 7.6 0.6" fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" />
-    </g>
-  ),
-  giggle: (color: string) => (
-    <g>
-      <path d="M -7.6 -0.4 Q -5 -3.3 -2.4 -0.4" fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" />
-      <path d="M 2.4 -0.4 Q 5 -3.3 7.6 -0.4" fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" />
-    </g>
-  ),
-  shy: (color: string) => (
-    <g>
-      <circle cx="-9.2" cy="3.4" r="2" fill="#f9a8d4" opacity="0.5" />
-      <circle cx="9.2" cy="3.4" r="2" fill="#f9a8d4" opacity="0.5" />
-      <ellipse cx="-5" cy="0.4" rx="1.9" ry="2.9" fill={color} />
-      <ellipse cx="5" cy="0.4" rx="1.9" ry="2.9" fill={color} />
-    </g>
-  ),
-  synergy1017: (color: string) => (
-    <g>
-      <ellipse cx="-4.5" cy="0" rx="2" ry="3.8" fill={color} />
-      <path d="M 2.2 1 Q 4.7 -2.6 7.2 1" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" />
-    </g>
-  ),
-  searching: (color: string) => (
-    <g>
-      <ellipse cx="-5" cy="0.4" rx="2.2" ry="3.2" fill={color} />
-      <ellipse cx="5" cy="0.4" rx="2.2" ry="3.2" fill={color} />
-    </g>
-  ),
-  learning: (color: string) => (
-    <g>
-      <ellipse cx="-5" cy="-0.5" rx="3" ry="3.6" fill={color} />
-      <ellipse cx="5" cy="-0.5" rx="3" ry="3.6" fill={color} />
-    </g>
-  ),
-  celebrating: (color: string) => (
-    <g>
-      <path d="M -7.6 0 Q -5 -3.1 -2.4 0" fill="none" stroke={color} strokeWidth="2.1" strokeLinecap="round" />
-      <path d="M 2.4 0 Q 5 -3.1 7.6 0" fill="none" stroke={color} strokeWidth="2.1" strokeLinecap="round" />
-    </g>
-  ),
-  blinking: (color: string) => (
-    <g>
-      <path d="M -7.6 0 Q -5 0.6 -2.4 0" fill="none" stroke={color} strokeWidth="2.1" strokeLinecap="round" />
-      <path d="M 2.4 0 Q 5 0.6 7.6 0" fill="none" stroke={color} strokeWidth="2.1" strokeLinecap="round" />
-    </g>
-  ),
-};
 
 // Meshi prop types — contextual items Meshi can physically hold.
 // Hands are only rendered when one of these visible props is active.
@@ -559,24 +456,38 @@ const ACCESSORIES: Record<string, React.ReactNode> = {
       <path d="M-0.9 -1.1 L0.7 -0.3" stroke="rgba(255,255,255,0.4)" strokeWidth="0.7" strokeLinecap="round" />
     </g>
   ),
+  // ── MARKS ─────────────────────────────────────────────────────────────────
+  //
+  // The three marks stack, so unlike every other slot their geometry has to be
+  // designed against EACH OTHER, and it was not: freckles sat at y 2.3-6.3,
+  // blush at y 1.9-5.3 and the star at y 1.8-7.0 on the right cheek only, so
+  // wearing all three put a solid gold star on top of a pink wash on top of the
+  // dots. Rendering the combination is what showed it; the code reads fine.
+  //
+  // They are banded now. Freckles take the upper cheek, blush the lower, and
+  // the star sits below both and mirrored on BOTH sides — its old single-sided
+  // placement was also why the face looked lopsided. All three stay outside
+  // x=8.6, which clears the widest eye at rest (the `wide` face reaches 8.8)
+  // and the mustache (which ends at 8.2), and inside x=13.4, which clears the
+  // earrings' post at 15.
   freckles: (
     <g fill="currentColor" opacity="0.55">
-      <circle cx="-10" cy="3" r="0.75" />
-      <circle cx="-8" cy="4.3" r="0.6" />
-      <circle cx="-11.6" cy="4.7" r="0.65" />
-      <circle cx="-9.4" cy="5.8" r="0.5" />
-      <circle cx="10" cy="3" r="0.75" />
-      <circle cx="8" cy="4.3" r="0.6" />
-      <circle cx="11.6" cy="4.7" r="0.65" />
-      <circle cx="9.4" cy="5.8" r="0.5" />
+      <circle cx="-9.6" cy="2.6" r="0.72" />
+      <circle cx="-12" cy="3.1" r="0.55" />
+      <circle cx="-10.7" cy="3.7" r="0.62" />
+      <circle cx="-12.9" cy="4.1" r="0.48" />
+      <circle cx="9.6" cy="2.6" r="0.72" />
+      <circle cx="12" cy="3.1" r="0.55" />
+      <circle cx="10.7" cy="3.7" r="0.62" />
+      <circle cx="12.9" cy="4.1" r="0.48" />
     </g>
   ),
   blush: (
     <g>
-      <ellipse cx="-9" cy="3.6" rx="2.9" ry="1.7" fill="#f9a8d4" opacity="0.35" />
-      <ellipse cx="-9" cy="3.6" rx="1.9" ry="1.1" fill="#f9a8d4" opacity="0.45" />
-      <ellipse cx="9" cy="3.6" rx="2.9" ry="1.7" fill="#f9a8d4" opacity="0.35" />
-      <ellipse cx="9" cy="3.6" rx="1.9" ry="1.1" fill="#f9a8d4" opacity="0.45" />
+      <ellipse cx="-10.9" cy="6.2" rx="2.6" ry="1.5" fill="#f9a8d4" opacity="0.35" />
+      <ellipse cx="-10.9" cy="6.2" rx="1.7" ry="0.95" fill="#f9a8d4" opacity="0.45" />
+      <ellipse cx="10.9" cy="6.2" rx="2.6" ry="1.5" fill="#f9a8d4" opacity="0.35" />
+      <ellipse cx="10.9" cy="6.2" rx="1.7" ry="0.95" fill="#f9a8d4" opacity="0.45" />
     </g>
   ),
   eyepatch: (
@@ -587,9 +498,13 @@ const ACCESSORIES: Record<string, React.ReactNode> = {
     </g>
   ),
   star: (
-    <g transform="translate(9, 4.5) scale(0.9)">
-      <path d="M0 -3 L0.9 -0.9 L3 -0.9 L1.3 0.6 L1.9 2.8 L0 1.5 L-1.9 2.8 L-1.3 0.6 L-3 -0.9 L-0.9 -0.9 Z" fill="#fbbf24" stroke="#f59e0b" strokeWidth="0.4" strokeLinejoin="round" />
-      <circle cx="-0.6" cy="-1.2" r="0.35" fill="rgba(255,255,255,0.85)" />
+    <g>
+      {[-1, 1].map((side) => (
+        <g key={side} transform={`translate(${side * 9.9}, 9.6) scale(0.6)`}>
+          <path d="M0 -3 L0.9 -0.9 L3 -0.9 L1.3 0.6 L1.9 2.8 L0 1.5 L-1.9 2.8 L-1.3 0.6 L-3 -0.9 L-0.9 -0.9 Z" fill="#fbbf24" stroke="#f59e0b" strokeWidth="0.6" strokeLinejoin="round" />
+          <circle cx="-0.6" cy="-1.2" r="0.5" fill="rgba(255,255,255,0.85)" />
+        </g>
+      ))}
     </g>
   ),
   mustache: (
@@ -672,11 +587,25 @@ const COLOR_THEMES: Record<string, { primary: string; glow: string; bg: string }
 // Wearables (hats, hair, accessories) render in a LIGHTER tint of
 // the Meshi's color. In the theme color itself they blended into the body and
 // the dark backdrop — picking a hat looked like nothing happened.
+/**
+ * Mix a hex colour toward white (`amount` > 0) or black (`amount` < 0).
+ *
+ * A NEGATIVE amount used to underflow. The old mix was `c + (255 - c) * amount`
+ * for every sign, so darkening blue's red channel gave 59 - 0.42*196 = -23, and
+ * `(-23 << 16 | …).toString(16)` is "-16b10e" — a string starting with a minus.
+ * `#-16b10e` is not a colour, so SVG dropped the fill to black, and that is the
+ * whole reason every Meshi's hair rendered black no matter which of the twelve
+ * body colours was picked. Darkening now scales toward zero, and both branches
+ * are clamped so no arithmetic can leave the byte range again.
+ */
 function lightenHex(hex: string, amount: number): string {
   const m = /^#?([0-9a-f]{6})$/i.exec(hex.trim());
   if (!m) return hex;
   const n = parseInt(m[1], 16);
-  const mix = (c: number) => Math.round(c + (255 - c) * amount);
+  const mix = (c: number) => {
+    const v = amount >= 0 ? c + (255 - c) * amount : c * (1 + amount);
+    return Math.max(0, Math.min(255, Math.round(v)));
+  };
   const r = mix((n >> 16) & 255);
   const g = mix((n >> 8) & 255);
   const b = mix(n & 255);
@@ -771,8 +700,11 @@ export function MeshiMascot({
   const theme = COLOR_THEMES[color] || COLOR_THEMES.blue;
   const wearable = lightenHex(theme.primary, 0.42);
   // Hair is DARKER than the body, not lighter. Sharing the wearable tint made
-  // it read as a lump of the same material rather than as hair.
-  const hairTone = lightenHex(theme.primary, -0.42);
+  // it read as a lump of the same material rather than as hair. It is only a
+  // third of the way to black, though: most of a hair silhouette sits OUTSIDE
+  // the r=16 body, against whatever the page is, so a very dark tone
+  // disappeared into the mesh's dark background instead of reading as hair.
+  const hairTone = lightenHex(theme.primary, -0.32);
   const resolvedHair = resolveHair(hair);
   const hatElement = HATS[hat] || null;
   const scale = size / 48;
@@ -782,8 +714,17 @@ export function MeshiMascot({
   // accessory value keeps working by selecting a lash style instead.
   const resolvedFace = resolveFace(face);
   const resolvedLash = resolveLash(accessory === "lashes" ? "natural" : eyeStyle);
-  const effectiveAccessory = accessory === "lashes" ? "none" : accessory;
-  const accessoryElement = ACCESSORIES[effectiveAccessory] || null;
+  // ONE ITEM PER SLOT, SO SEVERAL CAN BE WORN AT ONCE.
+  //
+  // Accessories were a single pick from a flat list, which made freckles and
+  // earrings mutually exclusive even though they touch nothing in common. They
+  // live in disjoint regions of the face, so they are rendered per slot — and
+  // two things can only collide if they are in the same slot, which is also
+  // what retires the hand-written collision special-cases.
+  const worn = parseAccessories(accessory);
+  const wornItems: string[] = SLOTS.flatMap((slot) =>
+    STACKING_SLOTS.has(slot) ? worn.marks : (worn[slot] && worn[slot] !== "none" ? [worn[slot] as string] : []),
+  );
   const badgeElement = BADGES[badge] || null;
   const containerRef = useRef<HTMLDivElement>(null);
   const uniqueId = useId();
@@ -1160,16 +1101,20 @@ export function MeshiMascot({
           </motion.g>
         </g>
 
-        {accessoryElement &&
-          (DANGLING_ACCESSORIES.has(effectiveAccessory) ? (
+        {wornItems.map((item) => {
+          const el = ACCESSORIES[item];
+          if (!el) return null;
+          return DANGLING_ACCESSORIES.has(item) ? (
             <motion.g
+              key={item}
               style={{ color: wearable, rotate: dangleSway, transformBox: "fill-box", transformOrigin: "50% 0%" }}
             >
-              {accessoryElement}
+              {el}
             </motion.g>
           ) : (
-            <g style={{ color: wearable }}>{accessoryElement}</g>
-          ))}
+            <g key={item} style={{ color: wearable }}>{el}</g>
+          );
+        })}
         {badgeElement && <g style={{ color: theme.primary }}>{badgeElement}</g>}
 
         {/* Hat sits on top of everything so it always reads clearly, tips with
@@ -1242,16 +1187,30 @@ export function MeshiMascot({
   );
 }
 
-// Mini version for use as app icon / logo
-export function MeshiLogo({ size = 32, color = "blue", mood = "happy", className = "" }: {
-  size?: number; color?: MeshiColor; mood?: MeshiMood; className?: string;
+/**
+ * Mini version for use as an app icon / logo.
+ *
+ * This drew from its own hand-written mood table until now — the same second
+ * table the face engine exists to remove. It covered fifteen of the sixteen
+ * moods (`grateful` fell through to `happy`) and nothing kept its eyes in step
+ * with the ones on the mesh. It renders through the engine instead, so the logo
+ * is the same face by construction.
+ *
+ * `face` defaults to the canonical one because this mark is Meshi's OWN
+ * identity, not a person's; a caller showing a specific user's Meshi passes
+ * theirs.
+ */
+export function MeshiLogo({ size = 32, color = "blue", mood = "happy", face = "bean", className = "" }: {
+  size?: number; color?: MeshiColor; mood?: MeshiMood; face?: MeshiFace; className?: string;
 }) {
   const theme = COLOR_THEMES[color] || COLOR_THEMES.blue;
   return (
     <div className={`inline-flex items-center justify-center ${className}`} style={{ width: size, height: size }}>
       <svg width={size} height={size} viewBox="-20 -20 40 40">
         <circle cx="0" cy="0" r="16" fill={theme.bg} stroke={theme.primary} strokeWidth="2" />
-        <g transform="scale(0.85)">{(SVG_FACES[mood] || SVG_FACES.happy)(theme.primary)}</g>
+        <g transform="scale(0.85)">
+          {renderMeshiEyes({ face: resolveFace(face), mood, lash: "none", color: theme.primary })}
+        </g>
       </svg>
     </div>
   );

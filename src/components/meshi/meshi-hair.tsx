@@ -268,29 +268,27 @@ const HAIR_TABLE: Record<string, HairStyle | null> = {
     label: "Parted",
     render: (c) => {
       const h = deg(72);
-      // A visible part: two shells with a wedge of scalp between them.
-      const gap = deg(5);
-      const left = shell(0, () => 0); // placeholder, replaced below
-      void left;
-      const half = (from: number, to: number) => {
-        const parts: string[] = [];
-        const steps = 18;
-        for (let i = 0; i <= steps; i += 1) {
-          const t = from + (i / steps) * (to - from);
-          const [x, y] = pt(t, INNER);
-          parts.push(`${i === 0 ? "M" : "L"} ${D(x)} ${D(y)}`);
-        }
-        for (let i = steps; i >= 0; i -= 1) {
-          const t = from + (i / steps) * (to - from);
-          const [x, y] = pt(t, 19);
-          parts.push(`L ${D(x)} ${D(y)}`);
-        }
-        return parts.join(" ") + " Z";
+      // A PART IS A GROOVE, NOT A HOLE.
+      //
+      // This was two separate shells with a 5° gap between them, both running
+      // from INNER outward — so the gap went all the way down to r=15 and
+      // exposed the head's own 15..17 painted rim through it. It read as a
+      // bright notch of body colour punched out of the hair, not as a part.
+      // One shell whose outer edge dips in the middle keeps the scalp covered
+      // (the trough bottoms out at 17.6, past the rim) while still reading as
+      // hair falling away to either side.
+      const gap = deg(7);
+      const outer = (t: number) => {
+        const a = Math.abs(t);
+        return a >= gap ? 19 : 17.6 + (19 - 17.6) * (a / gap) ** 0.7;
       };
+      const [tx, ty] = pt(0, 17.9);
+      const [bx, by] = pt(0, INNER + 0.6);
       return (
         <g>
-          <path d={half(-h, -gap)} fill={c} />
-          <path d={half(gap, h)} fill={c} />
+          <path d={shell(h, outer, 60)} fill={c} />
+          {/* The parting line itself, so the trough reads at small sizes. */}
+          <path d={`M ${D(bx)} ${D(by)} L ${D(tx)} ${D(ty)}`} stroke="rgba(0,0,0,0.22)" strokeWidth="0.7" strokeLinecap="round" />
           {seam(h, c)}
         </g>
       );
@@ -361,6 +359,9 @@ export function resolveHair(value: string | null | undefined): MeshiHair {
  * into the face. A style not listed here does not cover the hair at all.
  */
 export const HAT_BRIM_Y: Record<string, number> = {
+  // NOT astronaut: its helmet is translucent, so hair is meant to be visible
+  // THROUGH it. Clipping under a brim that isn't opaque would delete hair the
+  // wearer can see. A hat missing from this map simply does not cover hair.
   cap: -11,
   crown: -10.4,
   tophat: -8.6,
@@ -370,7 +371,6 @@ export const HAT_BRIM_Y: Record<string, number> = {
   cowboy: -8.8,
   graduation: -9.6,
   wizard: -8.8,
-  astronaut: -6.4,
   pirate: -8.8,
   chef: -8.4,
   beret: -10.2,

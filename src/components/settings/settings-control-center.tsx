@@ -9,6 +9,15 @@ import {
   type MeshiLash,
 } from "@/components/meshi/meshi-face";
 import { MESHI_HAIR_IDS, MESHI_HAIR_LABELS } from "@/components/meshi/meshi-hair";
+import {
+  combinationCount,
+  parseAccessories,
+  serializeAccessories,
+  SLOTS,
+  SLOT_ITEMS,
+  SLOT_LABELS,
+  STACKING_SLOTS,
+} from "@/components/meshi/meshi-slots";
 
 import Link from "next/link";
 import { effectiveProfileVisibility } from "@/lib/profile-visibility";
@@ -190,10 +199,19 @@ const hats = ["none", "cap", "beanie", "beret", "headband", "bow", "flower", "pa
 const faces = MESHI_FACE_IDS;
 
 /** Human labels where the stored id is not one: "sleepylid" -> "Half-lidded". */
+/** What the Meshi would look like with this slot set to this value. */
+function previewWithSlot(stored: string, slot: string, value: string): string {
+  const sel = parseAccessories(stored);
+  if (slot === "marks") sel.marks = value === "none" ? [] : [value];
+  else (sel as unknown as Record<string, string>)[slot] = value;
+  return serializeAccessories(sel);
+}
+
 function optionLabel(group: string, value: string): string {
   if (group === "faces") return MESHI_FACE_LABELS[value as MeshiFace] ?? value;
   if (group === "eyes") return MESHI_LASH_LABELS[value as MeshiLash] ?? value;
   if (group === "hairs") return MESHI_HAIR_LABELS[value] ?? value;
+  if (group.startsWith("slot:")) return value === "none" ? "None" : value[0].toUpperCase() + value.slice(1);
   return value;
 }
 
@@ -201,7 +219,6 @@ const hairs = MESHI_HAIR_IDS;
 // Lash styles, from the same engine. ("regular" remains accepted on the way in
 // as the legacy spelling of "none"; it is not offered as a choice.)
 const eyes = MESHI_LASH_IDS;
-const accessories = ["none", "glasses", "sunglasses", "monocle", "earrings", "bowtie", "freckles", "blush", "eyepatch", "star", "mustache", "necklace"];
 const badges = ["none", "spark", "heart", "shield", "verified", "creator", "founder"];
 const themePresets = [
   { id: "default", label: "Clean" },
@@ -632,8 +649,12 @@ export function SettingsControlCenter({
     });
   }
 
-  function meshiLocked(group: Parameters<typeof isFreeMeshiOption>[0], value: string) {
-    return !settings.isMeshPro && !isFreeMeshiOption(group, value);
+  function meshiLocked(group: Parameters<typeof isFreeMeshiOption>[0] | `slot:${string}`, value: string) {
+    // Slot items are all free — the Pro entitlement table predates slots and
+    // gates the cosmetic axes (colours, hats, badges), not where on the face an
+    // accessory sits. Locking them silently would be a paywall nobody decided.
+    if (group.startsWith("slot:")) return false;
+    return !settings.isMeshPro && !isFreeMeshiOption(group as Parameters<typeof isFreeMeshiOption>[0], value);
   }
 
   return (
@@ -1938,7 +1959,7 @@ function MeshiSection({
     badgeStyle: string;
   }>>;
   saveMeshi: (event: FormEvent) => void;
-  meshiLocked: (group: Parameters<typeof isFreeMeshiOption>[0], value: string) => boolean;
+  meshiLocked: (group: Parameters<typeof isFreeMeshiOption>[0] | `slot:${string}`, value: string) => boolean;
   isPending: boolean;
 }) {
   return (
@@ -1986,7 +2007,53 @@ function MeshiSection({
           <MeshiOptionGroup title="Hair" group="hairs" values={hairs} current={meshiState.hairStyle} meshiState={meshiState} locked={meshiLocked} onPick={(value) => setMeshiState((current) => ({ ...current, hairStyle: value }))} />
           <MeshiOptionGroup title="Eyes" group="eyes" values={eyes} current={meshiState.eyeStyle} meshiState={meshiState} locked={meshiLocked} onPick={(value) => setMeshiState((current) => ({ ...current, eyeStyle: value }))} />
           <MeshiOptionGroup title="Face" group="faces" values={faces} current={meshiState.faceStyle} meshiState={meshiState} locked={meshiLocked} onPick={(value) => setMeshiState((current) => ({ ...current, faceStyle: value }))} />
-          <MeshiOptionGroup title="Accessories" group="accessories" values={accessories} current={meshiState.accessoryStyle} meshiState={meshiState} locked={meshiLocked} onPick={(value) => setMeshiState((current) => ({ ...current, accessoryStyle: value }))} />
+          {/* The point of slots, said out loud. Computed from the live option
+              tables, so it cannot drift from what the pickers actually offer. */}
+          <p className="text-xs text-[var(--text-muted)]">
+            {combinationCount({
+              faces: MESHI_FACE_IDS.length,
+              lashes: MESHI_LASH_IDS.length,
+              hair: MESHI_HAIR_IDS.length,
+              hats: hats.length,
+              colors: colors.length,
+            }).toLocaleString()}{" "}
+            possible Meshis. Marks stack; everything else is one at a time.
+          </p>
+          {/* ONE PICKER PER SLOT. Accessories used to be a single choice from a
+              flat list, so freckles and earrings were mutually exclusive even
+              though they touch nothing in common. Marks stack; the rest are
+              one-at-a-time, because you cannot wear two pairs of glasses. */}
+          {SLOTS.map((slot) => {
+            const worn = parseAccessories(meshiState.accessoryStyle);
+            const stacks = STACKING_SLOTS.has(slot);
+            const current = stacks ? (worn.marks[0] ?? "none") : (worn[slot] as string);
+            return (
+              <MeshiOptionGroup
+                key={slot}
+                title={SLOT_LABELS[slot]}
+                group={`slot:${slot}`}
+                values={SLOT_ITEMS[slot]}
+                current={current}
+                activeSet={stacks ? worn.marks : undefined}
+                meshiState={meshiState}
+                locked={meshiLocked}
+                onPick={(value) =>
+                  setMeshiState((cur) => {
+                    const sel = parseAccessories(cur.accessoryStyle);
+                    if (stacks) {
+                      if (value === "none") sel.marks = [];
+                      else sel.marks = sel.marks.includes(value)
+                        ? sel.marks.filter((m) => m !== value)
+                        : [...sel.marks, value];
+                    } else {
+                      (sel as unknown as Record<string, string>)[slot] = value;
+                    }
+                    return { ...cur, accessoryStyle: serializeAccessories(sel) };
+                  })
+                }
+              />
+            );
+          })}
           <MeshiOptionGroup title="Badges" group="badges" values={badges} current={meshiState.badgeStyle} meshiState={meshiState} locked={meshiLocked} onPick={(value) => setMeshiState((current) => ({ ...current, badgeStyle: value }))} />
         </div>
         <SaveButton label="Save Meshi" pending={isPending} />
@@ -2168,14 +2235,17 @@ function MeshiOptionGroup({
   group,
   values,
   current,
+  activeSet,
   meshiState,
   locked,
   onPick,
 }: {
   title: string;
-  group: Parameters<typeof isFreeMeshiOption>[0];
+  group: Parameters<typeof isFreeMeshiOption>[0] | `slot:${string}`;
   values: string[];
   current: string;
+  /** Multi-select slots (marks) light up every worn item, not just one. */
+  activeSet?: string[];
   meshiState: {
     colorTheme: string;
     hatStyle: string;
@@ -2185,7 +2255,7 @@ function MeshiOptionGroup({
     eyeStyle: string;
     badgeStyle: string;
   };
-  locked: (group: Parameters<typeof isFreeMeshiOption>[0], value: string) => boolean;
+  locked: (group: Parameters<typeof isFreeMeshiOption>[0] | `slot:${string}`, value: string) => boolean;
   onPick: (value: string) => void;
 }) {
   return (
@@ -2197,13 +2267,15 @@ function MeshiOptionGroup({
           hat: group === "hats" ? value as MeshiHat : meshiState.hatStyle as MeshiHat,
           face: group === "faces" ? value : meshiState.faceStyle,
           hair: group === "hairs" ? value as MeshiHair : meshiState.hairStyle as MeshiHair,
-          accessory: group === "accessories" ? value as MeshiAccessory : meshiState.accessoryStyle as MeshiAccessory,
+          accessory: (group.startsWith("slot:")
+            ? previewWithSlot(meshiState.accessoryStyle, group.slice(5), value)
+            : meshiState.accessoryStyle) as MeshiAccessory,
           eyeStyle: (group === "eyes" ? value : meshiState.eyeStyle) as MeshiEyeStyle,
           badge: group === "badges" ? value as MeshiBadge : meshiState.badgeStyle as MeshiBadge,
         };
 
         return (
-          <GraphicOptionButton key={value} active={current === value} label={optionLabel(group, value)} note={disabled ? "Pro" : undefined} disabled={disabled} onClick={() => onPick(value)}>
+          <GraphicOptionButton key={value} active={activeSet ? (value === "none" ? activeSet.length === 0 : activeSet.includes(value)) : current === value} label={optionLabel(group, value)} note={disabled ? "Pro" : undefined} disabled={disabled} onClick={() => onPick(value)}>
             <MeshiMascot
               size={44}
               color={preview.color}
