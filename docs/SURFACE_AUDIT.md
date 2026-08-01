@@ -230,12 +230,63 @@ orphans.
    `next.config.ts:81` and `src/proxy.ts:215`, and zip.js builds its worker from a
    runtime blob URI, so webpack needs no worker configuration.
 
-   Still needs, and still its own slice: explicit caps on entry count, per-entry
-   size and total decompression ratio (refuse **before** inflating, on
-   `uncompressedSize / compressedSize` from the central directory — the library's
-   own check is a backstop against a lying header, not a knob you can tighten),
-   the traversal rejection `parse-export.ts` already performs on media paths, and
-   a gate over all of it.
+   ### The limits, ranked — and the ranking is the point
+
+   An earlier version of this entry listed "caps on entry count, per-entry size
+   and total decompression ratio" as though they were three co-equal defences.
+   Measurement says otherwise, and gets the order almost exactly backwards.
+
+   **Ranked by what actually protects the person:**
+
+   1. **Worker isolation.** OOM in a browser is *uncatchable* — no JS exception
+      is thrown, `try`/`catch` does nothing, the tab dies. Running the parse in a
+      Worker you can `terminate()` is the only mechanism that can actually stop a
+      runaway. This was missing from the earlier list entirely, and it is first.
+   2. **A running total counter.** The only control that mathematically bounds
+      output. Entry cap × per-entry cap is 1.3–27 TB worst case — which is to say
+      no bound at all. Capping both and skipping the total is security theatre.
+   3. **Nesting depth 0.** Refusing to recurse is free: no legitimate social
+      export needs a zip inside a zip, and it eliminates the whole classic
+      recursive-bomb class.
+   4. **A resident-bytes cap**, then **entry count** — the latter because the
+      *central directory is itself an attack surface before a single byte is
+      decompressed*: a 93 MB zip with 1M entries cost 18 seconds and 1.2 GB of
+      RAM just to instantiate the parser.
+   5. **Ratio caps, last.** They get the most attention and are the softest and
+      most evadable — a bomb assembled from many entries each individually under
+      the cap walks straight through.
+
+   If review pressure ever forces a limit to be relaxed, relax the ratio cap.
+   **Never** relax the running total or the Worker isolation; those two carry the
+   actual safety property, and the code should say so where someone raising a
+   number will read it.
+
+   **Numbers, with the reasoning attached:**
+
+   - A per-entry ratio cap **below ~300:1 false-positives on real archives**.
+     Legitimate JSON entries reach 95:1 and indent-heavy sparse JSON 294:1. The
+     obvious 100:1 would reject genuine exports; a documented `THRESHOLD_RATIO`
+     of 10 is known to have "blocked valid and innocuous zip files".
+   - DEFLATE cannot exceed **1032:1** on a single stream. Above that is
+     definitionally malformed — a Zip64 or overlap trick, not compression.
+   - Whole real archives compress at about **1.03:1** — they are media-dominated
+     and essentially incompressible, so a *total* budget can be tight without
+     ever touching a legitimate file.
+   - **On iOS the ceiling is ~100 MB, not 4 GB.** That, not the desktop
+     ArrayBuffer limit, is the constraint that decides these numbers here.
+   - **Never allocate from the declared uncompressed size.** That is a live JS
+     CVE with 33-million-to-1 amplification from a 120-byte file.
+
+   And one piece of honesty about sourcing: **OWASP supplies no numbers.** Its
+   File Upload Cheat Sheet mentions zip bombs and specifies zero thresholds, and
+   ASVS V12.1.2 was formally criticised as unworkable. Anyone citing "OWASP says"
+   for a specific limit is bluffing — including a future version of this document.
+
+   Still needed alongside the caps: refuse **before** inflating, on
+   `uncompressedSize / compressedSize` read from the central directory (the
+   library's own check is a backstop against a lying header, not a knob you can
+   tighten), the traversal rejection `parse-export.ts` already performs on media
+   paths, and a gate over all of it.
 
    ### Three archive facts that produce WRONG data, not missing data
 
