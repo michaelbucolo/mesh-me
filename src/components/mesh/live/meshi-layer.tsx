@@ -22,7 +22,6 @@ import {
   type MeshiHair,
   type MeshiHat,
   type MeshiMood,
-  type MeshiOutfit,
 } from "@/components/meshi/meshi-mascot";
 import type { MeshiPreferences } from "@/hooks/use-meshi-preferences";
 import { GHOST_EVENT, readGhostMode } from "@/lib/ghost-mode";
@@ -103,7 +102,6 @@ const RemoteMeshi = memo(function RemoteMeshi({
           accessory={(p.meshiAccessory || "none") as MeshiAccessory}
           eyeStyle={(p.meshiEyeStyle || "regular") as MeshiEyeStyle}
           badge={(p.meshiBadge || "none") as MeshiBadge}
-          outfit={(p.meshiOutfit || "none") as MeshiOutfit}
           mood={(p.meshiMood as MeshiMood) || "happy"}
           animate
           showGlow={false}
@@ -240,7 +238,6 @@ export function MeshiLayer({
                 accessory={prefs.accessory}
                 eyeStyle={prefs.eye}
                 badge={prefs.badge}
-                outfit={prefs.outfit}
                 prop="compass"
               />
             </div>
@@ -287,7 +284,6 @@ export function MeshiLayer({
                     accessory={(m.accessoryStyle || "none") as MeshiAccessory}
                     eyeStyle={(m.eyeStyle || "regular") as MeshiEyeStyle}
                     badge={(m.badgeStyle || "none") as MeshiBadge}
-                    outfit={(m.outfitStyle || "none") as MeshiOutfit}
                     mood={
                       !ownerOnline
                         ? "sleepy"
@@ -344,7 +340,6 @@ export function MeshiLayer({
               accessory={(l.p.meshiAccessory || "none") as MeshiAccessory}
               eyeStyle={(l.p.meshiEyeStyle || "regular") as MeshiEyeStyle}
               badge={(l.p.meshiBadge || "none") as MeshiBadge}
-              outfit={(l.p.meshiOutfit || "none") as MeshiOutfit}
               mood="sleepy"
               animate={false}
               showGlow={false}

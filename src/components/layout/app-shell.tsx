@@ -458,7 +458,6 @@ export function AppShell({ children, user }: AppShellProps) {
           meshiAccessory: localStorage.getItem("meshiAccessory") || "none",
           meshiEyeStyle: localStorage.getItem("meshiEye") || "regular",
           meshiBadge: localStorage.getItem("meshiBadge") || "none",
-          meshiOutfit: localStorage.getItem("meshiOutfit") || "none",
         };
       } catch {
         // storage unavailable — defaults are fine

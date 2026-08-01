@@ -1038,6 +1038,10 @@ model MeshiPreference {
   accessoryStyle String   @default("none")
   eyeStyle       String   @default("regular")
   badgeStyle     String   @default("none")
+  // RETIRED: outfits were removed from Meshi customization. The column stays
+  // because it is NOT NULL with a default, so existing rows and new inserts are
+  // both fine without the app ever setting it — and dropping a column on the
+  // live database buys nothing. Nothing reads or writes it.
   outfitStyle    String   @default("none")
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
@@ -1391,6 +1395,7 @@ model MeshPresence {
   meshiAccessory String   @default("none")
   meshiEyeStyle  String   @default("regular")
   meshiBadge     String   @default("none")
+  // RETIRED alongside MeshiPreference.outfitStyle — see the note there.
   meshiOutfit    String   @default("none")
   meshiMood      String   @default("happy")
   posX           Float    @default(0)

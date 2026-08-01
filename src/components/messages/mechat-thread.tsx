@@ -10,7 +10,7 @@ import { NativeAspectMedia } from "@/components/ui/native-aspect-media";
 import { attachNormalizer } from "@/lib/audio-normalize";
 import { playSound } from "@/lib/sound";
 import { safeHref } from "@/lib/utils";
-import { MeshiMascot, type MeshiColor, type MeshiHat, type MeshiHair, type MeshiAccessory, type MeshiEyeStyle, type MeshiBadge, type MeshiOutfit } from "@/components/meshi/meshi-mascot";
+import { MeshiMascot, type MeshiColor, type MeshiHat, type MeshiHair, type MeshiAccessory, type MeshiEyeStyle, type MeshiBadge } from "@/components/meshi/meshi-mascot";
 import {
   buildLinkPreview,
   normalizeAttachments,
@@ -61,7 +61,6 @@ type TypingMeshi = {
   accessory: string;
   eyeStyle: string;
   badge: string;
-  outfit: string;
 };
 
 type TypingUser = {
@@ -1113,7 +1112,6 @@ export function MeChatThread({
                               accessory={reader.meshi.accessory as MeshiAccessory}
                               eyeStyle={reader.meshi.eyeStyle as MeshiEyeStyle}
                               badge={reader.meshi.badge as MeshiBadge}
-                              outfit={reader.meshi.outfit as MeshiOutfit}
                             />
                           </span>
                         ) : (
@@ -1165,7 +1163,6 @@ export function MeChatThread({
                       accessory={user.meshi.accessory as MeshiAccessory}
                       eyeStyle={user.meshi.eyeStyle as MeshiEyeStyle}
                       badge={user.meshi.badge as MeshiBadge}
-                      outfit={user.meshi.outfit as MeshiOutfit}
                     />
                   </span>
                 ) : (
@@ -1209,7 +1206,6 @@ export function MeChatThread({
                       accessory={user.meshi.accessory as MeshiAccessory}
                       eyeStyle={user.meshi.eyeStyle as MeshiEyeStyle}
                       badge={user.meshi.badge as MeshiBadge}
-                      outfit={user.meshi.outfit as MeshiOutfit}
                     />
                   </span>
                 ) : (

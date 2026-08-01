@@ -16,7 +16,6 @@ import {
   type MeshiHair,
   type MeshiHat,
   type MeshiMood,
-  type MeshiOutfit,
 } from "@/components/meshi/meshi-mascot";
 import { IdentityProviderButtons } from "@/components/auth/identity-provider-buttons";
 import type { IdentityProvider } from "@/lib/identity-auth";
@@ -42,7 +41,6 @@ type MeshiPreview = {
     accessory: MeshiAccessory;
     eye: MeshiEyeStyle;
     badge: MeshiBadge;
-    outfit: MeshiOutfit;
   };
 };
 
@@ -160,7 +158,6 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
           accessory: data.meshi.accessory,
           eye: data.meshi.eye,
           badge: data.meshi.badge,
-          outfit: data.meshi.outfit,
         },
       };
     } catch {
@@ -461,7 +458,6 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
                 accessory={preview?.meshi.accessory}
                 eyeStyle={preview?.meshi.eye}
                 badge={preview?.meshi.badge}
-                outfit={preview?.meshi.outfit}
                 showGlow
                 animate
                 bouncy

@@ -16,7 +16,6 @@ import {
   type MeshiHair,
   type MeshiHat,
   type MeshiMood,
-  type MeshiOutfit,
 } from "@/components/meshi/meshi-mascot";
 import { updateMeshiLocalPreferences } from "@/hooks/use-meshi-preferences";
 import { completeOnboarding } from "@/lib/actions";
@@ -38,7 +37,6 @@ type OnboardingFlowProps = {
     accessoryStyle: string;
     eyeStyle: string;
     badgeStyle: string;
-    outfitStyle: string;
   };
   meshPrivacy: {
     meshVisibility: string;
@@ -77,7 +75,6 @@ const faces = ["happy", "wink", "thinking", "cool", "celebrating"];
 const eyes = ["regular", "lashes"];
 const accessories = ["none", "glasses", "sunglasses", "monocle"];
 const badges = ["none", "spark", "heart", "shield"];
-const outfits = ["none", "scarf", "hoodie", "jacket", "overalls"];
 
 const interfaceStyles = [
   { id: "simple", title: "Simple", body: "The calmest feed. Larger posts and fewer controls." },
@@ -134,7 +131,6 @@ export function OnboardingFlow({
     accessoryStyle: meshi.accessoryStyle,
     eyeStyle: meshi.eyeStyle,
     badgeStyle: meshi.badgeStyle,
-    outfitStyle: meshi.outfitStyle,
   });
   const [privacy, setPrivacy] = useState({
     meshVisibility: meshPrivacy.meshVisibility,
@@ -222,7 +218,6 @@ export function OnboardingFlow({
     formData.set("meshiAccessory", meshiState.accessoryStyle);
     formData.set("meshiEyes", meshiState.eyeStyle);
     formData.set("meshiBadge", meshiState.badgeStyle);
-    formData.set("meshiOutfit", meshiState.outfitStyle);
     formData.set("meshVisibility", privacy.meshVisibility);
     formData.set("showConnections", String(privacy.showConnections));
     formData.set("showStats", String(privacy.showStats));
@@ -249,7 +244,6 @@ export function OnboardingFlow({
       accessory: meshiState.accessoryStyle as MeshiAccessory,
       eye: meshiState.eyeStyle as MeshiEyeStyle,
       badge: meshiState.badgeStyle as MeshiBadge,
-      outfit: meshiState.outfitStyle as MeshiOutfit,
     });
 
     startTransition(async () => {
@@ -288,7 +282,6 @@ export function OnboardingFlow({
                 accessory={meshiState.accessoryStyle as MeshiAccessory}
                 eyeStyle={meshiState.eyeStyle as MeshiEyeStyle}
                 badge={meshiState.badgeStyle as MeshiBadge}
-                outfit={meshiState.outfitStyle as MeshiOutfit}
                 prop={currentStep.id === "notifications" ? "bell" : currentStep.id === "privacy" ? "shield" : currentStep.id === "apps" ? "compass" : "none"}
                 animate
                 showGlow={false}
@@ -424,7 +417,6 @@ export function OnboardingFlow({
                       accessory={meshiState.accessoryStyle as MeshiAccessory}
                       eyeStyle={meshiState.eyeStyle as MeshiEyeStyle}
                       badge={meshiState.badgeStyle as MeshiBadge}
-                      outfit={meshiState.outfitStyle as MeshiOutfit}
                       animate
                       interactive
                     />
@@ -442,7 +434,6 @@ export function OnboardingFlow({
                             accessory={meshiState.accessoryStyle as MeshiAccessory}
                             eyeStyle={meshiState.eyeStyle as MeshiEyeStyle}
                             badge={meshiState.badgeStyle as MeshiBadge}
-                            outfit={meshiState.outfitStyle as MeshiOutfit}
                             animate={false}
                             showGlow={false}
                           />
@@ -461,7 +452,6 @@ export function OnboardingFlow({
                             accessory={meshiState.accessoryStyle as MeshiAccessory}
                             eyeStyle={meshiState.eyeStyle as MeshiEyeStyle}
                             badge={meshiState.badgeStyle as MeshiBadge}
-                            outfit={meshiState.outfitStyle as MeshiOutfit}
                             animate={false}
                             showGlow={false}
                           />
@@ -480,7 +470,6 @@ export function OnboardingFlow({
                             accessory={meshiState.accessoryStyle as MeshiAccessory}
                             eyeStyle={meshiState.eyeStyle as MeshiEyeStyle}
                             badge={meshiState.badgeStyle as MeshiBadge}
-                            outfit={meshiState.outfitStyle as MeshiOutfit}
                             animate={false}
                             showGlow={false}
                           />
@@ -499,7 +488,6 @@ export function OnboardingFlow({
                             accessory={meshiState.accessoryStyle as MeshiAccessory}
                             eyeStyle={eye as MeshiEyeStyle}
                             badge={meshiState.badgeStyle as MeshiBadge}
-                            outfit={meshiState.outfitStyle as MeshiOutfit}
                             animate={false}
                             showGlow={false}
                           />
@@ -518,7 +506,6 @@ export function OnboardingFlow({
                             accessory={accessory as MeshiAccessory}
                             eyeStyle={meshiState.eyeStyle as MeshiEyeStyle}
                             badge={meshiState.badgeStyle as MeshiBadge}
-                            outfit={meshiState.outfitStyle as MeshiOutfit}
                             animate={false}
                             showGlow={false}
                           />
@@ -537,26 +524,6 @@ export function OnboardingFlow({
                             accessory={meshiState.accessoryStyle as MeshiAccessory}
                             eyeStyle={meshiState.eyeStyle as MeshiEyeStyle}
                             badge={badge as MeshiBadge}
-                            outfit={meshiState.outfitStyle as MeshiOutfit}
-                            animate={false}
-                            showGlow={false}
-                          />
-                        </GraphicChoice>
-                      ))}
-                    </PickerGroup>
-                    <PickerGroup label="Outfits">
-                      {outfits.map((outfit) => (
-                        <GraphicChoice key={outfit} active={meshiState.outfitStyle === outfit} label={outfit} onClick={() => setMeshiState((current) => ({ ...current, outfitStyle: outfit }))}>
-                          <MeshiMascot
-                            size={30}
-                            color={meshiState.colorTheme as MeshiColor}
-                            hat={meshiState.hatStyle as MeshiHat}
-                            mood={meshiState.faceStyle as MeshiMood}
-                            hair={meshiState.hairStyle as MeshiHair}
-                            accessory={meshiState.accessoryStyle as MeshiAccessory}
-                            eyeStyle={meshiState.eyeStyle as MeshiEyeStyle}
-                            badge={meshiState.badgeStyle as MeshiBadge}
-                            outfit={outfit as MeshiOutfit}
                             animate={false}
                             showGlow={false}
                           />

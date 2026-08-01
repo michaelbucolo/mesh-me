@@ -13,7 +13,6 @@ import {
   type MeshiEyeStyle,
   type MeshiHair,
   type MeshiHat,
-  type MeshiOutfit,
 } from "./meshi-mascot";
 import { useMeshiPreferences } from "@/hooks/use-meshi-preferences";
 import { shouldHideGlobalMeshi } from "@/lib/meshi-routes";
@@ -35,7 +34,6 @@ interface Delivery {
   meshiAccessory: string;
   meshiEyeStyle: string;
   meshiBadge: string;
-  meshiOutfit: string;
   timestamp: number;
 }
 
@@ -131,7 +129,6 @@ export function MeshiDelivery() {
               accessory={current.meshiAccessory as MeshiAccessory}
               eyeStyle={current.meshiEyeStyle as MeshiEyeStyle}
               badge={current.meshiBadge as MeshiBadge}
-              outfit={current.meshiOutfit as MeshiOutfit}
               showGlow
             />
           </motion.div>

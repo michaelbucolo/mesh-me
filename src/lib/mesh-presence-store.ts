@@ -22,7 +22,6 @@ export type PresenceEntry = {
   meshiAccessory: string;
   meshiEyeStyle: string;
   meshiBadge: string;
-  meshiOutfit: string;
   meshiMood: string;
   position: { x: number; y: number };
   // Viewport-relative position (0-1 range) for where Meshi sits on the user's screen.
@@ -103,7 +102,6 @@ type PresenceRow = {
   meshiAccessory: string;
   meshiEyeStyle: string;
   meshiBadge: string;
-  meshiOutfit: string;
   meshiMood: string;
   posX: number;
   posY: number;
@@ -134,7 +132,6 @@ function rowToEntry(row: PresenceRow): PresenceEntry {
     meshiAccessory: row.meshiAccessory,
     meshiEyeStyle: row.meshiEyeStyle,
     meshiBadge: row.meshiBadge,
-    meshiOutfit: row.meshiOutfit,
     meshiMood: row.meshiMood,
     position: { x: row.posX, y: row.posY },
     viewportPosition: { vx: row.vx, vy: row.vy },
@@ -168,7 +165,6 @@ function entryToRow(entry: PresenceEntry) {
     meshiAccessory: entry.meshiAccessory,
     meshiEyeStyle: entry.meshiEyeStyle,
     meshiBadge: entry.meshiBadge,
-    meshiOutfit: entry.meshiOutfit,
     meshiMood: entry.meshiMood,
     posX: entry.position.x,
     posY: entry.position.y,
@@ -465,7 +461,6 @@ export function buildPresencePayload(
       meshiAccessory: entry.meshiAccessory,
       meshiEyeStyle: entry.meshiEyeStyle,
       meshiBadge: entry.meshiBadge,
-      meshiOutfit: entry.meshiOutfit,
       meshiMood: entry.meshiMood,
       position: entry.position,
       viewportPosition: entry.viewportPosition,

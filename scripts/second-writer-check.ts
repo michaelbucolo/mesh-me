@@ -456,11 +456,22 @@ assert.match(
 // passed nothing, and the connected-accounts card counted every row as granted.
 // A user who unticked a scope on the consent screen was shown it as granted.
 const callback = read("src/app/api/auth/[platform]/callback/route.ts");
+// The rule is about the DISTINCTION, not about which field names carry it.
+// Instagram reports its granted scopes as `permissions`, so reading that
+// alongside scope/scopes records MORE of what the provider actually said — the
+// thing this section exists to protect. Pinning the exact line would have made
+// the gate reject its own goal, so it asserts the shape instead: the variable
+// is assigned from provider fields only, and never from config.scopes.
 assert.match(
   callback,
-  /const providerReportedScopes = tokenData\.scope \|\| tokenData\.scopes;/,
+  /const providerReportedScopes = tokenData\.[A-Za-z_]+(?:\s*\|\|\s*tokenData\.[A-Za-z_]+)*;/,
   "the OAuth callback must distinguish provider-reported scopes from the requested set before\n" +
     "  falling back — otherwise there is no way to know which it recorded.",
+);
+assert.ok(
+  !/const providerReportedScopes =[^;]*config\.scopes/.test(callback),
+  "providerReportedScopes must not be seeded from config.scopes — that is the REQUEST, and folding\n" +
+    "  it in here would erase the very distinction the fallback below is careful to label.",
 );
 assert.match(
   callback,

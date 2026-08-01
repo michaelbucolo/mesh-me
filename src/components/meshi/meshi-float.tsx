@@ -13,7 +13,6 @@ import {
   type MeshiHair,
   type MeshiHat,
   type MeshiMood,
-  type MeshiOutfit,
   type MeshiProp,
   PAGE_PROPS,
 } from "./meshi-mascot";
@@ -195,10 +194,6 @@ export function MeshiFloat() {
   const [meshiBadge, setMeshiBadge] = useState<MeshiBadge>(() => {
     if (typeof window === "undefined") return "none";
     try { return (localStorage.getItem("meshiBadge") || "none") as MeshiBadge; } catch { return "none" as MeshiBadge; }
-  });
-  const [meshiOutfit, setMeshiOutfit] = useState<MeshiOutfit>(() => {
-    if (typeof window === "undefined") return "none";
-    try { return (localStorage.getItem("meshiOutfit") || "none") as MeshiOutfit; } catch { return "none" as MeshiOutfit; }
   });
   const [isSearching, setIsSearching] = useState(false);
   const [isFullscreenVideo, setIsFullscreenVideo] = useState(false);
@@ -397,7 +392,6 @@ export function MeshiFloat() {
           if (pref.accessoryStyle) setMeshiAccessory(pref.accessoryStyle as MeshiAccessory);
           if (pref.eyeStyle) setMeshiEye(pref.eyeStyle as MeshiEyeStyle);
           if (pref.badgeStyle) setMeshiBadge(pref.badgeStyle as MeshiBadge);
-          if (pref.outfitStyle) setMeshiOutfit(pref.outfitStyle as MeshiOutfit);
         }
       }).catch(() => {});
     }, 900);
@@ -425,7 +419,6 @@ export function MeshiFloat() {
       if (prefs.accessory) setMeshiAccessory(prefs.accessory);
       if (prefs.eye) setMeshiEye(prefs.eye);
       if (prefs.badge) setMeshiBadge(prefs.badge);
-      if (prefs.outfit) setMeshiOutfit(prefs.outfit);
       if (prefs.face) setMood(prefs.face);
       if (typeof prefs.enabled === "boolean") setMeshiEnabled(prefs.enabled);
     };
@@ -438,7 +431,6 @@ export function MeshiFloat() {
       if (e.key === "meshiAccessory") setMeshiAccessory(((e.newValue === "lashes" ? "none" : e.newValue) || "none") as MeshiAccessory);
       if (e.key === "meshiEye") setMeshiEye((e.newValue || "regular") as MeshiEyeStyle);
       if (e.key === "meshiBadge") setMeshiBadge((e.newValue || "none") as MeshiBadge);
-      if (e.key === "meshiOutfit") setMeshiOutfit((e.newValue || "none") as MeshiOutfit);
       if (e.key === "meshiFace") setMood((e.newValue || "happy") as MeshiMood);
     };
     const handlePreferenceEvent = (event: Event) => {
@@ -988,7 +980,6 @@ export function MeshiFloat() {
                 accessory={isFullscreenVideo || isSearching ? "glasses" : meshiAccessory}
                 eyeStyle={meshiEye}
                 badge={meshiBadge}
-                outfit={meshiOutfit}
                 showGlow={view !== "closed" || isSearching || isFullscreenVideo}
                 interactive
                 prop={activeHeldProp}

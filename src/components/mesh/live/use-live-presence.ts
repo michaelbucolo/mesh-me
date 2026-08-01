@@ -361,7 +361,6 @@ export function useLivePresence(
         meshiAccessory: p.accessory,
         meshiEyeStyle: p.eye,
         meshiBadge: p.badge,
-        meshiOutfit: p.outfit,
         // Broadcast what you're DOING, not just your default face — the
         // ladder lives pure in live/mood.
         meshiMood: deriveBroadcastMood({

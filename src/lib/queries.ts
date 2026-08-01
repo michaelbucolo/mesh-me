@@ -363,7 +363,6 @@ export async function getUserProfile(username: string) {
           accessoryStyle: true,
           eyeStyle: true,
           badgeStyle: true,
-          outfitStyle: true,
         },
       },
       meshPrivacy: {

@@ -19,7 +19,6 @@ import {
   type MeshiHair,
   type MeshiHat,
   type MeshiMood,
-  type MeshiOutfit,
 } from "@/components/meshi/meshi-mascot";
 import { updateMeshiLocalPreferences } from "@/hooks/use-meshi-preferences";
 import { useTheme } from "@/components/theme-provider";
@@ -123,7 +122,6 @@ type MeshiSnapshot = {
   accessoryStyle: string;
   eyeStyle: string;
   badgeStyle: string;
-  outfitStyle: string;
 };
 
 type PrivacySummary = {
@@ -181,7 +179,6 @@ const hairs = ["none", "fluffy", "bangs", "spikes", "curls"];
 const eyes = ["regular", "lashes"];
 const accessories = ["none", "glasses", "sunglasses", "monocle", "earrings", "bowtie", "freckles", "blush", "eyepatch", "star", "mustache", "necklace"];
 const badges = ["none", "spark", "heart", "shield", "verified", "creator", "founder"];
-const outfits = ["none", "scarf", "hoodie", "jacket", "overalls", "turtleneck", "varsity", "tux", "cape", "spacesuit"];
 const themePresets = [
   { id: "default", label: "Clean" },
   { id: "instagram", label: "Social" },
@@ -241,7 +238,7 @@ const sectionOrder: Array<{
   { id: "security", label: "Security", description: "Verification and sessions", icon: ShieldCheck, keywords: ["password", "2fa", "two-factor", "sessions", "devices", "recovery", "phone", "passkey"] },
   // Appearance + Meshi are the two "make it yours" sections — keep them adjacent.
   { id: "appearance", label: "Appearance", description: "Theme, mode, and sound", icon: Palette, keywords: ["dark mode", "light mode", "theme", "colors", "preset", "custom", "sound", "sounds", "audio", "mute"] },
-  { id: "meshi", label: "Meshi", description: "Your character", icon: Sparkles, keywords: ["mascot", "avatar", "hat", "hair", "outfit", "accessories", "badge", "expression"] },
+  { id: "meshi", label: "Meshi", description: "Your character", icon: Sparkles, keywords: ["mascot", "avatar", "hat", "hair", "face", "eyes", "lashes", "accessories", "badge"] },
   { id: "data", label: "Data", description: "Export and delete data", icon: Database, keywords: ["export", "download", "storage", "records", "analytics"] },
   { id: "billing", label: "Billing", description: "MeshPro and invoices", icon: CreditCard, keywords: ["subscription", "payment", "upgrade", "pro", "invoices", "plan"] },
 ];
@@ -347,7 +344,6 @@ export function SettingsControlCenter({
     accessoryStyle: meshi.accessoryStyle,
     eyeStyle: meshi.eyeStyle,
     badgeStyle: meshi.badgeStyle,
-    outfitStyle: meshi.outfitStyle,
   });
   const [meshVisuals, setMeshVisuals] = useState({
     connectionColor: meshCosmetics.find((cosmetic) => cosmetic.type === "connectionColor")?.value ?? "#3b82f6",
@@ -549,7 +545,6 @@ export function SettingsControlCenter({
       accessory: meshiState.accessoryStyle as MeshiAccessory,
       eye: meshiState.eyeStyle as MeshiEyeStyle,
       badge: meshiState.badgeStyle as MeshiBadge,
-      outfit: meshiState.outfitStyle as MeshiOutfit,
     });
     runSave("Meshi", () => updateMeshiPreference({
       colorTheme: meshiState.colorTheme,
@@ -559,7 +554,6 @@ export function SettingsControlCenter({
       accessoryStyle: meshiState.accessoryStyle,
       eyeStyle: meshiState.eyeStyle,
       badgeStyle: meshiState.badgeStyle,
-      outfitStyle: meshiState.outfitStyle,
     }));
   }
 
@@ -632,7 +626,6 @@ export function SettingsControlCenter({
               accessory={meshiState.accessoryStyle as MeshiAccessory}
               eyeStyle={meshiState.eyeStyle as MeshiEyeStyle}
               badge={meshiState.badgeStyle as MeshiBadge}
-              outfit={meshiState.outfitStyle as MeshiOutfit}
               // Meshi picks up the tool for whatever you're adjusting —
               // a small companion moment on every section change.
               prop={
@@ -1910,7 +1903,6 @@ function MeshiSection({
     accessoryStyle: string;
     eyeStyle: string;
     badgeStyle: string;
-    outfitStyle: string;
   };
   setMeshiState: Dispatch<SetStateAction<{
     colorTheme: string;
@@ -1920,7 +1912,6 @@ function MeshiSection({
     accessoryStyle: string;
     eyeStyle: string;
     badgeStyle: string;
-    outfitStyle: string;
   }>>;
   saveMeshi: (event: FormEvent) => void;
   meshiLocked: (group: Parameters<typeof isFreeMeshiOption>[0], value: string) => boolean;
@@ -1939,7 +1930,6 @@ function MeshiSection({
             accessory={meshiState.accessoryStyle as MeshiAccessory}
             eyeStyle={meshiState.eyeStyle as MeshiEyeStyle}
             badge={meshiState.badgeStyle as MeshiBadge}
-            outfit={meshiState.outfitStyle as MeshiOutfit}
             showGlow={false}
             animate
             interactive
@@ -1971,10 +1961,9 @@ function MeshiSection({
           <MeshiOptionGroup title="Hat" group="hats" values={hats} current={meshiState.hatStyle} meshiState={meshiState} locked={meshiLocked} onPick={(value) => setMeshiState((current) => ({ ...current, hatStyle: value }))} />
           <MeshiOptionGroup title="Hair" group="hairs" values={hairs} current={meshiState.hairStyle} meshiState={meshiState} locked={meshiLocked} onPick={(value) => setMeshiState((current) => ({ ...current, hairStyle: value }))} />
           <MeshiOptionGroup title="Eyes" group="eyes" values={eyes} current={meshiState.eyeStyle} meshiState={meshiState} locked={meshiLocked} onPick={(value) => setMeshiState((current) => ({ ...current, eyeStyle: value }))} />
-          <MeshiOptionGroup title="Expression" group="faces" values={faces} current={meshiState.faceStyle} meshiState={meshiState} locked={meshiLocked} onPick={(value) => setMeshiState((current) => ({ ...current, faceStyle: value }))} />
+          <MeshiOptionGroup title="Face" group="faces" values={faces} current={meshiState.faceStyle} meshiState={meshiState} locked={meshiLocked} onPick={(value) => setMeshiState((current) => ({ ...current, faceStyle: value }))} />
           <MeshiOptionGroup title="Accessories" group="accessories" values={accessories} current={meshiState.accessoryStyle} meshiState={meshiState} locked={meshiLocked} onPick={(value) => setMeshiState((current) => ({ ...current, accessoryStyle: value }))} />
           <MeshiOptionGroup title="Badges" group="badges" values={badges} current={meshiState.badgeStyle} meshiState={meshiState} locked={meshiLocked} onPick={(value) => setMeshiState((current) => ({ ...current, badgeStyle: value }))} />
-          <MeshiOptionGroup title="Outfits" group="outfits" values={outfits} current={meshiState.outfitStyle} meshiState={meshiState} locked={meshiLocked} onPick={(value) => setMeshiState((current) => ({ ...current, outfitStyle: value }))} />
         </div>
         <SaveButton label="Save Meshi" pending={isPending} />
       </SettingsCard>
@@ -2171,7 +2160,6 @@ function MeshiOptionGroup({
     accessoryStyle: string;
     eyeStyle: string;
     badgeStyle: string;
-    outfitStyle: string;
   };
   locked: (group: Parameters<typeof isFreeMeshiOption>[0], value: string) => boolean;
   onPick: (value: string) => void;
@@ -2188,7 +2176,6 @@ function MeshiOptionGroup({
           accessory: group === "accessories" ? value as MeshiAccessory : meshiState.accessoryStyle as MeshiAccessory,
           eyeStyle: group === "eyes" ? value as MeshiEyeStyle : meshiState.eyeStyle as MeshiEyeStyle,
           badge: group === "badges" ? value as MeshiBadge : meshiState.badgeStyle as MeshiBadge,
-          outfit: group === "outfits" ? value as MeshiOutfit : meshiState.outfitStyle as MeshiOutfit,
         };
 
         return (
@@ -2202,7 +2189,6 @@ function MeshiOptionGroup({
               accessory={preview.accessory}
               eyeStyle={preview.eyeStyle}
               badge={preview.badge}
-              outfit={preview.outfit}
               animate={false}
               showGlow={false}
             />

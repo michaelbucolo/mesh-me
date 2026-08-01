@@ -36,7 +36,6 @@ export default async function SettingsPage() {
         accessoryStyle: "none",
         eyeStyle: "regular",
         badgeStyle: "none",
-        outfitStyle: "none",
       };
     }),
     getMeshCosmetics().catch((error) => {
@@ -97,7 +96,6 @@ export default async function SettingsPage() {
         accessoryStyle: meshiPreference?.accessoryStyle ?? "none",
         eyeStyle: meshiPreference?.eyeStyle ?? "regular",
         badgeStyle: meshiPreference?.badgeStyle ?? "none",
-        outfitStyle: meshiPreference?.outfitStyle ?? "none",
       }}
       meshCosmetics={meshCosmetics.map((cosmetic) => ({
         type: cosmetic.type,

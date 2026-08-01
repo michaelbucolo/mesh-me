@@ -40,7 +40,6 @@ export function UserMeshi({
       accessory={prefs.accessory}
       eyeStyle={prefs.eye}
       badge={prefs.badge}
-      outfit={prefs.outfit}
       animate={animate}
       className={className}
     />

@@ -653,6 +653,9 @@ CREATE TABLE IF NOT EXISTS "MeshiPreference" (
     "accessoryStyle" TEXT NOT NULL DEFAULT 'none',
     "eyeStyle" TEXT NOT NULL DEFAULT 'regular',
     "badgeStyle" TEXT NOT NULL DEFAULT 'none',
+    -- RETIRED: outfits were removed from Meshi customization. Kept because it is
+    -- NOT NULL with a default, so nothing breaks by never setting it; dropping a
+    -- column on the live database buys nothing.
     "outfitStyle" TEXT NOT NULL DEFAULT 'none',
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" DATETIME NOT NULL,
@@ -907,6 +910,7 @@ CREATE TABLE IF NOT EXISTS "MeshPresence" (
     "meshiAccessory" TEXT NOT NULL DEFAULT 'none',
     "meshiEyeStyle" TEXT NOT NULL DEFAULT 'regular',
     "meshiBadge" TEXT NOT NULL DEFAULT 'none',
+    -- RETIRED alongside MeshiPreference.outfitStyle.
     "meshiOutfit" TEXT NOT NULL DEFAULT 'none',
     "meshiMood" TEXT NOT NULL DEFAULT 'happy',
     "posX" REAL NOT NULL DEFAULT 0,

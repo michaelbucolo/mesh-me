@@ -820,7 +820,6 @@ export async function completeOnboarding(formData: FormData) {
     accessoryStyle: cleanMeshiOption(String(formData.get("meshiAccessory") || ""), MESHI_OPTION_VALUES.accessories, "none") ?? "none",
     eyeStyle: cleanMeshiOption(String(formData.get("meshiEyes") || ""), MESHI_OPTION_VALUES.eyes, "regular") ?? "regular",
     badgeStyle: cleanMeshiOption(String(formData.get("meshiBadge") || ""), MESHI_OPTION_VALUES.badges, "none") ?? "none",
-    outfitStyle: cleanMeshiOption(String(formData.get("meshiOutfit") || ""), MESHI_OPTION_VALUES.outfits, "none") ?? "none",
     // The username being CLAIMED, not the pre-onboarding one: a founder picks
     // their handle in this very form, so judging them on the old value would
     // clamp away the cosmetics they are entitled to on the way in.
@@ -888,7 +887,6 @@ export async function completeOnboarding(formData: FormData) {
       accessoryStyle: meshiUpdate.accessoryStyle,
       eyeStyle: meshiUpdate.eyeStyle,
       badgeStyle: meshiUpdate.badgeStyle,
-      outfitStyle: meshiUpdate.outfitStyle,
     },
     create: {
       userId: user.id,
@@ -899,7 +897,6 @@ export async function completeOnboarding(formData: FormData) {
       accessoryStyle: meshiUpdate.accessoryStyle,
       eyeStyle: meshiUpdate.eyeStyle,
       badgeStyle: meshiUpdate.badgeStyle,
-      outfitStyle: meshiUpdate.outfitStyle,
     },
   });
 
@@ -3006,7 +3003,6 @@ const MESHI_OPTION_VALUES = {
   accessories: new Set(["none", "glasses", "sunglasses", "monocle", "earrings", "bowtie", "freckles", "blush", "eyepatch", "star", "mustache", "necklace"]),
   eyes: new Set(["regular", "lashes"]),
   badges: new Set(["none", "spark", "heart", "shield", "verified", "creator", "founder"]),
-  outfits: new Set(["none", "scarf", "hoodie", "jacket", "overalls", "cape", "spacesuit", "turtleneck", "varsity", "tux"]),
 };
 
 function cleanMeshiOption(value: string | undefined, allowed: Set<string>, fallback?: string) {
@@ -3023,7 +3019,6 @@ type MeshiPreferenceUpdate = {
   accessoryStyle?: string;
   eyeStyle?: string;
   badgeStyle?: string;
-  outfitStyle?: string;
 };
 
 const DEFAULT_MESHI_PREFERENCE = {
@@ -3034,7 +3029,6 @@ const DEFAULT_MESHI_PREFERENCE = {
   accessoryStyle: "none",
   eyeStyle: "regular",
   badgeStyle: "none",
-  outfitStyle: "none",
 };
 
 const MESHI_LOCK_CHECKS: Array<[keyof MeshiPreferenceUpdate, keyof typeof FREE_MESHI_OPTIONS, string]> = [
@@ -3045,7 +3039,6 @@ const MESHI_LOCK_CHECKS: Array<[keyof MeshiPreferenceUpdate, keyof typeof FREE_M
   ["accessoryStyle", "accessories", "accessory"],
   ["eyeStyle", "eyes", "eyes"],
   ["badgeStyle", "badges", "badge"],
-  ["outfitStyle", "outfits", "outfit"],
 ];
 
 /**
@@ -3101,7 +3094,6 @@ export async function updateMeshiPreference(data: MeshiPreferenceUpdate) {
     accessoryStyle: cleanMeshiOption(data.accessoryStyle, MESHI_OPTION_VALUES.accessories),
     eyeStyle: cleanMeshiOption(data.eyeStyle, MESHI_OPTION_VALUES.eyes),
     badgeStyle: cleanMeshiOption(data.badgeStyle, MESHI_OPTION_VALUES.badges),
-    outfitStyle: cleanMeshiOption(data.outfitStyle, MESHI_OPTION_VALUES.outfits),
   };
 
   if (!hasMeshPro(user)) {
@@ -3109,7 +3101,7 @@ export async function updateMeshiPreference(data: MeshiPreferenceUpdate) {
       where: { userId: user.id },
       select: {
         hatStyle: true, faceStyle: true, colorTheme: true, hairStyle: true,
-        accessoryStyle: true, eyeStyle: true, badgeStyle: true, outfitStyle: true,
+        accessoryStyle: true, eyeStyle: true, badgeStyle: true,
       },
     });
     const lockedOption = findLockedMeshiOptionForFreeUser(next, current ?? {});
@@ -3128,7 +3120,6 @@ export async function updateMeshiPreference(data: MeshiPreferenceUpdate) {
       accessoryStyle: next.accessoryStyle,
       eyeStyle: next.eyeStyle,
       badgeStyle: next.badgeStyle,
-      outfitStyle: next.outfitStyle,
     },
     create: {
       userId: user.id,
@@ -3139,7 +3130,6 @@ export async function updateMeshiPreference(data: MeshiPreferenceUpdate) {
       accessoryStyle: next.accessoryStyle ?? DEFAULT_MESHI_PREFERENCE.accessoryStyle,
       eyeStyle: next.eyeStyle ?? DEFAULT_MESHI_PREFERENCE.eyeStyle,
       badgeStyle: next.badgeStyle ?? DEFAULT_MESHI_PREFERENCE.badgeStyle,
-      outfitStyle: next.outfitStyle ?? DEFAULT_MESHI_PREFERENCE.outfitStyle,
     },
   });
 
@@ -3177,7 +3167,6 @@ export async function getUserMeshiPreference(userId: string) {
         accessoryStyle: pref.accessoryStyle,
         eyeStyle: pref.eyeStyle,
         badgeStyle: pref.badgeStyle,
-        outfitStyle: pref.outfitStyle,
       }
     : null;
 }

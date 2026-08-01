@@ -63,7 +63,6 @@ export default async function OnboardingPage() {
         accessoryStyle: meshi?.accessoryStyle ?? "none",
         eyeStyle: meshi?.eyeStyle ?? "regular",
         badgeStyle: meshi?.badgeStyle ?? "none",
-        outfitStyle: meshi?.outfitStyle ?? "none",
       }}
       meshPrivacy={{
         meshVisibility: meshPrivacy?.meshVisibility ?? "private",

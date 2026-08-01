@@ -57,7 +57,6 @@ export interface MeshApiResponse {
     accessoryStyle: string;
     eyeStyle: string;
     badgeStyle: string;
-    outfitStyle: string;
   };
   meshCosmetics?: Array<{ type: string; value: string; isActive?: boolean }>;
   stats: {

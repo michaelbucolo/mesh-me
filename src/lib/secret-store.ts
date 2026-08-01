@@ -20,13 +20,29 @@ function getKey(): Buffer | null {
   const trimmed = raw.trim();
   if (!trimmed || SHIPPED_PLACEHOLDER_KEYS.has(trimmed)) return null;
 
-  // Prefer a real 32-byte key supplied as base64 or raw bytes.
-  try {
-    const base64Buffer = Buffer.from(trimmed, "base64");
-    if (base64Buffer.length === 32) return base64Buffer;
-  } catch {
-    // ignore invalid base64 input and try other formats
-  }
+  // DECIDE THE ENCODING BY SHAPE, NOT BY DECODE-AND-HOPE.
+  //
+  // A 64-character hex key — what `openssl rand -hex 32` prints, which is the
+  // command LAUNCH-GUIDE.md tells an operator to run — used to be rejected
+  // here, and rejected SILENTLY. It is not 32 bytes as base64 (Buffer.from
+  // strips the non-base64 characters and yields 48) and not 32 bytes as utf8
+  // (it is 64). Both checks missed, and in production the SHA-256 passphrase
+  // fallback below is deliberately disabled, so getKey() returned null for a
+  // key that was correctly configured and perfectly strong.
+  //
+  // The cost of that landed at the worst possible moment: the OAuth callback
+  // checks hasSecretEncryptionKey() AFTER a successful token exchange, so a
+  // person authorized their account at the provider and was then told
+  // "Server encryption key is not configured" — a message that is the opposite
+  // of the truth. Every platform failed this way, for one missing branch.
+  //
+  // Hex is checked first and by regex: exactly 64 characters, all hex digits,
+  // is unambiguous. (The old try/catch was dead code besides —
+  // Buffer.from(x, "base64") does not throw on invalid input.)
+  if (/^[0-9a-fA-F]{64}$/.test(trimmed)) return Buffer.from(trimmed, "hex");
+
+  const base64Buffer = Buffer.from(trimmed, "base64");
+  if (base64Buffer.length === 32) return base64Buffer;
 
   const utf8Buffer = Buffer.from(trimmed, "utf8");
   if (utf8Buffer.length === 32) return utf8Buffer;

@@ -267,7 +267,6 @@ export async function getGlobalMeshSupply(viewer: Viewer): Promise<MeshApiRespon
       accessoryStyle: "none",
       eyeStyle: "regular",
       badgeStyle: "none",
-      outfitStyle: "none",
     },
     stats: {
       followingCount: following.length,

@@ -40,7 +40,7 @@ export async function POST(request: Request) {
 
   try {
     const body = await readJsonObject(request);
-    const { meshiColor, meshiHat, meshiHair, meshiAccessory, meshiEyeStyle, meshiBadge, meshiOutfit, meshiMood, position, viewportPosition, viewingMesh, surface, activePostId, activeNodeId, activeRoute, activity, ghostMode, shareWhere, action } = body;
+    const { meshiColor, meshiHat, meshiHair, meshiAccessory, meshiEyeStyle, meshiBadge, meshiMood, position, viewportPosition, viewingMesh, surface, activePostId, activeNodeId, activeRoute, activity, ghostMode, shareWhere, action } = body;
 
     // Ghost Mode is server-authoritative: the persisted account setting wins, so
     // a ghosting user stays hidden even from a fresh device whose local heartbeat
@@ -79,7 +79,6 @@ export async function POST(request: Request) {
       meshiAccessory: cleanStyleValue(meshiAccessory, "none"),
       meshiEyeStyle: cleanStyleValue(meshiEyeStyle, "regular"),
       meshiBadge: cleanStyleValue(meshiBadge, "none"),
-      meshiOutfit: cleanStyleValue(meshiOutfit, "none"),
       meshiMood: cleanStyleValue(meshiMood, "happy"),
       position: normalizePosition(position),
       viewportPosition: normalizeViewportPosition(viewportPosition),

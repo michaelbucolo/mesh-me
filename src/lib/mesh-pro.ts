@@ -59,7 +59,6 @@ export const FREE_MESHI_OPTIONS = {
   accessories: new Set(["none"]),
   eyes: new Set(["regular"]),
   badges: new Set(["none"]),
-  outfits: new Set(["none"]),
 } as const;
 
 export function isFreeMeshiOption(group: keyof typeof FREE_MESHI_OPTIONS, value: string | null | undefined) {

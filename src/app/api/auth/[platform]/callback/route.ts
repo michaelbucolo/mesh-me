@@ -58,6 +58,30 @@ async function describeTokenFailure(response: Response): Promise<string> {
   return summary;
 }
 
+/**
+ * Actually clear a cookie, including a `__Host-` prefixed one.
+ *
+ * `cookies().delete(name)` emits a Set-Cookie with an expiry but WITHOUT
+ * `Secure`, and a `__Host-` cookie whose clearing header does not itself
+ * satisfy the prefix rules (Secure, Path=/, no Domain) is rejected outright by
+ * every browser. So the state and PKCE cookies survived their full 10-minute
+ * max-age in production, and the delete calls were decoration.
+ *
+ * Writing an explicitly expired cookie with the same attributes clears it for
+ * real. The connect flow did not depend on this — the CSRF check happens
+ * first — but a single-use secret that outlives its use is not something to
+ * leave lying in the browser.
+ */
+function clearCookie(store: Awaited<ReturnType<typeof cookies>>, name: string) {
+  store.set(name, "", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+    maxAge: 0,
+  });
+}
+
 function safeStateEquals(storedState: string, incomingState: string) {
   if (storedState.length > 256 || incomingState.length > 256) return false;
   const stored = Buffer.from(storedState);
@@ -129,8 +153,8 @@ export async function GET(
   }
 
   // Clear the state cookies
-  cookieStore.delete(oauthStateCookie);
-  cookieStore.delete(legacyOauthStateCookie);
+  clearCookie(cookieStore, oauthStateCookie);
+  clearCookie(cookieStore, legacyOauthStateCookie);
 
   const config = OAUTH_CONFIGS[platform];
   const clientId = getOAuthClientId(config);
@@ -156,8 +180,8 @@ export async function GET(
       (allowLegacyCookies ? cookieStore.get(legacyOauthPkceCookie)?.value : undefined);
     if (pkceVerifier) {
       tokenParams.code_verifier = pkceVerifier;
-      cookieStore.delete(oauthPkceCookie);
-      cookieStore.delete(legacyOauthPkceCookie);
+      clearCookie(cookieStore, oauthPkceCookie);
+      clearCookie(cookieStore, legacyOauthPkceCookie);
     }
 
     // Add extra token params
@@ -194,7 +218,19 @@ export async function GET(
       );
     }
 
-    const tokenData = await tokenResponse.json().catch(() => ({}));
+    const rawTokenData = await tokenResponse.json().catch(() => ({}));
+    // SOME PROVIDERS WRAP THE TOKEN IN AN ARRAY.
+    //
+    // Business Login for Instagram answers the code exchange with
+    // {"data":[{"access_token":...,"user_id":...,"permissions":...}]} rather
+    // than a flat object. Reading access_token off the top level therefore
+    // found undefined on a 200 response, and the connect died at "No access
+    // token received" — an error that blames the provider for replying exactly
+    // as documented. Unwrapping here keeps every other provider untouched,
+    // because they have no `data` array to unwrap.
+    const tokenData = Array.isArray(rawTokenData?.data)
+      ? (rawTokenData.data[0] ?? {})
+      : rawTokenData;
     let accessToken = tokenData.access_token;
     const refreshToken = tokenData.refresh_token || null;
     const expiresIn = tokenData.expires_in;
@@ -211,7 +247,8 @@ export async function GET(
     //
     // The fallback stays — showing nothing would be its own lie — but it is
     // labelled for what it is, and the UI stops calling it confirmed.
-    const providerReportedScopes = tokenData.scope || tokenData.scopes;
+    // Instagram names this field "permissions"; everyone else uses scope(s).
+    const providerReportedScopes = tokenData.scope || tokenData.scopes || tokenData.permissions;
     const grantedScopes = serializeScopes(providerReportedScopes || config.scopes);
     const scopeSource = providerReportedScopes ? "oauth_scope" : "assumed_from_request";
 
@@ -304,9 +341,27 @@ export async function GET(
       }
     }
 
-    const existingAccount = await prisma.connectedAccount.findFirst({
-      where: { userId: user.id, platform, ...(platformId ? { platformId } : {}) },
-    });
+    // ADOPT THE PLACEHOLDER INSTEAD OF DUPLICATING IT.
+    //
+    // Onboarding writes a credential-less row for each platform someone picks,
+    // with the synthetic id `pending-<userId>-<platform>`. A real connect then
+    // resolves a genuine platformId, so this lookup matched nothing, created a
+    // SECOND row, and left the placeholder behind forever — the One Account
+    // page showed the platform twice, once working and once permanently
+    // "Paused", and nothing in the product ever cleaned it up.
+    //
+    // So: try the real identity first, and when that misses, adopt a row for
+    // the same platform that never had a credential. That is the placeholder by
+    // definition — a row that completed OAuth always has an access token.
+    const existingAccount =
+      (await prisma.connectedAccount.findFirst({
+        where: { userId: user.id, platform, ...(platformId ? { platformId } : {}) },
+      })) ??
+      (platformId
+        ? await prisma.connectedAccount.findFirst({
+            where: { userId: user.id, platform, accessToken: null },
+          })
+        : null);
 
     const connectedAccount = await prisma.$transaction(async (tx) => {
       const account = existingAccount
@@ -359,7 +414,12 @@ export async function GET(
     return NextResponse.redirect(
       `${connectedAccountsUrl}?connected=${encodedPlatform}`
     );
-  } catch {
+  } catch (error) {
+    // The person still gets a calm sentence, but the operator gets the cause.
+    // This was a bare `catch {}`: every failure after the token exchange —
+    // a profile fetch that threw, an encryption error, a database write —
+    // collapsed into one message and left NOTHING behind to diagnose it with.
+    console.error(`[oauth:${platform}] connect failed after token exchange`, error);
     return NextResponse.redirect(
       `${connectedAccountsUrl}?error=${encodeURIComponent("Something went wrong. Please try again.")}&platform=${encodedPlatform}`
     );
