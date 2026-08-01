@@ -41,6 +41,17 @@ jobs:
       DATABASE_URL: file:./ci.db
       # Not a secret. A throwaway that satisfies the >=32-character assertion.
       AUTH_SECRET: ci-placeholder-not-a-secret-000000000000
+      # NOT A SECRET, AND NOT USABLE AS ONE. Sixteen repetitions of "c1c1" is a
+      # valid 64-character hex string, so it satisfies the shape assertion in
+      # launch:check's env-encryption-key, and it is transparently a pattern
+      # rather than entropy — nothing here ever encrypts real data.
+      #
+      # It exists for the same reason AUTH_SECRET above does: the gate asserts
+      # that a production deploy has a usable key, and without a value here
+      # every CI run would fail on a P0 that really means "a production secret
+      # has not been set", which is true of CI by design and says nothing about
+      # the diff.
+      APP_DATA_ENCRYPTION_KEY: c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1
     steps:
       - uses: actions/checkout@v4
 
