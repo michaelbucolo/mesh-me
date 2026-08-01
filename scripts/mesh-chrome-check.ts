@@ -11,7 +11,8 @@
  *   4. a column of unseen chip-pairs at bottom-5 left-3
  *   5. an ambient toast at left-1/2 top-32
  *   6. a live-paused pip at bottom-4 left-1/2
- *   7. the continuum handle at bottom-centre
+ *   7. the continuum handle at bottom-centre — since deleted outright rather
+ *      than rehoused, because the tab bar already goes to the Flow
  *
  * Nobody designed that. Each one was a reasonable local decision — a control
  * needed a home, so it got its own floating chip. The scatter is what the user
@@ -257,19 +258,24 @@ const uiFiles = readdirSync(join(ROOT, UI_DIR)).filter((f) => f.endsWith(".tsx")
 // ── 6. Whatever still floats near the tab bar clears it from ONE number ──────
 //
 // The desk is in normal flow (the page scroller handles the tab bar), so the
-// rim chrome never meets it. The continuum handle is the one element on this
-// surface still pinned near the bottom edge; if it clears the bar with a
-// literal height copied out of the nav, the two drift the first time either
-// changes — the exact shape of failure that took production down over
-// schema.prisma vs ensure-schema.sql.
+// rim chrome never meets it. If anything clears the bar with a literal height
+// copied out of the nav, the two drift the first time either changes — the
+// exact shape of failure that took production down over schema.prisma vs
+// ensure-schema.sql.
+//
+// The continuum handle used to be the one element pinned near the bottom edge,
+// and this section proved IT read the token. It is gone: the tab bar already
+// carries Mesh and Flow at every width, so a floating pill for the same journey
+// was a second control for a trip that already had one. Nothing on this surface
+// is pinned to the bottom edge now, so what is left to prove is that the token
+// still exists and that the two things sized from it still read it.
 {
   const css = read("src/app/globals.css");
   if (!/--mobile-nav-h\s*:/.test(css)) {
     fail("6 one number", "--mobile-nav-h is not declared; bottom clearance is a magic number again");
   } else ok();
-  const handleRule = /\.mesh-continuum-handle-down\s*\{([^}]*)\}/.exec(css)?.[1] ?? "";
-  if (!/var\(--mobile-nav-h/.test(handleRule)) {
-    fail("6 one number", ".mesh-continuum-handle-down does not read var(--mobile-nav-h) — it will sit under the tab bar the moment the bar's height changes");
+  if (/mesh-continuum-handle/.test(css)) {
+    fail("6 one number", "a .mesh-continuum-handle rule is back; the tab bar is the way between the Mesh and the Flow");
   } else ok();
   // The HUD's height budget must also stop at the tab bar, from the same
   // one number.

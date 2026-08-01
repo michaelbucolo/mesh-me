@@ -10,7 +10,6 @@ import {
   Bell,
   ChevronDown,
   ChevronRight,
-  ChevronUp,
   Moon,
   Search,
   Settings,
@@ -609,31 +608,18 @@ export function AppShell({ children, user }: AppShellProps) {
         </div>
       </main>
 
-      {/* The Mesh and the Flow are one vertical space. A quiet handle on each
-          dives down into the Flow / rises back up to the Mesh; the route slot
-          animates vertically to match (see data-nav-dir dive/rise). */}
-      {/* The two continuum handles are the only way in and out of the Flow, and
-          they were a translucent `color-mix` pill with `backdrop-filter:
-          blur(10px)` and a hardcoded `0 8px 24px rgba(0,0,0,0.28)`
-          (globals.css:1005-1030) — a banned blur, a hardcoded shadow, no --edge
-          ring and no wall. `.key` supplies all of it; the three declarations that
-          `.key` does not reach (the blur, the pill radius, and the hover
-          `translateY` that made the handle drift under the pointer) are in the
-          CSS this pass hands back. The centering `transform: translateX(-50%)`
-          survives untouched, which is exactly why `.key:active` uses `translate`
-          and never `transform`. */}
-      {isMeshSurface && (
-        <Link href="/flow" className="mesh-continuum-handle mesh-continuum-handle-down key" aria-label="Dive into the Flow">
-          <span>Flow</span>
-          <ChevronDown className="h-3.5 w-3.5" aria-hidden="true" />
-        </Link>
-      )}
-      {isFlowSurface && (
-        <Link href="/mesh" className="mesh-continuum-handle mesh-continuum-handle-up key" aria-label="Back to the Mesh">
-          <ChevronUp className="h-3.5 w-3.5" aria-hidden="true" />
-          <span>Mesh</span>
-        </Link>
-      )}
+      {/* The Mesh and the Flow are still one vertical space, and the route slot
+          still animates vertically between them (see data-nav-dir dive/rise) —
+          that motion keys off the ROUTE CHANGE, so it survives arriving by any
+          means, including the tab bar.
+
+          What is gone is the pair of floating handles that used to sit at the
+          bottom of the Mesh ("Flow ⌄") and the top of the Flow ("⌃ Mesh"). Both
+          surfaces already carry Mesh and Flow in the tab bar, one tap away, so
+          the handles were a second control for a journey that already had one —
+          and the phone had reached that conclusion already, hiding the down
+          handle at max-width 767px because it "duplicated" the tab. Removed on
+          every width for the same reason it was removed on one. */}
 
       <MobileNav username={user.username} unreadMessages={unreadCounts.unreadMessages} unreadNotifications={unreadCounts.unreadNotifications} />
       <CommandPalette username={user.username} />

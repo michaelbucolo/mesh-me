@@ -219,20 +219,75 @@ if (/strokeStyle\s*=\s*withAlpha\(\s*light\b/.test(nodesSrc)) {
       ink: row[2],
     };
   };
-  for (const [table, tokenSet, label] of [
-    ["ATMOSPHERES", LIGHT, ":root"],
-    ["ATMOSPHERES_DARK", DARK, ".dark"],
+  // The ORDER differs per theme because the tokens do. In Daylight --paper-1 is
+  // the lightest of the three and --paper-2 the darkest; under the lamp
+  // --paper-0 is pure black and --paper-2 the lightest. Both tables must run
+  // LIGHTEST FIRST, because paintBackground draws them top-to-bottom and the
+  // file's own rule is that light falls from above. Pinning the dark table to
+  // the light table's order is what put --paper-2 at the bottom and hung a pale
+  // grey wash under the black — see section 7b, which now proves the direction
+  // rather than trusting a hand-written sequence.
+  for (const [table, tokenSet, label, order] of [
+    ["ATMOSPHERES", LIGHT, ":root", ["--paper-1", "--paper-0", "--paper-2"]],
+    ["ATMOSPHERES_DARK", DARK, ".dark", ["--paper-2", "--paper-1", "--paper-0"]],
   ] as const) {
     const got = spec(table);
-    const want = [tokenSet["--paper-1"], tokenSet["--paper-0"], tokenSet["--paper-2"]];
+    const want = order.map((token) => tokenSet[token]);
     got.bg.forEach((stop, i) => {
       if (stop.toLowerCase() !== (want[i] ?? "").toLowerCase()) {
-        fail("7 paper", `${table}.midnight.bg[${i}] is ${stop}; ${label} says it should be ${want[i]}`);
+        fail("7 paper", `${table}.midnight.bg[${i}] is ${stop}; ${label} says it should be ${want[i]} (${order[i]})`);
       } else ok();
     });
     if (got.ink.toLowerCase() !== (tokenSet["--ink-3"] ?? "").toLowerCase()) {
       fail("7 paper", `${table}.midnight.ink is ${got.ink}; ${label} says --ink-3 is ${tokenSet["--ink-3"]}`);
     } else ok();
+  }
+
+  // ── 7b. EVERY paper's wash runs one way: light at the top ──────────────────
+  //
+  // paintBackground fills a vertical linear gradient from bg[0] at the top to
+  // bg[2] at the bottom. If those three do not descend in luminance, the wash
+  // turns around somewhere down the surface and paints a band of lighter
+  // material across the bottom of the mesh — which is what the dark default did
+  // (28 -> 0 -> 44) and what nobody could name except as "a weird white
+  // gradient at the bottom".
+  //
+  // Checked for all ten papers, not just the one that was wrong, and by
+  // measuring rather than by eye: a Pro paper added next year gets the same
+  // guarantee for free.
+  {
+    const lum = (hex: string) => {
+      const m = /^#?([0-9a-f]{6})$/i.exec(hex.trim());
+      if (!m) return null;
+      const n = parseInt(m[1], 16);
+      const ch = (c: number) => {
+        const v = c / 255;
+        return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+      };
+      return 0.2126 * ch((n >> 16) & 255) + 0.7152 * ch((n >> 8) & 255) + 0.0722 * ch(n & 255);
+    };
+    for (const table of ["ATMOSPHERES", "ATMOSPHERES_DARK"] as const) {
+      const block = shared.match(new RegExp(`const ${table}: Record<string, AtmosphereSpec> = \\{([\\s\\S]*?)\\n\\};`));
+      if (!block) throw new Error(`palette-check: no ${table} in paint/papers.ts`);
+      for (const row of block[1].matchAll(/(\w+):\s*\{[^}]*bg:\s*\[([^\]]*)\]/g)) {
+        const id = row[1];
+        const stops = row[2].split(",").map((s) => s.trim().replace(/^"|"$/g, ""));
+        const ls = stops.map(lum);
+        if (ls.some((l) => l === null)) {
+          fail("7b wash", `${table}.${id}.bg has a stop that is not a 6-digit hex`);
+          continue;
+        }
+        const [a, b, c] = ls as number[];
+        if (!(a >= b && b >= c)) {
+          fail(
+            "7b wash",
+            `${table}.${id}.bg is ${stops.join(" -> ")} — luminance ${a.toFixed(3)} -> ${b.toFixed(3)} -> ` +
+              `${c.toFixed(3)} does not descend. paintBackground draws these top to bottom, so a stop that ` +
+              "rises again hangs a lighter band across the bottom of the mesh.",
+          );
+        } else ok();
+      }
+    }
   }
 
   // And the theme has to actually reach the sky. `paintSky` reads

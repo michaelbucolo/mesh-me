@@ -903,11 +903,12 @@ select:focus-visible {
 
 /* Mobile mesh fullscreen: hide dashboard + status, transparent bottom nav */
 @media (max-width: 767px) {
-  /* On phones the mesh already has a Flow tab in the bottom nav and a Create
-     action on the rail; the floating continuum handle and global compose FAB
-     duplicated both AND (being root-level fixed z-50) painted straight through
-     the mesh's own sheets and drawers. Remove them from the phone mesh. */
-  .mesh-shell-mesh .mesh-continuum-handle-down,
+  /* The mesh already has a Create action on the rail; the global compose FAB
+     duplicated it AND (being root-level fixed z-50) painted straight through
+     the mesh's own sheets and drawers. Remove it from the phone mesh. The
+     continuum handles that used to be hidden here are gone outright — the tab
+     bar carries Mesh and Flow at every width, so a second control for the same
+     journey was never earning its place on the desktop either. */
   .mesh-shell-mesh .mobile-compose-fab {
     display: none;
   }
@@ -1114,51 +1115,6 @@ select:focus-visible {
 .mesh-route-slot[data-nav-dir="dive"].animate-page-enter { animation: pageEnterDive 0.42s var(--mesh-ease-out) backwards; }
 .mesh-route-slot[data-nav-dir="rise"].animate-page-enter { animation: pageEnterRise 0.42s var(--mesh-ease-out) backwards; }
 
-/* The handle that bridges the two: a quiet pill that dives into the Flow from
-   the Mesh, or rises back to the Mesh from the Flow. */
-/* THE MESH↔FLOW GRIP.
-   The markup has carried `.key` for a while, but this rule then re-declared
-   `background`, `border`, `box-shadow` and `backdrop-filter` — and because
-   this file is unlayered and comes after, every one of them WON. So the handle
-   said key and was glass: no --edge ring (the WCAG 1.4.11 boundary), no
-   plinth, a banned blur, a hardcoded black shadow. All four are deleted; .key
-   supplies face, edge, mould line, side wall and contact shadow.
-
-   What stays is only what .key does not speak to: the fixed centring, the pill
-   radius (a grip is a pill), the padding and the small type. */
-.mesh-continuum-handle {
-  position: fixed;
-  left: 50%;
-  z-index: 45;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  /* `transform`, NOT `translate` — `.key:active` presses with `translate`, so
-     the two compose instead of one clobbering the other. */
-  transform: translateX(-50%);
-  border-radius: var(--r-md);
-  padding: 0.4rem 0.9rem;
-  font-size: var(--fs-micro);
-  font-weight: 500;
-  letter-spacing: 0.02em;
-  color: var(--text-secondary);
-}
-.mesh-continuum-handle:hover { color: var(--text-primary); }
-/* Clears the mobile tab bar from THE token, not from a third magic number.
-   `5.4rem` was the old literal — a guess at 3.5rem of bar plus a gap, sitting
-   in a file that had no way to know when either moved. */
-.mesh-continuum-handle-down {
-  bottom: calc(var(--mobile-nav-h) + env(safe-area-inset-bottom) + 1.1875rem);
-}
-.mesh-continuum-handle-up { top: calc(0.7rem + env(safe-area-inset-top)); }
-/* The hover `translateY` drift is gone with the glass. A key does not slide
-   toward the pointer; it presses, which `.key:active` already draws — and a
-   control that moves under the cursor is a control you can miss. */
-@media (min-width: 768px) {
-  /* The tab bar is md:hidden, so there is nothing left to clear. Same
-     breakpoint as `.mesh-dock` for the same reason. */
-  .mesh-continuum-handle-down { bottom: 1.35rem; }
-}
 /* Fresh content simply arrives. No sheen is wiped across it — a page that
    announces itself is a page that gets in the way. */
 
