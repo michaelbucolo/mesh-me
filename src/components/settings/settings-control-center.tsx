@@ -24,9 +24,10 @@ import { effectiveProfileVisibility } from "@/lib/profile-visibility";
 import { type Dispatch, type FormEvent, type ReactNode, type SetStateAction, useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
-import { Activity, AlignLeft, AtSign, AudioLines, BadgeCheck, Ban, BarChart3, BellRing, CheckCheck, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, Compass, CreditCard, Crown, Database, EyeOff, Fingerprint, Flame, Ghost, Globe, Hash, IdCard, Info, KeyRound, LayoutGrid, Link as LinkIcon, Lock, LockKeyhole, LogOut, Mail, MailCheck, MapPin, Megaphone, MessageCircle, MessageSquare, Monitor, MonitorSmartphone, Moon, Palette, Phone, PlugZap, RefreshCw, Search, Settings2, ShieldAlert, ShieldCheck, ShieldOff, Sparkles, Smartphone, Sun, Trash2, UserPlus, UserRound, UsersRound, Volume2, WandSparkles, Waypoints, type LucideIcon } from "lucide-react";
+import { Activity, AlignLeft, AtSign, AudioLines, BadgeCheck, Ban, BarChart3, BellRing, CheckCheck, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, Compass, CreditCard, Crown, Database, Droplets, EyeOff, Fingerprint, Flame, Ghost, Globe, Hash, IdCard, Info, KeyRound, LayoutGrid, Link as LinkIcon, Lock, LockKeyhole, LogOut, Mail, MailCheck, MapPin, Megaphone, MessageCircle, MessageSquare, Monitor, MonitorSmartphone, Moon, Palette, Phone, PlugZap, RefreshCw, Search, Settings2, ShieldAlert, ShieldCheck, ShieldOff, Sparkles, Smartphone, Sun, Trash2, UserPlus, UserRound, UsersRound, Volume2, WandSparkles, Waypoints, type LucideIcon } from "lucide-react";
 import { PaperWait } from "@/components/loading/paper-wait";
 import { isSoundEnabled, playSound, setSoundEnabled } from "@/lib/sound";
+import { GLASS_LEVEL_LABELS, useGlassLevel, writeGlassLevel, type GlassLevel } from "@/lib/glass-level";
 import { isVolumeNormalizationEnabled, setVolumeNormalizationEnabled } from "@/lib/audio-normalize";
 import { AnalyticsControls } from "@/components/analytics/analytics-controls";
 import {
@@ -2062,6 +2063,52 @@ function MeshiSection({
   );
 }
 
+/**
+ * The Liquid Glass translucency slider, after iOS 27's.
+ *
+ * Five detents rather than a continuous range, because every level has to be a
+ * value the glass gate can prove legible in advance — CSS cannot read its own
+ * backdrop the way iOS can, so "as clear as you like" is not on offer. The
+ * clearest end sits exactly on the proven floor. That constraint is stated to
+ * the person rather than hidden, since a slider that quietly refuses to go
+ * further is more confusing than one that says why.
+ */
+function GlassLevelControl() {
+  // An external store, not component state — the value lives in localStorage
+  // and the inline script in the root layout has already applied it to the
+  // document by the time this renders. See src/lib/glass-level.ts.
+  const level = useGlassLevel();
+
+  return (
+    <div className="mt-3">
+      <label htmlFor="glass-level" className="text-xs font-semibold text-[var(--text-secondary)]">
+        Liquid Glass
+      </label>
+      <div className="mt-2 flex items-center gap-3">
+        <Droplets className="size-4 shrink-0 text-[var(--text-muted)]" aria-hidden />
+        <input
+          id="glass-level"
+          type="range"
+          min={0}
+          max={4}
+          step={1}
+          value={level}
+          onChange={(event) => writeGlassLevel(Number(event.target.value) as GlassLevel)}
+          aria-valuetext={GLASS_LEVEL_LABELS[level]}
+          className="h-11 min-w-0 flex-1 cursor-pointer accent-[var(--accent)]"
+        />
+        <span className="w-16 shrink-0 text-right text-xs font-semibold text-[var(--text-primary)]">
+          {GLASS_LEVEL_LABELS[level]}
+        </span>
+      </div>
+      <p className="mt-1.5 text-xs text-[var(--text-muted)]">
+        How much of the page shows through toolbars and panels. Saved on this device only.
+        The clearest setting is the clearest that stays readable over any background.
+      </p>
+    </div>
+  );
+}
+
 function AppearanceSection({
   mode,
   setMode,
@@ -2137,6 +2184,7 @@ function AppearanceSection({
             }}
           />
         </div>
+        <GlassLevelControl />
       </SettingsCard>
 
       <form onSubmit={applyCustomTheme}>

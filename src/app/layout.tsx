@@ -182,6 +182,19 @@ const themeInitScript = `
     root.style.colorScheme = resolved;
     root.setAttribute("data-theme", preset);
     applyCustomTheme(root, customTheme);
+
+    // Liquid Glass translucency (iOS 27's Settings > Appearance slider). It
+    // rides along with the theme init rather than mounting its own script,
+    // because it has to land in the same paint the theme does — applying it
+    // later would flash a toolbar at the default translucency and then change
+    // it under the reader, which is precisely the complaint the control exists
+    // to answer. Per-DEVICE, like Apple's, so it is localStorage and not the
+    // account: the right level depends on the screen you are looking at.
+    var storedGlass = localStorage.getItem("mesh-glass-level");
+    var glass = storedGlass === "0" || storedGlass === "1" || storedGlass === "3" || storedGlass === "4"
+      ? storedGlass
+      : "2";
+    root.setAttribute("data-lg", glass);
   } catch (error) {
     document.documentElement.classList.add("dark");
     document.documentElement.style.colorScheme = "dark";

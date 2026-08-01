@@ -628,3 +628,61 @@
   --lg-ink: var(--media-ink);    /* 9.81:1 worst case over any backdrop */
   --lg-ink-2: var(--media-ink-2);/* 5.39:1 worst case over any backdrop */
 }
+
+/* ── THE TRANSLUCENCY SLIDER ─────────────────────────────────────────────────
+   iOS 27 answered a year of Liquid Glass legibility complaints with a control:
+   Settings › Appearance › Liquid Glass, running from ultra-clear to fully
+   tinted, defaulting to the middle. This is that control.
+
+   IT IS FIVE DETENTS RATHER THAN A CONTINUOUS RANGE, AND THAT IS THE WHOLE
+   POINT. Apple can offer a continuous slider because iOS samples the composited
+   backdrop at runtime and adapts around whatever the person picks. CSS cannot
+   read its own backdrop, so every legibility claim here has to come from an
+   opacity floor proven in advance against every backdrop that could exist —
+   which is exactly what scripts/glass-check.ts does. A continuous slider would
+   be a number the gate cannot enumerate, and the first setting past the floor
+   would be an unreadable toolbar that no check ever looked at. Five literal
+   values are five things the gate can prove, and it proves all of them.
+
+   So "ultra clear" here means "as clear as is provably legible", not "as clear
+   as the CSS will go". The clearest step sits ON the floor:
+
+       light  --ink-2      #48484a needs 0.720   step 4 is 0.72 -> 4.60:1
+       dark   --media-ink-2 #b8b8b8 needs 0.775  step 4 is 0.74 with a
+                                                 brighter ink -> 5.36:1
+
+   The dark ground gets its secondary ink brightened on the two clearest steps
+   because #b8b8b8 is what binds it: leaving the ink alone would have capped the
+   dark slider at 0.775 and given it a range of four hundredths, which is not a
+   control, it is a decoration. Lifting the ink is the one form of adaptation
+   available without reading the backdrop, and it buys real range.
+
+   Step 2 is each ground's existing default, so a person who never touches this
+   sees exactly what they saw before. */
+
+:root[data-lg="0"], .light[data-lg="0"] { --lg-alpha: 1;    }
+:root[data-lg="1"], .light[data-lg="1"] { --lg-alpha: 0.93; }
+:root[data-lg="2"], .light[data-lg="2"] { --lg-alpha: 0.86; }
+:root[data-lg="3"], .light[data-lg="3"] { --lg-alpha: 0.79; }
+:root[data-lg="4"], .light[data-lg="4"] { --lg-alpha: 0.72; }
+
+.dark[data-lg="0"] { --lg-alpha: 1;    }
+.dark[data-lg="1"] { --lg-alpha: 0.91; }
+.dark[data-lg="2"] { --lg-alpha: 0.82; }
+.dark[data-lg="3"] { --lg-alpha: 0.78; --lg-ink-2: #c8c8c8; }
+.dark[data-lg="4"] { --lg-alpha: 0.74; --lg-ink-2: #d4d4d4; }
+
+/* INCREASE CONTRAST WINS OUTRIGHT. Apple's own note is that Liquid Glass
+   "can differ in response to certain system settings… like if people choose a
+   preferred look for Liquid Glass… or turn on accessibility settings that
+   reduce transparency or increase contrast." Someone who asked the OS for more
+   contrast is not asking for their choice of translucency to be honoured over
+   it, so the accessibility preference overrides the preference control rather
+   than averaging with it. `Reduce Transparency` is handled separately, in
+   globals.css, by only ever opting INTO blur inside `no-preference`. */
+@media (prefers-contrast: more) {
+  :root, .light, .dark,
+  :root[data-lg], .light[data-lg], .dark[data-lg] {
+    --lg-alpha: 1;
+  }
+}
