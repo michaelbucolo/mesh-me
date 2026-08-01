@@ -220,13 +220,23 @@ addCheck("Routing", "redirect-aliases-in-config", "URL aliases redirect in confi
   return "no redirect-only pages; URL aliases live in next.config";
 });
 
+// The HTTP surface the app genuinely needs. Keep this to endpoints a client
+// actually calls: three entries here — /api/auth/platforms,
+// /api/account/email-verification and /api/feed — were endpoints NOTHING called,
+// so this check was pinning dead code in place and would have failed anyone who
+// tried to remove it. A foundation check that asserts the existence of an
+// unreachable endpoint is enforcing the opposite of a foundation.
+//
+// The first two have no HTTP surface at all by design: the connected-accounts
+// page resolves platforms server-side, and email verification goes through the
+// `requestEmailVerification` server action the settings UI calls directly.
+// The feed's real surface is /api/feed/paginated, which the timeline client
+// fetches for page two onward.
 addCheck("Routing", "api-routes", "Core API routes exist", () => {
   assertFiles([
     "src/app/api/health/route.ts",
     "src/app/api/auth/logout/route.ts",
-    "src/app/api/auth/platforms/route.ts",
-    "src/app/api/account/email-verification/route.ts",
-    "src/app/api/feed/route.ts",
+    "src/app/api/feed/paginated/route.ts",
     "src/app/api/mesh/route.ts",
     "src/app/api/meshi/chat/route.ts",
     "src/app/api/messages/route.ts",
