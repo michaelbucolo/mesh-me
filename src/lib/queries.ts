@@ -335,6 +335,9 @@ export async function getUserProfile(username: string) {
       createdAt: true,
       lastSeenAt: true,
       hideActivityStatus: true,
+      // The one part of the milestone board that is public — and only because
+      // wearing it is a deliberate choice the person made.
+      activeTitle: true,
       interests: {
         select: { id: true, tag: true },
         orderBy: { tag: "asc" },
