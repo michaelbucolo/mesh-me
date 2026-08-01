@@ -37,33 +37,48 @@ Generate the auth secret with:
 openssl rand -hex 32
 ```
 
-## Optional environment variables
+## Connecting accounts: the twelve platforms
+
+Every Connect button on **One Account** is dark until its platform has both
+halves of an OAuth setup. Nothing in the code can supply these — they come from
+each platform's developer console.
+
+**Half 1 — credentials on the deployment.** Set the pair, then redeploy:
+
+| Platform | Client id variable | Secret variable |
+| --- | --- | --- |
+| Instagram | `INSTAGRAM_APP_ID` | `INSTAGRAM_APP_SECRET` |
+| Facebook | `FACEBOOK_APP_ID` | `FACEBOOK_APP_SECRET` |
+| X (Twitter) | `TWITTER_CLIENT_ID` | `TWITTER_CLIENT_SECRET` |
+| Threads | `THREADS_CLIENT_ID` (falls back to `FACEBOOK_APP_ID`) | `THREADS_CLIENT_SECRET` |
+| Snapchat | `SNAPCHAT_CLIENT_ID` | `SNAPCHAT_CLIENT_SECRET` |
+| Reddit | `REDDIT_CLIENT_ID` | `REDDIT_CLIENT_SECRET` |
+| LinkedIn | `LINKEDIN_CLIENT_ID` | `LINKEDIN_CLIENT_SECRET` |
+| Pinterest | `PINTEREST_APP_ID` | `PINTEREST_APP_SECRET` |
+| TikTok | `TIKTOK_CLIENT_KEY` | `TIKTOK_CLIENT_SECRET` |
+| YouTube | `GOOGLE_CLIENT_ID` | `GOOGLE_CLIENT_SECRET` |
+| Twitch | `TWITCH_CLIENT_ID` | `TWITCH_CLIENT_SECRET` |
+| Discord | `DISCORD_CLIENT_ID` | `DISCORD_CLIENT_SECRET` |
+
+**Half 2 — the callback URL registered with the provider.** In each developer
+app, add this exact redirect URI:
+
+```
+https://www.meshs.me/api/auth/<platform>/callback
+```
+
+using the lowercase platform id: `instagram`, `facebook`, `twitter`, `threads`,
+`snapchat`, `reddit`, `linkedin`, `pinterest`, `tiktok`, `youtube`, `twitch`,
+`discord`. It is compared byte for byte — a trailing slash, `http` instead of
+`https`, or a missing `www` is a rejected login.
+
+Both halves are per platform and independent: configuring Discord alone makes
+Discord connectable and changes nothing else. One Account lists the exact
+missing variable names per platform, so it always says what is left to do.
+
+## Other optional environment variables
 
 ```env
-GOOGLE_CLIENT_ID=""
-GOOGLE_CLIENT_SECRET=""
-GITHUB_OAUTH_CLIENT_ID=""
-GITHUB_OAUTH_CLIENT_SECRET=""
-DISCORD_CLIENT_ID=""
-DISCORD_CLIENT_SECRET=""
-SPOTIFY_CLIENT_ID=""
-SPOTIFY_CLIENT_SECRET=""
-TWITTER_CLIENT_ID=""
-TWITTER_CLIENT_SECRET=""
-TWITCH_CLIENT_ID=""
-TWITCH_CLIENT_SECRET=""
-FACEBOOK_APP_ID=""
-FACEBOOK_APP_SECRET=""
-LINKEDIN_CLIENT_ID=""
-LINKEDIN_CLIENT_SECRET=""
-REDDIT_CLIENT_ID=""
-REDDIT_CLIENT_SECRET=""
-TIKTOK_CLIENT_KEY=""
-TIKTOK_CLIENT_SECRET=""
-PINTEREST_APP_ID=""
-PINTEREST_APP_SECRET=""
-SNAPCHAT_CLIENT_ID=""
-SNAPCHAT_CLIENT_SECRET=""
 STRIPE_SECRET_KEY=""
 STRIPE_PUBLISHABLE_KEY=""
 STRIPE_WEBHOOK_SECRET=""

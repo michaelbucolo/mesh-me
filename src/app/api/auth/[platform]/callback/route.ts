@@ -20,6 +20,44 @@ import { cookies } from "next/headers";
 import { timingSafeEqual } from "crypto";
 import { clearMeshCache } from "@/lib/mesh-cache";
 
+/**
+ * The provider's own account of why the token exchange failed, in a form safe
+ * to put in a URL a user can see.
+ *
+ * Reads ONLY the two fields RFC 6749 §5.2 defines (`error`, `error_description`),
+ * collapses whitespace, and caps the length. A provider that returns HTML or
+ * nothing useful degrades to the HTTP status rather than pasting a page into a
+ * query string. `redirect_uri_mismatch` is expanded, because it is the failure
+ * a first-time setup actually hits and the fix is not obvious from the code.
+ */
+async function describeTokenFailure(response: Response): Promise<string> {
+  const raw = await response.text().catch(() => "");
+  let code = "";
+  let description = "";
+  try {
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    if (typeof parsed.error === "string") code = parsed.error;
+    else if (parsed.error && typeof parsed.error === "object") {
+      const nested = parsed.error as Record<string, unknown>;
+      if (typeof nested.message === "string") description = nested.message;
+    }
+    if (typeof parsed.error_description === "string") description = parsed.error_description;
+    else if (typeof parsed.message === "string" && !description) description = parsed.message;
+  } catch {
+    // Not JSON — the status line is more useful than a page of markup.
+  }
+
+  const clean = (value: string) => value.replace(/\s+/g, " ").trim().slice(0, 200);
+  const parts = [clean(code), clean(description)].filter(Boolean);
+  if (parts.length === 0) return `The provider returned HTTP ${response.status}.`;
+
+  const summary = parts.join(": ");
+  if (/redirect_uri/i.test(summary)) {
+    return `${summary} — the redirect URI registered in the provider's developer app must exactly match this deployment's callback URL.`;
+  }
+  return summary;
+}
+
 function safeStateEquals(storedState: string, incomingState: string) {
   if (storedState.length > 256 || incomingState.length > 256) return false;
   const stored = Buffer.from(storedState);
@@ -136,8 +174,23 @@ export async function GET(
     });
 
     if (!tokenResponse.ok) {
+      // SAY WHAT THE PROVIDER SAID.
+      //
+      // This used to report only "Failed to authenticate with X" for every
+      // possible cause, which made the most common real failure — a callback
+      // URL registered in the provider's developer app that does not match
+      // getCallbackUrl() byte for byte — indistinguishable from a wrong secret,
+      // an unapproved scope, or an expired code. Someone setting mesh.me up saw
+      // one sentence and had nothing to act on.
+      //
+      // OAuth 2.0 (RFC 6749 §5.2) requires the provider to return `error` and
+      // optionally `error_description`, and those two fields are exactly what
+      // identifies the problem. Only those two are read, they are truncated,
+      // and nothing from our side of the exchange is echoed — mesh.me's own
+      // client secret is in the REQUEST, never in the response body.
+      const detail = await describeTokenFailure(tokenResponse);
       return NextResponse.redirect(
-        `${connectedAccountsUrl}?error=${encodeURIComponent("Failed to authenticate with " + config.name)}&platform=${encodedPlatform}`
+        `${connectedAccountsUrl}?error=${encodeURIComponent(`Failed to authenticate with ${config.name}. ${detail}`)}&platform=${encodedPlatform}`
       );
     }
 
