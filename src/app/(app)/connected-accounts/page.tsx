@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { ConnectedAccountsClient } from "./connected-accounts-client";
-import { PublicSupplyStatus } from "./public-supply-status";
+import { browsableCount, getSupplyNotes } from "./public-supply-status";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getConnectedAccountsDashboard } from "@/lib/connected-accounts";
@@ -64,28 +64,27 @@ export default async function ConnectedAccountsPage({
     (id) => !connectedIds.has(id) && dashboard.supportedPlatforms.some((platform) => platform.id === id),
   );
 
+  // `supplyNotes` is what each platform can supply BEFORE you connect it,
+  // resolved here from the public-supply registry. The short label rides on
+  // that platform's tile and the full reason opens with it, so "Instagram needs
+  // connecting, and here is why" arrives while you are looking at Instagram —
+  // not as a wall of policy above the grid that nobody reads before they have
+  // picked anything to care about.
   return (
-    <div className="grid gap-6">
-      {/* Answered BEFORE the connect buttons, deliberately. This page's whole
-          job is deciding what to link, and the most useful fact is that
-          several platforms need no linking at all — while a few cannot be read
-          without it, however much anyone wishes otherwise. Someone who learns
-          that here decides in seconds; someone who finds out by connecting an
-          account they never needed has been wasted. */}
-      <PublicSupplyStatus />
-      <ConnectedAccountsClient
-        initialDashboard={dashboard}
-        mergeCenter={mergeCenter}
-        initialPersonas={personas}
-        identity={{
-          username: user.username,
-          displayName: user.displayName,
-          avatarUrl: user.avatarUrl ?? null,
-        }}
-        justConnectedPlatform={justConnectedPlatform}
-        connectError={connectError}
-        preselectPlatforms={preselectPlatforms}
-      />
-    </div>
+    <ConnectedAccountsClient
+      initialDashboard={dashboard}
+      mergeCenter={mergeCenter}
+      initialPersonas={personas}
+      identity={{
+        username: user.username,
+        displayName: user.displayName,
+        avatarUrl: user.avatarUrl ?? null,
+      }}
+      supplyNotes={getSupplyNotes()}
+      browsableCount={browsableCount()}
+      justConnectedPlatform={justConnectedPlatform}
+      connectError={connectError}
+      preselectPlatforms={preselectPlatforms}
+    />
   );
 }

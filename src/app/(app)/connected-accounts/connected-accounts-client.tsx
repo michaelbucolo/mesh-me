@@ -1,40 +1,24 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { readableInkOn } from "@/lib/readable-ink";
-import {
-  AlertCircle,
-  CheckCircle2,
-  ChevronDown,
-  Combine,
-  Info,
-  KeyRound,
-  PauseCircle,
-  PlayCircle,
-  PlugZap,
-  RefreshCw,
-  Search,
-  ShieldCheck,
-  Trash2,
-  X,
-} from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { AlertCircle, CheckCircle2, Combine, Info, RefreshCw, ShieldCheck, X } from "lucide-react";
+import { Avatar } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { Input } from "@/components/ui/input";
-import { cn, formatCount } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import type {
   ConnectedAccountView,
   ConnectedAccountsDashboard,
   SupportedPlatformView,
 } from "@/lib/connected-accounts";
-import type { PlatformAdapterCategory, PlatformAdapterCapabilityKey } from "@/lib/platform-adapters";
+import { PlatformGrid, type PlatformTile, type TileState } from "@/components/accounts/platform-grid";
+import { PlatformSheet } from "@/components/accounts/platform-sheet";
 import { OneMeshHub, type HubAccount } from "@/components/accounts/one-mesh-hub";
 import { foldPersonaIntoMainIdentity } from "@/lib/one-account-actions";
 import { AccountMergePanel } from "./account-merge-panel";
+import type { SupplyNote } from "./public-supply-status";
 import type { AccountMergeCenter } from "@/lib/account-merge";
 
 /** A separate identity (alter ego) that can be folded into the one account. */
@@ -51,90 +35,43 @@ type ActionState = {
   message: string;
 } | null;
 
-const categoryLabels: Record<PlatformAdapterCategory | "all", string> = {
-  all: "All",
-  social: "Social",
-  video: "Video",
-  messaging: "Messaging",
-  creator: "Creator",
-  music: "Music",
-  community: "Community",
-  portfolio: "Portfolio",
+// The real brand fills. These eighteen colours are not ours — #1db954 is
+// Spotify's green whether it suits the palette or not.
+//
+// They are a TINT SOURCE, and only that: the halo behind a merged platform's
+// tile, and the thread colour in the One Mesh. Nothing sets text on them, which
+// is deliberate — the page used to render each platform as a monogram disc in
+// its brand colour, and white-on-brand measured 2.59:1 on Spotify, 3.21:1 on
+// SoundCloud, 3.44:1 on Reddit. Real drawn marks carry their own contrasting
+// ink inside the mark, so the question of what ink survives on the fill does
+// not arise.
+const platformBrands: Record<string, { bg: string }> = {
+  github: { bg: "#24292e" },
+  linkedin: { bg: "#0077b5" },
+  medium: { bg: "#292929" },
+  spotify: { bg: "#1db954" },
+  twitter: { bg: "#0f1419" },
+  x: { bg: "#0f1419" },
+  youtube: { bg: "#ff0000" },
+  tiktok: { bg: "#010101" },
+  instagram: { bg: "#e4405f" },
+  discord: { bg: "#5865f2" },
+  twitch: { bg: "#9146ff" },
+  facebook: { bg: "#1877f2" },
+  snapchat: { bg: "#fffc00" },
+  reddit: { bg: "#ff4500" },
+  pinterest: { bg: "#e60023" },
+  soundcloud: { bg: "#ff5500" },
+  bluesky: { bg: "#0085ff" },
+  threads: { bg: "#101010" },
 };
 
-const capabilityLabels: Record<PlatformAdapterCapabilityKey, string> = {
-  profile: "Profile",
-  content: "Content",
-  messages: "Messages",
-  notifications: "Alerts",
-  analytics: "Analytics",
-  posting: "Post",
-  actions: "Actions",
-};
-
-// Clean, consistent brand monograms. Kept to plain text (no OS symbol glyphs
-// like ♫/▶/𝕏, which render inconsistently and can flip to emoji) so every
-// platform avatar reads uniformly on every device.
-// The `fg` override is gone: the ink is derived from the fill now, so Snapchat is
-// not a special case and the next platform added cannot arrive without one.
-const platformBrands: Record<string, { glyph: string; bg: string }> = {
-  github: { glyph: "GH", bg: "#24292e" },
-  linkedin: { glyph: "in", bg: "#0077b5" },
-  medium: { glyph: "M", bg: "#292929" },
-  spotify: { glyph: "SP", bg: "#1db954" },
-  twitter: { glyph: "X", bg: "#0f1419" },
-  x: { glyph: "X", bg: "#0f1419" },
-  youtube: { glyph: "YT", bg: "#ff0000" },
-  tiktok: { glyph: "TT", bg: "#010101" },
-  instagram: { glyph: "IG", bg: "#e4405f" },
-  discord: { glyph: "DC", bg: "#5865f2" },
-  twitch: { glyph: "TW", bg: "#9146ff" },
-  facebook: { glyph: "FB", bg: "#1877f2" },
-  snapchat: { glyph: "SN", bg: "#fffc00" },
-  reddit: { glyph: "r/", bg: "#ff4500" },
-  pinterest: { glyph: "PI", bg: "#e60023" },
-  soundcloud: { glyph: "SC", bg: "#ff5500" },
-  bluesky: { glyph: "BS", bg: "#0085ff" },
-  threads: { glyph: "@", bg: "#101010" },
-};
-
-function PlatformAvatar({ platform, name, size = "md" }: { platform: string; name: string; size?: "md" | "lg" }) {
-  const brand = platformBrands[platform.toLowerCase()];
-  const dimensions = size === "lg" ? "h-12 w-12 text-base" : "h-10 w-10 text-sm";
-  return (
-    <div
-      aria-hidden="true"
-      className={cn("flex shrink-0 items-center justify-center rounded-full font-semibold", dimensions)}
-      style={{
-        backgroundColor: brand?.bg ?? "var(--accent-subtle)",
-        color: brand ? readableInkOn(brand.bg) : "var(--accent)",
-      }}
-    >
-      {brand?.glyph ?? (name.trim().charAt(0).toUpperCase() || "M")}
-    </div>
-  );
+function tintFor(platform: string): string {
+  return platformBrands[platform.toLowerCase()]?.bg ?? "#7c8cf8";
 }
 
-function formatDate(value: string | null) {
-  if (!value) return "Never";
-  return new Intl.DateTimeFormat("en", {
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  }).format(new Date(value));
-}
-
-function statusVariant(account: ConnectedAccountView): "success" | "warning" | "danger" | "secondary" {
-  if (account.health === "ready") return "success";
-  if (account.health === "manual") return "secondary";
-  // Retired is neutral, not red. Mesh.me stopped offering the platform; the
-  // person did nothing wrong and nothing is failing. Danger styling here would
-  // read as "your account is broken" for a state that is purely our decision.
-  if (account.health === "retired") return "secondary";
-  if (account.health === "paused") return "warning";
-  return "danger";
-}
+/** Which states count as "the platform is in and working". */
+const HEALTHY = new Set(["ready", "manual"]);
 
 async function requestDashboard(path: string, init?: RequestInit) {
   const response = await fetch(path, {
@@ -199,331 +136,13 @@ function Toast({ state, onDismiss }: { state: ActionState; onDismiss: () => void
   );
 }
 
-function AccountCard({
-  account,
-  busyKey,
-  onSync,
-  onToggleActive,
-  onDisconnect,
-}: {
-  account: ConnectedAccountView;
-  busyKey: string | null;
-  onSync: (account: ConnectedAccountView) => void;
-  onToggleActive: (account: ConnectedAccountView) => void;
-  onDisconnect: (account: ConnectedAccountView) => void;
-}) {
-  const isBusy = busyKey?.endsWith(account.id) ?? false;
-  const canSync = Boolean(account.adapter?.canSync && account.hasCredential && account.isActive);
-  const needsReconnect = account.authType === "oauth" && account.health === "needs_reconnect";
-  // "Granted" means the PROVIDER told us it granted this scope. When a provider
-  // returns no scope field the OAuth callback falls back to what we requested,
-  // and this card used to count those too — so a user who unticked a scope on
-  // the consent screen was still shown it as granted. Only provider-confirmed
-  // scopes are counted; the rest are reported as requested, which is the true
-  // statement we can make about them.
-  const confirmedCount = account.permissions.filter(
-    (permission) => permission.state === "granted" && permission.source === "oauth_scope",
-  ).length;
-  const assumedCount = account.permissions.filter(
-    (permission) => permission.state === "granted" && permission.source !== "oauth_scope",
-  ).length;
-  const countItems: [string, number][] = [
-    ["Posts", account.counts.posts],
-    ["Comments", account.counts.comments],
-    ["Followers", account.counts.followers],
-    ["Media", account.counts.media],
-  ];
-
-  return (
-    <div className="connected-account-card overflow-hidden rounded-[var(--ds-radius-lg)] border border-[var(--ds-border)] bg-[var(--ds-surface)] transition-colors hover:border-[var(--accent)]/40">
-      <div className="flex items-center gap-3 p-4">
-        <PlatformAvatar platform={account.platform} name={account.platformName} size="lg" />
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <p className="truncate text-base font-semibold text-[var(--text-primary)]">{account.platformName}</p>
-            <Badge variant={statusVariant(account)}>{account.healthLabel}</Badge>
-          </div>
-          <p className="truncate text-sm text-[var(--text-secondary)]">
-            {account.platformUsername ? `@${account.platformUsername}` : account.accountLabel || "Connected"}
-          </p>
-        </div>
-        {needsReconnect && account.adapter?.connectHref ? (
-          <Link
-            href={account.adapter.connectHref}
-            prefetch={false}
-            className={cn(buttonVariants({ size: "sm" }), "shrink-0")}
-          >
-            <PlugZap className="h-4 w-4" aria-hidden="true" />
-            Reconnect
-          </Link>
-        ) : account.authType === "manual" || account.health === "retired" ? (
-          /* No Sync control for a public reference: manual accounts carry no
-             credential, so the button could only ever render disabled — dead
-             chrome promising an import that cannot happen. The Details panel
-             states what a reference does instead.
-
-             A retired platform is the same shape for a different reason: there
-             is no adapter left to sync it, so canSync is false and the button
-             could only render disabled. Named explicitly rather than relying on
-             its authType falling back to "manual", which is not true of an
-             account that really was connected over OAuth. */
-          null
-        ) : (
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            className="shrink-0"
-            loading={busyKey === `sync-${account.id}`}
-            disabled={!canSync || isBusy}
-            onClick={() => onSync(account)}
-          >
-            <RefreshCw className="h-4 w-4" aria-hidden="true" />
-            Sync
-          </Button>
-        )}
-      </div>
-
-      {account.health === "retired" && (
-        <div className="mx-4 mb-3 flex items-start gap-2 rounded-[var(--ds-radius-md)] border border-[var(--ds-border)] bg-[var(--bg-primary)]/55 px-3 py-2 text-xs leading-5">
-          <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--text-muted)]" aria-hidden="true" />
-          <span className="text-[var(--text-secondary)]">
-            Mesh.me no longer supports {account.platformName}, so this connection has stopped
-            syncing. Anything it already brought in stays on your mesh. Disconnect it whenever
-            you like — that also deletes the stored tokens.
-          </span>
-        </div>
-      )}
-
-      {(account.syncError || needsReconnect) && (
-        <div className="mx-4 mb-3 flex items-start gap-2 rounded-[var(--ds-radius-md)] border border-[var(--ds-warning-border,var(--ds-border))] bg-[var(--bg-primary)]/55 px-3 py-2 text-xs leading-5">
-          <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--ds-warning)]" aria-hidden="true" />
-          <span className={account.syncError ? "text-[var(--ds-danger)]" : "text-[var(--ds-warning)]"}>
-            {account.syncError ?? "Reconnect this account to keep it syncing."}
-          </span>
-        </div>
-      )}
-
-      <details className="group border-t border-[var(--ds-border)]">
-        <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-4 py-2.5 text-xs font-semibold text-[var(--text-muted)] transition-colors hover:text-[var(--text-secondary)]">
-          <span className="inline-flex items-center gap-1.5">
-            <KeyRound className="h-3.5 w-3.5" aria-hidden="true" />
-            Details
-          </span>
-          <ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180" aria-hidden="true" />
-        </summary>
-        <div className="grid gap-3 border-t border-[var(--ds-border)] px-4 py-3">
-          <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-[var(--text-muted)]">
-            <span>
-              {confirmedCount > 0
-                ? `${confirmedCount} permission${confirmedCount === 1 ? "" : "s"} granted`
-                : `${assumedCount} permission${assumedCount === 1 ? "" : "s"} requested`}
-              {confirmedCount > 0 && assumedCount > 0
-                ? ` · ${assumedCount} requested`
-                : ""}
-            </span>
-            {/* "Last synced never" on a reference that can never sync reads as a
-                fault. A reference states when it was added instead. */}
-            <span>
-              {account.authType === "manual"
-                ? `Added ${formatDate(account.createdAt)}`
-                : `Last synced ${formatDate(account.lastSyncAt)}`}
-            </span>
-          </div>
-
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-            {countItems.map(([label, value]) => (
-              <div key={label} className="rounded-[var(--ds-radius-sm)] bg-[var(--bg-primary)]/55 px-3 py-2">
-                <p className="text-micro font-semibold mesh-eyebrow text-[var(--text-muted)]">{label}</p>
-                <p className="mt-0.5 text-sm font-semibold text-[var(--text-primary)]">{formatCount(Number(value))}</p>
-              </div>
-            ))}
-          </div>
-
-          {account.permissions.length > 0 && (
-            <div className="grid gap-1.5">
-              {account.permissions.map((permission) => (
-                <div key={`${account.id}-${permission.key}`} className="flex items-start justify-between gap-3 rounded-[var(--ds-radius-sm)] bg-[var(--bg-primary)]/55 px-3 py-2">
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold text-[var(--text-primary)]">{permission.label}</p>
-                    <p className="text-xs leading-5 text-[var(--text-secondary)]">{permission.description}</p>
-                  </div>
-                  <Badge variant={permission.state === "granted" ? "success" : "outline"}>{permission.state}</Badge>
-                </div>
-              ))}
-            </div>
-          )}
-
-          <div className="flex flex-wrap items-center gap-2 text-xs text-[var(--text-muted)]">
-            <span>{account.authType === "oauth" ? "Secured with OAuth — Mesh.me never sees your password." : "Public reference only — no login shared."}</span>
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            {account.authType === "oauth" && account.adapter?.connectHref && !needsReconnect && (
-              <Link
-                href={account.adapter.connectHref}
-                prefetch={false}
-                className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
-              >
-                <RefreshCw className="h-4 w-4" aria-hidden="true" />
-                Refresh access
-              </Link>
-            )}
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              loading={busyKey === `toggle-${account.id}`}
-              disabled={isBusy}
-              onClick={() => onToggleActive(account)}
-            >
-              {account.isActive ? <PauseCircle className="h-4 w-4" aria-hidden="true" /> : <PlayCircle className="h-4 w-4" aria-hidden="true" />}
-              {account.isActive ? "Pause syncing" : "Resume syncing"}
-            </Button>
-            <Button
-              type="button"
-              variant="danger"
-              size="sm"
-              loading={busyKey === `delete-${account.id}`}
-              disabled={isBusy}
-              onClick={() => onDisconnect(account)}
-            >
-              <Trash2 className="h-4 w-4" aria-hidden="true" />
-              Disconnect
-            </Button>
-          </div>
-        </div>
-      </details>
-    </div>
-  );
-}
-
-function PlatformCard({
-  platform,
-  busyKey,
-  onConnectManual,
-}: {
-  platform: SupportedPlatformView;
-  busyKey: string | null;
-  onConnectManual: (platform: SupportedPlatformView, username: string) => Promise<boolean>;
-}) {
-  const [handleOpen, setHandleOpen] = useState(false);
-  const [handle, setHandle] = useState("");
-  const inputRef = useRef<HTMLInputElement>(null);
-  const enabledCapabilities = Object.entries(platform.capabilities)
-    .filter(([, enabled]) => enabled)
-    .map(([key]) => key as PlatformAdapterCapabilityKey);
-  const isOauth = platform.authType === "oauth";
-  const canConnect = isOauth ? platform.configured && Boolean(platform.connectHref) : true;
-
-  useEffect(() => {
-    if (handleOpen) inputRef.current?.focus();
-  }, [handleOpen]);
-
-  async function submitHandle(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const added = await onConnectManual(platform, handle);
-    if (added) {
-      setHandle("");
-      setHandleOpen(false);
-    }
-  }
-
-  return (
-    <div
-      className={cn(
-        "flex h-full flex-col gap-3 rounded-[var(--ds-radius-lg)] border border-[var(--ds-border)] bg-[var(--ds-surface)] p-4 transition-colors",
-        canConnect ? "hover:border-[var(--accent)]/40" : "opacity-70",
-      )}
-    >
-      <div className="flex items-center gap-3">
-        <PlatformAvatar platform={platform.id} name={platform.name} />
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <p className="truncate text-sm font-semibold text-[var(--text-primary)]">{platform.name}</p>
-            {platform.activeCount > 0 && <Badge variant="success">Connected</Badge>}
-            {/* "Coming soon" was a promise nobody scheduled. The card is inert
-                because this deployment lacks the provider credentials — say
-                that, and hand the owner the exact switch below. */}
-            {!canConnect && <Badge variant="outline">Needs setup</Badge>}
-          </div>
-          <p className="text-xs text-[var(--text-muted)]">
-            {categoryLabels[platform.category]} · {isOauth ? "Platform sign-in" : "Public handle"}
-          </p>
-        </div>
-        {canConnect && !handleOpen && (
-          isOauth && platform.connectHref ? (
-            <Link href={platform.connectHref} prefetch={false} className={cn(buttonVariants({ size: "sm", variant: "outline" }), "shrink-0")}>
-              <PlugZap className="h-4 w-4" aria-hidden="true" />
-              {platform.activeCount > 0 ? "Add another" : "Connect"}
-            </Link>
-          ) : (
-            <Button type="button" size="sm" variant="outline" className="shrink-0" onClick={() => setHandleOpen(true)}>
-              <PlugZap className="h-4 w-4" aria-hidden="true" />
-              {platform.activeCount > 0 ? "Link another" : "Link profile"}
-            </Button>
-          )
-        )}
-      </div>
-
-      {!canConnect && platform.missingEnv.length > 0 && (
-        <details className="group rounded-[var(--ds-radius-md)] bg-[var(--bg-primary)]/55 px-3 py-2">
-          <summary className="flex cursor-pointer list-none items-center justify-between gap-2 text-xs font-semibold text-[var(--text-muted)] transition-colors hover:text-[var(--text-secondary)]">
-            <span>Setup — enable {platform.name}</span>
-            <ChevronDown className="h-3.5 w-3.5 transition-transform group-open:rotate-180" aria-hidden="true" />
-          </summary>
-          <div className="mt-2 grid gap-1.5 text-xs leading-5 text-[var(--text-secondary)]">
-            <p>
-              Create a {platform.name} developer app, then add these environment variables to the
-              deployment and redeploy:
-            </p>
-            <ul className="grid gap-1">
-              {platform.missingEnv.map((name) => (
-                <li key={name}>
-                  <code className="rounded bg-[var(--ds-surface)] px-1.5 py-0.5 font-mono text-[0.6875rem] text-[var(--text-primary)]">{name}</code>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </details>
-      )}
-
-      {handleOpen && (
-        <form onSubmit={submitHandle} className="flex items-center gap-2">
-          <Input
-            ref={inputRef}
-            value={handle}
-            onChange={(event) => setHandle(event.target.value)}
-            placeholder="@username"
-            autoComplete="off"
-            aria-label={`${platform.name} username`}
-            className="flex-1"
-          />
-          <Button type="submit" size="sm" loading={busyKey === `manual-${platform.id}`} disabled={!handle.trim()}>
-            Link
-          </Button>
-          <Button type="button" size="sm" variant="ghost" onClick={() => setHandleOpen(false)} aria-label="Cancel">
-            <X className="h-4 w-4" aria-hidden="true" />
-          </Button>
-        </form>
-      )}
-
-      <p className="text-xs leading-5 text-[var(--text-secondary)]">{platform.notes}</p>
-
-      <div className="mt-auto flex flex-wrap gap-1.5">
-        {enabledCapabilities.length > 0 ? enabledCapabilities.map((key) => (
-          <Badge key={key} variant="accent">{capabilityLabels[key]}</Badge>
-        )) : <Badge variant="outline">Profile only</Badge>}
-      </div>
-    </div>
-  );
-}
-
 export function ConnectedAccountsClient({
   initialDashboard,
   mergeCenter,
   initialPersonas = [],
   identity,
+  supplyNotes = {},
+  browsableCount = 0,
   justConnectedPlatform = null,
   connectError = null,
   preselectPlatforms = [],
@@ -533,6 +152,10 @@ export function ConnectedAccountsClient({
   mergeCenter: AccountMergeCenter;
   initialPersonas?: PersonaView[];
   identity: { username: string; displayName: string; avatarUrl: string | null };
+  /** What each platform supplies without connecting, keyed by platform id. */
+  supplyNotes?: Record<string, SupplyNote>;
+  /** How many platforms feed the Flow with nothing linked at all. */
+  browsableCount?: number;
   /** Platform id just connected via OAuth this visit (from ?connected=). */
   justConnectedPlatform?: string | null;
   /** OAuth failure message this visit (from ?error=). */
@@ -543,34 +166,111 @@ export function ConnectedAccountsClient({
 }) {
   const [dashboard, setDashboard] = useState(initialDashboard);
   const [personas, setPersonas] = useState(initialPersonas);
-  // The just-connected account stays lit in the One Mesh for a beat after you
-  // return from OAuth, then settles into the orbit with the rest.
+  // The just-connected account stays lit for a beat after you return from
+  // OAuth, then settles in with the rest.
   const [justConnected, setJustConnected] = useState<string | null>(justConnectedPlatform);
-
-  // Each connected account, resolved to its brand monogram, for the One Mesh hub.
-  const hubAccounts = useMemo<HubAccount[]>(
-    () =>
-      dashboard.accounts.map((account) => {
-        const brand = platformBrands[account.platform.toLowerCase()];
-        return {
-          id: account.id,
-          platform: account.platform,
-          name: account.platformName,
-          glyph: brand?.glyph ?? (account.platformName.trim().charAt(0).toUpperCase() || "M"),
-          bg: brand?.bg ?? "var(--accent)",
-          fg: brand ? readableInkOn(brand.bg) : undefined,
-          synced: account.isActive && account.hasCredential && account.health === "ready",
-        };
-      }),
-    [dashboard.accounts],
-  );
+  const [openPlatformId, setOpenPlatformId] = useState<string | null>(null);
   const [actionState, setActionState] = useState<ActionState>(null);
   const dismissToast = useCallback(() => setActionState(null), []);
   const [busyKey, setBusyKey] = useState<string | null>(null);
   const [disconnecting, setDisconnecting] = useState<ConnectedAccountView | null>(null);
-  const [query, setQuery] = useState("");
-  const [category, setCategory] = useState<PlatformAdapterCategory | "all">("all");
   const refreshAttemptedRef = useRef(false);
+
+  // Each connected account, resolved to its brand tint, for the One Mesh hub.
+  const hubAccounts = useMemo<HubAccount[]>(
+    () =>
+      dashboard.accounts.map((account) => ({
+        id: account.id,
+        platform: account.platform,
+        name: account.platformName,
+        tint: tintFor(account.platform),
+        synced: account.isActive && account.hasCredential && account.health === "ready",
+      })),
+    [dashboard.accounts],
+  );
+
+  // Connections grouped by platform — the grid is one tile per PLATFORM, and a
+  // platform can carry more than one account.
+  const accountsByPlatform = useMemo(() => {
+    const map = new Map<string, ConnectedAccountView[]>();
+    for (const account of dashboard.accounts) {
+      const key = account.platform.toLowerCase();
+      const list = map.get(key);
+      if (list) list.push(account);
+      else map.set(key, [account]);
+    }
+    return map;
+  }, [dashboard.accounts]);
+
+  const tiles = useMemo<PlatformTile[]>(() => {
+    const rank: Record<TileState, number> = { merged: 0, attention: 1, open: 2, locked: 3 };
+    const preselectRank = new Map(preselectPlatforms.map((id, index) => [id, index] as const));
+
+    const built = dashboard.supportedPlatforms.map((platform) => {
+      const accounts = accountsByPlatform.get(platform.id) ?? [];
+      const canConnect = platform.authType !== "oauth" || (platform.configured && Boolean(platform.connectHref));
+      const note = supplyNotes[platform.id] ?? null;
+
+      let state: TileState;
+      let caption: string;
+
+      if (accounts.length > 0 && accounts.every((account) => !HEALTHY.has(account.health))) {
+        // Every connection on this platform is in a state the user has to do
+        // something about. Worth its own colour: a tile that reads "merged"
+        // while nothing has synced for a month is the page lying quietly.
+        state = "attention";
+        caption = accounts[0].healthLabel;
+      } else if (accounts.length > 0) {
+        state = "merged";
+        const healthy = accounts.filter((account) => HEALTHY.has(account.health));
+        caption =
+          accounts.length > 1
+            ? `${accounts.length} accounts`
+            : healthy[0]?.platformUsername
+              ? `@${healthy[0].platformUsername}`
+              : "Merged";
+      } else if (!canConnect) {
+        state = "locked";
+        caption = "Needs setup";
+      } else {
+        state = "open";
+        // The registry's own researched label. "Browse freely" under an
+        // unmerged logo is the most useful thing this page can say about that
+        // platform: you do not have to connect it to see it.
+        caption = note?.label ?? "Tap to connect";
+      }
+
+      return {
+        tile: {
+          id: platform.id,
+          name: platform.name,
+          tint: tintFor(platform.id),
+          state,
+          caption,
+          connectHref: state === "open" ? platform.connectHref : null,
+        } satisfies PlatformTile,
+        // Onboarding picks sort ahead of the other unconnected platforms: the
+        // ones the user just said they use should not be hunted for.
+        preselect: preselectRank.get(platform.id) ?? Number.MAX_SAFE_INTEGER,
+        name: platform.name,
+      };
+    });
+
+    built.sort((a, b) => {
+      const byState = rank[a.tile.state] - rank[b.tile.state];
+      if (byState !== 0) return byState;
+      if (a.preselect !== b.preselect) return a.preselect - b.preselect;
+      return a.name.localeCompare(b.name);
+    });
+
+    return built.map((entry) => entry.tile);
+  }, [accountsByPlatform, dashboard.supportedPlatforms, preselectPlatforms, supplyNotes]);
+
+  const openPlatform = useMemo<SupportedPlatformView | null>(
+    () => dashboard.supportedPlatforms.find((platform) => platform.id === openPlatformId) ?? null,
+    [dashboard.supportedPlatforms, openPlatformId],
+  );
+
   const hasRefreshableAccounts = useMemo(
     () => dashboard.accounts.some((account) => (
       account.health === "needs_reconnect" && account.hasRefreshToken
@@ -602,14 +302,13 @@ export function ConnectedAccountsClient({
 
   // Returning from an OAuth connect: the callback redirects here with
   // ?connected=<platform> on success or ?error=…&platform on failure. Surface
-  // it (a toast + the just-connected node threading into the One Mesh), then
-  // scrub the query so a refresh doesn't replay it.
+  // it, then scrub the query so a refresh doesn't replay it.
   useEffect(() => {
     if (justConnectedPlatform) {
       const name =
         initialDashboard.supportedPlatforms.find((platform) => platform.id === justConnectedPlatform)?.name ??
         justConnectedPlatform.charAt(0).toUpperCase() + justConnectedPlatform.slice(1);
-      setActionState({ type: "success", message: `${name} connected to your one account.` });
+      setActionState({ type: "success", message: `${name} merged into your one account.` });
     } else if (connectError) {
       setActionState({ type: "error", message: connectError });
     }
@@ -626,37 +325,12 @@ export function ConnectedAccountsClient({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Let the new account settle into the ring after its arrival flourish.
+  // Let the new platform settle after its arrival flourish.
   useEffect(() => {
     if (!justConnected) return;
     const timer = setTimeout(() => setJustConnected(null), 6000);
     return () => clearTimeout(timer);
   }, [justConnected]);
-
-  const filteredPlatforms = useMemo(() => {
-    const normalizedQuery = query.trim().toLowerCase();
-    const matches = dashboard.supportedPlatforms.filter((platform) => {
-      const matchesCategory = category === "all" || platform.category === category;
-      const matchesQuery = !normalizedQuery
-        || platform.name.toLowerCase().includes(normalizedQuery)
-        || platform.id.toLowerCase().includes(normalizedQuery)
-        || platform.category.toLowerCase().includes(normalizedQuery);
-      return matchesCategory && matchesQuery;
-    });
-    // Onboarding picks float to the front of the grid: the platforms the
-    // user just said they use should not be hunted for among seventeen tiles.
-    if (preselectPlatforms.length > 0) {
-      const rank = new Map(preselectPlatforms.map((id, index) => [id, index] as [string, number]));
-      matches.sort((a, b) => (rank.get(a.id) ?? rank.size) - (rank.get(b.id) ?? rank.size));
-    }
-    return matches;
-  }, [category, dashboard.supportedPlatforms, query, preselectPlatforms]);
-
-  const categories = useMemo(() => {
-    const values = new Set<PlatformAdapterCategory>();
-    for (const platform of dashboard.supportedPlatforms) values.add(platform.category);
-    return Array.from(values).sort();
-  }, [dashboard.supportedPlatforms]);
 
   async function refreshDashboard() {
     setBusyKey("refresh");
@@ -666,32 +340,6 @@ export function ConnectedAccountsClient({
       setActionState({ type: "success", message: "Connected accounts refreshed." });
     } catch (error) {
       setActionState({ type: "error", message: error instanceof Error ? error.message : "Refresh failed" });
-    } finally {
-      setBusyKey(null);
-    }
-  }
-
-  async function connectManualAccount(platform: SupportedPlatformView, username: string) {
-    setBusyKey(`manual-${platform.id}`);
-    try {
-      const result = await requestDashboard("/api/connected-accounts", {
-        method: "POST",
-        body: JSON.stringify({
-          platform: platform.id,
-          username,
-          accountLabel: "",
-        }),
-      });
-      if ("dashboard" in result && result.dashboard) setDashboard(result.dashboard);
-      else {
-        const refreshed = await requestDashboard("/api/connected-accounts");
-        setDashboard(refreshed as ConnectedAccountsDashboard);
-      }
-      setActionState({ type: "success", message: `${platform.name} linked.` });
-      return true;
-    } catch (error) {
-      setActionState({ type: "error", message: error instanceof Error ? error.message : "Could not connect account" });
-      return false;
     } finally {
       setBusyKey(null);
     }
@@ -764,41 +412,76 @@ export function ConnectedAccountsClient({
     }
   }
 
+  const mergedCount = tiles.filter((tile) => tile.state === "merged").length;
+
   return (
-    <main data-testid="connected-accounts-center" className="ds-page-shell animate-page-enter grid gap-6">
-      {/* The topbar states "One Account — every platform and account,
-          threading back to one you." This header used to restate both at
-          36px. What survives is the one line the topbar does not carry — the
-          API-honesty promise — and the refresh action. */}
-      <header className="flex flex-wrap items-center justify-between gap-3">
-        <p className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--text-muted)]">
-          <ShieldCheck className="h-4 w-4 text-[var(--accent-text)]" aria-hidden="true" />
-          Official APIs only · disconnect anytime
+    /* `grid-cols-[minmax(0,1fr)]`, not a bare `grid`. A single IMPLICIT column
+       is sized `auto`, which never shrinks below the min-content width of its
+       widest child — so the one-line header (min-content = the whole sentence
+       plus the button, 393px) widened the column past the 338px content box on
+       a 375px phone, and the page shell's own clipping hid it: the document
+       reported scrollWidth 370 of 375, no overflow, while Refresh was cut off
+       the screen. `minmax(0, 1fr)` caps the column at the container. */
+    <main
+      data-testid="connected-accounts-center"
+      className="ds-page-shell animate-page-enter grid grid-cols-[minmax(0,1fr)] gap-6"
+    >
+      {/* One line, and it stays one line. This wrapped on a phone — a promise
+          and a button stacked into two rows of chrome above a page whose whole
+          point is the grid underneath. */}
+      <header className="flex items-center justify-between gap-3">
+        <p className="inline-flex min-w-0 items-center gap-1.5 text-xs font-semibold text-[var(--text-muted)]">
+          <ShieldCheck className="size-4 shrink-0 text-[var(--accent-text)]" aria-hidden="true" />
+          {/* `min-w-0` on BOTH the row and the text. The text is a flex item of
+              an inline-flex parent, so its automatic minimum size is its
+              min-content width — and `truncate` sets `white-space: nowrap`,
+              which makes that the whole sentence. Without this the row cannot
+              shrink and the Refresh button is clipped off a 375px screen while
+              the document reports no overflow at all, because the shell clips
+              it. Measured: header 393px inside a 338px content box. */}
+          <span className="min-w-0 truncate">Official APIs only · disconnect anytime</span>
         </p>
-        <Button type="button" variant="secondary" loading={busyKey === "refresh"} onClick={refreshDashboard}>
-          <RefreshCw className="h-4 w-4" aria-hidden="true" />
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          className="shrink-0"
+          loading={busyKey === "refresh"}
+          onClick={refreshDashboard}
+        >
+          <RefreshCw className="size-4" aria-hidden="true" />
           Refresh
         </Button>
       </header>
 
-      {/* The One Mesh — your mesh.me identity at the center, every connected
-          account threading home to it. */}
-      <section className="grid gap-4 rounded-[var(--ds-radius-lg)] border border-[var(--ds-border)] bg-[var(--ds-surface)] p-5 sm:p-6">
+      {/* The One Mesh — your mesh.me identity at the center, every merged
+          platform threading home to it. */}
+      <section className="grid gap-3 rounded-[var(--ds-radius-lg)] border border-[var(--ds-border)] bg-[var(--ds-surface)] p-4 sm:p-5">
         <OneMeshHub identity={identity} accounts={hubAccounts} justConnectedPlatform={justConnected} />
-        <p className="mx-auto max-w-md text-center text-sm leading-6 text-[var(--text-secondary)]">
-          {hubAccounts.length > 0 ? (
-            <>
-              Every platform you connect threads back to one identity —{" "}
-              <span className="font-semibold text-[var(--text-primary)]">@{identity.username}</span>. Synced
-              accounts stream their content home.
-            </>
-          ) : (
-            "This is your one mesh.me account. Connect a platform below and watch it thread into your mesh."
-          )}
+        <p className="mx-auto max-w-sm text-center text-sm leading-6 text-[var(--text-secondary)]">
+          {hubAccounts.length > 0
+            ? "Every platform you merge threads back to this one identity."
+            : "This is your one mesh.me account. Tap a logo below and watch it thread in."}
         </p>
       </section>
 
-      <AccountMergePanel center={mergeCenter} identity={{ username: identity.username }} />
+      <section className="grid gap-3">
+        <div>
+          <h2 className="text-xl font-semibold">
+            {mergedCount > 0 ? `${mergedCount} merged` : "Merge your platforms"}
+          </h2>
+          {/* The one fact worth knowing BEFORE you have picked a platform: some
+              of these need no connection at all. The per-platform reason rides
+              on the tile and opens with it. */}
+          {browsableCount > 0 && (
+            <p className="text-sm text-[var(--text-secondary)]">
+              {browsableCount} feed your Flow with nothing connected — linking is for interacting.
+            </p>
+          )}
+        </div>
+
+        <PlatformGrid tiles={tiles} justConnected={justConnected} onOpen={setOpenPlatformId} />
+      </section>
 
       {personas.length > 0 && (
         <section className="grid gap-3 rounded-[var(--ds-radius-lg)] border border-[var(--accent)]/30 bg-[var(--accent-subtle)] p-5">
@@ -814,7 +497,7 @@ export function ConnectedAccountsClient({
                 key={persona.id}
                 className="flex items-center gap-3 rounded-[var(--ds-radius-md)] border border-[var(--ds-border)] bg-[var(--ds-surface)] p-3"
               >
-                <PlatformAvatar platform="mesh" name={persona.displayName || persona.username} />
+                <Avatar src={persona.avatarUrl} alt={persona.displayName || persona.username} size="md" />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-semibold text-[var(--text-primary)]">@{persona.username}</p>
                   <p className="truncate text-xs text-[var(--text-muted)]">
@@ -836,124 +519,18 @@ export function ConnectedAccountsClient({
         </section>
       )}
 
-      {dashboard.accounts.length > 0 && (
-        <section className="grid gap-3">
-          <div>
-            <h2 className="text-xl font-semibold">Your connections</h2>
-            <p className="text-sm text-[var(--text-secondary)]">
-              {dashboard.summary.active} of {dashboard.summary.connected} syncing
-              {dashboard.summary.syncErrors > 0 && ` · ${dashboard.summary.syncErrors} need${dashboard.summary.syncErrors === 1 ? "s" : ""} attention`}
-            </p>
-          </div>
-          <div className="grid gap-3 lg:grid-cols-2">
-            {dashboard.accounts.map((account, idx) => (
-              <motion.div
-                key={account.id}
-                initial={{ opacity: 0, y: 14 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.32, delay: Math.min(idx * 0.06, 0.4), ease: [0.16, 1, 0.3, 1] }}
-              >
-                <AccountCard
-                  account={account}
-                  busyKey={busyKey}
-                  onSync={syncAccount}
-                  onToggleActive={toggleActive}
-                  onDisconnect={setDisconnecting}
-                />
-              </motion.div>
-            ))}
-          </div>
-        </section>
-      )}
+      <AccountMergePanel center={mergeCenter} identity={{ username: identity.username }} />
 
-      <section className="grid gap-3">
-        <div>
-          <h2 className="text-xl font-semibold">{dashboard.accounts.length > 0 ? "Add more platforms" : "Connect your first platform"}</h2>
-          <p className="text-sm text-[var(--text-secondary)]">
-            One-tap connect where platforms support it, or link a public handle for the rest.
-          </p>
-        </div>
-
-        {/* When no OAuth provider is configured, every marquee platform card is
-            inert — and without this line the page reads as "nothing connects".
-            The state must be said once, plainly, not inferred from a wall of
-            badges. */}
-        {dashboard.summary.oauthReady === 0 && (
-          <div className="flex items-start gap-2 rounded-[var(--ds-radius-md)] border border-[var(--ds-border)] bg-[var(--ds-surface)] px-3.5 py-3 text-sm leading-6 text-[var(--text-secondary)]">
-            <AlertCircle className="mt-1 h-4 w-4 shrink-0 text-[var(--text-muted)]" aria-hidden="true" />
-            <span>
-              Platform sign-in isn&apos;t set up on this deployment yet, so one-tap connections are
-              unavailable. You can still link public profiles — they appear on your mesh and profile.
-              Each unavailable platform lists the credentials that enable it under{" "}
-              <span className="font-semibold text-[var(--text-primary)]">Setup</span>.
-            </span>
-          </div>
-        )}
-
-        <div className="flex flex-col gap-3">
-          <Input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search platforms"
-            leftAddon={<Search className="h-4 w-4" aria-hidden="true" />}
-            className="sm:max-w-xs"
-          />
-          <div className="flex flex-wrap gap-2" role="tablist" aria-label="Platform categories">
-            {(["all", ...categories] as (PlatformAdapterCategory | "all")[]).map((value) => (
-              <button
-                key={value}
-                type="button"
-                role="tab"
-                aria-selected={category === value}
-                onClick={() => setCategory(value)}
-                className={cn(
-                  "ds-focus-ring rounded-full border px-3.5 py-1.5 text-sm font-semibold transition-colors",
-                  category === value
-                    ? "border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-contrast,#fff)]"
-                    : "border-[var(--ds-border)] bg-[var(--ds-surface)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]",
-                )}
-              >
-                {categoryLabels[value]}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {preselectPlatforms.length > 0 && (
-          <p className="text-sm text-[var(--text-secondary)]">
-            The platforms you picked during onboarding are first below — connect them and your
-            content starts flowing in on its own.
-          </p>
-        )}
-
-        {filteredPlatforms.length > 0 ? (
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-            <AnimatePresence mode="popLayout">
-              {filteredPlatforms.map((platform, idx) => (
-                <motion.div
-                  key={platform.id}
-                  initial={{ opacity: 0, scale: 0.96 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.96 }}
-                  transition={{ duration: 0.28, delay: Math.min(idx * 0.035, 0.4), ease: [0.16, 1, 0.3, 1] }}
-                  layout
-                >
-                  <PlatformCard
-                    platform={platform}
-                    busyKey={busyKey}
-                    onConnectManual={connectManualAccount}
-                  />
-                </motion.div>
-              ))}
-            </AnimatePresence>
-          </div>
-        ) : (
-          <div className="rounded-[var(--ds-radius-md)] border border-dashed border-[var(--ds-border)] bg-[var(--ds-surface)] px-5 py-8 text-center">
-            <Search className="mx-auto h-8 w-8 text-[var(--text-muted)]" aria-hidden="true" />
-            <p className="mt-3 text-sm text-[var(--text-secondary)]">No platforms match your search. Try a different name or category.</p>
-          </div>
-        )}
-      </section>
+      <PlatformSheet
+        platform={openPlatform}
+        accounts={openPlatformId ? accountsByPlatform.get(openPlatformId) ?? [] : []}
+        supplyNote={openPlatformId ? supplyNotes[openPlatformId] ?? null : null}
+        busyKey={busyKey}
+        onClose={() => setOpenPlatformId(null)}
+        onSync={syncAccount}
+        onToggleActive={toggleActive}
+        onDisconnect={setDisconnecting}
+      />
 
       <ConfirmDialog
         open={disconnecting !== null}

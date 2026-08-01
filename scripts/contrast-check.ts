@@ -644,18 +644,26 @@ for (const [theme, tokens] of [["Daylight", DAYLIGHT], ["Lamplight", LAMPLIGHT]]
   checks += 1;
 }
 
-// 11f. EVERY PLATFORM BRAND FILL CAN CARRY A LEGIBLE GLYPH.
+// 11f. NO TEXT MAY SIT ON A PLATFORM BRAND FILL.
 //
 // These eighteen colours are not ours — #1db954 is Spotify's green whether it
-// suits the palette or not. The component defaulted every glyph to white and
-// carried one hand-written override, for Snapchat, whose yellow made the problem
-// impossible to miss. The other seventeen were decided by whoever noticed:
-// Spotify measured 2.59:1, SoundCloud 3.21:1, Reddit 3.44:1.
+// suits the palette or not. The connect page used to render each platform as a
+// monogram disc in its brand colour, and the component defaulted every glyph to
+// white with one hand-written override, for Snapchat, whose yellow made the
+// problem impossible to miss. The other seventeen were decided by whoever
+// noticed: Spotify measured 2.59:1, SoundCloud 3.21:1, Reddit 3.44:1.
 //
-// `readableInkOn` derives the ink instead of listing exceptions. This reads the
-// brand map FROM ITS OWN SOURCE and checks the derived ink on each fill, so
-// adding a platform whose colour cannot carry either black or white fails the
-// build rather than shipping a glyph nobody can read.
+// THE MONOGRAMS ARE GONE. Tiles are the real drawn marks now, each carrying its
+// own contrasting ink inside the artwork, and the brand fills survive only as a
+// TINT — the halo behind a merged tile and the thread colour in the One Mesh.
+// Nothing sets text on them.
+//
+// Which is why the old assertion here (`the glyph must derive its ink via
+// readableInkOn`) is not merely obsolete — kept, it would demand that a
+// component come back. What is worth gating is the property that replaced it:
+// the map still parses, and it stays a fill-only table. `fg`, or a `glyph`
+// beside a `bg`, is the shape that had text on brand colour, and re-adding
+// either is how the 2.59:1 disc returns.
 {
   const clientSrc = readFileSync(
     join(ROOT, "src/app/(app)/connected-accounts/connected-accounts-client.tsx"),
@@ -682,18 +690,26 @@ for (const [theme, tokens] of [["Daylight", DAYLIGHT], ["Lamplight", LAMPLIGHT]]
   // to prove it worked, and it passed — because nothing can make it fail. It is
   // recorded here so nobody adds it back believing it does something.
   //
-  // The rule that ACTUALLY broke is that the component stopped deriving the ink and
-  // hardcoded one. That is what this checks.
-  const glyphInk = /color:\s*brand\s*\?\s*readableInkOn\(brand\.bg\)/;
+  // The rule that ACTUALLY broke is that a brand fill became a ground under
+  // text. The map is fill-only now; keep it that way.
+  assert.ok(
+    !/\bfg\s*:/.test(mapBody) && !/\bglyph\s*:/.test(mapBody),
+    "the platform brand map carries an `fg` or a `glyph` again.\n" +
+      "  Both only exist to draw a letter on a brand colour, which is the shape that shipped\n" +
+      "  white on Spotify green at 2.59:1, SoundCloud at 3.21:1 and Reddit at 3.44:1, with one\n" +
+      "  hand-written exception for the yellow that was impossible to miss.\n" +
+      "  Platform tiles are real drawn marks now — the ink is inside the artwork. These fills\n" +
+      "  are a tint (halo, thread) and nothing sets text on them.",
+  );
+  checks += 1;
+  // And the map must be typed as fill-only, so the next platform cannot arrive
+  // carrying an ink at all.
+  const declaration = clientSrc.slice(mapStart, clientSrc.indexOf("= {", mapStart));
   assert.match(
-    clientSrc,
-    glyphInk,
-    "the platform glyph no longer derives its ink from the brand fill.\n" +
-      "  It used to read `brand.fg ?? \"#ffffff\"`, with exactly one hand-written override —\n" +
-      "  Snapchat, whose yellow made the problem impossible to miss. The other seventeen were\n" +
-      "  whatever white happened to give: Spotify 2.59:1, SoundCloud 3.21:1, Reddit 3.44:1.\n" +
-      "  Use readableInkOn(fill). A list of exceptions is wrong in the one way that matters —\n" +
-      "  the next platform added gets the default, and nobody measures the default.",
+    declaration,
+    /Record<string,\s*\{\s*bg:\s*string\s*\}>/,
+    "the brand map's type admits more than a fill. Declare it `Record<string, { bg: string }>`\n" +
+      "  so an ink cannot be added to an entry without this failing first.",
   );
   // And the derivation itself has to still pick the better of the two. This was
   // a regex over readable-ink.ts's source — which tested the SPELLING of the

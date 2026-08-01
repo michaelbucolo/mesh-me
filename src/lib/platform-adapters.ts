@@ -8,7 +8,13 @@ import {
 } from "@/lib/oauth";
 import { getPlatformCapability, getPlatformMessagingCapability, normalizePlatformId } from "@/lib/platform-capabilities";
 
-export type PlatformAdapterCategory =
+// No longer exported: the connect page grouped twelve platforms behind a row of
+// category tabs, and the tabs were the only importer. Twelve logos fit on one
+// screen — filtering a set you can already see whole is a control that costs a
+// tap and returns nothing. The field stays on the adapter (it is a true fact
+// about a platform, and a future surface may sort by it); only the tab row and
+// its import are gone.
+type PlatformAdapterCategory =
   | "social"
   | "video"
   | "messaging"

@@ -2,15 +2,15 @@
 
 import { motion, useReducedMotion } from "framer-motion";
 import { Avatar } from "@/components/ui/avatar";
+import { PlatformLogo } from "@/components/platform/platform-logo";
 
-/** One connected account, pre-resolved to its brand monogram by the caller. */
+/** One connected account orbiting the identity at the centre. */
 export type HubAccount = {
   id: string;
   platform: string;
   name: string;
-  glyph: string;
-  bg: string;
-  fg?: string;
+  /** Brand fill — the thread and ring tint. Never a ground under text. */
+  tint: string;
   /** Live + syncing — draws the energy stream flowing into your one account. */
   synced: boolean;
 };
@@ -38,7 +38,12 @@ function ringPositions(count: number): { x: number; y: number; angle: number }[]
  * connected account orbiting it, each tied back by a living string. Synced
  * accounts stream little sparks of energy inward, so the whole picture reads as
  * "all of these are one account." Falls back to a calm static layout under
- * reduced-motion. All hand-drawn — brand monograms, never platform logos/emoji.
+ * reduced-motion.
+ *
+ * The satellites were brand MONOGRAMS — "IG", "YT", "TT" on a coloured disc —
+ * which is a picture of a spreadsheet, not of your accounts. They are the real
+ * marks now, the same ones the grid and the mesh canvas draw, so the ring is
+ * legible at a glance and matches what you tapped to get here.
  */
 export function OneMeshHub({
   identity,
@@ -63,8 +68,14 @@ export function OneMeshHub({
       .slice(0, 2)
       .join("") || identity.username.charAt(0) || "M").toUpperCase();
 
+  // SIZED FOR WHAT IT SHOWS, NOT FOR HOW IMPORTANT IT FEELS.
+  //
+  // This was a 26rem square. With two accounts on it that is most of a phone
+  // screen spent on a diagram with two dots in it, and the logo grid — the part
+  // of the page you came to use — started below the fold. The ring is a crown
+  // on the grid, not a stage; it gets the space a crown needs.
   return (
-    <div className="relative mx-auto aspect-square w-full max-w-[26rem]">
+    <div className="relative mx-auto aspect-square w-full max-w-[15rem] sm:max-w-[18rem]">
       {/* The whole satellite ring — strings, pulses and nodes — breathes gently
           once it has assembled, so the mesh reads as alive rather than static. */}
       <motion.div
@@ -100,8 +111,11 @@ export function OneMeshHub({
               y1={pos.y}
               x2="50"
               y2="50"
-              stroke="var(--accent)"
-              strokeOpacity={isNew ? 0.9 : acct.synced ? 0.5 : 0.22}
+              /* Each thread carries its platform's own colour, so the ring
+                 reads as several distinct services arriving at one identity
+                 rather than one service drawn several times. */
+              stroke={acct.tint}
+              strokeOpacity={isNew ? 0.9 : acct.synced ? 0.55 : 0.28}
               strokeWidth={isNew ? 1 : acct.synced ? 0.7 : 0.5}
               strokeLinecap="round"
             />
@@ -118,7 +132,7 @@ export function OneMeshHub({
                 y1={pos.y}
                 x2="50"
                 y2="50"
-                stroke={acct.synced ? "var(--mesh-cyan)" : "var(--accent)"}
+                stroke={acct.synced ? acct.tint : "var(--accent)"}
                 strokeWidth={acct.synced ? 1 : 0.7}
                 strokeLinecap="round"
                 pathLength={1}
@@ -181,17 +195,18 @@ export function OneMeshHub({
                 : { duration: 0.6, delay: reduce ? 0 : 0.15 + i * 0.07, ease: [0.16, 1, 0.3, 1] }
             }
           >
+            {/* No name under the node any more. The mark IS the name, and at
+                twelve accounts the labels overlapped each other into an
+                unreadable band around the ring. The accessible name rides on
+                the mark, and the grid below spells every platform out. */}
             <span
-              className={`flex h-11 w-11 items-center justify-center rounded-full text-sm font-semibold shadow-sm ${
-                isNew ? "ring-2 ring-[var(--accent)]" : "ring-2 ring-[var(--ds-surface)]"
+              className={`flex size-8 items-center justify-center rounded-full bg-[var(--ds-surface)] sm:size-10 ${
+                isNew ? "ring-2 ring-[var(--accent)]" : ""
               }`}
-              style={{ backgroundColor: acct.bg, color: acct.fg ?? "#ffffff" }}
+              style={{ boxShadow: `0 0 0 1px ${acct.tint}66, 0 1px 4px rgb(0 0 0 / 0.22)` }}
               title={acct.name}
             >
-              {acct.glyph}
-            </span>
-            <span className={`max-w-[5rem] truncate text-micro font-semibold ${isNew ? "text-[var(--accent-text)]" : "text-[var(--text-muted)]"}`}>
-              {acct.name}
+              <PlatformLogo platform={acct.platform} size={28} className="h-auto w-[72%]" />
             </span>
           </motion.div>
         );
@@ -206,12 +221,12 @@ export function OneMeshHub({
         transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
       >
         <div
-          className="relative flex h-20 w-20 items-center justify-center rounded-full border-2 border-[var(--accent)] bg-[var(--ds-surface)] shadow-[0_0_22px_2px_color-mix(in_srgb,var(--accent)_24%,transparent)]"
+          className="relative flex size-16 items-center justify-center rounded-full border-2 border-[var(--accent)] bg-[var(--ds-surface)] shadow-[0_0_22px_2px_color-mix(in_srgb,var(--accent)_24%,transparent)] sm:size-20"
         >
           {identity.avatarUrl ? (
-            <Avatar src={identity.avatarUrl} alt={identity.username} size="lg" />
+            <Avatar src={identity.avatarUrl} alt={identity.username} size="md" />
           ) : (
-            <span className="flex h-16 w-16 items-center justify-center rounded-full bg-[var(--accent)]/15 text-xl font-semibold text-[var(--accent-text)]">
+            <span className="flex size-12 items-center justify-center rounded-full bg-[var(--accent)]/15 text-lg font-semibold text-[var(--accent-text)] sm:size-16 sm:text-xl">
               {initials}
             </span>
           )}
