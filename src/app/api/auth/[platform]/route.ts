@@ -1,6 +1,13 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
-import { OAUTH_CONFIGS, getCallbackUrl, generatePKCE, getOAuthClientId, isPlatformOAuth } from "@/lib/oauth";
+import {
+  OAUTH_CONFIGS,
+  getCallbackUrl,
+  generatePKCE,
+  getOAuthClientId,
+  getOAuthMissingEnv,
+  isPlatformOAuth,
+} from "@/lib/oauth";
 import { cookies } from "next/headers";
 import { randomBytes } from "crypto";
 
@@ -27,15 +34,33 @@ export async function GET(
   }
 
   const config = OAUTH_CONFIGS[platform];
-  const clientId = getOAuthClientId(config);
 
-  if (!clientId) {
-    connectedAccountsUrl.searchParams.set("error", `OAuth not configured for ${config.name}`);
+  // BOTH halves, checked BEFORE anyone is sent to the provider.
+  //
+  // This used to test only the client id. A deployment with the id set and the
+  // secret missing therefore passed here, walked the user all the way to the
+  // provider's consent screen, had them approve — and only then failed, in the
+  // callback, where the secret is finally needed for the token exchange. The
+  // user granted real access to their account and got an error for it.
+  //
+  // getOAuthMissingEnv is the same function One Account renders its "Needs
+  // setup" checklist from, so the button, this route, and the page can no
+  // longer disagree about whether a platform is ready.
+  const missingEnv = getOAuthMissingEnv(config);
+  if (missingEnv.length > 0) {
+    connectedAccountsUrl.searchParams.set(
+      "error",
+      `${config.name} is not configured on this deployment yet. Set ${missingEnv.join(" and ")}, then redeploy.`,
+    );
     connectedAccountsUrl.searchParams.set("platform", platform);
     return NextResponse.redirect(
       connectedAccountsUrl
     );
   }
+
+  // Non-null by construction: missingEnv above is empty, which means both
+  // halves resolved.
+  const clientId = getOAuthClientId(config) as string;
 
   const useSecureCookiePrefix = process.env.NODE_ENV === "production";
   const oauthStateCookie = `${useSecureCookiePrefix ? "__Host-" : ""}oauth_state_${platform}`;
