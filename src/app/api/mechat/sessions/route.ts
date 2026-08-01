@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { canReuseRoom, findReusableRoom, participantKey } from "@/lib/mechat/room-identity";
 import { isSameOriginRequest, readJsonObject } from "@/lib/request-guard";
 import { rateLimit } from "@/lib/security";
 
@@ -85,13 +86,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
 
-  // Each created session can notify up to 24 invitees, so cap creation per
-  // user to keep the endpoint from becoming a notification-spam vector.
-  const rl = rateLimit(`mechat-session-create:${user.id}`, 10, 10 * 60 * 1000);
-  if (!rl.allowed) {
-    return NextResponse.json({ error: "Too many rooms created. Please try again later." }, { status: 429 });
-  }
-
   const body = await readJsonObject(req);
   const title = cleanText(body.title, "Shared browsing room", 80);
   const sessionType = cleanText(body.sessionType, "co_browse", 32);
@@ -141,6 +135,51 @@ export async function POST(req: NextRequest) {
     if (blockExists) {
       return NextResponse.json({ error: "One or more invited people cannot join this room." }, { status: 403 });
     }
+  }
+
+  // ── RETURN THE ROOM THEY ARE ALREADY IN, RATHER THAN MAKING ANOTHER ───────
+  //
+  // The rule itself lives in @/lib/mechat/room-identity, as one pure function
+  // with a gate on it. This is only the fetch. The `where` clause deliberately
+  // repeats two of that function's conditions — `callMode` and not-`ended` —
+  // because `take: 20` is a budget, and twenty abandoned rooms would otherwise
+  // crowd the live one out of the candidate list before anything got to judge
+  // it. The function remains the authority; the query is just not wasting the
+  // window on rows it already knows cannot win.
+  const roomRequest = {
+    wantedKey: participantKey([user.id, ...participantIds]),
+    sessionType,
+    callMode,
+    itemCount: rawItems.length,
+  };
+  if (canReuseRoom(roomRequest)) {
+    const candidates = await prisma.meChatSession.findMany({
+      where: {
+        sessionType,
+        callMode: "none",
+        status: { not: "ended" },
+        participants: { some: { userId: user.id } },
+      },
+      include: SESSION_INCLUDE,
+      orderBy: { updatedAt: "desc" },
+      take: 20,
+    });
+    const existing = findReusableRoom(candidates, roomRequest);
+    if (existing) {
+      // 200, not 201 — nothing was created, and a caller that cannot tell the
+      // difference is a caller that cannot be tested.
+      return NextResponse.json({ session: existing }, { status: 200 });
+    }
+  }
+
+  // Each created session can notify up to 24 invitees, so cap creation per
+  // user to keep the endpoint from becoming a notification-spam vector. This
+  // runs only on the path that actually creates: re-opening a room you are
+  // already in is not the behaviour this limit exists to stop, and counting it
+  // was how one person pressing one button ten times locked themselves out.
+  const rl = rateLimit(`mechat-session-create:${user.id}`, 10, 10 * 60 * 1000);
+  if (!rl.allowed) {
+    return NextResponse.json({ error: "Too many rooms created. Please try again later." }, { status: 429 });
   }
 
   const session = await prisma.$transaction(async (tx) => {
