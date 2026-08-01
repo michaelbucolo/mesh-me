@@ -70,7 +70,8 @@
     "meshi-occlusion:check": "node --import tsx scripts/meshi-occlusion-check.ts",
     "meshi-marks:check": "node --import tsx scripts/meshi-marks-check.ts",
     "component-glass:check": "node --import tsx scripts/component-glass-check.ts",
-    "platform-logo:check": "node --import tsx scripts/platform-logo-check.ts"
+    "platform-logo:check": "node --import tsx scripts/platform-logo-check.ts",
+    "viewport:sweep": "node scripts/viewport-sweep.mjs"
   },
   "dependencies": {
     "@capacitor/app": "^8.1.0",
