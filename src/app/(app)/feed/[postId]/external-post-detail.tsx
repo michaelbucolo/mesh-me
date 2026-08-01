@@ -3,25 +3,16 @@ import { ArrowLeft, BadgeCheck, Bookmark, ExternalLink, Heart, MessageCircle, Re
 import { Avatar } from "@/components/ui/avatar";
 import { NativeAspectMedia } from "@/components/ui/native-aspect-media";
 import type { FeedCardPost } from "@/lib/feed-data";
+import { getDisplayNameForAnyPlatform } from "@/lib/platform-capabilities";
 import { formatCount, formatRelativeTime, safeHref } from "@/lib/utils";
 import { getVideoEmbedUrl } from "@/lib/video-embed";
 
-const PLATFORM_LABEL: Record<string, string> = {
-  youtube: "YouTube",
-  instagram: "Instagram",
-  tiktok: "TikTok",
-  twitter: "X",
-  x: "X",
-  reddit: "Reddit",
-  facebook: "Facebook",
-  snapchat: "Snapchat",
-  twitch: "Twitch",
-  github: "GitHub",
-};
-
 function platformLabel(platform?: string) {
+  // The local ten-entry copy of this table is gone; lib/platform-capabilities
+  // holds the one that every surface reads (and it already normalizes "x" to
+  // "twitter", which is what the storage key actually is).
   if (!platform) return "its source";
-  return PLATFORM_LABEL[platform.toLowerCase()] ?? platform.charAt(0).toUpperCase() + platform.slice(1);
+  return getDisplayNameForAnyPlatform(platform);
 }
 
 /**

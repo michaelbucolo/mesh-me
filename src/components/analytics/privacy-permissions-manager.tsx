@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { Eye, KeyRound, ShieldCheck } from "lucide-react";
 import { PaperWait } from "@/components/loading/paper-wait";
+import { getDisplayNameForAnyPlatform } from "@/lib/platform-capabilities";
 
 type ConnectedAnalyticsAccount = {
   id: string;
@@ -112,7 +113,7 @@ export function PrivacyPermissionsManager({ accounts }: { accounts: ConnectedAna
               <div key={account.id} className="mesh-panel rounded-2xl p-4">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
-                    <p className="text-sm font-semibold capitalize text-[var(--text-primary)]">{account.platform}</p>
+                    <p className="text-sm font-semibold text-[var(--text-primary)]">{getDisplayNameForAnyPlatform(account.platform)}</p>
                     <p className="text-xs text-[var(--text-muted)]">{account.platformUsername || "No username"}</p>
                   </div>
                   {/* Both of this panel's controls are toggles that only ever

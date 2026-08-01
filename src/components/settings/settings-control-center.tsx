@@ -44,6 +44,7 @@ import { broadcastGhostMode, GHOST_EVENT, readGhostMode } from "@/lib/ghost-mode
 import { broadcastWhereShare, readWhereShare, WHERE_SHARE_EVENT } from "@/lib/where-share";
 import { MESH_PAPERS } from "@/components/mesh/paint/papers";
 import { isFreeMeshiOption } from "@/lib/mesh-pro";
+import { getDisplayNameForAnyPlatform } from "@/lib/platform-capabilities";
 
 /* TOYBOX — the two moulded plastics this surface uses.
    `.key-lit` (globals.css:4996) reads a PINNED TRIPLE off the element: face, ink
@@ -1071,8 +1072,8 @@ function ProfileSection({
             </div>
             <div className="mt-2 flex flex-wrap gap-1.5">
               {settings.connectedAccounts.length > 0 ? settings.connectedAccounts.map((account) => (
-                <span key={account.id} className="rounded-full border border-[var(--border-primary)] bg-[var(--bg-secondary)] px-2.5 py-1 text-xs font-semibold capitalize text-[var(--text-secondary)]">
-                  {account.platform}
+                <span key={account.id} className="rounded-full border border-[var(--border-primary)] bg-[var(--bg-secondary)] px-2.5 py-1 text-xs font-semibold text-[var(--text-secondary)]">
+                  {getDisplayNameForAnyPlatform(account.platform)}
                   {account.platformUsername ? ` @${account.platformUsername}` : ""}
                 </span>
               )) : (

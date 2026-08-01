@@ -40,6 +40,7 @@ import { Button } from "@/components/ui/button";
 import { ABOUT_FIELDS, ABOUT_FIELD_META, ABOUT_GROUPS, type AboutField } from "@/lib/profile-info";
 import { PlatformLogo } from "@/components/platform/platform-logo";
 import { platformProfileUrl } from "@/lib/platform-links";
+import { getDisplayNameForAnyPlatform } from "@/lib/platform-capabilities";
 
 const DEFAULT_MESHI = {
   colorTheme: "blue",
@@ -694,7 +695,7 @@ export async function InstagramProfileView({ username, tab }: { username: string
                 <div key={account.id} className="flex items-center gap-3 text-sm">
                   <PlatformIcon platform={account.platform} />
                   <div className="min-w-0 flex-1">
-                    <p className="font-medium text-[var(--mesh-text)] capitalize">{account.platform}</p>
+                    <p className="font-medium text-[var(--mesh-text)]">{getDisplayNameForAnyPlatform(account.platform)}</p>
                     {account.platformUsername && (
                       <p className="truncate text-xs text-[var(--mesh-text-muted)]">@{account.platformUsername}</p>
                     )}

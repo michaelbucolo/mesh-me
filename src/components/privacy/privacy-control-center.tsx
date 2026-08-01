@@ -14,6 +14,7 @@ import { getGlobalMeshSelfPreview } from "@/lib/queries";
 import { cn, formatCount, formatRelativeTime } from "@/lib/utils";
 import type { PrivacyControlCenterData } from "@/lib/privacy-control-center";
 import type { GlobalMeshSelfPreview } from "@/lib/global-mesh";
+import { getDisplayNameForAnyPlatform } from "@/lib/platform-capabilities";
 
 type ControlData = NonNullable<PrivacyControlCenterData>;
 type Account = ControlData["connected"]["accounts"][number];
@@ -822,7 +823,7 @@ function GlobalMeshCard({
                   ))}
                   {preview.platforms.map((platform) => (
                     <div key={platform.id} className="flex items-center gap-2 text-xs text-[var(--text-primary)]">
-                      <span className="rounded bg-[var(--accent-subtle)] px-1.5 py-0.5 text-micro font-semibold mesh-eyebrow capitalize text-[var(--accent-text)]">{platform.platform}</span>
+                      <span className="rounded bg-[var(--accent-subtle)] px-1.5 py-0.5 text-micro font-semibold mesh-eyebrow text-[var(--accent-text)]">{getDisplayNameForAnyPlatform(platform.platform)}</span>
                       <span className="truncate">{platform.title}</span>
                     </div>
                   ))}
@@ -938,7 +939,7 @@ function ImportedContentRow({
     <article className="grid gap-3 rounded-lg border border-[var(--border-primary)] bg-[var(--bg-primary)]/55 p-3 md:grid-cols-[minmax(0,1fr)_12rem] md:items-center">
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-2">
-          <Badge variant="outline">{post.account.platform}</Badge>
+          <Badge variant="outline">{getDisplayNameForAnyPlatform(post.account.platform)}</Badge>
           <Badge variant={post.visibility === "hidden" ? "danger" : "secondary"}>{post.visibility}</Badge>
           {post.isNsfw && <Badge variant="danger">Sensitive</Badge>}
         </div>

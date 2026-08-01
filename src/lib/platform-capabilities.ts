@@ -269,22 +269,42 @@ const NAME_BY_ID_INCLUDING_RETIRED = new Map(
   RAW_PLATFORM_CAPABILITIES.map((capability) => [capability.id, capability.name]),
 );
 
+/** The allow-list's names — what the PRODUCT calls each platform. */
+const NAME_BY_ID_OFFERED = new Map(MESH_PLATFORMS.map((p) => [p.id, p.name]));
+
 /**
- * A human name for a platform id that is no longer offered.
+ * THE ONE PLACE THAT TURNS A PLATFORM ID INTO A NAME A PERSON READS.
  *
- * Retiring a platform does not delete anyone's rows: a person who connected
- * Spotify before it left still has that ConnectedAccount, and still has to be
- * able to see it and disconnect it. Every lookup keyed to the CURRENT roster
- * returns null for them, and the surfaces fell back to the raw storage key —
- * so the card for a real connection read "spotify", lowercase, like a bug.
+ * There were five, and they disagreed. Three local `platformLabel` helpers
+ * (MeChat, Search, the external-post page), one badge map (the feed card), and
+ * four surfaces that applied a CSS `capitalize` to the raw storage key.
+ * Measured against real ids, that produced:
  *
- * The raw declarations above are kept precisely because they remember these
- * names. This reads them, and title-cases anything even they have forgotten so
- * the answer is never the bare id.
+ *     tiktok    -> "Tiktok"   on Settings, Profile, Analytics, Privacy
+ *     linkedin  -> "Linkedin"        "
+ *     youtube   -> "Youtube"         "
+ *     twitter   -> "Twitter"         "        but "X" in MeChat and Search
+ *
+ * The last line is the real damage: mesh.me called the same platform two
+ * different names on two different pages, and one of them contradicted the
+ * product's own list, where it is "X". `capitalize` cannot know that TikTok has
+ * a capital T in the middle; only a table can.
+ *
+ * Resolution order, and why:
+ *   1. lib/platforms.ts — what the product calls a platform it OFFERS. This
+ *      outranks the capability table, which spells the same platform
+ *      "X / Twitter" for a documentation audience.
+ *   2. the raw capability declarations — retired platforms still have names,
+ *      and retiring one does not delete anyone's ConnectedAccount rows.
+ *   3. title-case — never the bare id.
  */
 export function getDisplayNameForAnyPlatform(platform: string): string {
   const id = normalizePlatformId(platform);
-  const known = CAPABILITY_BY_ID.get(id)?.name ?? NAME_BY_ID_INCLUDING_RETIRED.get(id);
+  if (!id) return "";
+  const known =
+    NAME_BY_ID_OFFERED.get(id) ??
+    CAPABILITY_BY_ID.get(id)?.name ??
+    NAME_BY_ID_INCLUDING_RETIRED.get(id);
   if (known) return known;
   return id.charAt(0).toUpperCase() + id.slice(1);
 }
