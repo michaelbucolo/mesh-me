@@ -154,6 +154,10 @@ export const OAUTH_CONFIGS: Record<string, OAuthConfig> = {
     clientIdEnv: "LINKEDIN_CLIENT_ID",
     clientSecretEnv: "LINKEDIN_CLIENT_SECRET",
     usernameField: "name",
+    // /v2/userinfo is OpenID Connect: the subject is "sub". Without this the
+    // callback's `config.idField || "id"` fallback looks for a key the response
+    // never has, so platformId stayed null on every LinkedIn connect.
+    idField: "sub",
   },
   reddit: {
     platform: "reddit",
@@ -173,13 +177,20 @@ export const OAUTH_CONFIGS: Record<string, OAuthConfig> = {
     name: "TikTok",
     authUrl: "https://www.tiktok.com/v2/auth/authorize/",
     tokenUrl: "https://open.tiktokapis.com/v2/oauth/token/",
-    profileUrl: "https://open.tiktokapis.com/v2/user/info/?fields=open_id,display_name,avatar_url,username",
+    profileUrl: "https://open.tiktokapis.com/v2/user/info/?fields=open_id,display_name,avatar_url",
     scopes: ["user.info.basic"],
     clientIdEnv: "TIKTOK_CLIENT_KEY",
     clientSecretEnv: "TIKTOK_CLIENT_SECRET",
     clientIdEnvAliases: ["TIKTOK_CLIENT_ID"],
     clientIdParam: "client_key",
-    usernameField: "username",
+    // display_name, not username: `username` is only returned under the
+    // user.info.profile scope, which this app does not request, so asking for
+    // it returned scope_permission_missed and NOTHING was stored — no
+    // username and no id. display_name is covered by user.info.basic.
+    usernameField: "display_name",
+    // TikTok's user object identifies with open_id; there is no "id" key, so
+    // the default fallback could never resolve a platform id.
+    idField: "open_id",
     profileDataPath: "data.user",
     scopeDelimiter: ",",
   },
@@ -193,6 +204,10 @@ export const OAUTH_CONFIGS: Record<string, OAuthConfig> = {
     clientIdEnv: "PINTEREST_APP_ID",
     clientSecretEnv: "PINTEREST_APP_SECRET",
     usernameField: "username",
+    // Pinterest v5 accepts the client credentials ONLY as an HTTP Basic
+    // Authorization header; sending them in the form body returns
+    // invalid_client, so every Pinterest connect failed after consent.
+    tokenAuthMethod: "client_secret_basic",
   },
   snapchat: {
     platform: "snapchat",
