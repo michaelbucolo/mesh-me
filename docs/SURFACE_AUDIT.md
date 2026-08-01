@@ -282,6 +282,44 @@ orphans.
    ASVS V12.1.2 was formally criticised as unworkable. Anyone citing "OWASP says"
    for a specific limit is bluffing — including a future version of this document.
 
+   ### What these numbers rest on, stated plainly
+
+   The ranking above is reasoning from failure modes and is solid. The *numbers*
+   are better than a guess and weaker than a measurement of the real thing, and
+   the difference matters when someone later argues one of them should move:
+
+   - **The compression ratios come from a synthetic archive**, built to match
+     documented export composition (verbose repeated-key JSON plus JPEG/MP4
+     payloads) and sanity-checked against the published figure that media is ~87%
+     of an X export. No genuine platform export was measured end to end. Real
+     Meta JSON may be more repetitive than the generated text, which would push
+     observed entry ratios higher — the 294:1 worst case was constructed to bound
+     that, and the recommended cap is **500:1, engaged only after an entry has
+     emitted 8 MiB**, so there is headroom. But it is headroom over an estimate.
+   - **The 1032:1 DEFLATE ceiling and the zip-bomb corpus figures are second-hand.**
+     Fifield's primary source and the USENIX WOOT'19 paper both returned HTTP 403;
+     the numbers come via Wikipedia and mirrors. An independent recomputation of
+     the 281 TB figure from 65,534 × 4.294 GB does corroborate them.
+   - **The entry-count cap is derived, not observed.** It comes from the ZIP32
+     ceiling and the overlap-bomb curve, not from any measured legitimate
+     maximum. A large real Takeout could exceed it and false-positive. Validate
+     against one real archive before shipping.
+   - **Inflate throughput was measured with native C zlib on Linux**, not with a
+     browser codec on target hardware. Mobile will be slower; the wall-clock
+     backstop is sized to absorb that, and is itself an assumption.
+   - **Pinterest's archive layout could not be established at all** — no
+     filenames, no folder structure, not even JSON-vs-CSV. It is
+     `portabilityImport: true` in the capability table, which remains correct as a
+     statement about Pinterest's obligation, but there is currently no basis for
+     writing a reader for it.
+
+   The adversarial cross-check that was supposed to sit over these findings **did
+   not run** — the verification stage filtered candidate claims against internal
+   topic keys while the agents emitted free-text topics, so it silently selected
+   nothing and reported zero refutations. A filter that matches nothing and
+   returns a confident empty result is the same defect this audit keeps finding
+   in shipped code. Everything above is single-sourced until that pass is redone.
+
    Still needed alongside the caps: refuse **before** inflating, on
    `uncompressedSize / compressedSize` read from the central directory (the
    library's own check is a backstop against a lying header, not a knob you can
