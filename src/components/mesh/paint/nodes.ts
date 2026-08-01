@@ -46,6 +46,8 @@ import {
 } from "./shared";
 import type { SceneNode, ScenePaintOptions } from "./types";
 import { paintTheme } from "./theme";
+import { canvasDisplay, canvasSans, fontEpoch } from "./fonts";
+import { branchFill } from "@/lib/palette";
 
 // ---------------------------------------------------------------------------
 // Verbatim node-body painters (legacy scene-render.ts math). Each paints at
@@ -106,7 +108,55 @@ function paintOrbInitial(
 ): void {
   const initial = (label || "?").trim().charAt(0).toUpperCase();
   ctx.fillStyle = withAlpha(paintTheme().ink1, 0.96 * emph + 0.08);
-  ctx.font = `600 ${Math.round(r * 0.85)}px ui-sans-serif, system-ui, sans-serif`;
+  ctx.font = `600 ${Math.round(r * 0.85)}px ${canvasSans()}`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(initial, x, y + r * 0.04);
+}
+
+// Deterministic second hue for a person without an avatar: an FNV-1a hash of
+// the id picks from the branch plastics, so every avatar-less person gets a
+// STABLE two-tone identity instead of being one more identical cobalt clone —
+// same disc on every client, every visit (id-hash, never Math.random).
+const PERSON_SECOND_HUES = ["identities", "communities", "posts", "activity", "platforms"] as const;
+function personSecondHue(id: string): string {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < id.length; i++) {
+    h ^= id.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
+  return branchFill(PERSON_SECOND_HUES[(h >>> 0) % PERSON_SECOND_HUES.length]);
+}
+
+/** An avatar-less person: two-tone identity disc + initial, inside the orb's
+ * rim. The split angle rides the same hash so the discs differ in direction
+ * too, not just hue pair. */
+function paintPersonTwoTone(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  r: number,
+  color: string,
+  emph: number,
+  label: string,
+  id: string,
+): void {
+  const hue2 = personSecondHue(id);
+  const angle = ((id.length * 47) % 360) * (Math.PI / 180);
+  const dx = Math.cos(angle) * r;
+  const dy = Math.sin(angle) * r;
+  const split = ctx.createLinearGradient(x - dx, y - dy, x + dx, y + dy);
+  split.addColorStop(0, withAlpha(color, 0.92 * emph + 0.08));
+  split.addColorStop(0.48, withAlpha(color, 0.92 * emph + 0.08));
+  split.addColorStop(0.52, withAlpha(hue2, 0.92 * emph + 0.08));
+  split.addColorStop(1, withAlpha(hue2, 0.92 * emph + 0.08));
+  ctx.beginPath();
+  ctx.arc(x, y, r * 0.96, 0, Math.PI * 2);
+  ctx.fillStyle = split;
+  ctx.fill();
+  const initial = (label || "?").trim().charAt(0).toUpperCase();
+  ctx.fillStyle = withAlpha(paintTheme().inkInverse, 0.95 * emph + 0.05);
+  ctx.font = `600 ${Math.round(r * 0.82)}px ${canvasSans()}`;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   ctx.fillText(initial, x, y + r * 0.04);
@@ -218,7 +268,7 @@ function paintPostCard(
     ctx.fill();
   }
   const headFont = Math.max(8, 9.5 * scale);
-  ctx.font = `700 ${headFont}px ui-sans-serif, system-ui, sans-serif`;
+  ctx.font = `700 ${headFont}px ${canvasSans()}`;
   ctx.textAlign = "left";
   ctx.textBaseline = "middle";
   ctx.fillStyle = paintTheme().ink1;
@@ -235,7 +285,7 @@ function paintPostCard(
   }
   const timeText = metaValue(node, "Time") || metaValue(node, "Ago") || node.status || "";
   if (timeText) {
-    ctx.font = `500 ${Math.max(7.5, 8.5 * scale)}px ui-sans-serif, system-ui, sans-serif`;
+    ctx.font = `500 ${Math.max(7.5, 8.5 * scale)}px ${canvasSans()}`;
     ctx.fillStyle = withAlpha(paintTheme().ink3, 0.9);
     ctx.textAlign = "right";
     ctx.fillText(fitText(ctx, timeText, w * 0.32), x + w - pad, headCy + 0.5);
@@ -265,7 +315,7 @@ function paintPostCard(
 
   // Text snippet.
   const textY = mediaY + imgH + 7 * scale;
-  ctx.font = `500 ${fontSize}px ui-sans-serif, system-ui, sans-serif`;
+  ctx.font = `500 ${fontSize}px ${canvasSans()}`;
   ctx.textAlign = "left";
   ctx.textBaseline = "top";
   ctx.fillStyle = paintTheme().ink1;
@@ -280,7 +330,7 @@ function paintPostCard(
   const footH = 22 * scale;
   const footY = y + h - footH + footH / 2;
   const metaFont = Math.max(7.5, 9 * scale);
-  ctx.font = `600 ${metaFont}px ui-sans-serif, system-ui, sans-serif`;
+  ctx.font = `600 ${metaFont}px ${canvasSans()}`;
   ctx.textBaseline = "middle";
   const likes = metaValue(node, "Likes");
   const comments = metaValue(node, "Comments");
@@ -303,26 +353,16 @@ function paintPostCard(
     ctx.fillText(String(comments), mx, footY);
   }
 
-  // Source chip (pill) on the right. Chip material is the DOM's: --paper-2
-  // body under a --rule hairline (rule carries its own alpha), ink-3 label —
-  // not ad-hoc ink washes that only approximate the recess colour.
-  const chipText = "Source";
-  ctx.font = `600 ${Math.max(7, 8 * scale)}px ui-sans-serif, system-ui, sans-serif`;
-  const chipTW = ctx.measureText(chipText).width;
-  const chipPadX = 6 * scale;
-  const chipW = chipTW + chipPadX * 2;
-  const chipH = 13 * scale;
-  const chipX = x + w - pad - chipW;
-  const chipY = footY - chipH / 2;
-  roundRectPath(ctx, chipX, chipY, chipW, chipH, chipH / 2);
-  ctx.fillStyle = paintTheme().paper2;
-  ctx.fill();
-  ctx.strokeStyle = paintTheme().rule;
-  ctx.lineWidth = 1;
-  ctx.stroke();
-  ctx.fillStyle = withAlpha(paintTheme().ink3, 0.95);
-  ctx.textAlign = "center";
-  ctx.fillText(chipText, chipX + chipW / 2, footY + 0.5);
+  // The grey "Source" chip is dead: provenance is the header's real platform
+  // mark plus the brand RAIL below — a 4px platform-colored bar down the
+  // card's left edge, the visual the strand will one day terminate into.
+  // One glyph language for "where this came from", not a chip repeating it.
+  ctx.save();
+  roundRectPath(ctx, x, y, w, h, radius);
+  ctx.clip();
+  ctx.fillStyle = withAlpha(node.color, 0.9);
+  ctx.fillRect(x, y, Math.max(3, 4 * scale), h);
+  ctx.restore();
 
   // Border + soft glow.
   ctx.textAlign = "left";
@@ -431,7 +471,7 @@ function paintSelfCapital(
 
   ctx.textAlign = 'center';
   ctx.textBaseline = 'top';
-  ctx.font = `700 ${nameFont}px ui-sans-serif, system-ui, sans-serif`;
+  ctx.font = `600 ${nameFont}px ${canvasDisplay()}`;
   const nameW = ctx.measureText(nameText).width;
   ctx.fillStyle = th.ink1;
   ctx.fillText(nameText, x, nameY);
@@ -460,7 +500,7 @@ function paintSelfCapital(
 
   if (node.sublabel) {
     ctx.fillStyle = withAlpha(th.ink2, 0.85);
-    ctx.font = `500 ${handleFont}px ui-sans-serif, system-ui, sans-serif`;
+    ctx.font = `500 ${handleFont}px ${canvasSans()}`;
     ctx.fillText(node.sublabel, x, nameY + nameFont + 4 * zoomScale);
   }
 
@@ -545,7 +585,9 @@ function spriteKey(
   ) {
     return prev.key;
   }
-  const key = `${node.id}:${staticHash}${style ?? ""}${q.toFixed(3)},${emph},${flags},${imgW}:${rc.tier}`;
+  // fontEpoch: text-bearing sprites rasterized before the brand faces
+  // loaded re-key exactly once when they arrive.
+  const key = `${node.id}:${staticHash}${style ?? ""}${q.toFixed(3)},${emph},${flags},${imgW}:${rc.tier}:f${fontEpoch()}`;
   rc.keyStates.set(node.id, { key, q, emph, flags, imgW, tier: rc.tier, style, staticHash });
   return key;
 }
@@ -689,19 +731,26 @@ export function drawNodesPass(o: ScenePaintOptions, rc: NodePassResources): void
         const flags = wantsLetter ? FLAG_LETTER : 0;
         const key = spriteKey(rc, node, rQ, emph, flags, 0, style);
         const half = 2.4 * rQ + 2;
+        const twoTone = wantsLetter && (node.kind === "person" || node.kind === "persona");
         const sprite = rc.atlas.get(key, half * 2, half * 2, half, half, (sctx) => {
           paintOrb(sctx, 0, 0, rQ, node.color, emph, style);
-          if (wantsLetter) paintOrbInitial(sctx, 0, 0, rQ, node.label, emph);
+          if (twoTone) paintPersonTwoTone(sctx, 0, 0, rQ, node.color, emph, node.label, node.id);
+          else if (wantsLetter) paintOrbInitial(sctx, 0, 0, rQ, node.label, emph);
         });
         // The pulse breath rides the blit scale — the sprite stays cached.
         if (sprite) blitSprite(ctx, sprite, p.x, p.y, (r * (0.97 + 0.03 * pulse)) / rQ);
         else {
           paintOrb(ctx, p.x, p.y, r * (0.97 + 0.03 * pulse), node.color, emph, style);
-          if (wantsLetter) paintOrbInitial(ctx, p.x, p.y, r, node.label, emph);
+          if (twoTone) paintPersonTwoTone(ctx, p.x, p.y, r, node.color, emph, node.label, node.id);
+          else if (wantsLetter) paintOrbInitial(ctx, p.x, p.y, r, node.label, emph);
         }
       } else {
         paintOrb(ctx, p.x, p.y, r * (0.97 + 0.03 * pulse), node.color, emph, style);
-        if (wantsLetter) paintOrbInitial(ctx, p.x, p.y, r, node.label, emph);
+        if (wantsLetter && (node.kind === "person" || node.kind === "persona")) {
+          paintPersonTwoTone(ctx, p.x, p.y, r, node.color, emph, node.label, node.id);
+        } else if (wantsLetter) {
+          paintOrbInitial(ctx, p.x, p.y, r, node.label, emph);
+        }
       }
     }
 
@@ -749,7 +798,7 @@ export function drawNodesPass(o: ScenePaintOptions, rc: NodePassResources): void
       }
       ctx.save();
       const chipFont = 9.5;
-      ctx.font = `600 ${chipFont}px ui-sans-serif, system-ui, sans-serif`;
+      ctx.font = `600 ${chipFont}px ${canvasSans()}`;
       const label = fitText(ctx, text, 118);
       const textW = ctx.measureText(label).width;
       const dotR = 2.6;
@@ -776,18 +825,24 @@ export function drawNodesPass(o: ScenePaintOptions, rc: NodePassResources): void
     }
 
     if (isSelected) {
-      // Selection is unmistakable: a bright ring plus a slow color pulse.
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, r + 6, 0, Math.PI * 2);
+      // Selection is four printer's REGISTRATION MARKS in ink — the loom's
+      // signature affordance, ownable where a glow ring is generic. A slow
+      // breath rides the corner distance so it still reads as alive.
+      const selPulse = 0.5 + 0.5 * Math.sin(time * 0.005);
+      const half = r + 7 + selPulse * 1.5;
+      const arm = Math.max(5, r * 0.45);
       ctx.strokeStyle = withAlpha(paintTheme().ink1, 0.95);
       ctx.lineWidth = 2;
-      ctx.stroke();
-      const selPulse = 0.5 + 0.5 * Math.sin(time * 0.005);
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, r + 11 + selPulse * 3, 0, Math.PI * 2);
-      ctx.strokeStyle = withAlpha(node.color, 0.35 + 0.35 * selPulse);
-      ctx.lineWidth = 1.4;
-      ctx.stroke();
+      ctx.lineCap = "round";
+      for (const [sx, sy] of [[-1, -1], [1, -1], [1, 1], [-1, 1]] as const) {
+        const cx0 = p.x + sx * half;
+        const cy0 = p.y + sy * half;
+        ctx.beginPath();
+        ctx.moveTo(cx0 - sx * arm, cy0);
+        ctx.lineTo(cx0, cy0);
+        ctx.lineTo(cx0, cy0 - sy * arm);
+        ctx.stroke();
+      }
     } else if (isFocus || isHover) {
       ctx.beginPath();
       ctx.arc(p.x, p.y, r + 6, 0, Math.PI * 2);
@@ -801,6 +856,10 @@ export function drawNodesPass(o: ScenePaintOptions, rc: NodePassResources): void
       isSelected ||
       isFocus ||
       isHover ||
+      // People wear their NAMES at rest — an anonymous dot expresses nobody's
+      // presence. Gated on reading distance so a zoomed-out constellation
+      // doesn't become a wall of 11px text.
+      ((node.kind === "person" || node.kind === "persona") && o.camera.zoom >= 0.55) ||
       (o.activeBranch !== null && node.branch === o.activeBranch && node.depth <= 2);
     if (showLabel) labelQueue.push({ node, x: p.x, y: p.y, r, emph });
   });
@@ -813,7 +872,9 @@ export function drawNodesPass(o: ScenePaintOptions, rc: NodePassResources): void
     const isBranch = node.kind === "branch";
     const isSelf = node.kind === "self";
     const fontSize = isSelf ? 14 : isBranch ? 13 : 11;
-    ctx.font = `${isBranch || isSelf ? 600 : 500} ${fontSize}px ui-sans-serif, system-ui, sans-serif`;
+    // Pills speak the display face (Fraunces); plain labels the body face.
+    // sim/hitmap measures pill text with the same display stack.
+    ctx.font = isBranch || isSelf ? `600 ${fontSize}px ${canvasDisplay()}` : `500 ${fontSize}px ${canvasSans()}`;
     const label = isBranch && node.count != null ? `${node.label} · ${node.count}` : node.label;
     let ly = y + r + 6;
 
