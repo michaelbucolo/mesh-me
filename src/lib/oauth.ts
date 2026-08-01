@@ -60,19 +60,6 @@ export function getCallbackUrl(platform: string): string {
 }
 
 export const OAUTH_CONFIGS: Record<string, OAuthConfig> = {
-  github: {
-    platform: "github",
-    name: "GitHub",
-    authUrl: "https://github.com/login/oauth/authorize",
-    tokenUrl: "https://github.com/login/oauth/access_token",
-    profileUrl: "https://api.github.com/user",
-    scopes: ["read:user", "user:email", "public_repo", "user:follow"],
-    clientIdEnv: "GITHUB_OAUTH_CLIENT_ID",
-    clientSecretEnv: "GITHUB_OAUTH_CLIENT_SECRET",
-    clientIdEnvAliases: ["GITHUB_CLIENT_ID"],
-    clientSecretEnvAliases: ["GITHUB_CLIENT_SECRET"],
-    usernameField: "login",
-  },
   discord: {
     platform: "discord",
     name: "Discord",
@@ -83,17 +70,6 @@ export const OAUTH_CONFIGS: Record<string, OAuthConfig> = {
     clientIdEnv: "DISCORD_CLIENT_ID",
     clientSecretEnv: "DISCORD_CLIENT_SECRET",
     usernameField: "username",
-  },
-  spotify: {
-    platform: "spotify",
-    name: "Spotify",
-    authUrl: "https://accounts.spotify.com/authorize",
-    tokenUrl: "https://accounts.spotify.com/api/token",
-    profileUrl: "https://api.spotify.com/v1/me",
-    scopes: ["user-read-private", "user-read-email", "playlist-modify-public", "playlist-modify-private", "user-follow-modify"],
-    clientIdEnv: "SPOTIFY_CLIENT_ID",
-    clientSecretEnv: "SPOTIFY_CLIENT_SECRET",
-    usernameField: "display_name",
   },
   twitter: {
     platform: "twitter",
@@ -247,63 +223,14 @@ export const OAUTH_CONFIGS: Record<string, OAuthConfig> = {
     usernameField: "username",
     scopeDelimiter: ",",
   },
-  soundcloud: {
-    platform: "soundcloud",
-    name: "SoundCloud",
-    authUrl: "https://secure.soundcloud.com/authorize",
-    tokenUrl: "https://secure.soundcloud.com/oauth/token",
-    profileUrl: "https://api.soundcloud.com/me",
-    scopes: [],
-    clientIdEnv: "SOUNDCLOUD_CLIENT_ID",
-    clientSecretEnv: "SOUNDCLOUD_CLIENT_SECRET",
-    usernameField: "username",
-    extraAuthParams: { code_challenge_method: "S256" },
-  },
-  patreon: {
-    platform: "patreon",
-    name: "Patreon",
-    authUrl: "https://www.patreon.com/oauth2/authorize",
-    tokenUrl: "https://www.patreon.com/api/oauth2/token",
-    profileUrl: "https://www.patreon.com/api/oauth2/v2/identity?fields%5Buser%5D=full_name,image_url,thumb_url,url,vanity,email",
-    scopes: ["identity", "identity[email]", "campaigns.posts"],
-    clientIdEnv: "PATREON_CLIENT_ID",
-    clientSecretEnv: "PATREON_CLIENT_SECRET",
-    usernameField: "attributes.full_name",
-    profileDataPath: "data",
-  },
-  dribbble: {
-    platform: "dribbble",
-    name: "Dribbble",
-    authUrl: "https://dribbble.com/oauth/authorize",
-    tokenUrl: "https://dribbble.com/oauth/token",
-    profileUrl: "https://api.dribbble.com/v2/user",
-    scopes: ["public"],
-    clientIdEnv: "DRIBBBLE_CLIENT_ID",
-    clientSecretEnv: "DRIBBBLE_CLIENT_SECRET",
-    usernameField: "username",
-  },
 };
 
-// Platforms that use manual username entry instead of OAuth
-// (no standard OAuth API available or API is deprecated)
-const MANUAL_PLATFORMS = [
-  "bluesky",
-  "applemusic",
-  "mastodon",
-  "substack",
-  "medium",
-  "devto",
-  "behance",
-  "whatsapp",
-  "telegram",
-  "signal",
-  "line",
-  "kakao",
-  "viber",
-  "wechat",
-  "messenger",
-  "tumblr",
-];
+// The manual-entry roster is EMPTY by decree: "only the most popular
+// social media apps in the US" - a username-only card that syncs nothing
+// was decoration, not a connection. The type of list is kept so the
+// downstream manual-connect plumbing stays compilable if a real manual
+// integration ever earns its place.
+const MANUAL_PLATFORMS: string[] = [];
 
 const OAUTH_PLATFORM_IDS = Object.keys(OAUTH_CONFIGS);
 export const MANUAL_PLATFORM_IDS = [...MANUAL_PLATFORMS];

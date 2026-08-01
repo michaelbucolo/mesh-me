@@ -13,26 +13,25 @@
  *
  * ── WHY THESE AND NOT OTHERS ────────────────────────────────────────────────
  *
- * This is a product decision, not a technical one. mesh.me is for the places
- * people actually live: the big social and music networks, and the messengers
- * they talk in. Everything else — GitHub, Reddit, LinkedIn, Pinterest, Tumblr,
- * Behance, Dribbble, Medium, Substack, dev.to, SoundCloud, Patreon, Vimeo,
- * Bluesky, Mastodon, TikTok — is gone. A connect page listing thirty logos is
- * not more useful than one listing the nine that matter; it is a longer page.
+ * This is a product decision, not a technical one, and the current decision is
+ * the owner's, verbatim: "only have the most popular social media apps in the
+ * US. I don't need a bunch of random bullshit accounts connected to mesh.me."
+ * So the list is the twelve social platforms Americans actually use. The
+ * previous brief ("the nine content platforms plus every major messenger") is
+ * retired: Spotify, Apple Music and Kick were not social networks, and
+ * WhatsApp/WeChat/LINE/Viber/KakaoTalk earned their seats on global reach, not
+ * US reach. GitHub, SoundCloud, Patreon, Dribbble and the rest stay gone.
  *
  * ── THE COST, STATED PLAINLY ────────────────────────────────────────────────
  *
- * Bluesky and Mastodon were the ONLY public-supply lanes that ran without
- * credentials. Removing them means the Flow has no supply at all until
- * YOUTUBE_API_KEY (or TWITCH_CLIENT_ID/SECRET) is configured, because every
- * other platform on this list either has no public content API for a
- * third-party reader (Instagram, Snapchat, Threads) or charges per read (X).
- *
- * That is a real regression in what a signed-in user sees, and it is the direct
- * consequence of the list. It is written here rather than discovered later.
+ * Retiring a platform never deletes rows — ConnectedAccount/PlatformPost/
+ * PublicPost rows for a retired id simply stop being offered for connection.
+ * The Flow's public supply still runs on YouTube and Twitch only, and still
+ * needs YOUTUBE_API_KEY or TWITCH_CLIENT_ID/SECRET configured; nothing on this
+ * list has a credential-free public content API.
  */
 
-type MeshPlatformCategory = "social" | "video" | "music" | "messaging";
+type MeshPlatformCategory = "social" | "video" | "messaging";
 
 export type MeshPlatform = {
   id: string;
@@ -41,36 +40,27 @@ export type MeshPlatform = {
 };
 
 /**
- * The nine content platforms, and every major messenger.
+ * The twelve most popular social platforms in the US.
  *
  * `id` is the storage key and must not change casually: ConnectedAccount.platform,
  * PlatformPost.platform and PublicPost.platform all hold it, so renaming one
  * orphans real rows.
  */
 export const MESH_PLATFORMS: MeshPlatform[] = [
-  // ── The nine ──
   { id: "instagram", name: "Instagram", category: "social" },
-  { id: "snapchat", name: "Snapchat", category: "social" },
-  { id: "threads", name: "Threads", category: "social" },
+  { id: "facebook", name: "Facebook", category: "social" },
   // Stored as "twitter" because that is what every existing row says. The
   // NAME is X, which is the only part a person reads.
   { id: "twitter", name: "X", category: "social" },
+  { id: "threads", name: "Threads", category: "social" },
+  { id: "snapchat", name: "Snapchat", category: "social" },
+  { id: "reddit", name: "Reddit", category: "social" },
+  { id: "linkedin", name: "LinkedIn", category: "social" },
+  { id: "pinterest", name: "Pinterest", category: "social" },
+  { id: "tiktok", name: "TikTok", category: "video" },
   { id: "youtube", name: "YouTube", category: "video" },
   { id: "twitch", name: "Twitch", category: "video" },
-  { id: "kick", name: "Kick", category: "video" },
-  { id: "applemusic", name: "Apple Music", category: "music" },
-  { id: "spotify", name: "Spotify", category: "music" },
-
-  // ── Every major messenger ──
-  { id: "whatsapp", name: "WhatsApp", category: "messaging" },
-  { id: "messenger", name: "Messenger", category: "messaging" },
-  { id: "telegram", name: "Telegram", category: "messaging" },
-  { id: "signal", name: "Signal", category: "messaging" },
   { id: "discord", name: "Discord", category: "messaging" },
-  { id: "wechat", name: "WeChat", category: "messaging" },
-  { id: "line", name: "LINE", category: "messaging" },
-  { id: "viber", name: "Viber", category: "messaging" },
-  { id: "kakao", name: "KakaoTalk", category: "messaging" },
 ];
 
 const BY_ID = new Map(MESH_PLATFORMS.map((p) => [p.id, p]));
@@ -81,7 +71,3 @@ export const MESH_PLATFORM_IDS: string[] = MESH_PLATFORMS.map((p) => p.id);
 export function isMeshPlatform(platform: string | null | undefined): boolean {
   return typeof platform === "string" && BY_ID.has(platform.trim().toLowerCase());
 }
-
-
-
-

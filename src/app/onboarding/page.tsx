@@ -31,9 +31,7 @@ export default async function OnboardingPage() {
   // platforms can be quick-merged right after setup; manual ones are tracked too.
   const popularApps = [
     "instagram", "tiktok", "youtube", "twitter", "threads", "facebook",
-    "snapchat", "discord", "twitch", "reddit", "spotify", "linkedin",
-    "pinterest", "github", "soundcloud", "patreon", "dribbble",
-    "whatsapp", "telegram", "bluesky", "mastodon", "tumblr",
+    "snapchat", "discord", "twitch", "reddit", "linkedin", "pinterest",
   ];
   const platformOptions = popularApps
     .map((platform) => {
