@@ -152,10 +152,50 @@ orphans.
    than a commercial permission a platform can revoke. No scraping, no
    credentials: the user downloads their own archive and hands it over.
    `parse-export.ts` and `portability-parse:check` are done. What remains is the
-   upload surface, which is its own security slice — zip bombs, decompression
-   ratios, extraction paths — and must not be rushed into an unrelated PR.
+   ingest surface.
+
+   ### The obvious design does not work, and it is worth knowing why first
+
+   "POST the ZIP to an API route and unpack it server-side" is the shape everyone
+   reaches for, and this deployment cannot run it. Checked, not assumed:
+
+   - The **only** upload path in the repo is `/api/avatar`, which caps at
+     **2 MB** and sniffs magic bytes (`MAX_FILE_SIZE = 2 * 1024 * 1024`).
+   - There is **no object-storage dependency at all** — no Blob, no S3, nothing
+     in `package.json` that could hold a large file.
+   - `vercel.json` configures a cron and nothing else. Serverless request bodies
+     are capped far below archive scale, and an Instagram export runs to
+     hundreds of megabytes; Facebook's can pass a gigabyte.
+
+   So the first thing that happens to a real archive on a POST route is a
+   rejection at the edge, before any of the zip-bomb defences anyone wrote ever
+   execute.
+
+   ### Extract in the browser instead
+
+   Parse the archive **client-side** and send only the recovered posts —
+   `parseExportDocument` already returns exactly three small fields per post, so
+   a lifetime of Instagram captions is a modest JSON payload. Media stays on the
+   device until a second, separate step the person chooses.
+
+   This is not a workaround. It is the better version:
+
+   - It fits the deployment with no object storage and no body-size fight.
+   - **The archive never leaves the device wholesale.** Only what you decided to
+     import is transmitted — which is the honest reading of a feature whose whole
+     premise is that this is *your* data, handed over by *you*.
+   - The zip-bomb surface moves into the user's own tab, where a decompression
+     ratio cap costs them a browser tab rather than a shared server.
+
+   Still needs, and still its own slice: a ZIP reader (there is no zip dependency
+   yet — `fflate` is the small zero-dep candidate), explicit caps on entry count,
+   per-entry size and total decompression ratio, the traversal rejection
+   `parse-export.ts` already performs on media paths, and a gate over all of it.
 
    The copy constraint is permanent: **"your history", never "your connections".**
    W3C's data-portability minutes record the follower graph as "the primary asset
    and normally not exported, not even upon GDPR request." The parser's output
    type has exactly three fields so there is nowhere to put one.
+
+   Unblocks the `history-imported` milestone, which was drafted for #504 and cut
+   because a milestone you cannot earn is a broken promise with a progress bar.
