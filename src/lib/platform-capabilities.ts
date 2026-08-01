@@ -19,6 +19,38 @@ export type PlatformCapability = {
   crossPost: boolean;
   interactionSync: boolean;
   officialApiOnly: boolean;
+  /**
+   * THE ONE AXIS THAT DOES NOT DEPEND ON THE PLATFORM SAYING YES.
+   *
+   * Six of the twelve platforms mesh.me offers — Instagram, Facebook, Threads,
+   * Snapchat, LinkedIn, Pinterest — grant NO content API at all. mesh.me can
+   * hold an OAuth token for them and do nothing with it, and no amount of
+   * engineering changes that, because it is their commercial decision. Waiting
+   * for it is waiting forever: a working export is how a competitor solves
+   * cold-start, so degrading it is rational rather than careless.
+   *
+   * But under GDPR Art. 20 and DMA Art. 6(9) those platforms are OBLIGED to
+   * hand the USER their own archive. That is a legal duty, not an API grant,
+   * and it is the one door they cannot quietly close.
+   *
+   * `portabilityImport` means: a documented consumer export exists that a
+   * person can download and give to mesh.me themselves.
+   *
+   * IT IS DELIBERATELY NOT `importContent`. importContent means mesh.me can
+   * ask the platform's API and keep asking — a live sync. This is a one-time
+   * file a human hands over. Collapsing the two would let "import your
+   * Instagram history" quietly start satisfying a claim that reads "syncs your
+   * Instagram", and the gate asserts the two sets stay disjoint.
+   *
+   * NOTE ON WHAT IS IN THE FILE: the archive is posts, media and messages. It
+   * is NOT the social graph — W3C's data-portability minutes record that the
+   * follower graph is "the primary asset and normally not exported, not even
+   * upon GDPR request". Copy may say "your history". It may not say "your
+   * connections".
+   */
+  portabilityImport?: boolean;
+  /** Why, in a sentence, naming it as a user-supplied one-time export. */
+  portabilityReason?: string;
   developerDocsUrl?: string;
   developerPolicyUrl?: string;
   notes: string;
@@ -118,14 +150,23 @@ const RAW_PLATFORM_CAPABILITIES: PlatformCapability[] = [
     notes: "Imports authorized video/profile data when the connected app has the required TikTok permissions. Publishing remains disabled until Content Posting API approval is configured.",
   }),
   oauthShell("instagram", "Instagram", {
+    portabilityImport: true,
+    portabilityReason:
+      "A user-supplied one-time export. Meta's \"Download your information\" gives you your Instagram posts, media and messages under GDPR Art. 20 / DMA Art. 6(9); the follower graph is not included.",
     developerDocsUrl: "https://developers.facebook.com/docs/instagram-platform/",
     developerPolicyUrl: "https://developers.facebook.com/policy/",
   }),
   oauthShell("facebook", "Facebook", {
+    portabilityImport: true,
+    portabilityReason:
+      "A user-supplied one-time export. Meta's \"Download your information\" covers Facebook posts, media and messages; the friend graph is not included.",
     developerDocsUrl: "https://developers.facebook.com/docs/graph-api/",
     developerPolicyUrl: "https://developers.facebook.com/policy/",
   }),
   oauthShell("linkedin", "LinkedIn", {
+    portabilityImport: true,
+    portabilityReason:
+      "A user-supplied one-time export. LinkedIn's \"Get a copy of your data\" returns your posts and profile; connections come only as names, not as a graph mesh.me can rebuild.",
     developerDocsUrl: "https://learn.microsoft.com/en-us/linkedin/",
   }),
   oauthShell("reddit", "Reddit", {
@@ -136,12 +177,21 @@ const RAW_PLATFORM_CAPABILITIES: PlatformCapability[] = [
     notes: "Imports authorized account identity, submitted posts, and post comment threads through Reddit OAuth scopes. Votes, comments, edits, deletes, posts, and subscriptions are written back only when the signed-in user takes the action.",
   }),
   oauthShell("pinterest", "Pinterest", {
+    portabilityImport: true,
+    portabilityReason:
+      "A user-supplied one-time export. Pinterest's data-download request returns your pins and boards.",
     developerDocsUrl: "https://developers.pinterest.com/docs/api/v5/",
   }),
   oauthShell("snapchat", "Snapchat", {
+    portabilityImport: true,
+    portabilityReason:
+      "A user-supplied one-time export. Snapchat's \"My Data\" download returns your memories and account history.",
     developerDocsUrl: "https://developers.snap.com/",
   }),
   oauthShell("threads", "Threads", {
+    portabilityImport: true,
+    portabilityReason:
+      "A user-supplied one-time export, taken through the same Meta \"Download your information\" flow as Instagram; the follower graph is not included.",
     developerDocsUrl: "https://developers.facebook.com/docs/threads/",
     developerPolicyUrl: "https://developers.facebook.com/policy/",
   }),
@@ -318,6 +368,32 @@ export function normalizePlatformId(platform?: string | null) {
 
 export function getPlatformCapability(platform?: string | null) {
   return CAPABILITY_BY_ID.get(normalizePlatformId(platform)) ?? null;
+}
+
+/**
+ * Whether this platform has a documented consumer export the USER can download
+ * and hand to mesh.me — the one route into the six platforms that grant no
+ * content API at all.
+ *
+ * Returns the same shape as the other action capabilities so no caller has to
+ * learn a second convention. `supported: false` is the honest default: absence
+ * of a flag means nobody has verified an export exists, not that one does.
+ */
+export function getPlatformPortabilityCapability(platform: string | null | undefined): PlatformActionCapability {
+  const capability = getPlatformCapability(platform);
+  if (!capability?.portabilityImport) {
+    return {
+      supported: false,
+      reason:
+        "Mesh.me has not verified a consumer data export for this source, so there is nothing here to import from a file.",
+      reviewRequired: false,
+    };
+  }
+  return {
+    supported: true,
+    reason: capability.portabilityReason ?? "A user-supplied one-time export, handed over by you rather than fetched by Mesh.me.",
+    reviewRequired: false,
+  };
 }
 
 export function getPlatformActionCapability(
