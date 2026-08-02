@@ -41,6 +41,39 @@ const files = execFileSync("git", ["ls-files", "src"], { cwd: ROOT, encoding: "u
   .filter((f) => f.endsWith(".ts") || f.endsWith(".tsx") || f.endsWith(".css"))
   .filter((f) => existsSync(join(ROOT, f)));
 
+// ── THE CORPUS HAS TO SAY WHEN IT IS INCOMPLETE ─────────────────────────────
+//
+// `git ls-files` lists TRACKED files, so a brand-new component is invisible to
+// this gate until it is staged. That is a blind spot with the worst possible
+// shape: the run passes, prints a file count that looks thorough, and says
+// nothing about the file you just wrote.
+//
+// It has already cost a red CI run. A new section was written, `npm run check`
+// was run and reported "427 files scanned", the commit staged it, and CI — which
+// checks out a tree where every file is tracked — scanned 433 and failed on
+// markup the local run had never looked at.
+//
+// So an untracked source file is now a failure rather than a silent omission. A
+// gate that cannot see something must say so; reporting a pass over a corpus it
+// did not actually cover is the one thing it must never do.
+const untracked = execFileSync("git", ["ls-files", "--others", "--exclude-standard", "src"], {
+  cwd: ROOT,
+  encoding: "utf8",
+})
+  .split("\n")
+  .filter((f) => f.endsWith(".ts") || f.endsWith(".tsx") || f.endsWith(".css"));
+
+assert.deepEqual(
+  untracked,
+  [],
+  `These source files are not tracked by git, so this gate cannot see them:\n` +
+    untracked.map((f) => `  ${f}`).join("\n") +
+    `\n  git ls-files lists tracked files only. Running the chain now would report a pass over a\n` +
+    `  corpus that excludes exactly the files you just wrote — and CI, which checks out a tree where\n` +
+    `  they ARE tracked, would then fail on markup nothing local had looked at.\n` +
+    `  Stage them (git add) and run again.`,
+);
+
 /**
  * Blank comments while preserving BOTH offsets and line breaks, so prose about
  * a rule is not a violation of it and reported line numbers still point at the
