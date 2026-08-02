@@ -26,6 +26,51 @@ import { prisma } from "@/lib/prisma";
 import { wantsYou, type NotificationRow, type ThreadRow } from "./wants-you";
 
 /**
+ * The two reads this needs, and nothing else.
+ *
+ * Declared as an interface and taken as a parameter so the contract can be
+ * checked WITHOUT a database: scripts/mesh-wants-you-read-check.ts passes a
+ * fake that records the arguments it was called with. That matters because the
+ * rules this file enforces are expressed as query arguments — "the newest
+ * message" is `orderBy createdAt desc, take 1`, and a gate that cannot see the
+ * arguments cannot tell that ordering from its exact inverse, which is a bug
+ * that would silently mark every settled thread as owed.
+ */
+export interface WantsYouDb {
+  threadMember: { findMany(args: ThreadMemberQuery): Promise<ThreadMemberRecord[]> };
+  notification: { findMany(args: NotificationQuery): Promise<NotificationRecord[]> };
+}
+
+type ThreadMemberQuery = Record<string, unknown>;
+type NotificationQuery = Record<string, unknown>;
+
+// Mirrors the schema exactly rather than defensively widening it. A type that
+// is looser than the column it describes is not "safe" — it just moves a real
+// null-check into every consumer, and TypeScript caught this one at the
+// boundary: `sourcePlatform` is `String @default("mesh")`, never null, which is
+// why ThreadRow can require it.
+type ThreadMemberRecord = {
+  lastRead: Date;
+  notificationsMuted: boolean;
+  thread: {
+    id: string;
+    title: string | null;
+    sourcePlatform: string;
+    messages: Array<{ createdAt: Date; senderId: string; content: string }>;
+  };
+};
+
+type NotificationRecord = {
+  id: string;
+  type: string;
+  message: string | null;
+  read: boolean;
+  createdAt: Date;
+  postId: string | null;
+  actor: { displayName: string | null; username: string } | null;
+};
+
+/**
  * Caps. Comfortably more than any viewport can place, so the budget that
  * decides what is shown stays in the geometry where it is checked, rather than
  * being silently pre-applied here by a LIMIT nobody can see.
@@ -49,10 +94,17 @@ const MAX_NOTIFICATIONS = 60;
  * pass one clock to this and a different one to the view, and the mismatch
  * would surface as a hydration difference rather than as an obvious bug.
  */
-export async function readWantsYou(userId: string): Promise<{ items: FieldItem[]; nowMs: number }> {
+export async function readWantsYou(
+  userId: string,
+  // The real client at runtime; a recording fake under the gate. Cast once,
+  // here, because Prisma's generated signatures are far wider than the two
+  // calls this file makes and naming them in full would be a second, weaker
+  // copy of the schema.
+  db: WantsYouDb = prisma as unknown as WantsYouDb,
+): Promise<{ items: FieldItem[]; nowMs: number }> {
   const nowMs = Date.now();
   const [memberships, notifications] = await Promise.all([
-    prisma.threadMember.findMany({
+    db.threadMember.findMany({
       where: { userId },
       take: MAX_THREADS,
       orderBy: { thread: { updatedAt: "desc" } },
@@ -75,7 +127,7 @@ export async function readWantsYou(userId: string): Promise<{ items: FieldItem[]
         },
       },
     }),
-    prisma.notification.findMany({
+    db.notification.findMany({
       where: { recipientId: userId },
       take: MAX_NOTIFICATIONS,
       orderBy: { createdAt: "desc" },

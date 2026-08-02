@@ -234,6 +234,11 @@ export function MeshField({
   return (
     <div
       ref={hostRef}
+      // Stable hooks for browser tests and the diagnostics gate. The old canvas
+      // named its surface "mesh-scene"/"mesh-canvas"; those names described an
+      // implementation that no longer exists, so the markers name the thing
+      // that does. They are asserted by platform-diagnostics mesh-testability.
+      data-testid="mesh-field"
       className="relative h-full w-full overflow-hidden"
       style={{ background: backdrop, fontFamily: FONT_STACK }}
     >
@@ -309,6 +314,8 @@ export function MeshField({
               <a
                 key={p.id}
                 href={item.href}
+                data-testid="mesh-node"
+                data-ring={p.ring}
                 aria-label={`${item.verb}: ${item.title}. ${item.reason}`}
                 onClick={() => beaconSeen(item)}
               >
@@ -365,6 +372,7 @@ export function MeshField({
           count, which is what "0 new for you" was. */}
       {geometry && (
         <div
+          data-testid="mesh-core"
           className="pointer-events-none absolute flex flex-col items-center text-center"
           style={{
             left: geometry.core.x - geometry.core.radius * 2.6,
@@ -465,7 +473,7 @@ export function MeshField({
       {/* The same field as a list. Not a fallback — a radial surface is hard to
           scan, and some people simply want the queue. Both are the same data in
           the same order, which is why it is generated from `field.items`. */}
-      <ul className="sr-only">
+      <ul data-testid="mesh-list" className="sr-only">
         {field.items.map((item) => (
           <li key={item.id}>
             <a href={item.href}>
