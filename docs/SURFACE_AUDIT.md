@@ -193,6 +193,29 @@ orphans.
    - The zip-bomb surface moves into the user's own tab, where a decompression
      ratio cap costs them a browser tab rather than a shared server.
 
+   ### What of this is built (as of PR #513)
+
+   Five pure modules, each with its own gate in the `check` chain, none of which
+   imports a ZIP library:
+
+   | Module | Does | Gate |
+   |---|---|---|
+   | `zip-limits.ts` | What may be inflated, judged on the central directory | `zip-limits:check` |
+   | `locate-posts.ts` | Which files are post documents, across every vintage | `locate-posts:check` |
+   | `decode-text.ts` | Meta's UTF-8-as-Latin-1 repair, only where provable | `decode-text:check` |
+   | `parse-export.ts` | One document to posts; may skip, never invent | `portability-parse:check` |
+   | `read-archive.ts` | All four together, against an **injected** entry reader | `read-archive:check` |
+
+   The injected reader is the reason the hostile paths are testable at all — a
+   lying header, a collectively-over-budget archive, a Latin-1 document and a
+   throwing reader are all exercised without building a real ZIP.
+
+   **Still owed:** the ZIP library at the edge (below), the Worker that contains
+   it, the write path into `ContentSource`/`SyncedContent` (which needs
+   `ensure-schema.sql`, not only a migration), a reader for `SyncedContent` —
+   nothing reads it today, so the ingest must land with one — and the entry point
+   on `/connected-accounts`.
+
    ### The ZIP library: `@zip.js/zip.js`, and why not the small one
 
    This entry first said *"`fflate` is the small zero-dep candidate."* That was a
@@ -379,6 +402,19 @@ orphans.
      obvious way and every non-ASCII caption becomes mojibake. That is not a
      dropped post; it is a post in someone's history with text they did not
      write. The bytes must be re-decoded before `JSON.parse`.
+
+     **Corrected while implementing this** (`read-archive.ts`): re-decoding the
+     bytes is right for one of the two forms this takes and wrong for the other,
+     so the implementation does both. Meta usually ships the mangling as JSON
+     *escapes* — the file is well-formed UTF-8 and the damage is confined to the
+     string values. Re-decoding the file's bytes first would not touch those
+     escapes at all, and on a partly-affected file it risks breaking the JSON
+     structure, turning a recoverable text problem into an unparseable document.
+     The other form is a file whose *raw bytes* are mangled; that one does not
+     decode as UTF-8 at all, and is caught by trying strict UTF-8 first and
+     falling back to Latin-1 only when that fails. Strict-then-fallback on the
+     bytes, then `decodeExportText` on the parsed string values, covers both.
+     Following the original note alone would silently miss the common one.
    - **LinkedIn's export is flat CSV, not JSON** — posts in `Shares.csv`, and the
      archive ships in two variants where **`Basic_…zip` contains no posts at
      all**. `parseExportDocument` cannot read any of it. LinkedIn needs its own
