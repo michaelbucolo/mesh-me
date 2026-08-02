@@ -204,21 +204,27 @@ for (const entry of entries) {
     fail("4 the rim", `--meshpro-gilt is defined ${gilt} time(s) in tokens.css; it needs a light and a dark value, or the rim is invisible in one theme`);
   } else ok();
 
-  const layer = read("src/components/mesh/live/meshi-layer.tsx");
+  const layer = read("src/components/meshfield/mesh-field.tsx");
   const applications = layer.match(/meshi-pro-rim/g)?.length ?? 0;
   // Remote visitors, the mesh owner, the viewer's own wandering Meshi, and a
   // departing visitor mid-fade: four places a Meshi is drawn.
-  if (applications < 4) {
+  // The canvas drew Meshi at FOUR sites (remote visitor, mesh owner, your own,
+  // one leaving) and each needed the rim independently — miss one and the mark
+  // blinked out depending on who was looking. The field renders every Meshi
+  // through a SINGLE element, so one application covers all of them and the
+  // divergence this counted is gone by construction. The rule that survives is
+  // that the rim exists and is read off the presence entry.
+  if (applications < 1) {
     fail(
       "4 the rim",
-      `meshi-layer.tsx applies .meshi-pro-rim ${applications} time(s); every Meshi it draws needs it (remote visitor, mesh owner, your own, and one leaving) or the mark blinks out depending on who is looking`,
+      `mesh-field.tsx applies .meshi-pro-rim ${applications} time(s); every Meshi it draws needs it (remote visitor, mesh owner, your own, and one leaving) or the mark blinks out depending on who is looking`,
     );
   } else ok();
 
   // The whole point is that the server decides. A client-side guess about who
   // is Pro is how a cosmetic becomes a lie.
   if (!/p\.isPro/.test(layer)) {
-    fail("4 the rim", "meshi-layer.tsx no longer reads isPro off the presence entry, so remote members' marks are not server-authoritative");
+    fail("4 the rim", "mesh-field.tsx no longer reads isPro off the presence entry, so remote members' marks are not server-authoritative");
   } else ok();
 }
 

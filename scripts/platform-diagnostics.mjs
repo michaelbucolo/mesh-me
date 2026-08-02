@@ -372,23 +372,31 @@ const checks = [
     run: async () => {
       // THE FILE LIST IS PART OF THE ASSERTION.
       //
-      // This read three files. Two of them — ui/rail.tsx and
-      // mesh-desktop-chrome.tsx — were deleted when the eight-disc rail became
-      // one dock, and `read()` returns "" for a missing path, so the check went
-      // on scanning a third of what it named and reported the action bar as
-      // missing when it had simply moved to ui/dock.tsx.
+      // This named three canvas files. The canvas is gone: the mesh is an SVG
+      // ring field now, so "mesh-scene"/"mesh-canvas"/"MeshScene" named an
+      // implementation rather than a surface, and asserting them would pin a
+      // thing that no longer exists.
+      //
+      // What the check is FOR is unchanged and is the reason it still runs: the
+      // mesh must stay reachable by a browser test and by a screen reader. The
+      // field is strictly better on both counts than what it replaced — every
+      // node is a real <a> with an aria-label, and the same field is emitted as
+      // an ordered list — so the markers name those.
       //
       // A gate that keeps running while its subject disappears is worse than no
-      // gate, so a named file that no longer exists is now a failure in itself.
-      const files = [
-        "src/components/mesh/scene/mesh-surface.tsx",
-        "src/components/mesh/ui/dock.tsx",
-        "src/components/mesh/ui/chrome.tsx",
-      ];
+      // gate, so a named file that no longer exists is still a failure in
+      // itself.
+      const files = ["src/components/meshfield/mesh-field.tsx"];
       const absent = files.filter((f) => !fs.existsSync(path.join(root, f)));
       assert(absent.length === 0, `Mesh source files this check names no longer exist: ${absent.join(", ")}`);
       const source = files.map(read).join("");
-      const required = ['data-testid="mesh-scene"', 'data-testid="mesh-canvas"', 'data-testid="mesh-action-bar"', "aria-label", "MeshScene"];
+      const required = [
+        'data-testid="mesh-field"',
+        'data-testid="mesh-node"',
+        'data-testid="mesh-core"',
+        'data-testid="mesh-list"',
+        "aria-label",
+      ];
       const missing = required.filter((token) => !source.includes(token));
       assert(missing.length === 0, `Missing Mesh testability markers: ${missing.join(", ")}`);
       return { evidence: `${files.length} Mesh source files scanned; all diagnostics markers present` };

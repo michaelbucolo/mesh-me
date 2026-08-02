@@ -51,113 +51,12 @@ const ok = () => {
   checks += 1;
 };
 
-const DOCK = "src/components/mesh/ui/dock.tsx";
 const EXPLORE = "src/app/(app)/explore/explore-discovery.tsx";
 
-// ── 1. THE DOCK ANNOUNCES A DISCLOSURE, WHICH IS WHAT IT IS ─────────────────
-//
-// The choice between implementing the APG menu pattern and dropping the roles
-// was decided by the New popover: its rows carry a per-row "mark seen" control,
-// and a menu may not contain nested interactive content at all. Making the menu
-// legal would have meant deleting a real feature. A disclosure — a button with
-// aria-expanded showing a labelled group, where Tab moves through the contents —
-// describes the component truthfully AND has room for the second control.
-{
-  const dock = strip(read(DOCK));
-
-  for (const role of ['role="menu"', 'role="menuitem"', 'aria-haspopup="menu"']) {
-    if (dock.includes(role)) {
-      fail(
-        "1 dock",
-        `dock.tsx claims ${role}.\n` +
-          "  A menu owes focus-on-open, a roving tabindex, Arrow/Home/End, and focus restored on\n" +
-          "  close. None of that is here, and the New popover's per-row controls cannot legally live\n" +
-          "  inside a menu anyway. This is a disclosure: aria-expanded + aria-controls on the trigger,\n" +
-          "  a labelled group for the panel.",
-      );
-    } else ok();
-  }
-
-  // The disclosure's own contract, which IS detectable.
-  for (const [needle, why] of [
-    ["aria-expanded={expanded}", "the trigger must say whether its panel is open"],
-    ["aria-controls={expanded === undefined ? undefined : popoverId}", "the trigger must point at the panel it opens"],
-    ['role="group"', "the panel must be a labelled group, so it is announced as a unit"],
-  ] as const) {
-    if (!dock.includes(needle)) {
-      fail("1 dock", `dock.tsx is missing \`${needle}\` — ${why}`);
-    } else ok();
-  }
-}
-
-// ── 2. THE DOCK MOVES FOCUS, IN BOTH DIRECTIONS ─────────────────────────────
-//
-// Opening moved no focus, so Enter on the trigger left the user on the trigger
-// with a panel they could not reach. Closing moved none either: every row
-// unmounts the button it lives on, so focus fell to <body> and the next Tab
-// restarted from the top of the document.
-//
-// The worst case has no trigger to return to at all — marking the last unseen
-// branch seen drives unseenTotal to 0, which unmounts the popover AND the key
-// that opened it. So a fallback is not optional here, it is the common case.
-{
-  const dock = strip(read(DOCK));
-  const popover = /function DockPopover\(\{[\s\S]*?\n\}\n/.exec(dock)?.[0] ?? "";
-  if (!popover) {
-    fail("2 dock focus", "DockPopover has moved; this check has lost its subject and would pass vacuously");
-  } else {
-    for (const [needle, why] of [
-      [/querySelector<HTMLElement>\("button"\)\?\.focus\(\)/, "focus must move INTO the panel when it opens"],
-      [/opener\?\.isConnected/, "focus must return to whatever opened the panel"],
-      [/mesh-action-bar/, "and fall back to the dock when the trigger unmounted with the panel"],
-    ] as const) {
-      if (!needle.test(popover)) {
-        fail("2 dock focus", `DockPopover has no focus contract: ${why}`);
-      } else ok();
-    }
-  }
-}
-
-// ── 3. NO INTERACTIVE CONTENT INSIDE A BUTTON ───────────────────────────────
-//
-// `trailing` rendered inside PopRow's own <button>. A button may not contain
-// interactive content; the row's accessible name, computed from contents, swept
-// up the trailing control's aria-label and announced "Your posts · 3 new, Mark
-// Your posts seen"; and Safari does not reliably focus a tabbable descendant of
-// a button, so the action was unreachable by keyboard there.
-{
-  const dock = strip(read(DOCK));
-
-  // A hand-rolled button is the tell: you write Enter/Space handling only when
-  // the element cannot legally be a <button>, which is the bug itself.
-  if (/role="button"[\s\S]{0,200}tabIndex=\{0\}/.test(dock)) {
-    fail(
-      "3 nesting",
-      "dock.tsx has a focusable role=\"button\" element that is not a <button>.\n" +
-        "  That shape exists to smuggle a control somewhere a real button is illegal — inside\n" +
-        "  another button. Two actions are two sibling buttons.",
-    );
-  } else ok();
-
-  const popRow = /function PopRow\(\{[\s\S]*?\n\}\n/.exec(dock)?.[0] ?? "";
-  if (!popRow) {
-    fail("3 nesting", "PopRow has moved; this check has lost its subject");
-  } else {
-    // The row's own <button> must close before `trailing` renders.
-    const buttonClose = popRow.indexOf("</button>");
-    const trailingAt = popRow.indexOf("{trailing}");
-    if (trailingAt < 0) {
-      fail("3 nesting", "PopRow no longer renders `trailing`; the mark-seen control has been dropped");
-    } else if (buttonClose < 0 || trailingAt < buttonClose) {
-      fail(
-        "3 nesting",
-        "PopRow renders `trailing` INSIDE its own <button> again.\n" +
-          "  Invalid HTML and invalid ARIA, and it pollutes the row's accessible name with the\n" +
-          "  trailing control's. The row is a container; the two actions are siblings.",
-      );
-    } else ok();
-  }
-}
+// NOTE: sections 1-3 tested the mesh canvas dock's disclosure semantics,
+// focus handling and button nesting. The dock was deleted with the canvas;
+// the field's nodes are plain <a> elements, which is what made those rules
+// necessary in the first place. Git holds the removed assertions.
 
 // ── 4. EXPLORE'S TABS OWE PANELS, OR THEY ARE NOT TABS ──────────────────────
 //

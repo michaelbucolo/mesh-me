@@ -39,14 +39,20 @@ function emit(): void {
 }
 
 /**
- * Called by the mesh canvas layer when the owner's Meshi mounts and unmounts.
- * Idempotent — a re-render that reports the same value wakes nobody.
+ * Claim (or release) the surface's Meshi.
+ *
+ * The mesh CANVAS used to be the only thing that could make this claim. The
+ * canvas is gone and the ring field makes it now — it draws the live presence
+ * Meshis, so the floating Meshi still has to stand down while it is mounted or
+ * you get two on one screen. The flag outlived the canvas because the question
+ * it answers was never about canvases.
  */
 export function setCanvasMeshi(present: boolean): void {
   if (canvasHasMeshi === present) return;
   canvasHasMeshi = present;
   emit();
 }
+
 
 function subscribe(listener: () => void): () => void {
   listeners.add(listener);

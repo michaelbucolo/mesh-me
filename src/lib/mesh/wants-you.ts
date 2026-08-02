@@ -166,7 +166,10 @@ export function wantsYou(input: {
       platform: "mesh",
       atMs: row.createdAtMs,
       awaitingViewer: isObligation,
-      href: row.postId ? `/post/${encodeURIComponent(row.postId)}` : "/notifications",
+      // `/feed/<id>` is the single-post route; there is no `/post/` route and
+      // no redirect aliasing one, so the previous href 404'd. An item on a
+      // surface whose entire purpose is "act on this" must land somewhere.
+      href: row.postId ? `/feed/${encodeURIComponent(row.postId)}` : "/notifications",
     });
   }
 

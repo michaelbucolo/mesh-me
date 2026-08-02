@@ -71,23 +71,4 @@ export function buildExternalMedia(opts: {
   return fallbackStill ? [{ id: `${id}-image`, url: fallbackStill, type: "image" }] : [];
 }
 
-/** Playable video FILE url (never a page link), or null. For in-app players. */
-export function playableVideoUrl(opts: {
-  mediaUrl?: string | null;
-  thumbnailUrl?: string | null;
-}): string | null {
-  if (classifyMediaUrl(opts.mediaUrl) === "video") return opts.mediaUrl ?? null;
-  if (classifyMediaUrl(opts.thumbnailUrl) === "video") return opts.thumbnailUrl ?? null;
-  return null;
-}
 
-/** Best displayable still for canvas thumbnails and hover cards. */
-export function bestStillUrl(opts: {
-  mediaUrl?: string | null;
-  thumbnailUrl?: string | null;
-}): string | null {
-  const entries = buildExternalMedia({ id: "still", ...opts });
-  const first = entries[0];
-  if (!first) return null;
-  return first.type === "image" ? first.url : first.posterUrl ?? null;
-}
