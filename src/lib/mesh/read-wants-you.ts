@@ -39,8 +39,18 @@ const MAX_NOTIFICATIONS = 60;
  * Returns items for the WHOLE field, not just the urgent ring: the rings module
  * decides which band each one lands in, and it needs the quiet things too or
  * there is no field for the urgent things to stand out against.
+ *
+ * ── WHY THE CLOCK IS RETURNED RATHER THAN PASSED IN ────────────────────────
+ *
+ * The field's layout is a pure function of (items, nowMs), which is what lets
+ * the server and client renders agree exactly. That guarantee only holds if
+ * both are given the SAME instant, so the read stamps it once, here, and hands
+ * it back with the rows it was applied to. A caller that supplied its own could
+ * pass one clock to this and a different one to the view, and the mismatch
+ * would surface as a hydration difference rather than as an obvious bug.
  */
-export async function readWantsYou(userId: string, nowMs: number): Promise<FieldItem[]> {
+export async function readWantsYou(userId: string): Promise<{ items: FieldItem[]; nowMs: number }> {
+  const nowMs = Date.now();
   const [memberships, notifications] = await Promise.all([
     prisma.threadMember.findMany({
       where: { userId },
@@ -105,5 +115,5 @@ export async function readWantsYou(userId: string, nowMs: number): Promise<Field
     postId: n.postId,
   }));
 
-  return wantsYou({ threads, notifications: rows, nowMs });
+  return { items: wantsYou({ threads, notifications: rows, nowMs }), nowMs };
 }

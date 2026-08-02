@@ -25,6 +25,9 @@
 // actual font applied. Everything else is decided before a pixel exists.
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { MeshiMascot } from "@/components/meshi/meshi-mascot";
+import { useMeshiPreferences } from "@/hooks/use-meshi-preferences";
+import { useFieldPresence } from "./use-field-presence";
 import { layOut } from "./model/geometry";
 import { identityMark } from "./model/identity-mark";
 import { planLabels } from "./model/labels";
@@ -125,8 +128,29 @@ function IdentityMark({ id, size, ink }: { id: string; size: number; ink: string
   );
 }
 
-export function MeshField({ items, nowMs }: { items: FieldItem[]; nowMs: number }) {
+export function MeshField({
+  items,
+  nowMs,
+  roomUserId = null,
+  viewerId = null,
+}: {
+  items: FieldItem[];
+  nowMs: number;
+  /** Whose mesh this is — the presence room. Null renders the field alone. */
+  roomUserId?: string | null;
+  /** The signed-in viewer, excluded from the roaming roster so they are not
+   * drawn twice (see the self-Meshi duplication this replaced). */
+  viewerId?: string | null;
+}) {
   const hostRef = useRef<HTMLDivElement | null>(null);
+  const prefs = useMeshiPreferences();
+  const presence = useFieldPresence({
+    roomUserId,
+    viewerId,
+    prefs,
+    containerRef: hostRef,
+    enabled: !!roomUserId,
+  });
   const viewport = useViewport(hostRef);
   const theme = useMeshTheme();
   const measure = useMeasure();
@@ -328,12 +352,52 @@ export function MeshField({ items, nowMs }: { items: FieldItem[]; nowMs: number 
           {geometry.dropped.length > 0 && (
             // Reported, never silent. A surface that quietly hides part of your
             // world has lied about being your world.
-            <p className="mt-2 text-[11px]" style={{ color: dim }}>
+            <p className="mt-2 text-xs" style={{ color: dim }}>
               {geometry.dropped.length} more off-screen
             </p>
           )}
         </div>
       )}
+
+      {/* Live presence — the people who are here with you.
+          Absolutely positioned and transform-driven: the glide loop in
+          `use-field-presence` writes each element's transform directly, so a
+          busy room costs zero React renders per frame. React only re-renders
+          when the ROSTER changes, and the roster hands back stable object
+          identities while an appearance is unchanged. */}
+      {presence.people.map((p) => (
+        <div
+          key={p.userId}
+          ref={presence.registerNode(p.userId)}
+          className="pointer-events-none absolute left-0 top-0 z-20 flex flex-col items-center will-change-transform"
+          // Parked off-screen until the first frame places it, so nobody
+          // flashes at the origin before the glide loop has run.
+          style={{ transform: "translate3d(-9999px, -9999px, 0)" }}
+        >
+          <MeshiMascot
+            // The wire carries plain strings; the mascot wants unions. The
+            // values are server-validated on the way in, so this asserts what
+            // the payload already guarantees rather than re-checking it.
+            {...({
+              size: 40,
+              mood: p.meshiMood,
+              color: p.meshiColor,
+              hat: p.meshiHat,
+              hair: p.meshiHair,
+              accessory: p.meshiAccessory,
+              eyeStyle: p.meshiEyeStyle,
+              badge: p.meshiBadge,
+              animate: true,
+            } as React.ComponentProps<typeof MeshiMascot>)}
+          />
+          <span
+            className="mt-0.5 max-w-[7rem] truncate rounded-full px-1.5 py-0.5 text-xs font-medium"
+            style={{ background: theme === "dark" ? "#1b1b24cc" : "#ffffffcc", color: dim }}
+          >
+            {p.displayName || p.username}
+          </span>
+        </div>
+      ))}
 
       {/* The same field as a list. Not a fallback — a radial surface is hard to
           scan, and some people simply want the queue. Both are the same data in

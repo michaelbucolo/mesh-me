@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { getCurrentUser } from "@/lib/auth";
 import { hasMeshPro } from "@/lib/mesh-pro";
+import { readWantsYou } from "@/lib/mesh/read-wants-you";
+import { MeshField } from "@/components/meshfield/mesh-field";
 import { MeshSceneLoader } from "@/components/mesh/scene/mesh-scene-loader";
 
 export const metadata: Metadata = { title: "Mesh Dashboard" };
@@ -17,12 +19,43 @@ export default async function MeshPage({ searchParams }: { searchParams: Promise
   // absence of this param) renders BOTH your owner Meshi at the heart AND your
   // pointer-following cursor Meshi: two of you. Resolve identity here and drop
   // the param when it points at yourself, so every own-mesh code path is right.
-  // Resolved unconditionally now: the identity test below only needs it when
-  // `raw` is set, but the MeshPro mark on the viewer's OWN wandering Meshi
-  // needs it on every visit, including a plain /mesh with no params.
   const user = await getCurrentUser();
   const isSelf = !!raw && !!user && (raw === user.id || raw.toLowerCase() === user.username.toLowerCase());
   const viewUser = isSelf ? undefined : raw;
+
+  // ── YOUR OWN MESH IS THE NEW FIELD ────────────────────────────────────────
+  //
+  // Signed in, no ?user=, not global: this is the home dashboard, and it is the
+  // ring field. The read happens HERE rather than behind an endpoint because
+  // this is already a server component — one round trip instead of two, and
+  // nothing fires after the bundle downloads.
+  //
+  // `nowMs` is resolved once, on the server, and handed to the client. That is
+  // deliberate: the field's placement is a pure function of (items, nowMs), so
+  // a single server-decided clock makes the server and client renders agree
+  // exactly. Calling Date.now() in the component would reintroduce the
+  // hydration mismatch the pure layer exists to avoid.
+  //
+  // The other two shapes still belong to the old scene, and are NOT swapped:
+  //
+  //   ?user=<someone>  — someone else's mesh. "What wants you" is a read of
+  //                      YOUR obligations; it has no meaning pointed at a
+  //                      stranger, so this is not the same surface with a
+  //                      different id. Still linked from a profile.
+  //   ?view=global     — the opt-in world mesh. A different supply entirely.
+  //
+  // Both keep working until they get a considered answer of their own. Deleting
+  // the old tree before then would delete two live features to make one file
+  // tidier.
+  if (user && !viewUser && viewMode === "mesh") {
+    const { items, nowMs } = await readWantsYou(user.id);
+    return (
+      <div className="h-full w-full">
+        <MeshField items={items} nowMs={nowMs} roomUserId={user.id} viewerId={user.id} />
+      </div>
+    );
+  }
+
   return (
     <MeshSceneLoader
       viewMode={viewMode}
