@@ -29,7 +29,7 @@
  */
 
 /** Relative luminance, WCAG 2.x. Accepts `#rgb` and `#rrggbb`. */
-function relativeLuminance(hex: string): number {
+export function relativeLuminance(hex: string): number {
   const h = hex.replace("#", "").trim();
   const full = h.length === 3 ? h.split("").map((c) => c + c).join("") : h;
   const channel = (i: number) => {
@@ -39,7 +39,8 @@ function relativeLuminance(hex: string): number {
   return 0.2126 * channel(0) + 0.7152 * channel(1) + 0.0722 * channel(2);
 }
 
-function contrast(a: number, b: number): number {
+/** WCAG contrast ratio between two relative luminances. */
+export function contrast(a: number, b: number): number {
   const [hi, lo] = a > b ? [a, b] : [b, a];
   return (hi + 0.05) / (lo + 0.05);
 }
@@ -102,7 +103,8 @@ export function readableAccentText(accent: string, background: string): string {
 /** A little headroom over 4.5, so rounding never lands a shipped value under AA. */
 const AA_TEXT = 4.6;
 
-function toHsl(hex: string): [number, number, number] {
+/** sRGB hex to HSL, all three components in 0..1. */
+export function toHsl(hex: string): [number, number, number] {
   const h = hex.replace("#", "").trim();
   const full = h.length === 3 ? h.split("").map((c) => c + c).join("") : h;
   const [r, g, b] = [0, 1, 2].map((i) => parseInt(full.slice(i * 2, i * 2 + 2), 16) / 255);
@@ -116,7 +118,8 @@ function toHsl(hex: string): [number, number, number] {
   return [hue / 6, s, l];
 }
 
-function fromHsl(h: number, s: number, l: number): string {
+/** HSL back to sRGB hex, all three components in 0..1. */
+export function fromHsl(h: number, s: number, l: number): string {
   const f = (p: number, q: number, t0: number) => {
     let t = t0;
     if (t < 0) t += 1;
