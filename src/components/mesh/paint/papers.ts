@@ -17,7 +17,7 @@
  * Mesh Atmospheres — the sky palette of a mesh. "midnight" is the free
  * default; the rest are MeshPro skies.
  */
-export interface AtmosphereSpec {
+interface AtmosphereSpec {
   id: string;
   label: string;
   pro: boolean;
@@ -78,20 +78,6 @@ const ATMOSPHERES_DARK: Record<string, AtmosphereSpec> = {
   dawn: { id: "dawn", label: "Sunlit", pro: true, bg: ["#2a211c", "#241c18", "#100c0a"], ink: "#c09272", grain: 0.06 },
 };
 
-// A readable-id alias map (midnight->daylight, ember->kraft, ...) belongs here
-// when a picker needs one. It is deliberately NOT written yet: an exported map
-// nothing reads is just a second source of truth waiting to drift from the
-// labels above.
-
-/**
- * Resolve a stored preset id to its paper. `dark` picks the lamplit variant of
- * the SAME paper — a person's chosen paper does not change when the room does,
- * only the light falling on it.
- */
-export function atmosphereOf(id?: string | null, dark = true): AtmosphereSpec {
-  const table = dark ? ATMOSPHERES_DARK : ATMOSPHERES;
-  return (id && table[id]) || table.midnight;
-}
 
 /**
  * The papers, in picker order, with a two-colour swatch taken from the paper

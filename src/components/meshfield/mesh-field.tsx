@@ -24,10 +24,12 @@
 // instead. This is where the real one comes from: a canvas 2D context with the
 // actual font applied. Everything else is decided before a pixel exists.
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { MeshiMascot } from "@/components/meshi/meshi-mascot";
 import { useMeshiPreferences } from "@/hooks/use-meshi-preferences";
 import { useFieldPresence } from "./use-field-presence";
+import { setCanvasMeshi } from "@/components/mesh/live/meshi-presence";
+import { impressionIdFor } from "./seen-bridge";
 import { layOut } from "./model/geometry";
 import { identityMark } from "./model/identity-mark";
 import { planLabels } from "./model/labels";
@@ -134,6 +136,7 @@ export function MeshField({
   roomUserId = null,
   viewerId = null,
   centre,
+  canRecordImpressions = false,
 }: {
   items: FieldItem[];
   nowMs: number;
@@ -153,6 +156,12 @@ export function MeshField({
    * relitigate it, it just lets a different surface say a different true thing.
    */
   centre?: { badge: string; text: string; action?: { label: string; href: string } };
+  /**
+   * Whether this viewer's impressions may be recorded, feeding the Flow
+   * seen-set so the mesh and the Flow stop showing you the same post twice.
+   * False for Global and for guests — see `seen-bridge`, which owns that rule.
+   */
+  canRecordImpressions?: boolean;
 }) {
   const hostRef = useRef<HTMLDivElement | null>(null);
   const prefs = useMeshiPreferences();
@@ -186,6 +195,37 @@ export function MeshField({
     }
     return planLabels(geometry, viewport, texts, measure);
   }, [geometry, viewport, byId, measure]);
+
+  // This surface shows Meshis of its own (the presence layer above), so the
+  // floating Meshi must stand down while it is mounted — otherwise you get two
+  // of them on one screen. The canvas used to make this claim; the field makes
+  // it now, which is why the flag outlived the canvas.
+  useEffect(() => {
+    setCanvasMeshi(true);
+    return () => setCanvasMeshi(false);
+  }, []);
+
+  // Opening a native post here tells the Flow you have seen it, so the two
+  // surfaces stop offering you the same thing twice. `keepalive` because the
+  // click is a navigation: without it the request dies with the page.
+  const beaconSeen = useCallback(
+    (item: FieldItem) => {
+      const id = impressionIdFor(item, { canRecordImpressions });
+      if (!id) return;
+      void fetch("/api/flow/impression", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ postId: id }),
+        keepalive: true,
+      }).catch(() => {
+        // A missed impression costs a repeat, never the navigation.
+      });
+    },
+    [canRecordImpressions],
+  );
+
+  // Resolved once: the centre's action, whether supplied or computed.
+  const centreAction = centre ? centre.action : field.headline.action;
 
   const backdrop = MESH_BACKDROP[theme];
   const coreMaterial = materialFor("needsYou", null, theme);
@@ -266,7 +306,12 @@ export function MeshField({
             const markSize = p.radius * 1.15;
 
             return (
-              <a key={p.id} href={item.href} aria-label={`${item.verb}: ${item.title}. ${item.reason}`}>
+              <a
+                key={p.id}
+                href={item.href}
+                aria-label={`${item.verb}: ${item.title}. ${item.reason}`}
+                onClick={() => beaconSeen(item)}
+              >
                 {m.glow > 0 && (
                   <circle cx={p.x} cy={p.y} r={p.radius * 2.4} fill={`url(#glow-${p.ring})`} />
                 )}
@@ -351,13 +396,13 @@ export function MeshField({
             {centre ? centre.text : field.headline.text}
           </p>
 
-          {(centre ? centre.action : field.headline.action) && (
+          {centreAction && (
             <a
               className="pointer-events-auto mt-2 rounded-full px-3 py-1 text-xs font-semibold"
-              href={(centre ? centre.action : field.headline.action)!.href}
+              href={centreAction.href}
               style={{ background: coreMaterial.fill, color: coreMaterial.ink }}
             >
-              {(centre ? centre.action : field.headline.action)!.label}
+              {centreAction.label}
             </a>
           )}
 
@@ -381,7 +426,13 @@ export function MeshField({
         <div
           key={p.userId}
           ref={presence.registerNode(p.userId)}
-          className="pointer-events-none absolute left-0 top-0 z-20 flex flex-col items-center will-change-transform"
+          className={`pointer-events-none absolute left-0 top-0 z-20 flex flex-col items-center will-change-transform${
+            // MeshPro's gold rim. Read off the presence entry, never inferred
+            // locally, so the mark is server-authoritative: a client cannot
+            // award itself one, and it does not blink out depending on who is
+            // looking.
+            p.isPro ? " meshi-pro-rim" : ""
+          }`}
           // Parked off-screen until the first frame places it, so nobody
           // flashes at the origin before the glide loop has run.
           style={{ transform: "translate3d(-9999px, -9999px, 0)" }}

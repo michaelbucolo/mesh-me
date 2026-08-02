@@ -68,7 +68,7 @@ export default async function MeshPage({ searchParams }: { searchParams: Promise
         <Shell>
           <MeshField
             items={[]}
-            nowMs={Date.now()}
+            nowMs={their.nowMs}
             centre={{
               badge: "—",
               text: `${name}'s mesh is private.`,
@@ -89,6 +89,7 @@ export default async function MeshPage({ searchParams }: { searchParams: Promise
           // standing in someone else's mesh alongside you.
           roomUserId={their.owner.id}
           viewerId={user?.id ?? null}
+          canRecordImpressions={!!user}
           centre={{
             badge: String(their.items.length),
             text: `${name}'s mesh`,
@@ -121,7 +122,7 @@ export default async function MeshPage({ searchParams }: { searchParams: Promise
   const { items, nowMs } = await readWantsYou(user.id);
   return (
     <Shell>
-      <MeshField items={items} nowMs={nowMs} roomUserId={user.id} viewerId={user.id} />
+      <MeshField items={items} nowMs={nowMs} roomUserId={user.id} viewerId={user.id} canRecordImpressions />
     </Shell>
   );
 }

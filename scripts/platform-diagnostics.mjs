@@ -381,9 +381,6 @@ const checks = [
       // A gate that keeps running while its subject disappears is worse than no
       // gate, so a named file that no longer exists is now a failure in itself.
       const files = [
-        "src/components/mesh/scene/mesh-surface.tsx",
-        "src/components/mesh/ui/dock.tsx",
-        "src/components/mesh/ui/chrome.tsx",
       ];
       const absent = files.filter((f) => !fs.existsSync(path.join(root, f)));
       assert(absent.length === 0, `Mesh source files this check names no longer exist: ${absent.join(", ")}`);

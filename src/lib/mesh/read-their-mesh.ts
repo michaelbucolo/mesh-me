@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { nsfwHiddenWhere } from "@/lib/content-safety";
+import { hasMeshPro } from "@/lib/mesh-pro";
 import { areMutualFollowers, canViewMesh, normalizeMeshVisibility } from "@/lib/privacy-policy";
 import type { FeedCurrentUser } from "@/lib/feed-data";
 import type { FieldItem } from "@/components/meshfield/model/rings";
@@ -30,7 +31,7 @@ import type { FieldItem } from "@/components/meshfield/model/rings";
  */
 
 /** Enough of the owner to render the centre of their field. */
-export type MeshOwner = {
+type MeshOwner = {
   id: string;
   username: string;
   displayName: string | null;
@@ -44,7 +45,7 @@ export type TheirMesh =
   | { state: "missing" }
   /** They exist, but this viewer is not allowed in. Identity only — the same
    * shape the old surface's locked state had, and deliberately nothing more. */
-  | { state: "locked"; owner: MeshOwner }
+  | { state: "locked"; owner: MeshOwner; nowMs: number }
   | { state: "open"; owner: MeshOwner; items: FieldItem[]; nowMs: number };
 
 /** Their most recent public posts. Capped for the same reason the other read
@@ -79,7 +80,10 @@ export async function readTheirMesh(handle: string, viewer: FeedCurrentUser | nu
     displayName: target.displayName,
     avatarUrl: target.avatarUrl,
     isVerified: target.isVerified,
-    isMeshPro: target.isMeshPro,
+    // hasMeshPro, not the raw column: a founder's membership is derived,
+    // so reading the column directly makes a founder look un-Pro to
+    // everyone except themselves.
+    isMeshPro: hasMeshPro(target),
   };
 
   // A signed-out viewer is never a friend and never an admin, so the gate can
@@ -102,11 +106,11 @@ export async function readTheirMesh(handle: string, viewer: FeedCurrentUser | nu
       : Promise.resolve(null),
   ]);
 
-  if (blockBetween) return { state: "locked", owner };
+  if (blockBetween) return { state: "locked", owner, nowMs };
 
   const visibility = normalizeMeshVisibility(target.meshPrivacy?.meshVisibility);
   if (!canViewMesh(viewer, target.id, visibility, isFriend)) {
-    return { state: "locked", owner };
+    return { state: "locked", owner, nowMs };
   }
 
   // The viewer's own NSFW policy applies to someone else's mesh too — a viewer

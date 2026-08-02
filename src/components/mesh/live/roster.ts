@@ -156,11 +156,3 @@ export function sweepRoster(
   return { joined, left, effective, changed };
 }
 
-/** Forget everything (room switch) — no phantom visitors carry across. */
-export function resetRoster(roster: RoomRoster): void {
-  roster.entries.clear();
-  roster.seenAt.clear();
-  roster.sig.clear();
-  roster.roomSig = "";
-  roster.prevIds = null;
-}

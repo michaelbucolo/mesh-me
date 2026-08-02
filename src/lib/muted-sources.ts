@@ -11,7 +11,7 @@
 // Pure helpers only (no prisma / no DOM) so the mesh client, the server
 // actions, and the API routes all speak the same key format.
 
-export const MAX_MUTED_SOURCES = 200;
+const MAX_MUTED_SOURCES = 200;
 
 const KEY_PATTERN = /^(author|account):[A-Za-z0-9_-]{1,64}$/;
 
@@ -37,10 +37,6 @@ export function parseMutedSources(raw: string | null | undefined): string[] {
   } catch {
     return [];
   }
-}
-
-export function serializeMutedSources(keys: string[]): string {
-  return JSON.stringify(keys.slice(-MAX_MUTED_SOURCES));
 }
 
 /**

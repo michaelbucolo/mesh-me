@@ -531,7 +531,6 @@ for (const field of FOCUSED_CONTENT_STRIPPED) {
 // surface has to state which it emits.
 const CONTENT_CARD_SURFACES: Record<string, RegExp> = {
   "src/components/feed/post-card.tsx": /data-meshi-content-id=\{post\.id\}/,
-  "src/components/mesh/ui/content-lens.tsx": /data-meshi-content-id=\{nativePostId\(node\) \?\? node\.id\}/,
 };
 const cardSurfaces = sourceFiles.filter((f) => read(f).includes('data-meshi-content-card="true"'));
 assert.deepEqual(
