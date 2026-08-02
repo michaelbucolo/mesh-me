@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { ConnectedAccountsClient } from "./connected-accounts-client";
 import { ImportedHistorySection } from "./imported-history-section";
+import { ArchiveImportCard } from "./archive-import-card";
 import { browsableCount, getSupplyNotes } from "./public-supply-status";
 import { hasSecretEncryptionKey } from "@/lib/secret-store";
 import { getCurrentUser } from "@/lib/auth";
@@ -99,6 +100,7 @@ export default async function ConnectedAccountsPage({
         get your history back — it belongs after the thing most people came to
         do, not competing with it. Renders nothing until something is imported. */}
     <ImportedHistorySection userId={user.id} />
+    <ArchiveImportCard />
     </>
   );
 }

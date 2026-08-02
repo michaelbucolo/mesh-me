@@ -48,7 +48,11 @@ export async function ImportedHistorySection({ userId }: { userId: string }) {
             className="rounded-xl border border-[var(--ds-border)] bg-[var(--ds-surface-raised)] p-3"
           >
             <div className="flex items-center justify-between gap-2">
-              <span className="text-[0.6875rem] uppercase tracking-wide text-[var(--ds-text-muted)]">
+              {/* .mesh-eyebrow, not ad-hoc uppercase + tracking. The type
+                  contract treats small caps as one shared device so it reads
+                  the same everywhere; spelling it by hand here would be a
+                  second, slightly different version of the same idea. */}
+              <span className="text-micro mesh-eyebrow text-[var(--ds-text-muted)]">
                 {post.platform}
               </span>
               {post.postedAt ? (
