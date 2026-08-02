@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { ConnectedAccountsClient } from "./connected-accounts-client";
+import { ImportedHistorySection } from "./imported-history-section";
 import { browsableCount, getSupplyNotes } from "./public-supply-status";
 import { hasSecretEncryptionKey } from "@/lib/secret-store";
 import { getCurrentUser } from "@/lib/auth";
@@ -72,6 +73,7 @@ export default async function ConnectedAccountsPage({
   // not as a wall of policy above the grid that nobody reads before they have
   // picked anything to care about.
   return (
+    <>
     <ConnectedAccountsClient
       initialDashboard={dashboard}
       mergeCenter={mergeCenter}
@@ -92,5 +94,11 @@ export default async function ConnectedAccountsPage({
       connectError={connectError}
       preselectPlatforms={preselectPlatforms}
     />
+    {/* Below the grid on purpose. Connecting is what this page is FOR, and an
+        archive import is the answer for the platforms where connecting does not
+        get your history back — it belongs after the thing most people came to
+        do, not competing with it. Renders nothing until something is imported. */}
+    <ImportedHistorySection userId={user.id} />
+    </>
   );
 }

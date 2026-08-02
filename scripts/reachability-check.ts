@@ -242,6 +242,19 @@ checks += 1;
   // Every entry must name what will call it, so the list reads as work owed
   // rather than as a place to put things nobody wants to think about.
   const UNWIRED_PENDING_UI: Record<string, string> = {
+    "/api/portability/import":
+      "Receives one batch of an archive import. Auth, same-origin, rate limit, validation " +
+      "(import-request.ts, gated) and idempotent writes (import-store.ts, gated) are all done and " +
+      "correct. What is missing is the half that runs in the browser: a file picker, and the Worker " +
+      "that reads the ZIP and parses it before anything is sent. That Worker is not a detail to " +
+      "bolt on — it is ranked ABOVE every cap in zip-limits.ts, because a browser out-of-memory is " +
+      "uncatchable and terminate() is the only thing that can actually stop a runaway import. " +
+      "Shipping a file picker without it would put an unbounded parse on the main thread of the " +
+      "person's own tab. There are also no Workers anywhere in this repo yet, so it is a new " +
+      "pattern rather than a copy of an existing one. The READ side is wired: " +
+      "ImportedHistorySection on /connected-accounts renders what has been imported, so the ingest " +
+      "does not land unverifiable. Owed: the Worker and the file picker, in one slice, with the " +
+      "Worker first.",
     "/api/account/alter-egos":
       "Personas. GET/POST/DELETE, rate-limited, MAX_ALTER_EGOS enforced, username uniqueness checked " +
       "against both User and AlterEgo — finished and correct. But this is NOT simply a missing front " +
