@@ -159,8 +159,16 @@ export async function readArchive(
       let bytes: Uint8Array;
       try {
         bytes = await read(name);
-      } catch {
-        report.unreadable.push({ name, reason: "This file could not be read out of the archive." });
+      } catch (error) {
+        // KEEP WHAT THE READER SAID. "Could not be read" is true of a locked
+        // file, a corrupt one and an unsupported compression method alike, and
+        // only one of those is something the person can do anything about —
+        // a password-protected export can be exported again without one.
+        // Throwing the reader's sentence away loses exactly the part that tells
+        // them which situation they are in. Bounded, because it is text from a
+        // library rather than something written for a person to read.
+        const detail = error instanceof Error && error.message ? ` ${error.message.slice(0, 160)}` : "";
+        report.unreadable.push({ name, reason: `This file could not be read out of the archive.${detail}` });
         continue;
       }
 
