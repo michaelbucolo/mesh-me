@@ -133,6 +133,7 @@ export function MeshField({
   nowMs,
   roomUserId = null,
   viewerId = null,
+  centre,
 }: {
   items: FieldItem[];
   nowMs: number;
@@ -141,6 +142,17 @@ export function MeshField({
   /** The signed-in viewer, excluded from the roaming roster so they are not
    * drawn twice (see the self-Meshi duplication this replaced). */
   viewerId?: string | null;
+  /**
+   * What the centre says, when the caller knows better than the field does.
+   *
+   * The computed headline answers "what wants YOU", which is the right
+   * question on your own mesh and the wrong one on somebody else's — and the
+   * unread count in the disc is meaningless there too. So a caller rendering
+   * a mesh that is not the viewer's own supplies its own centre. The rule that
+   * a headline is never a bare count still lives in `rings.ts`; this does not
+   * relitigate it, it just lets a different surface say a different true thing.
+   */
+  centre?: { badge: string; text: string; action?: { label: string; href: string } };
 }) {
   const hostRef = useRef<HTMLDivElement | null>(null);
   const prefs = useMeshiPreferences();
@@ -191,7 +203,7 @@ export function MeshField({
           height={viewport.height}
           viewBox={`0 0 ${viewport.width} ${viewport.height}`}
           role="group"
-          aria-label="Your mesh, arranged by what wants you"
+          aria-label={centre ? centre.text : "Your mesh, arranged by what wants you"}
         >
           <defs>
             {RINGS.map((ring) => {
@@ -328,7 +340,7 @@ export function MeshField({
               className="font-semibold"
               style={{ color: coreMaterial.ink, fontSize: Math.max(13, geometry.core.radius * 0.42) }}
             >
-              {field.calm ? "calm" : field.byRing.needsYou.length}
+              {centre ? centre.badge : field.calm ? "calm" : field.byRing.needsYou.length}
             </span>
           </div>
 
@@ -336,16 +348,16 @@ export function MeshField({
             className="mt-3 font-semibold"
             style={{ color: theme === "dark" ? "#f2f2f7" : "#1c1c1e", fontSize: 15, lineHeight: 1.35 }}
           >
-            {field.headline.text}
+            {centre ? centre.text : field.headline.text}
           </p>
 
-          {field.headline.action && (
+          {(centre ? centre.action : field.headline.action) && (
             <a
               className="pointer-events-auto mt-2 rounded-full px-3 py-1 text-xs font-semibold"
-              href={field.headline.action.href}
+              href={(centre ? centre.action : field.headline.action)!.href}
               style={{ background: coreMaterial.fill, color: coreMaterial.ink }}
             >
-              {field.headline.action.label}
+              {(centre ? centre.action : field.headline.action)!.label}
             </a>
           )}
 
