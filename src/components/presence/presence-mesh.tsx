@@ -198,7 +198,12 @@ export function PresenceMesh({ presence }: { presence: MyPresence }) {
           <p className="mt-3 font-semibold" style={{ color: INK, fontSize: 16, lineHeight: 1.3 }}>
             {presence.you.displayName || presence.you.username}
           </p>
-          <p className="mt-1" style={{ color: INK_DIM, fontSize: 13 }}>
+          {/* One line, always. Wrapping put this straight through the arm
+              below it on a narrow screen. */}
+          <p
+            className="mt-1 truncate"
+            style={{ color: INK_DIM, fontSize: 13, maxWidth: "100%" }}
+          >
             {headlineText(presence)}
           </p>
         </div>
@@ -468,9 +473,9 @@ function layOutArms(arms: PresenceArm[], size: { w: number; h: number }) {
 /** One honest sentence. Never a bare count, and never zero on its own. */
 function headlineText(p: MyPresence): string {
   const platforms = p.connectedCount === 1 ? "1 platform" : `${p.connectedCount} platforms`;
-  if (p.totalWantsYou === 0) return `Nothing needs you · ${platforms} in your mesh`;
+  if (p.totalWantsYou === 0) return `Nothing needs you · ${platforms}`;
   const thing = p.totalWantsYou === 1 ? "thing wants you" : "things want you";
-  return `${p.totalWantsYou} ${thing} · across ${platforms}`;
+  return `${p.totalWantsYou} ${thing} · ${platforms}`;
 }
 
 function labelOf(platform: string): string {

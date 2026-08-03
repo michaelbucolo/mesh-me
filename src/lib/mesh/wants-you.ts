@@ -78,6 +78,9 @@ export type NotificationRow = {
   /** `comment`, `message`, `like`, `follow`, `meshi_delivery`, … */
   type: string;
   actorName: string | null;
+  /** The actor's face. Carried, never invented: a surface that shows a person
+   * without showing WHO is a chart of dots, which is what the ring field was. */
+  actorAvatarUrl?: string | null;
   message: string | null;
   read: boolean;
   createdAtMs: number;
@@ -162,6 +165,7 @@ export function wantsYou(input: {
     items.push({
       id,
       kind: row.type === "follow" ? "person" : "post",
+      imageUrl: row.actorAvatarUrl ?? null,
       title: row.message?.trim() || (row.actorName ? `${row.actorName} ${row.type === "follow" ? "followed you" : "replied"}` : "Activity"),
       platform: "mesh",
       atMs: row.createdAtMs,

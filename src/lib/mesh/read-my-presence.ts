@@ -178,20 +178,20 @@ export async function readMyPresence(userId: string): Promise<MyPresence> {
     let detail: string | null = null;
     if (!account.isActive) {
       state = "error";
-      detail = "Disconnected — tap to reconnect";
+      detail = "Disconnected";
     } else if (account.syncStatus === "error") {
       state = "error";
       // Plain language: a raw provider error is not something to put on a wall.
-      detail = "Needs you — sign in again";
+      detail = "Sign in again";
     } else if (account.syncStatus === "syncing") {
       state = "syncing";
       detail = "Syncing…";
     } else if (account.syncStatus === "rate_limited") {
       state = "stale";
-      detail = "Paused — resumes on its own";
+      detail = "Paused";
     } else if (!account.lastSyncAt || nowMs - account.lastSyncAt.getTime() > STALE_AFTER_MS) {
       state = "stale";
-      detail = "Not synced lately";
+      detail = "Not synced";
     }
 
     arms.push(
