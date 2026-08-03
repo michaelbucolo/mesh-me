@@ -3,8 +3,9 @@ import { notFound } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { readGlobalMesh } from "@/lib/mesh/read-global-mesh";
 import { readTheirMesh } from "@/lib/mesh/read-their-mesh";
-import { readWantsYou } from "@/lib/mesh/read-wants-you";
+import { readMyPresence } from "@/lib/mesh/read-my-presence";
 import { MeshField } from "@/components/meshfield/mesh-field";
+import { PresenceMesh } from "@/components/presence/presence-mesh";
 
 export const metadata: Metadata = { title: "Mesh Dashboard" };
 
@@ -119,10 +120,12 @@ export default async function MeshPage({ searchParams }: { searchParams: Promise
     );
   }
 
-  const { items, nowMs } = await readWantsYou(user.id);
+  // YOUR OWN MESH IS YOUR PRESENCE, not a ranked list of obligations. The arms
+  // are the platforms you actually use; the beads are the real things on them.
+  const presence = await readMyPresence(user.id);
   return (
     <Shell>
-      <MeshField items={items} nowMs={nowMs} roomUserId={user.id} viewerId={user.id} canRecordImpressions />
+      <PresenceMesh presence={presence} />
     </Shell>
   );
 }

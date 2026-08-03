@@ -178,13 +178,20 @@ export function PresenceMesh({ presence }: { presence: MyPresence }) {
           >
             {/* Meshi is who you are here — the one element worth carrying over. */}
             <MeshiMascot
-              size={Math.round(layout.coreR * 1.5)}
-              colorTheme={prefs?.colorTheme}
-              hatStyle={prefs?.hatStyle}
-              faceStyle={prefs?.faceStyle}
-              hairStyle={prefs?.hairStyle}
-              accessoryStyle={prefs?.accessoryStyle}
-              eyeStyle={prefs?.eyeStyle}
+              // The preference store carries plain strings; the mascot wants
+              // unions. These are server-validated on the way in, so this
+              // asserts what is already guaranteed rather than re-checking it.
+              {...({
+                size: Math.round(layout.coreR * 1.5),
+                color: prefs?.color,
+                hat: prefs?.hat,
+                face: prefs?.face,
+                hair: prefs?.hair,
+                accessory: prefs?.accessory,
+                eyeStyle: prefs?.eye,
+                badge: prefs?.badge,
+                animate: true,
+              } as React.ComponentProps<typeof MeshiMascot>)}
             />
           </div>
 
