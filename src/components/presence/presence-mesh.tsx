@@ -268,6 +268,15 @@ function Bead({ bead, accent }: { bead: PlacedBead; accent: string }) {
 
       {/* The label lives under the bead and is only rendered when there is room
           for it — a name cut to four characters is worse than no name. */}
+      {bead.more > 0 && (
+        <span
+          className="pointer-events-none absolute -right-1 -top-1 flex items-center justify-center rounded-full font-semibold"
+          style={{ minWidth: 18, height: 18, padding: "0 5px", background: "#1e293b", color: INK, fontSize: 10.5, border: `1px solid ${INK_DIM}55` }}
+        >
+          +{bead.more}
+        </span>
+      )}
+
       {bead.showLabel && (
         <span
           className="pointer-events-none absolute left-1/2 top-full mt-1 block -translate-x-1/2 whitespace-nowrap text-center"
@@ -349,7 +358,7 @@ function ArmHead({ placed }: { placed: PlacedArm }) {
 // Layout — pure, deterministic, and sized to the viewport it is given.
 // ---------------------------------------------------------------------------
 
-type PlacedBead = { item: ArmItem; x: number; y: number; r: number; showLabel: boolean };
+type PlacedBead = { item: ArmItem; x: number; y: number; r: number; showLabel: boolean; more: number };
 type PlacedArm = {
   arm: PresenceArm;
   angle: number;
@@ -404,36 +413,49 @@ function layOutArms(arms: PresenceArm[], size: { w: number; h: number }) {
     const headX = cx + ux * reachX;
     const headY = cy + uy * reachY;
 
-    // Distance from the core to this head along this ray. Elliptical reach
-    // means it differs per arm, which is why spacing is computed per arm.
-    const armLen = Math.hypot(headX - cx, headY - cy);
+    // Ray length for THIS arm. Elliptical reach means it differs per arm,
+    // which is why spacing is computed per arm rather than once globally.
+    const armLen = Math.hypot(reachX * ux, reachY * uy);
 
     const count = arm.items.length;
     const first = coreKeepOut;
     const last = Math.max(first, armLen - headR - 18);
     const span = last - first;
 
-    // ── BEADS THAT CANNOT OVERLAP ─────────────────────────────────────────
+    // ── AN ARM ONLY CARRIES WHAT FITS ─────────────────────────────────────
     //
-    // The previous version picked a radius from viewport size alone, so six
-    // items on one arm stacked into an unreadable pile. The radius is derived
-    // from the room actually available: whatever is left after every bead has
-    // its own slot, capped so a lone bead does not become a balloon.
-    const slot = count > 0 ? span / count : span;
-    const r = count === 0 ? 0 : Math.max(13, Math.min(26, slot / 2.15));
+    // The first attempt derived the radius from the slot and then clamped it
+    // to a readable minimum — which quietly broke the very guarantee it was
+    // computing, because a clamped-up radius no longer fits its slot. Six
+    // items on a short arm stacked into an unreadable pile.
+    //
+    // So the count bends instead of the geometry: work out how many beads the
+    // arm can actually hold at a usable size, show that many, and turn the
+    // last one into "+N" when there are more. A surface that hides things
+    // silently has lied about being your world; one that says "+3" has not.
+    const MIN_R = 14;
+    const GAP = 7;
+    const fits = Math.max(1, Math.floor(span / (MIN_R * 2 + GAP)));
+    const shown = Math.min(count, fits);
+    const hidden = count - shown;
 
-    const beads: PlacedBead[] = arm.items.map((item, j) => {
-      // Centre each bead in its own slot: no two can touch by construction.
+    const slot = shown > 0 ? span / shown : span;
+    const r = shown === 0 ? 0 : Math.max(MIN_R, Math.min(26, slot / 2.2));
+
+    const beads: PlacedBead[] = arm.items.slice(0, shown).map((item, j) => {
       const d = first + slot * (j + 0.5);
+      const t = d / (armLen || 1);
       return {
         item,
-        x: cx + (ux * d * armLen) / (armLen || 1),
-        y: cy + (uy * d * armLen) / (armLen || 1),
+        x: cx + ux * reachX * t,
+        y: cy + uy * reachY * t,
         r,
-        // Label the nearest bead — the one the arm is sorted to put first, so
-        // it is the thing most likely to want you — and only when there is
-        // vertical room for the text to clear its neighbour.
-        showLabel: j === 0 && slot > r * 3,
+        // Label the nearest bead — the read sorted the owed one first, so this
+        // is the thing most likely to want you — and only with room to clear
+        // its neighbour.
+        showLabel: j === 0 && slot > r * 2.6,
+        // The furthest shown bead carries the overflow count.
+        more: hidden > 0 && j === shown - 1 ? hidden : 0,
       };
     });
 
