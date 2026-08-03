@@ -360,47 +360,80 @@ type PlacedArm = {
 };
 
 function layOutArms(arms: PresenceArm[], size: { w: number; h: number }) {
-  const cx = size.w / 2;
-  const cy = size.h / 2;
-  const short = Math.min(size.w, size.h);
+  // ── THE BOX, NOT THE SQUARE ───────────────────────────────────────────────
+  //
+  // The first version reached `min(w, h) / 2`, which on a 390×844 phone drew a
+  // 195px mesh floating in 500px of nothing. Arms are placed on an ELLIPSE
+  // fitted to the actual box, so a tall screen gets a tall mesh and the surface
+  // fills whatever it is given.
+  //
+  // The insets are real furniture: the app header sits over the top of this
+  // element on desktop and the tab bar over the bottom on mobile, so an arm
+  // placed at 12 o'clock without them renders underneath the chrome — which is
+  // exactly what happened.
+  const PAD_X = 28;
+  const PAD_TOP = 96;
+  const PAD_BOTTOM = 96;
 
-  // Scale with the viewport rather than fixed pixels, so a phone gets a mesh
-  // that fills the phone and a desktop gets one that fills the desktop.
-  const coreR = Math.max(34, Math.min(58, short * 0.075));
-  const headR = Math.max(20, Math.min(30, short * 0.04));
-  // Leave room for the head plus its two label lines inside the viewport.
-  const reach = Math.min(size.w, size.h) / 2 - headR - 46;
+  const boxW = Math.max(160, size.w - PAD_X * 2);
+  const boxH = Math.max(160, size.h - PAD_TOP - PAD_BOTTOM);
+  const cx = PAD_X + boxW / 2;
+  const cy = PAD_TOP + boxH / 2;
+  const short = Math.min(boxW, boxH);
+
+  const coreR = Math.max(34, Math.min(58, short * 0.11));
+  const headR = Math.max(19, Math.min(28, short * 0.052));
+
+  // Label room under each head (handle + status), so nothing runs off the edge.
+  const reachX = Math.max(90, boxW / 2 - headR - 12);
+  const reachY = Math.max(90, boxH / 2 - headR - 34);
+
+  // The core owns a keep-out disc: its own radius plus the name and sentence
+  // printed beneath it. Beads start outside this, so text never sits under a
+  // bead the way the old surface let nodes sit on the headline.
+  const coreKeepOut = coreR + 72;
 
   const n = Math.max(arms.length, 1);
-  // Start at the top and go clockwise. Deterministic, and the first arm (yours,
-  // "mesh") always sits at 12 o'clock so the surface is stable between loads.
-  const placed: PlacedArm[] = arms.map((arm, i) => {
-    const angle = -Math.PI / 2 + (i * 2 * Math.PI) / n;
-    const headX = cx + Math.cos(angle) * reach;
-    const headY = cy + Math.sin(angle) * reach;
 
-    // Beads sit along the arm between the core and the head. Owed items are
-    // first in `items` (the read sorted them), so index 0 lands nearest you —
-    // urgency becomes distance without being the only axis.
-    const first = coreR + Math.max(30, reach * 0.22);
-    const last = reach - headR - 16;
-    const span = Math.max(0, last - first);
+  const placed: PlacedArm[] = arms.map((arm, i) => {
+    // Start at 12 o'clock and go clockwise; arm order comes from the read, so
+    // the same mesh draws the same way every load.
+    const angle = -Math.PI / 2 + (i * 2 * Math.PI) / n;
+    const ux = Math.cos(angle);
+    const uy = Math.sin(angle);
+    const headX = cx + ux * reachX;
+    const headY = cy + uy * reachY;
+
+    // Distance from the core to this head along this ray. Elliptical reach
+    // means it differs per arm, which is why spacing is computed per arm.
+    const armLen = Math.hypot(headX - cx, headY - cy);
+
     const count = arm.items.length;
+    const first = coreKeepOut;
+    const last = Math.max(first, armLen - headR - 18);
+    const span = last - first;
+
+    // ── BEADS THAT CANNOT OVERLAP ─────────────────────────────────────────
+    //
+    // The previous version picked a radius from viewport size alone, so six
+    // items on one arm stacked into an unreadable pile. The radius is derived
+    // from the room actually available: whatever is left after every bead has
+    // its own slot, capped so a lone bead does not become a balloon.
+    const slot = count > 0 ? span / count : span;
+    const r = count === 0 ? 0 : Math.max(13, Math.min(26, slot / 2.15));
 
     const beads: PlacedBead[] = arm.items.map((item, j) => {
-      const t = count === 1 ? 0.42 : j / (count - 1);
-      const d = first + span * t;
-      // Fewer things means bigger things. An arm with one item should look
-      // deliberate, not sparse.
-      const r = Math.max(16, Math.min(30, short * 0.032) * (count <= 2 ? 1.15 : 1));
+      // Centre each bead in its own slot: no two can touch by construction.
+      const d = first + slot * (j + 0.5);
       return {
         item,
-        x: cx + Math.cos(angle) * d,
-        y: cy + Math.sin(angle) * d,
+        x: cx + (ux * d * armLen) / (armLen || 1),
+        y: cy + (uy * d * armLen) / (armLen || 1),
         r,
-        // Only label what will not collide: the nearest bead on each arm, and
-        // only when the arm is not crowded.
-        showLabel: count <= 3 && j === 0,
+        // Label the nearest bead — the one the arm is sorted to put first, so
+        // it is the thing most likely to want you — and only when there is
+        // vertical room for the text to clear its neighbour.
+        showLabel: j === 0 && slot > r * 3,
       };
     });
 

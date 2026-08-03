@@ -178,20 +178,20 @@ export async function readMyPresence(userId: string): Promise<MyPresence> {
     let detail: string | null = null;
     if (!account.isActive) {
       state = "error";
-      detail = "Disconnected — reconnect to keep it in your mesh";
+      detail = "Disconnected — tap to reconnect";
     } else if (account.syncStatus === "error") {
       state = "error";
       // Plain language: a raw provider error is not something to put on a wall.
-      detail = "Needs attention — sign in again to resume syncing";
+      detail = "Needs you — sign in again";
     } else if (account.syncStatus === "syncing") {
       state = "syncing";
-      detail = "Bringing your posts across…";
+      detail = "Syncing…";
     } else if (account.syncStatus === "rate_limited") {
       state = "stale";
-      detail = "Paused by the platform — it will resume on its own";
+      detail = "Paused — resumes on its own";
     } else if (!account.lastSyncAt || nowMs - account.lastSyncAt.getTime() > STALE_AFTER_MS) {
       state = "stale";
-      detail = "Not synced recently";
+      detail = "Not synced lately";
     }
 
     arms.push(
@@ -220,7 +220,7 @@ export async function readMyPresence(userId: string): Promise<MyPresence> {
       platform,
       handle: null,
       state: "offer",
-      detail: "Bring it into your mesh",
+      detail: "Tap to connect",
       items: [],
       wantsYou: 0,
     });
