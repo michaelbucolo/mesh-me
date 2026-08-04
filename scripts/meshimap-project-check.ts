@@ -12,6 +12,7 @@ import {
   clampZoom,
   clusterByCell,
   fanOut,
+  fitCamera,
   latToY,
   lngToX,
   MAX_ZOOM,
@@ -134,6 +135,54 @@ ok(clampZoom(Number.NaN) === MIN_ZOOM, "NaN zoom is not a zoom");
 }
 
 // ---------------------------------------------------------------------------
+// 3b. Framing. A fixed opening zoom is wrong both ways, and on this map — whose
+//     basemap is a coarse world outline — a fixed street zoom also shows no
+//     land at all and the whole surface reads as broken.
+// ---------------------------------------------------------------------------
+
+{
+  const fallback = { lat: 20, lng: 0, zoom: 2 };
+  ok(fitCamera([], VIEW, fallback) === fallback, "nothing to frame returns the fallback untouched");
+}
+{
+  // One person, or everyone in one cell: no extent to solve for, so the answer
+  // is a useful neighbourhood view rather than a division by zero.
+  const c = fitCamera([{ lat: 51.55, lng: -0.15 }], VIEW);
+  close(c.lat, 51.55, 1e-6, "a single point is centred exactly");
+  close(c.lng, -0.15, 1e-6, "…in both axes");
+  ok(c.zoom >= 9 && c.zoom <= MAX_ZOOM, `one person gets a neighbourhood view (zoom ${c.zoom})`);
+  const same = fitCamera([{ lat: 51.55, lng: -0.15 }, { lat: 51.55, lng: -0.15 }], VIEW);
+  ok(same.zoom === c.zoom, "two people in one cell frame the same as one");
+}
+{
+  // London and New York must BOTH be on screen — the whole point of framing.
+  const points = [{ lat: 51.55, lng: -0.15 }, { lat: 40.75, lng: -73.95 }];
+  const c = fitCamera(points, VIEW);
+  for (const p of points) {
+    const s2 = project(p, c, VIEW);
+    ok(
+      s2.x >= 0 && s2.x <= VIEW.width && s2.y >= 0 && s2.y <= VIEW.height,
+      `a fitted camera puts (${p.lat}, ${p.lng}) on screen at (${Math.round(s2.x)}, ${Math.round(s2.y)})`,
+    );
+  }
+}
+{
+  // A tall spread must be fitted by HEIGHT, not width — take the wrong axis
+  // and the top and bottom of the set fall off the screen.
+  const points = [{ lat: 60, lng: 0.01 }, { lat: -60, lng: -0.01 }];
+  const c = fitCamera(points, VIEW);
+  for (const p of points) {
+    const s2 = project(p, c, VIEW);
+    ok(s2.y >= 0 && s2.y <= VIEW.height, `a tall spread is fitted by height (y=${Math.round(s2.y)})`);
+  }
+}
+{
+  const c = fitCamera([{ lat: 89, lng: 0 }, { lat: -89, lng: 0 }], VIEW);
+  ok(Number.isFinite(c.lat) && Number.isFinite(c.zoom), "framing pole-to-pole stays finite");
+  ok(c.zoom >= MIN_ZOOM, "…and never below the minimum zoom");
+}
+
+// ---------------------------------------------------------------------------
 // 4. The fan-out. Everyone in a cell reports the IDENTICAL point — that is the
 //    privacy design — so without this, a populated cell shows one Meshi and
 //    hides the rest.
@@ -147,7 +196,25 @@ ok(clampZoom(Number.NaN) === MIN_ZOOM, "NaN zoom is not a zoom");
   const spread = [0, 1, 2, 3, 4].map((i) => fanOut(i, 5));
   const distinct = new Set(spread.map((p) => `${p.dx.toFixed(4)},${p.dy.toFixed(4)}`));
   ok(distinct.size === 5, `five people in one cell get five distinct spots (${distinct.size})`);
-  for (const p of spread) close(Math.hypot(p.dx, p.dy), 22, 1e-6, "everyone sits on the same ring");
+  const radii = spread.map((p) => Math.hypot(p.dx, p.dy));
+  for (const r of radii) close(r, radii[0], 1e-6, "everyone in a cell sits on the SAME ring");
+}
+{
+  // THE RING GROWS WITH THE CROWD. A fixed radius packs a bigger group into
+  // the same circumference, and since every body carries a name label about as
+  // tall as it is, they overlap — photographed at radius 22, one Meshi's label
+  // lay across the next Meshi's face and swallowed the tap meant for it. What
+  // has to stay roughly constant is the GAP between neighbours, not the radius.
+  const gapAt = (total: number) => {
+    const a = fanOut(0, total);
+    const b = fanOut(1, total);
+    return Math.hypot(a.dx - b.dx, a.dy - b.dy);
+  };
+  ok(gapAt(8) >= 20, `eight in a cell still leaves a usable gap (${gapAt(8).toFixed(1)}px)`);
+  ok(gapAt(16) >= 20, `sixteen still does (${gapAt(16).toFixed(1)}px)`);
+  const r3 = Math.hypot(fanOut(0, 3).dx, fanOut(0, 3).dy);
+  const r16 = Math.hypot(fanOut(0, 16).dx, fanOut(0, 16).dy);
+  ok(r16 > r3, `the ring widens as the crowd grows (${r3.toFixed(1)}px → ${r16.toFixed(1)}px)`);
 }
 {
   // Deterministic: the same index in the same group always lands identically,

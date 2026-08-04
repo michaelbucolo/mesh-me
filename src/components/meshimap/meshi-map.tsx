@@ -20,7 +20,7 @@
 // they have already been through it — this component NEVER sees a raw
 // coordinate and has no way to ask for one.
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { MeshiMascot } from "@/components/meshi/meshi-mascot";
 import type { MapPin } from "@/lib/meshimap/coarse";
@@ -28,6 +28,7 @@ import {
   clampZoom,
   clusterByCell,
   fanOut,
+  fitCamera,
   latToY,
   lngToX,
   panCamera,
@@ -36,6 +37,8 @@ import {
 } from "@/lib/meshimap/project";
 import { ShareWhere } from "./share-where";
 import { WORLD_PATH } from "./world-path";
+
+const WORLD_VIEW: Camera = { lat: 20, lng: 0, zoom: 2 };
 
 export function MeshiMap({
   pins,
@@ -49,22 +52,50 @@ export function MeshiMap({
   nowMs: number;
 }) {
   const hostRef = useRef<HTMLDivElement | null>(null);
-  const [camera, setCamera] = useState<Camera>(() => ({
-    // Opening on YOU when you share, and on the whole world when you do not —
-    // a map centred on the Atlantic when your friends are all in one city is
-    // a map you have to fix before you can use it.
-    lat: you?.at.lat ?? pins[0]?.at.lat ?? 20,
-    lng: you?.at.lng ?? pins[0]?.at.lng ?? 0,
-    zoom: you || pins.length ? 9 : 2,
-  }));
+  // The opening view FRAMES EVERYONE rather than picking a number. A fixed
+  // zoom is wrong both ways — too tight and the map opens on an empty patch
+  // with your friends off-screen, too loose and everyone is three pixels
+  // apart — and this basemap is a coarse world outline, so a fixed
+  // street-level zoom would show no land at all and read as broken.
+  //
+  // Fitted once, on the first real measurement: refitting on every resize
+  // would yank the camera back every time you panned away and the window
+  // twitched.
+  // Null until you move it yourself. The view is DERIVED from the pins and the
+  // measured viewport until then, rather than being state written by an
+  // effect — which is both the honest description of it (it is a function of
+  // its inputs) and the thing that stops a re-frame from fighting a pan.
+  const [userCamera, setUserCamera] = useState<Camera | null>(null);
   const [size, setSize] = useState({ width: 0, height: 0 });
   const [selected, setSelected] = useState<MapPin | null>(null);
 
-  const measure = useCallback((el: HTMLDivElement | null) => {
-    hostRef.current = el;
+  // THE MAP HAS TO KEEP MEASURING ITSELF.
+  //
+  // This was a ref callback that measured once on mount, and every pin was
+  // invisible because of it: projection needs the viewport size, the size was
+  // 0 at the moment the callback ran (the flex layout had not resolved), and
+  // nothing ever measured again — so `size.width > 0` stayed false and the
+  // component rendered a coastline over an empty sea forever. A rotation or a
+  // sidebar collapse would have done the same thing later.
+  //
+  // A ResizeObserver is the fix rather than a resize listener: the window size
+  // is not what changed when a sidebar opens or a keyboard appears.
+  useEffect(() => {
+    const el = hostRef.current;
     if (!el) return;
-    const rect = el.getBoundingClientRect();
-    setSize({ width: rect.width, height: rect.height });
+    const read = () => {
+      const rect = el.getBoundingClientRect();
+      setSize((prev) =>
+        prev.width === rect.width && prev.height === rect.height
+          ? prev
+          : { width: rect.width, height: rect.height },
+      );
+    };
+    read();
+    if (typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(read);
+    observer.observe(el);
+    return () => observer.disconnect();
   }, []);
 
   // ── DRAG ─────────────────────────────────────────────────────────────────
@@ -87,7 +118,7 @@ export function MeshiMap({
     d.x = e.clientX;
     d.y = e.clientY;
     d.moved += Math.abs(dx) + Math.abs(dy);
-    setCamera((c) => panCamera(c, dx, dy));
+    setUserCamera((c) => panCamera(c ?? camera, dx, dy));
   };
 
   const onPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -103,7 +134,21 @@ export function MeshiMap({
   };
 
   const zoomBy = (delta: number) =>
-    setCamera((c) => ({ ...c, zoom: clampZoom(c.zoom + delta) }));
+    setUserCamera((c) => {
+      const from = c ?? camera;
+      return { ...from, zoom: clampZoom(from.zoom + delta) };
+    });
+
+  // The opening view FRAMES EVERYONE rather than picking a number. A fixed
+  // zoom is wrong both ways — too tight and the map opens on an empty patch
+  // with your friends off-screen, too loose and everyone is three pixels
+  // apart — and this basemap is a coarse world outline, so a fixed
+  // street-level zoom would show no land at all and read as broken.
+  const fitted = useMemo(
+    () => (size.width > 0 ? fitCamera(pins.map((p) => p.at), size, WORLD_VIEW) : WORLD_VIEW),
+    [pins, size],
+  );
+  const camera = userCamera ?? fitted;
 
   // Cells rather than pins: everyone in a cell shares one coordinate by
   // design, so without grouping a populated cell would draw one Meshi and
@@ -115,7 +160,7 @@ export function MeshiMap({
   return (
     <div className="relative h-full w-full overflow-hidden" style={{ background: "#081226" }}>
       <div
-        ref={measure}
+        ref={hostRef}
         data-testid="meshi-map"
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
@@ -146,7 +191,7 @@ export function MeshiMap({
               size.height / 2 - latToY(camera.lat) * scale * 256
             }) scale(${(scale * 256) / 1000})`}
           >
-            <path d={WORLD_PATH} fill="#16305a" stroke="#2b5590" strokeWidth={0.6} vectorEffect="non-scaling-stroke" />
+            <path data-testid="map-land" d={WORLD_PATH} fill="#16305a" stroke="#2b5590" strokeWidth={0.6} vectorEffect="non-scaling-stroke" />
           </g>
         </svg>
 
@@ -163,22 +208,35 @@ export function MeshiMap({
               if (x < -60 || y < -60 || x > size.width + 60 || y > size.height + 60) return null;
               const isYou = you?.userId === pin.userId;
               return (
-                <button
+                <div
                   key={pin.userId}
-                  type="button"
                   data-testid="map-meshi"
                   data-user={pin.userId}
-                  onPointerDown={(e) => e.stopPropagation()}
-                  onClick={() => setSelected(pin)}
-                  className="absolute flex -translate-x-1/2 -translate-y-1/2 flex-col items-center"
+                  className="absolute -translate-x-1/2 -translate-y-1/2"
                   style={{ left: x, top: y, zIndex: Math.round(y) }}
-                  aria-label={`${pin.displayName || pin.username} on the map`}
                 >
-                  <MeshiMascot
-                    {...({ size: isYou ? 40 : 34, animate: true } as React.ComponentProps<typeof MeshiMascot>)}
-                  />
+                  {/* THE HIT TARGET IS THE BODY, NOTHING ELSE.
+                      This used to be one button wrapping the Meshi AND its name,
+                      which made its box as wide as the longest display name and
+                      about twice as tall as the Meshi. Neighbouring boxes then
+                      overlapped, so a tap aimed squarely at somebody's face was
+                      swallowed by the invisible margin of the person beside
+                      them — the card opened for the wrong person, or for nobody.
+                      The label is a sibling now, and it never takes a pointer. */}
+                  <button
+                    type="button"
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onClick={() => setSelected(pin)}
+                    className="block"
+                    style={{ width: isYou ? 40 : 34, height: isYou ? 40 : 34 }}
+                    aria-label={`${pin.displayName || pin.username} on the map`}
+                  >
+                    <MeshiMascot
+                      {...({ size: isYou ? 40 : 34, animate: true } as React.ComponentProps<typeof MeshiMascot>)}
+                    />
+                  </button>
                   <span
-                    className="mt-0.5 whitespace-nowrap rounded-full px-1.5"
+                    className="pointer-events-none absolute left-1/2 top-full -translate-x-1/2 whitespace-nowrap rounded-full px-1.5"
                     style={{
                       fontSize: 11,
                       color: isYou ? "#04060c" : "#e8edf8",
@@ -187,7 +245,7 @@ export function MeshiMap({
                   >
                     {isYou ? "you" : pin.displayName || pin.username}
                   </span>
-                </button>
+                </div>
               );
             }),
           )}

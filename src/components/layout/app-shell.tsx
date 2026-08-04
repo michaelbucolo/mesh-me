@@ -106,6 +106,19 @@ function getRouteInfo(pathname: string, username: string): RouteInfo {
 type NavDir = "forward" | "back" | "dive" | "rise" | undefined;
 const isOnMesh = (p: string) => p === "/mesh" || p.startsWith("/mesh/");
 const isOnFlow = (p: string) => p === "/flow" || p.startsWith("/flow/");
+// MeshiMap is the same KIND of surface as the mesh and the flow — a full-bleed
+// canvas that owns its own height and never scrolls the page. Without joining
+// them it inherits the plain block scroller, where a route saying `h-full` gets
+// nothing (a percentage cannot resolve against `height: auto`), and the map
+// collapses to zero height: the chrome still paints, so the page looks alive
+// while the map itself is a 855x0 box with every pin inside it unrendered.
+// That is the exact failure the .mesh-shell-mesh comment in globals.css was
+// written about, and it caught this one too.
+//
+// Note the guard: `/meshimap` must NOT be matched by isOnMesh, or the map
+// would inherit the mesh's own route behaviour. `p === "/mesh" ||
+// p.startsWith("/mesh/")` is careful enough that it does not.
+const isOnMap = (p: string) => p === "/meshimap" || p.startsWith("/meshimap/");
 
 // Shared morphing sidebar indicator + a spring pop when an icon lands active.
 const SIDEBAR_INDICATOR_SPRING = { type: "spring" as const, stiffness: 380, damping: 30 };
@@ -378,6 +391,7 @@ export function AppShell({ children, user }: AppShellProps) {
   const isMeshSurface = isOnMesh(pathname);
   // The Flow is a full-bleed reel stage: no top bar, no ambient background.
   const isFlowSurface = isOnFlow(pathname);
+  const isMapSurface = isOnMap(pathname);
   // Explore OWNS search. Its own field filters the results in place and works at
   // every width; this top bar's field is desktop-only and goes to /search. Both
   // were on screen at once, 90px apart, both labelled with a magnifier and the
@@ -482,7 +496,7 @@ export function AppShell({ children, user }: AppShellProps) {
   }, [isMeshSurface, pathname]);
 
   return (
-    <div className={`mesh-shell h-dvh max-h-dvh min-h-0 overflow-hidden text-[var(--mesh-text)] md:grid md:grid-cols-[var(--mesh-sidebar-width)_1fr] ${isFeedSurface ? "mesh-shell-feed" : ""} ${isMeshSurface || isFlowSurface ? "mesh-shell-mesh" : ""} ${isMessagesSurface ? "mesh-shell-chat" : ""} ${isFlowSurface ? "mesh-shell-flow" : ""} ${isExploreSurface ? "mesh-shell-explore" : ""}`}>
+    <div className={`mesh-shell h-dvh max-h-dvh min-h-0 overflow-hidden text-[var(--mesh-text)] md:grid md:grid-cols-[var(--mesh-sidebar-width)_1fr] ${isFeedSurface ? "mesh-shell-feed" : ""} ${isMeshSurface || isFlowSurface || isMapSurface ? "mesh-shell-mesh" : ""} ${isMessagesSurface ? "mesh-shell-chat" : ""} ${isFlowSurface ? "mesh-shell-flow" : ""} ${isExploreSurface ? "mesh-shell-explore" : ""}`}>
 
       {/* The per-item static active bar is superseded by the shared morphing
           indicator rendered inside the active SidebarNavItem. */}

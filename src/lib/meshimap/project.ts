@@ -115,6 +115,55 @@ export function panCamera(camera: Camera, dxPixels: number, dyPixels: number): C
 }
 
 /**
+ * Frame a set of points.
+ *
+ * A fixed opening zoom is wrong in both directions: too tight and the map
+ * opens on an empty patch with everyone off-screen, too loose and the people
+ * near you are three pixels apart. Worse, this map's basemap is a coarse world
+ * outline, so a fixed street-level zoom shows no land at all and the whole
+ * surface reads as broken.
+ *
+ * So the camera frames whatever there is. One person is a sensible
+ * neighbourhood view; a spread-out set zooms out until they all fit.
+ */
+export function fitCamera(
+  points: ReadonlyArray<{ lat: number; lng: number }>,
+  viewport: Viewport,
+  fallback: Camera = { lat: 20, lng: 0, zoom: MIN_ZOOM },
+): Camera {
+  if (points.length === 0) return fallback;
+
+  let minX = Infinity;
+  let maxX = -Infinity;
+  let minY = Infinity;
+  let maxY = -Infinity;
+  for (const p of points) {
+    const x = lngToX(p.lng);
+    const y = latToY(p.lat);
+    minX = Math.min(minX, x);
+    maxX = Math.max(maxX, x);
+    minY = Math.min(minY, y);
+    maxY = Math.max(maxY, y);
+  }
+
+  const centre = { lat: yToLat((minY + maxY) / 2), lng: xToLng((minX + maxX) / 2) };
+
+  // Everyone in one cell — or one person — has no extent to fit, so there is
+  // nothing to solve for and a neighbourhood view is the useful answer.
+  const spanX = maxX - minX;
+  const spanY = maxY - minY;
+  if (spanX <= 0 && spanY <= 0) return { ...centre, zoom: clampZoom(11) };
+
+  // Padded so nobody sits against an edge, where half their Meshi is cut off.
+  const usableW = Math.max(1, viewport.width * 0.72);
+  const usableH = Math.max(1, viewport.height * 0.72);
+  const zoomX = spanX > 0 ? Math.log2(usableW / (TILE * spanX)) : Infinity;
+  const zoomY = spanY > 0 ? Math.log2(usableH / (TILE * spanY)) : Infinity;
+
+  return { ...centre, zoom: clampZoom(Math.floor(Math.min(zoomX, zoomY))) };
+}
+
+/**
  * Spread pins that landed on the same spot.
  *
  * Everyone in one cell reports the IDENTICAL coordinate — that is the whole
@@ -124,10 +173,20 @@ export function panCamera(camera: Camera, dxPixels: number, dyPixels: number): C
  * jitter between renders and nobody's apparent offset carries information
  * about where they actually are.
  */
-export function fanOut(index: number, total: number, radiusPx = 22): { dx: number; dy: number } {
+export function fanOut(index: number, total: number, radiusPx = 34): { dx: number; dy: number } {
   if (total <= 1) return { dx: 0, dy: 0 };
+  // The ring GROWS with the crowd. A fixed radius packs six people into the
+  // same circumference two used, and since each body carries a name label
+  // roughly as tall as it is, they overlap: photographed at 22px, one Meshi's
+  // label sat across the next Meshi's face and swallowed the tap meant for it.
+  // Spacing the ring by member count keeps the gap between neighbours roughly
+  // constant however many turn up.
+  // 38px of circumference each: a 34px body plus a little air. Measured at
+  // 26 the ring was tight enough that a name label still grazed the face of
+  // the Meshi below it.
+  const spaced = Math.max(radiusPx, (total * 38) / (2 * Math.PI));
   const angle = (index / total) * Math.PI * 2 - Math.PI / 2;
-  return { dx: Math.cos(angle) * radiusPx, dy: Math.sin(angle) * radiusPx };
+  return { dx: Math.cos(angle) * spaced, dy: Math.sin(angle) * spaced };
 }
 
 /** Group pins that share a cell, in a stable order so the fan-out is stable. */

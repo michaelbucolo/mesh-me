@@ -33,6 +33,7 @@
     "test:smoke": "node scripts/platform-diagnostics.mjs --strict",
     "test:browser": "node scripts/browser-smoke.mjs",
     "test:copresence": "node scripts/room-copresence-proof.mjs",
+    "test:meshimap": "node scripts/meshimap-drive.mjs",
     "drive:smoke": "node scripts/drive-smoke.mjs",
     "test:stress": "node scripts/live-stress.mjs",
     "troubleshoot": "node scripts/platform-diagnostics.mjs --strict",
