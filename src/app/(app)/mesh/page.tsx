@@ -5,7 +5,7 @@ import { readGlobalMesh } from "@/lib/mesh/read-global-mesh";
 import { readTheirMesh } from "@/lib/mesh/read-their-mesh";
 import { readMyPresence } from "@/lib/mesh/read-my-presence";
 import { MeshField } from "@/components/meshfield/mesh-field";
-import { PresenceMesh } from "@/components/presence/presence-mesh";
+import { MeshRoom, type RoomProp } from "@/components/playground/mesh-room";
 
 export const metadata: Metadata = { title: "Mesh Dashboard" };
 
@@ -120,14 +120,48 @@ export default async function MeshPage({ searchParams }: { searchParams: Promise
     );
   }
 
-  // YOUR OWN MESH IS YOUR PRESENCE, not a ranked list of obligations. The arms
-  // are the platforms you actually use; the beads are the real things on them.
+  // THE MESH IS A ROOM YOU STAND IN, not a chart about you. Your platforms and
+  // recent things are furniture in it; you and everyone else here are bodies
+  // that walk around them, and being seen is the point.
   const presence = await readMyPresence(user.id);
   return (
     <Shell>
-      <PresenceMesh presence={presence} />
+      <MeshRoom
+        roomUserId={user.id}
+        roomLabel={`${user.displayName || user.username}'s mesh`}
+        viewerId={user.id}
+        props={propsFromPresence(presence)}
+      />
     </Shell>
   );
+}
+
+/** The room's furniture, in fixed seats — same places every load, so it is
+ * somewhere you can learn rather than a reshuffle on each visit. */
+function propsFromPresence(presence: Awaited<ReturnType<typeof readMyPresence>>): RoomProp[] {
+  const out: RoomProp[] = [];
+  const arms = presence.arms.filter((a) => a.state !== "offer");
+  arms.forEach((arm, i) => {
+    const t = arms.length === 1 ? 0.5 : i / (arms.length - 1);
+    out.push({
+      id: `platform-${arm.platform}`,
+      label: arm.handle ?? arm.platform,
+      vx: 0.14 + t * 0.72,
+      vy: 0.24,
+      href: `/connected-accounts#${arm.platform}`,
+    });
+    arm.items.slice(0, 2).forEach((item, j) => {
+      out.push({
+        id: item.id,
+        label: item.title,
+        vx: 0.14 + t * 0.72 + (j === 0 ? -0.05 : 0.05),
+        vy: 0.44 + j * 0.1,
+        href: item.href,
+        imageUrl: item.imageUrl,
+      });
+    });
+  });
+  return out;
 }
 
 function Shell({ children }: { children: React.ReactNode }) {
