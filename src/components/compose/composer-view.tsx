@@ -14,15 +14,17 @@
 //   silently means "…on Threads, but X already refused this" is worse than no
 //   counter at all.
 //
-//   It does not say "Posted" for anything it has not seen land. Delivery to an
-//   external platform is a queued job, and the button and the result say
-//   "queued" until something actually confirms otherwise. Claiming success on
-//   the strength of having enqueued work is the specific lie this product
-//   cannot afford — it is the reason people keep the other apps installed.
+//   It does not say "Posted" for anything it has not seen land. mesh.me posts
+//   for real; every external platform currently reports "skipped — posting here
+//   is not connected yet", because delivery needs a stored credential that does
+//   not exist. The report shows that per platform rather than rounding it up.
+//   Claiming success for a post that did not go is the specific lie this
+//   product cannot afford — it is the reason people keep the other apps.
 
 import { useMemo, useState } from "react";
 import { PlatformLogo } from "@/components/platform/platform-logo";
 import { planPublish, ruleFor, tightestLimit } from "@/lib/compose/plan";
+import { publishEverywhere } from "@/lib/compose/publish-action";
 
 const INK = "#f2f4f8";
 const INK_DIM = "#8b93a7";
@@ -43,6 +45,39 @@ export function ComposerView({ targets }: { targets: ComposerTarget[] }) {
   // mesh.me starts selected: your own mesh is the one place a post always has
   // a home, so the default is never "nowhere".
   const [selected, setSelected] = useState<string[]>(["mesh"]);
+  const [sending, setSending] = useState(false);
+  // The report from the last publish. Kept whole rather than reduced to a
+  // boolean, because "which of these actually went" is the question the whole
+  // surface exists to answer.
+  const [report, setReport] = useState<{ summary: string; lines: string[] } | null>(null);
+
+  async function post() {
+    setSending(true);
+    setReport(null);
+    try {
+      const res = await publishEverywhere({ text, title, targets: selected });
+      if ("error" in res) {
+        setReport({ summary: res.error, lines: [] });
+        return;
+      }
+      // Every outcome is shown, not just the failures: a person who posted to
+      // four places wants to see four confirmations, and one who posted to
+      // three of four needs to know which one is missing.
+      setReport({
+        summary: res.summary,
+        lines: res.outcomes.map((o) =>
+          o.state === "posted"
+            ? `${labelFor(o.platform)} — posted`
+            : o.state === "skipped"
+              ? `${labelFor(o.platform)} — skipped: ${o.reason}`
+              : `${labelFor(o.platform)} — failed: ${o.message}`,
+        ),
+      });
+      if (res.posted.length > 0) setText("");
+    } finally {
+      setSending(false);
+    }
+  }
 
   const plan = useMemo(
     () => planPublish({ text, media: [], title }, selected),
@@ -180,12 +215,13 @@ export function ComposerView({ targets }: { targets: ComposerTarget[] }) {
       <div className="mt-6 flex items-center gap-3">
         <button
           type="button"
-          disabled={!plan.canPublish}
+          onClick={post}
+          disabled={!plan.canPublish || sending}
           data-testid="composer-publish"
           className="rounded-full px-5 py-2.5 font-semibold disabled:cursor-not-allowed disabled:opacity-40"
           style={{ background: BRAND, color: "#04060c", fontSize: 14.5 }}
         >
-          {plan.ready.length <= 1 ? "Post" : `Post to ${plan.ready.length}`}
+          {sending ? "Posting…" : plan.ready.length <= 1 ? "Post" : `Post to ${plan.ready.length}`}
         </button>
 
         {/* Blocked targets are named on the button's doorstep, not discovered
@@ -196,8 +232,29 @@ export function ComposerView({ targets }: { targets: ComposerTarget[] }) {
           </span>
         )}
       </div>
+
+      {report && (
+        <div className="mt-5 rounded-xl px-3.5 py-3" data-testid="composer-report" style={{ background: "#0e1626", border: "1px solid #ffffff14" }}>
+          <p className="font-medium" style={{ color: INK, fontSize: 14 }}>
+            {report.summary}
+          </p>
+          {report.lines.length > 0 && (
+            <ul className="mt-1.5 flex flex-col gap-0.5">
+              {report.lines.map((line) => (
+                <li key={line} style={{ color: INK_DIM, fontSize: 12.5 }}>
+                  {line}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
     </div>
   );
+}
+
+function labelFor(platform: string): string {
+  return ruleFor(platform)?.label ?? platform;
 }
 
 function tightestLabel(selected: readonly string[]): string {
