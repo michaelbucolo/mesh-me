@@ -77,7 +77,7 @@ export function ruleFor(platform: string): PlatformRule | null {
 }
 
 /** Why a platform will not take this draft, in words a person can act on. */
-export type Problem =
+type Problem =
   | { kind: "unpublishable"; message: string }
   | { kind: "needs-media"; message: string }
   | { kind: "needs-video"; message: string }
@@ -87,7 +87,7 @@ export type Problem =
   | { kind: "too-much-media"; message: string; over: number }
   | { kind: "empty"; message: string };
 
-export type TargetPlan = {
+type TargetPlan = {
   platform: string;
   label: string;
   /** True when this platform would accept the draft as it stands. */

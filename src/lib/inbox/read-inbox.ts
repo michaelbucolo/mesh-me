@@ -22,7 +22,7 @@
 import { prisma } from "@/lib/prisma";
 import { wantsYou, type NotificationRow, type ThreadRow } from "@/lib/mesh/wants-you";
 
-export type InboxKind = "message" | "mention" | "reply" | "comment" | "follow" | "activity";
+type InboxKind = "message" | "mention" | "reply" | "comment" | "follow" | "activity";
 
 export type InboxEntry = {
   id: string;

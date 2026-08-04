@@ -54,7 +54,7 @@ export type ArmItem = {
  * in, rather than as a broken screen — which is exactly the job the product
  * says it does.
  */
-export type ArmState = "live" | "syncing" | "error" | "stale" | "offer";
+type ArmState = "live" | "syncing" | "error" | "stale" | "offer";
 
 export type PresenceArm = {
   /** "mesh" for native, otherwise the platform key (matches PlatformLogo). */
