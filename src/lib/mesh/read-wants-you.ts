@@ -67,7 +67,7 @@ type NotificationRecord = {
   read: boolean;
   createdAt: Date;
   postId: string | null;
-  actor: { displayName: string | null; username: string } | null;
+  actor: { displayName: string | null; username: string; avatarUrl: string | null } | null;
 };
 
 /**
@@ -138,7 +138,7 @@ export async function readWantsYou(
         read: true,
         createdAt: true,
         postId: true,
-        actor: { select: { displayName: true, username: true } },
+        actor: { select: { displayName: true, username: true, avatarUrl: true } },
       },
     }),
   ]);
@@ -161,6 +161,7 @@ export async function readWantsYou(
     id: n.id,
     type: n.type,
     actorName: n.actor?.displayName ?? n.actor?.username ?? null,
+    actorAvatarUrl: n.actor?.avatarUrl ?? null,
     message: n.message,
     read: n.read,
     createdAtMs: n.createdAt.getTime(),
