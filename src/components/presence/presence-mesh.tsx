@@ -198,14 +198,18 @@ export function PresenceMesh({ presence }: { presence: MyPresence }) {
           <p className="mt-3 font-semibold" style={{ color: INK, fontSize: 16, lineHeight: 1.3 }}>
             {presence.you.displayName || presence.you.username}
           </p>
-          {/* One line, always. Wrapping put this straight through the arm
-              below it on a narrow screen. */}
-          <p
-            className="mt-1 truncate"
+          {/* One line, always — wrapping put this straight through the arm
+              below it on a narrow screen. It is a LINK because the sentence
+              names something you would want to act on, and the inbox is where
+              acting on it happens; a headline that states a number and then
+              refuses to take you anywhere is a dead end. */}
+          <a
+            href="/inbox"
+            className="pointer-events-auto mt-1 block truncate underline-offset-2 hover:underline"
             style={{ color: INK_DIM, fontSize: 13, maxWidth: "100%" }}
           >
             {headlineText(presence)}
-          </p>
+          </a>
         </div>
       )}
 
