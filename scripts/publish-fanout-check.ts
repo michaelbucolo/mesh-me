@@ -50,8 +50,11 @@ async function main() {
     const r = await publishToTargets(text, ["mesh", "instagram"], { mesh: good("u1"), instagram: spy });
     if (touched) fail("3 blocked", "a target the plan already refused was still sent — that spends a rate limit to be told what we knew"); else ok();
     const ig = r.outcomes.find((o) => o.platform === "instagram");
-    if (ig?.state !== "skipped") fail("3 blocked", `instagram was ${ig?.state}, not skipped`); else ok();
-    if (ig.state === "skipped" && !/photo|video/i.test(ig.reason)) fail("3 blocked", `the reason was not actionable: ${ig.state === "skipped" ? ig.reason : ""}`); else ok();
+    if (!ig || ig.state !== "skipped") {
+      fail("3 blocked", `instagram was ${ig?.state ?? "absent"}, not skipped`);
+    } else if (!/photo|video/i.test(ig.reason)) {
+      fail("3 blocked", `the reason was not actionable: ${ig.reason}`);
+    } else { ok(); ok(); }
   }
 
   // 4. A thrown deliverer is caught, and does not take the others with it.

@@ -25,7 +25,7 @@
 
 import { planPublish, type Draft } from "./plan";
 
-export type PublishOutcome =
+type PublishOutcome =
   | { platform: string; state: "posted"; url: string }
   | { platform: string; state: "skipped"; reason: string }
   | { platform: string; state: "failed"; retryable: boolean; message: string };
