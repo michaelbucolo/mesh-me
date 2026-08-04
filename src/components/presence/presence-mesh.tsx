@@ -424,7 +424,12 @@ function layOutArms(arms: PresenceArm[], size: { w: number; h: number }) {
 
     const count = arm.items.length;
     const first = coreKeepOut;
-    const last = Math.max(first, armLen - headR - 18);
+    // Clearance for the head's own two label lines (handle + status). They are
+    // drawn BENEATH the head, which on an upward-pointing arm means they grow
+    // back toward the core — so an 18px gap put "@demouser" straight on top of
+    // the outermost bead. Reserved on every arm rather than only the upward
+    // ones, because a rule that holds in one direction is not a rule.
+    const last = Math.max(first, armLen - headR - 46);
     const span = last - first;
 
     // ── AN ARM ONLY CARRIES WHAT FITS ─────────────────────────────────────
