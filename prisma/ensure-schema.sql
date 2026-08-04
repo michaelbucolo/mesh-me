@@ -1436,3 +1436,17 @@ CREATE UNIQUE INDEX IF NOT EXISTS "SavedFlowItem_userId_refId_key" ON "SavedFlow
 
 -- CreateIndex
 CREATE INDEX IF NOT EXISTS "SavedFlowItem_userId_idx" ON "SavedFlowItem"("userId");
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "UserLocation" (
+    "userId" TEXT NOT NULL PRIMARY KEY,
+    "lat" REAL NOT NULL,
+    "lng" REAL NOT NULL,
+    "precision" TEXT NOT NULL DEFAULT 'town',
+    "audience" TEXT NOT NULL DEFAULT 'nobody',
+    "reportedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "UserLocation_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "UserLocation_reportedAt_idx" ON "UserLocation"("reportedAt");
