@@ -38,6 +38,7 @@ import { readWhereShare } from "@/lib/where-share";
 import { createSprite, stepSpriteToward, type MeshiSprite } from "@/components/mesh/live/meshi-machine";
 import { deriveBroadcastMood } from "@/components/mesh/live/mood";
 import { createPresenceClient, type LiveLink } from "@/components/mesh/live/presence-client";
+import { readRoomPeople } from "@/components/mesh/live/room-payload";
 import {
   applySightings,
   createRoster,
@@ -222,13 +223,11 @@ export function useFieldPresence(options: FieldPresenceOptions): FieldPresence {
         if (stopped) return;
         const room = roomRef.current;
         if (!room) return;
-        const raw = (data as { presences?: unknown }).presences;
-        const list: RemotePresence[] = Array.isArray(raw) ? (raw as RemotePresence[]) : [];
-        // Same admission rule as the canvas: online, in THIS room, on the mesh
-        // surface, and never yourself.
-        const visible = list.filter(
-          (p) => p.isOnline && p.viewingMesh === room && p.surface === "mesh" && p.userId !== viewerRef.current,
-        );
+        // Admission is decided in ONE place for every surface that draws
+        // bodies (live/room-payload) — this hook used to hold the only correct
+        // copy while the room held a broken one, and a rule that exists twice
+        // is only ever guarded once.
+        const visible = readRoomPeople(data, { room, viewerId: viewerRef.current });
         const now = Date.now();
         lastPayloadAt = now;
         const isBaseline = rosterRef.current.prevIds === null;

@@ -80,22 +80,20 @@ export default async function MeshPage({ searchParams }: { searchParams: Promise
       );
     }
 
+    // VISITING IS WALKING INTO SOMEBODY'S ROOM. Their mesh is the same kind of
+    // place yours is — you arrive with a body, their things are standing
+    // around you, and anyone else visiting at the same moment is in there with
+    // you. That last part is the entire point of a shared space, and it only
+    // works because presence is scoped to the mesh being VIEWED rather than to
+    // the viewer: everybody on /mesh?user=ada heartbeats into ada's room, so
+    // they find each other there.
     return (
       <Shell>
-        <MeshField
-          items={their.items}
-          nowMs={their.nowMs}
-          // Their mesh is their room: presence belongs to the mesh being
-          // VIEWED, not to the viewer, which is how you see other people
-          // standing in someone else's mesh alongside you.
+        <MeshRoom
           roomUserId={their.owner.id}
+          roomLabel={`${name}'s mesh`}
           viewerId={user?.id ?? null}
-          canRecordImpressions={!!user}
-          centre={{
-            badge: String(their.items.length),
-            text: `${name}'s mesh`,
-            action: { label: "View profile", href: `/profile/${their.owner.username}` },
-          }}
+          props={propsFromItems(their.items)}
         />
       </Shell>
     );
@@ -140,6 +138,21 @@ export default async function MeshPage({ searchParams }: { searchParams: Promise
  * somewhere you can learn rather than a reshuffle on each visit. */
 function propsFromPresence(presence: Awaited<ReturnType<typeof readMyPresence>>): RoomProp[] {
   const out: RoomProp[] = [];
+  // THE DOOR TO YOUR INBOX, standing in your room.
+  //
+  // The unified inbox was built and then had no way in — a working page nobody
+  // can navigate to, which the reachability gate is right to call the same
+  // thing as a page that was never built. It belongs HERE rather than in the
+  // nav: the mesh is the room you stand in, and the pile of things people are
+  // waiting on from you is furniture in it. Only in your OWN room — a visitor
+  // has no business seeing your mail.
+  out.push({
+    id: "inbox",
+    label: presence.totalWantsYou > 0 ? `Inbox · ${presence.totalWantsYou} waiting` : "Inbox",
+    vx: 0.5,
+    vy: 0.1,
+    href: "/inbox",
+  });
   const arms = presence.arms.filter((a) => a.state !== "offer");
   arms.forEach((arm, i) => {
     const t = arms.length === 1 ? 0.5 : i / (arms.length - 1);
@@ -162,6 +175,36 @@ function propsFromPresence(presence: Awaited<ReturnType<typeof readMyPresence>>)
     });
   });
   return out;
+}
+
+/** How many of their things stand in the room. Past this it stops being a
+ * place you can move through and becomes a wall of thumbnails. */
+const VISIT_PROPS = 12;
+
+/** Their mesh's furniture, laid out in fixed seats.
+ *
+ * Deterministic on purpose — index-driven, never random and never time-driven,
+ * so the server and the client agree and so the room is somewhere you can
+ * learn. Two rows above the floor line, which keeps the lower half clear as
+ * the space bodies actually walk around in. */
+function propsFromItems(items: readonly { id: string; title: string; href?: string; imageUrl?: string | null }[]): RoomProp[] {
+  const shown = items.slice(0, VISIT_PROPS);
+  const perRow = Math.max(1, Math.ceil(shown.length / 2));
+  return shown.map((item, i) => {
+    const row = Math.floor(i / perRow);
+    const col = i % perRow;
+    const span = perRow === 1 ? 0 : col / (perRow - 1);
+    return {
+      id: item.id,
+      label: item.title,
+      // Rows are offset from one another so a short second row does not sit
+      // directly under the first and read as a column.
+      vx: 0.13 + span * 0.74 + (row === 1 ? 0.03 : 0),
+      vy: row === 0 ? 0.24 : 0.44,
+      href: item.href,
+      imageUrl: item.imageUrl,
+    };
+  });
 }
 
 function Shell({ children }: { children: React.ReactNode }) {

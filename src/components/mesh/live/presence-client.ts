@@ -17,7 +17,8 @@
 // - Heartbeats keep the adaptive cadence with a 500MS MOVING FLOOR (~120/min
 //   sustained) + 2s idle keepalive + a 350ms hard global gap (≤ ~171/min
 //   absolute worst case with action beats — under the 180/min budget).
-//   Movement is measured in world units normalized by zoom.
+//   Movement is measured in the caller's own position space, normalized by
+//   zoom (see MOVE_EPSILON — it is 0..1 room units, not pixels).
 // - Instant action beats (`beat()`) jump the queue but never break the
 //   global gap: too-soon beats are latched and flushed on the next tick.
 //
@@ -41,9 +42,34 @@ const ES_CLOSED = 2;
 export const HEARTBEAT_MIN_GAP_MS = 350;
 export const HEARTBEAT_MOVE_FLOOR_MS = 500;
 const HEARTBEAT_KEEPALIVE_MS = 2000;
-/** Movement threshold in world units (divided by zoom so it feels the same
- * at every zoom level). */
-const MOVE_EPSILON_WORLD = 6;
+/**
+ * How far you must move before a heartbeat is worth spending — in the SAME
+ * SPACE the caller reports positions in, divided by zoom so it feels the same
+ * at every zoom level.
+ *
+ * ── WHY THIS NUMBER CHANGED FROM 6 TO 0.004 ────────────────────────────────
+ *
+ * It used to be 6, meaning six WORLD units, back when the mesh canvas
+ * broadcast pixel-scale world coordinates. The canvas is gone. Both surfaces
+ * that remain — the room and the ring field — report NORMALISED 0..1
+ * positions, where the longest possible move across the entire space is
+ * √2 ≈ 1.41. Against a threshold of 6, no movement has counted as movement
+ * since the canvas was deleted: every position update has been riding the 2s
+ * idle keepalive.
+ *
+ * In a room whose entire point is watching somebody walk, that is the
+ * difference between presence and a flipbook. The contract test missed it
+ * because it injects world-scale numbers (`pos += 25`) and so was measuring a
+ * space no caller uses any more — a threshold is only meaningful relative to
+ * the units it is compared against, and nothing pinned those together.
+ *
+ * 0.004 is ~0.4% of the room: roughly 4px on a 1000px-wide screen, below what
+ * anybody can see, and small enough that a walk broadcasts continuously while
+ * a body standing still stays silent. The heartbeat floor above (500ms) is
+ * what actually bounds the request rate; this only decides what counts as
+ * worth saying.
+ */
+const MOVE_EPSILON = 0.004;
 
 const POLL_FALLBACK_MS = 2000;
 /** Stream with no event for this long is stale (keepalives come every 15s). */
@@ -257,7 +283,7 @@ export function createPresenceClient(options: PresenceClientOptions): PresenceCl
     const m = options.getMovement();
     const moved =
       Math.hypot(m.x - lastSent.x, m.y - lastSent.y) >
-      MOVE_EPSILON_WORLD / Math.max(m.zoom, 0.2);
+      MOVE_EPSILON / Math.max(m.zoom, 0.2);
     const moveDue = moved && t - lastBeatAt >= HEARTBEAT_MOVE_FLOOR_MS;
     const keepaliveDue = t - lastBeatAt >= HEARTBEAT_KEEPALIVE_MS;
     if (!force && !moveDue && !keepaliveDue) return;
