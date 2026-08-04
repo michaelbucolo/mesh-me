@@ -31,7 +31,7 @@ import { nsfwHiddenWhere } from "@/lib/content-safety";
 import { readWantsYou } from "./read-wants-you";
 
 /** A thing on an arm. Deliberately close to what a person would call it. */
-export type ArmItem = {
+type ArmItem = {
   id: string;
   kind: "message" | "mention" | "reply" | "post" | "person";
   /** Who or what. Never truncated here — the view decides what fits. */
@@ -56,7 +56,7 @@ export type ArmItem = {
  */
 type ArmState = "live" | "syncing" | "error" | "stale" | "offer";
 
-export type PresenceArm = {
+type PresenceArm = {
   /** "mesh" for native, otherwise the platform key (matches PlatformLogo). */
   platform: string;
   /** Your handle THERE. This is presence: it is the thing you are managing. */
