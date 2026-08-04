@@ -17,7 +17,7 @@
 //
 // Pure: no network (fetch is injected), no database. `npm run atproto:check`.
 
-import { buildPost, detectFacets, deliverPost, withinProtocolLimit, type AtprotoSession } from "../src/lib/compose/atproto";
+import { buildPost, detectFacets, deliverPost, isSafeService, signIn, withinProtocolLimit, type AtprotoSession } from "../src/lib/compose/atproto";
 
 let checks = 0;
 const failures: string[] = [];
@@ -160,6 +160,58 @@ async function main() {
     } else ok();
   }
 
+  // -------------------------------------------------------------------------
+  // 5. THE APP PASSWORD ONLY EVER GOES TO A HOST WE VETTED.
+  // -------------------------------------------------------------------------
+  //
+  // AT Protocol is federated, so the account names its own server. That is the
+  // right design and it is also the attack: whoever controls that string
+  // controls where the password is sent.
+
+  for (const bad of [
+    "http://bsky.social",              // plaintext — the password on the wire
+    "http://localhost:3000",           // still plaintext
+    "https://user:pw@bsky.social",     // embedded credentials get forwarded
+    "//bsky.social",                   // protocol-relative, resolves to us
+    "/xrpc",                           // relative, posts back into our own logs
+    "javascript:alert(1)",
+    "",
+    "not a url",
+  ]) {
+    if (isSafeService(bad)) { fail("5 secrets", `${JSON.stringify(bad)} was accepted as a place to send an app password`); continue; }
+    let touched = false;
+    const spy: typeof fetch = (async () => { touched = true; return new Response("{}", { status: 200 }); }) as unknown as typeof fetch;
+    const r = await signIn(bad, "me.bsky.social", "app-password", spy);
+    if (touched) { fail("5 secrets", `signIn sent the password to ${JSON.stringify(bad)} before validating it`); continue; }
+    if (r.ok || r.retryable) { fail("5 secrets", `a rejected host must fail permanently, not retry with the password`); continue; }
+    ok();
+  }
+
+  if (!isSafeService("https://bsky.social")) fail("5 secrets", "a legitimate https PDS was rejected"); else ok();
+  if (!isSafeService("https://pds.example.com/")) fail("5 secrets", "a self-hosted https PDS was rejected"); else ok();
+
+  {
+    const good = (async () => new Response(JSON.stringify({ accessJwt: "jwt", did: "did:plc:x", handle: "me.bsky.social" }), { status: 200, headers: { "content-type": "application/json" } })) as unknown as typeof fetch;
+    const r = await signIn("https://bsky.social", "me.bsky.social", "secret-app-password", good);
+    if (!r.ok) { fail("5 secrets", `a valid sign-in failed: ${r.message}`); }
+    else {
+      // The result must carry tokens, never the secret it was handed.
+      if (JSON.stringify(r).includes("secret-app-password")) fail("5 secrets", "the app password came back in the result");
+      else ok();
+      if (r.session.service !== "https://bsky.social" || !r.session.accessJwt) fail("5 secrets", "the session was incomplete"); else ok();
+    }
+  }
+
+  {
+    // A wrong password must not be retried — that is how an account gets locked.
+    const denied = (async () => new Response(JSON.stringify({ error: "AuthenticationRequired", message: "me.bsky.social is wrong" }), { status: 401, headers: { "content-type": "application/json" } })) as unknown as typeof fetch;
+    const r = await signIn("https://bsky.social", "me.bsky.social", "wrong", denied);
+    if (r.ok) fail("5 secrets", "a 401 sign-in was reported as success");
+    else if (r.retryable) fail("5 secrets", "a rejected password was marked retryable — that locks accounts");
+    else if (r.message.includes("me.bsky.social")) fail("5 secrets", "the server's message echoed the identifier into ours, and this string reaches logs");
+    else ok();
+  }
+
   if (failures.length) {
     console.error(`\natproto: ${failures.length} failure(s) across ${checks + failures.length} assertions\n`);
     for (const f of failures) console.error("  " + f);
@@ -174,7 +226,10 @@ async function main() {
       "  not a hashtag. The record is a pure function of its inputs. Delivery never claims success without a uri to\n" +
       "  prove it, refuses an over-limit post before spending the request, honours a self-hosted PDS, and separates\n" +
       "  retryable (429, 5xx, network) from permanent (400, 401, 403).\n" +
-      "  Does NOT cover: whether a real Bluesky server accepts these records. That needs a live account.",
+      "  An app password is only ever sent to a vetted https host — never http, never one with embedded\n" +
+    "  credentials, never a relative URL that would resolve against our own origin — and a rejected host or\n" +
+    "  password fails permanently rather than retrying with the secret in hand.\n" +
+    "  Does NOT cover: whether a real Bluesky server accepts these records. That needs a live account.",
   );
 }
 

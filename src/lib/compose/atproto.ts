@@ -203,3 +203,99 @@ export async function deliverPost(
 
   return { ok: true, uri, cid };
 }
+
+// ── SIGNING IN, AND THE ONE WAY THIS COULD LEAK A CREDENTIAL ───────────────
+//
+// AT Protocol is federated: the account tells us which server to talk to. That
+// is the right design and it is also the attack. If someone can influence the
+// stored service URL, every field below is sent to whatever host it names —
+// including the app password.
+//
+// So the host is validated before the credential is ever assembled:
+//
+//   • https only. An http:// PDS would put the password on the wire in clear.
+//   • no credentials in the URL itself (https://user:pass@host), which some
+//     fetch implementations will happily forward as an Authorization header.
+//   • a real hostname, not an empty or relative one that would resolve
+//     against our own origin and post the password back into our own logs.
+//
+// A rejected host is a permanent failure, never a retry: hammering a bad host
+// with a password is worse than failing once.
+
+export type SignInResult =
+  | { ok: true; session: AtprotoSession; handle: string }
+  | { ok: false; retryable: boolean; message: string };
+
+/** Is this a host we are willing to send an app password to? */
+export function isSafeService(service: string): boolean {
+  let url: URL;
+  try {
+    url = new URL(service);
+  } catch {
+    return false;
+  }
+  if (url.protocol !== "https:") return false;
+  // Credentials embedded in the URL are forwarded by some clients.
+  if (url.username || url.password) return false;
+  if (!url.hostname) return false;
+  return true;
+}
+
+/**
+ * Exchange a handle + app password for a session.
+ *
+ * The password is used once, here, and never returned in the result — the
+ * caller gets tokens it can store, not the secret it was given.
+ */
+export async function signIn(
+  service: string,
+  identifier: string,
+  appPassword: string,
+  fetchImpl: typeof fetch = fetch,
+): Promise<SignInResult> {
+  if (!isSafeService(service)) {
+    return {
+      ok: false,
+      retryable: false,
+      message: "That server address is not one we can sign in to safely — it must be https.",
+    };
+  }
+
+  let res: Response;
+  try {
+    res = await fetchImpl(`${service.replace(/\/$/, "")}/xrpc/com.atproto.server.createSession`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ identifier, password: appPassword }),
+    });
+  } catch {
+    return { ok: false, retryable: true, message: "Could not reach that server." };
+  }
+
+  if (res.status === 429 || res.status >= 500) {
+    return { ok: false, retryable: true, message: `The server asked us to try later (${res.status}).` };
+  }
+  if (!res.ok) {
+    // Deliberately does not echo the server's message: it can contain the
+    // identifier, and this string ends up in logs and on screens.
+    return { ok: false, retryable: false, message: "That handle or app password was not accepted." };
+  }
+
+  let body: unknown;
+  try {
+    body = await res.json();
+  } catch {
+    return { ok: false, retryable: true, message: "The server sent a reply we could not read." };
+  }
+
+  const get = (k: string) =>
+    typeof body === "object" && body && k in body ? String((body as Record<string, unknown>)[k]) : "";
+
+  const accessJwt = get("accessJwt");
+  const did = get("did");
+  if (!accessJwt || !did) {
+    return { ok: false, retryable: false, message: "The server signed us in but sent nothing we can use." };
+  }
+
+  return { ok: true, session: { service, accessJwt, did }, handle: get("handle") };
+}
