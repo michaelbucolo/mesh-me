@@ -206,7 +206,12 @@ function makeHarness(opts: HarnessOptions) {
       for (let t = 0; t < ms; t += step) {
         clock += step;
         sincePing += step;
-        if (opts.moving) pos += 25; // well past the movement epsilon each tick
+        // A REALISTIC step, in the units real callers actually broadcast.
+        // This used to be `pos += 25` — world-scale, which no surface has
+        // reported since the canvas was deleted, so the harness was proving
+        // the threshold worked in a space nothing uses. 0.01 of the room per
+        // 50ms tick is an ordinary walking pace.
+        if (opts.moving) pos += 0.01;
         // A live server pings every 15s; mirror it so an open stream reads
         // healthy exactly the way production does.
         if (opts.streamOpens !== false && sincePing >= 10_000) {
@@ -235,7 +240,16 @@ async function transportChecks(): Promise<void> {
   await h.advance(60_000);
   const perMinute = h.log.posts - baseline;
   ok(perMinute <= 60_000 / HEARTBEAT_MOVE_FLOOR_MS + 2, `sustained movement stays at the moving floor (${perMinute}/min)`);
-  ok(perMinute >= 100, `the floor still tracks live motion (${perMinute}/min ≥ 100)`);
+  // THE UNITS ASSERTION. A walk of 0.01 room-units per 50ms is what the room
+  // and the field actually broadcast; if the movement threshold is expressed
+  // in some other space (it was once 6 world units, from the deleted canvas),
+  // nothing here counts as movement and every update silently falls back to
+  // the 2s keepalive — ~30/min instead of ~120. Live walking becomes a
+  // flipbook, and no other assertion in this file notices.
+  ok(
+    perMinute >= 100,
+    `a room-scale walk registers as movement (${perMinute}/min ≥ 100) — below this the movement epsilon is in the wrong unit space`,
+  );
   // Stream is healthy the whole time → the poll fallback never fires.
   ok(h.log.gets === 0, "no polling while the stream is healthy");
   h.client.stop();
