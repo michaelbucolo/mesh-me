@@ -57,6 +57,7 @@ model User {
   meshiPreference            MeshiPreference?
   meshCosmetics              MeshCosmetic[]
   meshPrivacy                MeshPrivacy?
+  mapLocation                UserLocation?
   sessions                   Session[]
   authIdentities             AuthIdentity[]
   globalMeshMember           GlobalMeshMember?
@@ -1520,4 +1521,40 @@ model PublicSupplyRun {
 
   @@index([platform, startedAt])
   @@index([startedAt])
+}
+
+/// MeshiMap: where somebody is, at the coarseness THEY chose.
+///
+/// ── THIS TABLE NEVER HOLDS A PRECISE LOCATION ──────────────────────────────
+///
+/// `lat`/`lng` are already snapped to the global grid by `meshimap/coarse.ts`
+/// BEFORE the row is written — the raw reading from the device is used to pick
+/// a cell and is then discarded, never persisted, never logged. So the worst
+/// case for a database breach is a list of cells, which is the same thing the
+/// map shows to people who were already allowed to see it.
+///
+/// The alternative — store the true point, coarsen on read — reads as
+/// equivalent and is not: it makes every future query, export, backup, and
+/// support tool a place where the real location can leak, and it only takes
+/// one of them forgetting to coarsen. Coarsening at the edge means there is
+/// nothing to forget.
+///
+/// One row per user, replaced in place. There is deliberately no history: a
+/// trail of where somebody has been is a different and much more dangerous
+/// product than a pin of where they are, and the way to not build it is to not
+/// keep the rows.
+model UserLocation {
+  userId     String   @id
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Cell CENTRE, already coarsened. Never a device reading.
+  lat        Float
+  lng        Float
+  /// "block" | "town" | "region" — how coarse the cell above is.
+  precision  String   @default("town")
+  /// "nobody" | "mutuals" | "followers" | "everyone". Default is nobody, so a
+  /// row that somehow appears without a choice shows to no one.
+  audience   String   @default("nobody")
+  reportedAt DateTime @default(now())
+
+  @@index([reportedAt])
 }

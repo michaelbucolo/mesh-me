@@ -138,18 +138,28 @@ export default async function MeshPage({ searchParams }: { searchParams: Promise
  * somewhere you can learn rather than a reshuffle on each visit. */
 function propsFromPresence(presence: Awaited<ReturnType<typeof readMyPresence>>): RoomProp[] {
   const out: RoomProp[] = [];
-  // THE DOOR TO YOUR INBOX, standing in your room.
+  // TWO DOORS, standing in your own room and nobody else's.
   //
-  // The unified inbox was built and then had no way in — a working page nobody
-  // can navigate to, which the reachability gate is right to call the same
-  // thing as a page that was never built. It belongs HERE rather than in the
-  // nav: the mesh is the room you stand in, and the pile of things people are
-  // waiting on from you is furniture in it. Only in your OWN room — a visitor
-  // has no business seeing your mail.
+  // Both belong here rather than in the nav. The nav is five tabs by
+  // direction — Mesh, MeChat, Flow, Explore, Analytics — and neither of these
+  // is worth a sixth; more to the point, the mesh IS the room you stand in, so
+  // the pile of things people are waiting on and the way out to find people
+  // are furniture in it. A visitor sees neither: your mail is not theirs, and
+  // their map is reached from their own room.
+  //
+  // The inbox in particular was built, working, and unreachable — which the
+  // reachability gate is right to call the same thing as never built.
+  out.push({
+    id: "meshimap",
+    label: "MeshiMap",
+    vx: 0.84,
+    vy: 0.1,
+    href: "/meshimap",
+  });
   out.push({
     id: "inbox",
     label: presence.totalWantsYou > 0 ? `Inbox · ${presence.totalWantsYou} waiting` : "Inbox",
-    vx: 0.5,
+    vx: 0.16,
     vy: 0.1,
     href: "/inbox",
   });

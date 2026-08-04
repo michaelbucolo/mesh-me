@@ -96,6 +96,17 @@ if (canSeeOnMap({ audience: "mutuals", ghostMode: false, relation: rel({ follows
 if (!canSeeOnMap({ audience: "mutuals", ghostMode: false, relation: rel({ followsSubject: true, subjectFollowsViewer: true }) })) fail("3 consent", "a real mutual was hidden"); else ok();
 // You always see yourself — a control you cannot observe is not a control.
 if (!canSeeOnMap({ audience: "nobody", ghostMode: true, relation: rel({ isSelf: true }) })) fail("3 consent", "you could not see your own pin, so you cannot tell what you broadcast"); else ok();
+// "followers" = the people who follow THEM. This audience had no coverage at
+// all, and the implementation was `subjectFollowsViewer ? false : followsSubject`
+// — which denied MUTUALS under a setting strictly LOOSER than "mutuals". A
+// privacy control that hides you from more people as you widen it is one
+// nobody can reason about, and three assertions on the other audiences said
+// nothing about it.
+if (canSeeOnMap({ audience: "followers", ghostMode: false, relation: rel() })) fail("3 consent", "a stranger satisfied 'followers'"); else ok();
+if (!canSeeOnMap({ audience: "followers", ghostMode: false, relation: rel({ followsSubject: true }) })) fail("3 consent", "a follower was hidden under 'followers'"); else ok();
+if (!canSeeOnMap({ audience: "followers", ghostMode: false, relation: rel({ followsSubject: true, subjectFollowsViewer: true }) })) fail("3 consent", "a MUTUAL was hidden under 'followers' — mutuals are a subset of followers"); else ok();
+if (canSeeOnMap({ audience: "followers", ghostMode: false, relation: rel({ subjectFollowsViewer: true }) })) fail("3 consent", "being followed BY someone is not following them"); else ok();
+if (canSeeOnMap({ audience: "followers", ghostMode: true, relation: rel({ followsSubject: true }) })) fail("3 consent", "ghost mode did not override 'followers'"); else ok();
 // An unrecognised audience from a newer client reads as "no".
 if (canSeeOnMap({ audience: "friends-of-friends" as never, ghostMode: false, relation: rel() })) fail("3 consent", "an unknown audience value defaulted to visible"); else ok();
 

@@ -104,8 +104,19 @@ export function canSeeOnMap(options: {
     case "mutuals":
       return relation.followsSubject && relation.subjectFollowsViewer;
     case "followers":
-      // The people who follow THEM — the audience they chose to accept.
-      return relation.subjectFollowsViewer ? false : relation.followsSubject;
+      // The people who follow THEM — the audience they chose to accept. That
+      // is exactly `followsSubject` (the viewer follows the subject), and
+      // nothing else enters into it.
+      //
+      // This previously read `subjectFollowsViewer ? false : followsSubject`,
+      // which denied MUTUALS: someone who followed you and whom you followed
+      // back was refused under "followers" while being accepted under the
+      // strictly narrower "mutuals". A privacy setting that hides you from
+      // MORE people as you loosen it is not a setting anyone can reason
+      // about. No gate caught it because the audience had no coverage at all —
+      // "nobody", "mutuals" and "everyone" each had assertions and this one
+      // was simply skipped.
+      return relation.followsSubject;
     case "everyone":
       return true;
     default:
