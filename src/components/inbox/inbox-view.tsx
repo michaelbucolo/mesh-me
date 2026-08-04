@@ -41,9 +41,20 @@ export function InboxView({ initial }: { initial: InboxRead }) {
   return (
     <div className="mx-auto flex h-full w-full max-w-3xl flex-col" data-testid="inbox">
       <header className="px-4 pt-5 sm:px-6">
-        <h1 className="text-2xl font-semibold" style={{ color: INK }}>
-          Inbox
-        </h1>
+        <div className="flex items-center justify-between gap-3">
+          <h1 className="text-2xl font-semibold" style={{ color: INK }}>
+            Inbox
+          </h1>
+          {/* The other half of one place for everything: what reaches you, and
+              what you send out. Putting them on the same screen is the point. */}
+          <a
+            href="/compose"
+            className="shrink-0 rounded-full px-3.5 py-1.5 font-semibold"
+            style={{ background: OWED, color: "#04060c", fontSize: 13.5 }}
+          >
+            Post everywhere
+          </a>
+        </div>
         <p className="mt-1 text-sm" style={{ color: INK_DIM }}>
           {summarise(initial)}
         </p>
