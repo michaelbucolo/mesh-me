@@ -18,6 +18,7 @@ export type RemotePresence = {
   meshiAccessory?: string;
   meshiEyeStyle?: string;
   meshiBadge?: string;
+  meshiOutfit?: string;
   meshiMood: string;
   viewportPosition: { vx: number; vy: number };
   position?: { x: number; y: number };
@@ -59,7 +60,7 @@ export function createRoster(): RoomRoster {
 
 /** Everything the layer renders from — re-render only when this changes. */
 function appearanceSignature(p: RemotePresence): string {
-  return `${p.userId}:${p.meshiColor}:${p.meshiHat}:${p.meshiHair}:${p.meshiAccessory}:${p.meshiEyeStyle}:${p.meshiBadge}:${p.meshiMood}:${p.isPro ? 1 : 0}:${p.username}`;
+  return `${p.userId}:${p.meshiColor}:${p.meshiHat}:${p.meshiHair}:${p.meshiAccessory}:${p.meshiEyeStyle}:${p.meshiBadge}:${p.meshiOutfit}:${p.meshiMood}:${p.isPro ? 1 : 0}:${p.username}`;
 }
 
 export interface RosterEvents {
@@ -156,3 +157,11 @@ export function sweepRoster(
   return { joined, left, effective, changed };
 }
 
+/** Forget everything (room switch) — no phantom visitors carry across. */
+export function resetRoster(roster: RoomRoster): void {
+  roster.entries.clear();
+  roster.seenAt.clear();
+  roster.sig.clear();
+  roster.roomSig = "";
+  roster.prevIds = null;
+}

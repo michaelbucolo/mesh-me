@@ -73,6 +73,8 @@ export function applySighting(
 /** Glide time constant — tuned for the movement broadcasts: tight enough to
  * track live motion, soft enough to stay smooth between payloads. */
 const GLIDE_TAU_MS = 300;
+/** Hard screen-space speed cap (px/s) so a Meshi floats, never darts. */
+export const MAX_MESHI_SPEED_PX_S = 680;
 
 /** One glide step toward (tx, ty): exponential ease + hard speed cap.
  * Mutates `pos`. `maxStep` is the per-frame distance cap in pos's units. */
@@ -113,11 +115,50 @@ export function stepSpriteToward(
   return sprite.world;
 }
 
-// NOTE: the gaze (`lookUnit`/`stepLook`) and travel-lean helpers lived here to
-// serve the canvas Meshi layer, which is gone. They are removed rather than
-// left unreachable — git holds them, and a dead export is a promise the code
-// no longer keeps. Re-porting eye-tracking onto the field is a real piece of
-// work, not a re-export.
+/** Gaze easing time constant. */
+const LOOK_TAU_MS = 130;
+
+/** Unit direction from a Meshi at (x,y) toward a target — where its eyes
+ * point. Zero vector when there's no target or it's on top of us. */
+export function lookUnit(
+  x: number,
+  y: number,
+  target: { x: number; y: number } | null,
+): { x: number; y: number } {
+  if (!target) return { x: 0, y: 0 };
+  const dx = target.x - x;
+  const dy = target.y - y;
+  const d = Math.hypot(dx, dy);
+  if (d < 1) return { x: 0, y: 0 };
+  return { x: dx / d, y: dy / d };
+}
+
+/** Ease a gaze vector toward a wanted unit vector. Mutates `look`; returns
+ * false when both are effectively centred (caller may skip the style write). */
+export function stepLook(
+  look: { x: number; y: number },
+  wantX: number,
+  wantY: number,
+  dt: number,
+): boolean {
+  if (wantX === 0 && wantY === 0 && Math.abs(look.x) < 0.004 && Math.abs(look.y) < 0.004) {
+    return false;
+  }
+  const k = 1 - Math.exp(-dt / LOOK_TAU_MS);
+  look.x += (wantX - look.x) * k;
+  look.y += (wantY - look.y) * k;
+  return true;
+}
+
+/** Body language: the bank (deg) into the direction of travel. */
+const LEAN_MAX_DEG = 16;
+const LEAN_TAU_MS = 110;
+
+/** Ease a body-bank rotation toward the lean implied by screen velocity. */
+export function stepLean(rot: number, screenVelPxPerMs: number, dt: number): number {
+  const lean = Math.max(-LEAN_MAX_DEG, Math.min(LEAN_MAX_DEG, screenVelPxPerMs * 24));
+  return rot + (lean - rot) * (1 - Math.exp(-dt / LEAN_TAU_MS));
+}
 
 // ---------------------------------------------------------------------------
 // The owner Meshi's behaviour states (the heart Meshi at the centre).

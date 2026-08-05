@@ -17,7 +17,7 @@
  * Mesh Atmospheres — the sky palette of a mesh. "midnight" is the free
  * default; the rest are MeshPro skies.
  */
-interface AtmosphereSpec {
+export interface AtmosphereSpec {
   id: string;
   label: string;
   pro: boolean;
@@ -44,7 +44,7 @@ interface AtmosphereSpec {
 // below are deliberately NOT tokens — Kraft is meant to be brown and Botanical
 // green; those are materials somebody chose, not the app disagreeing with itself.
 const ATMOSPHERES: Record<string, AtmosphereSpec> = {
-  midnight: { id: "midnight", label: "Daylight", pro: false, bg: ["#ffffff", "#f2f2f7", "#e9e9ee"], ink: "#636366", grain: 0.035 },
+  midnight: { id: "midnight", label: "Daylight", pro: false, bg: ["#fdfbf6", "#efeae1", "#e5dfd4"], ink: "#57535a", grain: 0.035 },
   aurora: { id: "aurora", label: "Botanical", pro: true, bg: ["#f4f6ee", "#e9eee0", "#dce4cf"], ink: "#5f6b52", grain: 0.04 },
   ember: { id: "ember", label: "Kraft", pro: true, bg: ["#f2e6d2", "#e8d9be", "#dbc8a6"], ink: "#7a6244", grain: 0.055 },
   ocean: { id: "ocean", label: "Blueprint", pro: true, bg: ["#e8eef4", "#dae3ee", "#c7d4e4"], ink: "#4e637a", grain: 0.03 },
@@ -57,27 +57,28 @@ const ATMOSPHERES_DARK: Record<string, AtmosphereSpec> = {
   // tokens.css went true-neutral black on the explicit instruction that dark
   // mode be black and not brown. r=31 g=27 b=23 is brown by any measure, and it
   // covered the hero surface of the product while every DOM pixel around it was
-  // #0a0a0a. --paper-2 / --paper-1 / --paper-0 and --ink-3, gated like the rest.
-  //
-  // THE ORDER IS THE FIX. These were --paper-1 / --paper-0 / --paper-2, which is
-  // 28 -> 0 -> 44 in luminance: dark at the top, black in the middle, and then
-  // BACK UP to the lightest of the three at the bottom. paintBackground draws
-  // this as a vertical wash, so the bottom of the mesh carried a pale grey haze
-  // rising out of the black — reported, exactly, as "the weird white gradient at
-  // the bottom of the mesh screen".
-  //
-  // Every other paper in both tables runs monotonically downward, and so does
-  // this one in the light table (#ffffff -> #f2f2f7 -> #e9e9ee). Only the free
-  // dark default — the surface almost every mesh is actually laid out on — was
-  // out of order. Same three tokens, so nothing drifts from the DOM; they just
-  // run the way the file already says they should, light falling from above.
-  midnight: { id: "midnight", label: "Daylight", pro: false, bg: ["#2c2c2e", "#1c1c1e", "#000000"], ink: "#a8a8a8", grain: 0.05 },
+  // #0a0a0a. --paper-1 / --paper-0 / --paper-2 and --ink-3, gated like the rest.
+  midnight: { id: "midnight", label: "Daylight", pro: false, bg: ["#1a1a1a", "#0a0a0a", "#050505"], ink: "#a8a8a8", grain: 0.05 },
   aurora: { id: "aurora", label: "Botanical", pro: true, bg: ["#1b1f18", "#171a14", "#0d0f0b"], ink: "#8a9680", grain: 0.055 },
   ember: { id: "ember", label: "Kraft", pro: true, bg: ["#281f16", "#221a12", "#110c08"], ink: "#b09472", grain: 0.07 },
   ocean: { id: "ocean", label: "Blueprint", pro: true, bg: ["#181f26", "#141a20", "#0b0e11"], ink: "#8fa6bd", grain: 0.045 },
   dawn: { id: "dawn", label: "Sunlit", pro: true, bg: ["#2a211c", "#241c18", "#100c0a"], ink: "#c09272", grain: 0.06 },
 };
 
+// A readable-id alias map (midnight->daylight, ember->kraft, ...) belongs here
+// when a picker needs one. It is deliberately NOT written yet: an exported map
+// nothing reads is just a second source of truth waiting to drift from the
+// labels above.
+
+/**
+ * Resolve a stored preset id to its paper. `dark` picks the lamplit variant of
+ * the SAME paper — a person's chosen paper does not change when the room does,
+ * only the light falling on it.
+ */
+export function atmosphereOf(id?: string | null, dark = true): AtmosphereSpec {
+  const table = dark ? ATMOSPHERES_DARK : ATMOSPHERES;
+  return (id && table[id]) || table.midnight;
+}
 
 /**
  * The papers, in picker order, with a two-colour swatch taken from the paper
