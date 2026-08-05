@@ -45,6 +45,11 @@ import { WORLD_PATH } from "./world-path";
 
 const WORLD_VIEW: Camera = { lat: 20, lng: 0, zoom: 2 };
 
+/** How often a visible map re-reads the room. Drawings live fifteen minutes,
+ * so this is about how quickly a NEW one shows up, not about keeping up with
+ * motion — six seconds feels immediate without being a stream. */
+const POLL_MS = 6000;
+
 export function MeshiMap({
   pins,
   you,
@@ -80,6 +85,58 @@ export function MeshiMap({
   const [selected, setSelected] = useState<MapPin | null>(null);
   const [padOpen, setPadOpen] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+
+  // ── THE ROOM KEEPS ARRIVING ──────────────────────────────────────────────
+  //
+  // The server-rendered props are the FIRST frame, not the only one: a
+  // PictoChat room where somebody's drawing needs a refresh to appear is a
+  // mailbox, not a conversation. Live state starts as the props and is
+  // replaced by each poll.
+  // Null until a poll lands, and DERIVED rather than mirrored: copying props
+  // into state in an effect is a derivation wearing state's clothes, and it
+  // renders once with the stale value before the effect catches up. This way
+  // the server's first frame simply wins until there is something newer.
+  const [polled, setPolled] = useState<{ pins: MapPin[]; doodles: Doodle[] } | null>(null);
+  const live = polled ?? { pins, doodles };
+
+  useEffect(() => {
+    let stopped = false;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+
+    const tick = async () => {
+      // A hidden tab costs nothing. Without this every backgrounded map is a
+      // request every few seconds forever, which is how a polite poll becomes
+      // a load problem at scale.
+      if (typeof document !== "undefined" && document.visibilityState !== "visible") {
+        schedule();
+        return;
+      }
+      try {
+        const response = await fetch("/api/meshimap/room", { cache: "no-store" });
+        if (response.ok && !stopped) {
+          const data = (await response.json()) as { pins: MapPin[]; doodles: Doodle[] };
+          if (Array.isArray(data.pins) && Array.isArray(data.doodles)) {
+            setPolled({ pins: data.pins, doodles: data.doodles });
+          }
+        }
+      } catch {
+        // A dropped poll is not an error worth showing. The next one corrects
+        // it, and a map that shouts about its own network is a worse map.
+      }
+      schedule();
+    };
+
+    const schedule = () => {
+      if (stopped) return;
+      timer = setTimeout(tick, POLL_MS);
+    };
+
+    schedule();
+    return () => {
+      stopped = true;
+      if (timer) clearTimeout(timer);
+    };
+  }, []);
 
   async function handleReport(doodleId: string) {
     const result = await reportDoodle(doodleId);
@@ -166,15 +223,15 @@ export function MeshiMap({
   // apart — and this basemap is a coarse world outline, so a fixed
   // street-level zoom would show no land at all and read as broken.
   const fitted = useMemo(
-    () => (size.width > 0 ? fitCamera(pins.map((p) => p.at), size, WORLD_VIEW) : WORLD_VIEW),
-    [pins, size],
+    () => (size.width > 0 ? fitCamera(live.pins.map((p) => p.at), size, WORLD_VIEW) : WORLD_VIEW),
+    [live.pins, size],
   );
   const camera = userCamera ?? fitted;
 
   // Cells rather than pins: everyone in a cell shares one coordinate by
   // design, so without grouping a populated cell would draw one Meshi and
   // hide everybody behind it.
-  const cells = useMemo(() => clusterByCell(pins), [pins]);
+  const cells = useMemo(() => clusterByCell(live.pins), [live.pins]);
 
   const scale = 2 ** camera.zoom;
 
@@ -220,7 +277,7 @@ export function MeshiMap({
             in the same projected space as the bodies, so a doodle and its
             author move together when the map pans. */}
         {size.width > 0 &&
-          doodles.map((d) => {
+          live.doodles.map((d) => {
             const decoded = decodeInk(d.ink);
             if (!decoded.ok) return null;
             const at = project(d.at, camera, size);
@@ -342,9 +399,9 @@ export function MeshiMap({
         className="pointer-events-none absolute left-3 top-3 rounded-lg px-2.5 py-1.5"
         style={{ background: "#0a1120cc", color: "#93a0bb", fontSize: 11.5 }}
       >
-        {pins.length === 0
+        {live.pins.length === 0
           ? "Nobody is sharing where they are right now."
-          : `${pins.length} ${pins.length === 1 ? "person" : "people"} nearby · everyone shows at their area, never their address`}
+          : `${live.pins.length} ${live.pins.length === 1 ? "person" : "people"} nearby · everyone shows at their area, never their address`}
       </div>
 
       <ShareWhere initiallySharing={!!you} />
