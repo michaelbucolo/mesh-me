@@ -11,6 +11,41 @@ import {
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
+// ── A STREAM MUST END BEFORE THE PLATFORM ENDS IT ──────────────────────────
+//
+// This route had no lifetime of its own. It held the connection open until the
+// serverless function hit its ceiling and was killed, which production recorded
+// as an ERROR, not a disconnect:
+//
+//   Vercel Runtime Timeout Error: Task timed out after 300 seconds
+//   count=116  users=6  routes=/api/mesh/presence/stream
+//
+// 116 of them, from six people, still arriving. Every one is somebody sitting
+// on the mesh for five minutes — which is the SUCCESS case for a presence
+// stream, so the feature working as intended was the thing generating the
+// errors. It also means the room went dark at the kill: the function is torn
+// down mid-frame, so the last thing the client gets is a severed socket rather
+// than a close, and everyone in that room stops updating until the browser
+// notices and retries.
+//
+// The fix is to own the ending. `maxDuration` is stated here rather than left
+// to the platform default so the two numbers below are visibly related, and
+// the stream closes itself with margin to spare. EventSource reconnects on a
+// clean close by itself, so what used to be a 300-second crash is now a
+// sub-second reconnect the room never sees.
+export const maxDuration = 300;
+
+/** How long one connection lives before retiring itself, well inside
+ * `maxDuration`. The margin absorbs a slow final push and cold-start drift —
+ * being early costs one reconnect, being late costs the error above. */
+const STREAM_LIFETIME_MS = 240_000;
+
+/** Sent just before a lifetime close so the browser comes straight back
+ * instead of waiting out its default (~3s) reconnect delay. Only emitted on
+ * THIS path: a stream that died for any other reason should still get the
+ * browser's own backoff rather than being told to retry hard. */
+const RECONNECT_HINT_MS = 250;
+
 // Server-Sent Events stream of presence updates. The client opens one long-lived
 // connection per mesh view; the server pushes a fresh payload the instant any
 // Meshi moves (coalesced to a short interval) plus a periodic keepalive so the
@@ -144,6 +179,10 @@ export async function GET(request: Request) {
         }
       }, 15000);
 
+      // Retire the connection before the platform kills it. Declared before
+      // `cleanup` so cleanup can clear it, and armed immediately after.
+      let lifetimeTimer: ReturnType<typeof setTimeout> | null = null;
+
       cleanup = () => {
         if (closed) return;
         closed = true;
@@ -152,12 +191,29 @@ export async function GET(request: Request) {
         clearInterval(connectionsTimer);
         clearInterval(keepaliveTimer);
         if (coalesceTimer) clearTimeout(coalesceTimer);
+        if (lifetimeTimer) clearTimeout(lifetimeTimer);
         try {
           controller.close();
         } catch {
           // already closed
         }
       };
+
+      lifetimeTimer = setTimeout(() => {
+        if (closed) return;
+        // `retry:` first, then a named event, then the close. The retry field
+        // is a directive to EventSource itself rather than data, so it goes as
+        // its own frame; the `cycle` event is for the client's own health
+        // monitor, so a scheduled reconnect is not mistaken for the stream
+        // failing and does not push it onto the polling fallback.
+        try {
+          controller.enqueue(encoder.encode(`retry: ${RECONNECT_HINT_MS}\n\n`));
+          controller.enqueue(encoder.encode(`event: cycle\ndata: {"reason":"lifetime"}\n\n`));
+        } catch {
+          // Already gone; cleanup below is still the right move.
+        }
+        cleanup();
+      }, STREAM_LIFETIME_MS);
 
       request.signal.addEventListener("abort", cleanup);
       // If the request was already aborted before start() ran, tear down now —
