@@ -58,6 +58,7 @@ model User {
   meshCosmetics              MeshCosmetic[]
   meshPrivacy                MeshPrivacy?
   mapLocation                UserLocation?
+  mapDoodles                 MapDoodle[]
   sessions                   Session[]
   authIdentities             AuthIdentity[]
   globalMeshMember           GlobalMeshMember?
@@ -1557,4 +1558,36 @@ model UserLocation {
   reportedAt DateTime @default(now())
 
   @@index([reportedAt])
+}
+
+/// A PictoChat drawing on MeshiMap. Ephemeral by construction.
+///
+/// ── IT CARRIES NO LOCATION ─────────────────────────────────────────────────
+///
+/// Deliberately no lat/lng. A drawing renders at its AUTHOR'S pin, which is
+/// already a coarse cell, and it is only visible where that pin is visible.
+/// Giving a message its own coordinate would rebuild the movement history that
+/// UserLocation refuses to keep — one doodle at a time, with a timestamp on
+/// each. There is nowhere in this row to put a position, which is the point.
+///
+/// ── AND IT IS A LOG, NOT A STATUS ──────────────────────────────────────────
+///
+/// One row per drawing, appended. The tempting shape is one row per USER,
+/// overwritten on send — but then a reply overwrites the thing it is replying
+/// to and no conversation can exist, which is a speech balloon rather than the
+/// room PictoChat actually was.
+///
+/// Rows are swept on write and filtered on read against the same TTL, so the
+/// table stays small without a cron: every send prunes what has expired.
+model MapDoodle {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Canonical encoded strokes (see meshimap/ink). Validated before storage;
+  /// a payload that does not decode exactly is never written.
+  ink       String
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([userId, createdAt])
 }

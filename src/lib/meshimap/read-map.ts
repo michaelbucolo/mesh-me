@@ -19,13 +19,14 @@ import {
   type Precision,
 } from "./coarse";
 import { readAudience, readPrecision } from "./report-location";
+import { doodlesFor, DOODLE_TTL_MS, type Doodle, type DoodleRow } from "./doodles";
 
 /** How many pins one read can produce. The map draws Meshis, not dots, so
  * past a few hundred it stops being a place and becomes a smear — and the
  * query cost stops being bounded. */
 const MAX_PINS = 300;
 
-export type MapRead = { pins: MapPin[]; nowMs: number; you: MapPin | null };
+export type MapRead = { pins: MapPin[]; nowMs: number; you: MapPin | null; doodles: Doodle[] };
 
 export interface MapDb {
   userLocation: {
@@ -55,6 +56,14 @@ export interface MapDb {
       where: { OR: Array<{ blockerId: string } | { blockedId: string }> };
       select: { blockerId: true; blockedId: true };
     }): Promise<Array<{ blockerId: string; blockedId: string }>>;
+  };
+  mapDoodle: {
+    findMany(args: {
+      where: { createdAt: { gte: Date } };
+      orderBy: { createdAt: "desc" };
+      take: number;
+      select: { id: true; userId: true; ink: true; createdAt: true };
+    }): Promise<Array<{ id: string; userId: string; ink: string; createdAt: Date }>>;
   };
 }
 
@@ -87,7 +96,7 @@ export async function readMap(
   nowMs: number = Date.now(),
   db: MapDb = prisma as unknown as MapDb,
 ): Promise<MapRead> {
-  if (!viewerId) return { pins: [], nowMs, you: null };
+  if (!viewerId) return { pins: [], nowMs, you: null, doodles: [] };
 
   // Stale rows are excluded in the QUERY as well as by `isFresh` downstream.
   // Not redundancy for its own sake: it keeps the row count bounded by how
@@ -121,6 +130,18 @@ export async function readMap(
       select: { blockerId: true, blockedId: true },
     }),
   ]);
+
+  // Drawings are fetched WITHOUT any visibility filter of their own, then
+  // filtered against the pins that survive the gate below. That is deliberate:
+  // a WHERE clause here would be a second copy of the privacy rule, written in
+  // SQL, that nobody would think to update when the real one changes. The cap
+  // keeps the unfiltered fetch bounded.
+  const doodleRows = await db.mapDoodle.findMany({
+    where: { createdAt: { gte: new Date(nowMs - DOODLE_TTL_MS) } },
+    orderBy: { createdAt: "desc" },
+    take: 200,
+    select: { id: true, userId: true, ink: true, createdAt: true },
+  });
 
   const viewerFollows = new Set<string>();
   const followsViewer = new Set<string>();
@@ -174,6 +195,13 @@ export async function readMap(
   const pins = pinsFor(subjects, nowMs);
   return {
     pins,
+    // Ink hangs off the pins that survived — a viewer who cannot see somebody
+    // on the map cannot see their drawing, by construction.
+    doodles: doodlesFor(
+      doodleRows.map<DoodleRow>((d) => ({ id: d.id, userId: d.userId, ink: d.ink, createdAtMs: d.createdAt.getTime() })),
+      pins,
+      nowMs,
+    ),
     nowMs,
     // Pulled out so the map can centre on you and so you can SEE what you are
     // broadcasting — a privacy control you cannot observe is not one.

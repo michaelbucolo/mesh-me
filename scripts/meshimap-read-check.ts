@@ -55,6 +55,10 @@ function db(
       },
       follow: { async findMany() { return edges; } },
       block: { async findMany() { return blocks; } },
+      // No drawings in these cases — the doodle read has its own gate
+      // (meshimap-doodle:check), and mixing the two here would test the join
+      // rather than the thing this file is about.
+      mapDoodle: { async findMany() { return []; } },
     } as MapDb,
   };
 }
