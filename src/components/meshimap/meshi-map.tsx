@@ -28,6 +28,7 @@ import type { MapPin } from "@/lib/meshimap/coarse";
 import type { Doodle } from "@/lib/meshimap/doodles";
 import { decodeInk } from "@/lib/meshimap/ink";
 import { DoodlePad, InkPreview } from "./doodle-pad";
+import { reportDoodle } from "@/lib/meshimap/report-doodle";
 import {
   clampZoom,
   clusterByCell,
@@ -78,6 +79,16 @@ export function MeshiMap({
   const [size, setSize] = useState({ width: 0, height: 0 });
   const [selected, setSelected] = useState<MapPin | null>(null);
   const [padOpen, setPadOpen] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
+
+  async function handleReport(doodleId: string) {
+    const result = await reportDoodle(doodleId);
+    // Say the same thing either way about WHETHER it existed — the server
+    // already refuses to distinguish "gone" from "you cannot see it", and a
+    // chattier client would hand back the oracle the server withheld.
+    setNotice(result.ok ? "Thanks — that's with us." : result.error);
+    router.refresh();
+  }
 
   // THE MAP HAS TO KEEP MEASURING ITSELF.
   //
@@ -234,6 +245,24 @@ export function MeshiMap({
                   style={{ background: "#0b1526e6", border: "1px solid #ffffff1f" }}
                 >
                   <InkPreview strokes={decoded.ink.strokes} />
+                  {/* REPORTING IS ON THE DRAWING, where you are looking when
+                      you decide to report it — not buried behind a profile.
+                      `pointer-events-auto` because the wrapper is deliberately
+                      inert so ink never eats a tap meant for the map. Your own
+                      drawing gets no button: reporting yourself is noise. */}
+                  {d.userId !== you?.userId && (
+                    <button
+                      type="button"
+                      data-testid="doodle-report"
+                      aria-label={`Report this drawing by ${d.displayName || d.username}`}
+                      onPointerDown={(e) => e.stopPropagation()}
+                      onClick={() => void handleReport(d.id)}
+                      className="pointer-events-auto absolute right-0.5 top-0.5 flex h-5 w-5 items-center justify-center rounded-full"
+                      style={{ background: "#0b1526cc", color: "#93a0bb", fontSize: 11, lineHeight: 1 }}
+                    >
+                      !
+                    </button>
+                  )}
                 </div>
               </div>
             );
@@ -333,6 +362,16 @@ export function MeshiMap({
         >
           Draw
         </button>
+      )}
+
+      {notice && (
+        <div
+          data-testid="map-notice"
+          className="pointer-events-none absolute inset-x-3 top-14 rounded-lg px-3 py-2 text-center"
+          style={{ background: "#0b1526f2", color: "#dce4f5", fontSize: 12.5, border: "1px solid #ffffff1f" }}
+        >
+          {notice}
+        </div>
       )}
 
       {padOpen && <DoodlePad onSent={() => router.refresh()} onClose={() => setPadOpen(false)} />}
