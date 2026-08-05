@@ -14,8 +14,24 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { wantsYou, wantsYouSummary, type NotificationRow, type ThreadRow } from "../src/lib/mesh/wants-you";
-import { placeField } from "../src/components/meshfield/model/rings";
+// TRIMMED TO WHAT IS STILL LIVE.
+//
+// This gate covered three things: `wantsYou`, `wantsYouSummary`, and a
+// cross-check that the summary's count agreed with the ring field's needs-you
+// band via `placeField`. Only the first of those still exists in the product.
+// /mesh is the canvas scene again; the ring field, its centre headline and
+// components/meshfield/model/rings.ts have been removed.
+//
+// The two dead sections are gone rather than kept passing against code nothing
+// renders. A gate that cannot fail for any reason a user would notice is worse
+// than no gate — it reads as coverage of a claim nobody is making any more.
+//
+// `wantsYou` is emphatically NOT in that category. It is read by
+// read-wants-you.ts → read-my-presence.ts → /compose, and by read-inbox.ts,
+// so every assertion below is still a statement about what ships. The
+// judgement it encodes — a like is not an obligation, you are not waiting on
+// yourself, muted means muted — is the whole reason this file is long.
+import { wantsYou, type NotificationRow, type ThreadRow } from "../src/lib/mesh/wants-you";
 
 const ROOT = join(fileURLToPath(new URL(".", import.meta.url)), "..");
 let checks = 0;
@@ -194,10 +210,18 @@ const waitingIds = (items: ReturnType<typeof wantsYou>) => items.filter((i) => i
     nowMs: NOW,
   });
 
-  const summary = wantsYouSummary(items);
-  assert.equal(summary.waiting, 4, "not every unanswered thread counted as waiting.");
+  // Asserted off the items directly. This used to go through
+  // `wantsYouSummary`, which counted the same `awaitingViewer` flag and
+  // returned the sorted platform set for the ring field's centre headline.
+  // The headline is gone with the field, and the summary with it — but the
+  // PROPERTY was never the summary's: it is that `wantsYou` marks every
+  // unanswered thread as owed and carries each one's platform through intact.
+  // So the property stays and the assertion reads it from the source instead
+  // of from a wrapper that no longer exists.
+  const waiting = items.filter((i) => i.awaitingViewer);
+  assert.equal(waiting.length, 4, "not every unanswered thread counted as waiting.");
   assert.deepEqual(
-    summary.platforms,
+    [...new Set(waiting.map((i) => i.platform))].sort(),
     ["instagram", "mesh", "reddit", "twitter"],
     "platforms were dropped or merged — the one thing this surface can do that the platforms cannot.",
   );
@@ -212,34 +236,25 @@ const waitingIds = (items: ReturnType<typeof wantsYou>) => items.filter((i) => i
   checks += 1;
 }
 
-// ── 7. THE SUMMARY CANNOT DISAGREE WITH THE RINGS ───────────────────────────
+// ── 7. RETIRED: THE SUMMARY CANNOT DISAGREE WITH THE RINGS ──────────────────
 //
-// The core says a number and the rings show the things. If those are computed
-// twice they will drift, and a headline that disagrees with the surface under
-// it is worse than no headline.
-{
-  const threads = [
-    thread({ threadId: "a" }),
-    thread({ threadId: "b", lastMessageFromViewer: true }),
-    thread({ threadId: "c", muted: true }),
-    thread({ threadId: "d", sourcePlatform: "twitter" }),
-  ];
-  const notifications = [
-    notification({ id: "e", type: "like" }),
-    notification({ id: "f", type: "comment" }),
-  ];
-  const items = wantsYou({ threads, notifications, nowMs: NOW });
-  const summary = wantsYouSummary(items);
-
-  const field = placeField(items, NOW);
-  assert.equal(
-    summary.waiting,
-    field.byRing.needsYou.length,
-    `the headline says ${summary.waiting} things want you but the needs-you ring holds ${field.byRing.needsYou.length}. ` +
-      "Two computations of one fact have drifted.",
-  );
-  checks += 1;
-}
+// This section cross-checked `wantsYouSummary(items).waiting` against
+// `placeField(items, NOW).byRing.needsYou.length` — the ring field's centre
+// headline against its innermost band. It was a real check on a real risk:
+// two computations of one fact drift, and a headline that disagrees with the
+// surface under it is worse than no headline.
+//
+// Both computations are gone. The canvas has no ring geometry and no centre
+// headline; components/meshfield/model/rings.ts and `wantsYouSummary` were
+// removed with the field. There is now exactly ONE place that decides what is
+// owed — the `awaitingViewer` flag set by `wantsYou` above — which read-my-
+// presence.ts reads directly for both its per-arm counts and its total. Two
+// things cannot drift when there is one of them, so the property this section
+// protected is held by construction rather than by assertion.
+//
+// Kept as a note rather than deleted silently: someone will eventually want a
+// headline again, and the first thing they should know is that the last one
+// needed a gate to stop it lying.
 
 // ── 8. NOTHING IS INVENTED ──────────────────────────────────────────────────
 //
@@ -334,8 +349,9 @@ console.log(
     "  overriding that to make the dashboard busier is the pattern this product is an alternative to.\n" +
     "  Four platforms come through at once with their identity intact, which is the single thing this\n" +
     "  surface can do that none of the platforms it aggregates can do for themselves.\n" +
-    "  The headline and the rings are checked against EACH OTHER — the count is derived from the same\n" +
-    "  flag the rings are placed by, so a core that disagrees with the surface under it cannot ship.\n" +
+    "  There is exactly ONE computation of what is owed — the awaitingViewer flag set here, which\n" +
+    "  read-my-presence reads directly — so the headline-vs-rings drift this used to cross-check is\n" +
+    "  now impossible rather than merely asserted.\n" +
     "  Nothing is invented: a thread with no title is called what it is rather than given a summary\n" +
     "  this module is in no position to write.\n" +
     "  Does NOT cover: the database query that produces these rows, or whether a mirrored platform\n" +

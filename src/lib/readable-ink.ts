@@ -28,8 +28,23 @@
  * colour cannot carry either ink fails the build rather than shipping.
  */
 
+// ── THE COLOUR MATHS IS MODULE-PRIVATE AGAIN ────────────────────────────────
+//
+// relativeLuminance, contrast, toHsl and fromHsl were exported for exactly one
+// outside reader: components/meshfield/model/material.ts, the ring field's
+// colour model, and the gate that tested it. Both are gone — /mesh is the
+// canvas scene again — and every remaining call is inside this file.
+//
+// They are unexported rather than left public "for later", for the same reason
+// this repo already states in meshpro-claims-check.ts about analyticsWindow: an
+// export with no reader is a dead export, knip rightly rejects it, and keeping
+// one alive to satisfy something outside the module is the tail wagging the
+// dog. The published surface of this file is the four functions that answer a
+// question a caller actually has — which ink, which accent, what ratio — not
+// the arithmetic underneath them.
+
 /** Relative luminance, WCAG 2.x. Accepts `#rgb` and `#rrggbb`. */
-export function relativeLuminance(hex: string): number {
+function relativeLuminance(hex: string): number {
   const h = hex.replace("#", "").trim();
   const full = h.length === 3 ? h.split("").map((c) => c + c).join("") : h;
   const channel = (i: number) => {
@@ -40,7 +55,7 @@ export function relativeLuminance(hex: string): number {
 }
 
 /** WCAG contrast ratio between two relative luminances. */
-export function contrast(a: number, b: number): number {
+function contrast(a: number, b: number): number {
   const [hi, lo] = a > b ? [a, b] : [b, a];
   return (hi + 0.05) / (lo + 0.05);
 }
@@ -104,7 +119,7 @@ export function readableAccentText(accent: string, background: string): string {
 const AA_TEXT = 4.6;
 
 /** sRGB hex to HSL, all three components in 0..1. */
-export function toHsl(hex: string): [number, number, number] {
+function toHsl(hex: string): [number, number, number] {
   const h = hex.replace("#", "").trim();
   const full = h.length === 3 ? h.split("").map((c) => c + c).join("") : h;
   const [r, g, b] = [0, 1, 2].map((i) => parseInt(full.slice(i * 2, i * 2 + 2), 16) / 255);
@@ -119,7 +134,7 @@ export function toHsl(hex: string): [number, number, number] {
 }
 
 /** HSL back to sRGB hex, all three components in 0..1. */
-export function fromHsl(h: number, s: number, l: number): string {
+function fromHsl(h: number, s: number, l: number): string {
   const f = (p: number, q: number, t0: number) => {
     let t = t0;
     if (t < 0) t += 1;

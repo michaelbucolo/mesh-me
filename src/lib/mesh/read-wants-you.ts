@@ -21,9 +21,12 @@
 // could show anyway — the geometry drops all but a few dozen nodes at any
 // viewport, so reading more would be work whose result is thrown away.
 
-import type { FieldItem } from "@/components/meshfield/model/rings";
+// FieldItem is declared alongside the judgement that produces it now. It used
+// to come from components/meshfield/model/rings.ts — the ring field's geometry
+// module — which was removed when the canvas took /mesh back. The shape is
+// unchanged; only its home moved, to the module that owns it.
 import { prisma } from "@/lib/prisma";
-import { wantsYou, type NotificationRow, type ThreadRow } from "./wants-you";
+import { wantsYou, type FieldItem, type NotificationRow, type ThreadRow } from "./wants-you";
 
 /**
  * The two reads this needs, and nothing else.

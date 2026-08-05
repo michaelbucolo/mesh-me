@@ -53,8 +53,15 @@ function stripComments(text: string): string {
 // ── 4. One radius ladder, and a card has a silhouette ───────────────────────
 //
 // 4a. --ds-radius-* must be aliases, never independent numbers. Aliasing rather
-// than deleting keeps the 27 `rounded-[var(--ds-radius-*)]` call sites working;
-// what must not survive is a second place to tune shape.
+// than deleting keeps the 27 arbitrary-value rounded utilities working; what
+// must not survive is a second place to tune shape.
+//
+// The line above used to spell that utility out in full, as `rounded-[` plus
+// the var reference plus `]`. Tailwind's content scanner reads this directory
+// and harvested it as a REAL class, emitting `border-radius: var(--ds-radius-*)`
+// into the stylesheet — a literal asterisk where a token name belongs, which
+// fails the CSS parser on every build. A comment in a gate script is close
+// enough to source to be scanned; do not write a complete utility name here.
 {
   const dsScale = [...globals.matchAll(/--ds-radius-(xs|sm|md|lg):\s*([^;]+);/g)];
   assert.ok(

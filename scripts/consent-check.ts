@@ -531,6 +531,16 @@ for (const field of FOCUSED_CONTENT_STRIPPED) {
 // surface has to state which it emits.
 const CONTENT_CARD_SURFACES: Record<string, RegExp> = {
   "src/components/feed/post-card.tsx": /data-meshi-content-id=\{post\.id\}/,
+  // The mesh content lens is the second surface, and it is the one this
+  // paragraph was written about: it emitted the scene id until the leak was
+  // found. Its entry left this table when the canvas was deleted and came back
+  // with it — the registration is part of the surface, not part of the tree it
+  // happened to live in, so the two move together. The expression is pinned
+  // rather than loosened to "any id" precisely because `nativePostId(node)` is
+  // the ONE helper that knows the scene-id prefix format; a lens that stopped
+  // calling it would be emitting `post:abc` again, and the route's author gate
+  // would find no Post row and fail open exactly as before.
+  "src/components/mesh/ui/content-lens.tsx": /data-meshi-content-id=\{nativePostId\(node\) \?\? node\.id\}/,
 };
 const cardSurfaces = sourceFiles.filter((f) => read(f).includes('data-meshi-content-card="true"'));
 assert.deepEqual(
