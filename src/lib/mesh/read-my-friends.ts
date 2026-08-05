@@ -27,7 +27,6 @@
 // who your friends are is worse than no cache.
 
 import { prisma } from "@/lib/prisma";
-import { nsfwHiddenWhere } from "@/lib/content-safety";
 import type { FeedCurrentUser } from "@/lib/feed-data";
 
 export type MeshFriend = {
@@ -38,9 +37,21 @@ export type MeshFriend = {
   /** Creation order of the friendship — the stable seat key. A friend does
    * not move because they posted; the room would rearrange itself weekly. */
   rank: number;
-  /** Their most recent public post, if any — the thing that hangs off them. */
-  latest: { id: string; title: string; imageUrl: string | null; href: string } | null;
 };
+
+// ── WHY THERE IS NO `latest` HERE ──────────────────────────────────────────
+//
+// There was. Each friend carried their most recent public post, and the web
+// hung it off them as a fourth ring of tiles. The geometry contract then
+// measured what that produced: thirty tiles on three rings, overlapping on an
+// iPhone, and no radius that fixed it — a 390px-wide room cannot hold a face
+// plus three tiles on either side of it. So the friend tile now leads to
+// THEIR web, where their posts already are.
+//
+// Which made this field, and the post query that filled it, dead weight: a
+// second `findMany` over forty posts on every mesh load, decoded, deduped by
+// author and handed to nobody. Leaving it "in case" would be a query nobody
+// can see the cost of, so it is gone with the tiles it fed.
 
 /** How many friends stand in the room. Past this it stops being a place you
  * can move through. The cap is on the OLDEST friendships, not the most
@@ -60,15 +71,10 @@ export interface FriendsDb {
       select: { id: true; username: true; displayName: true; avatarUrl: true };
     }): Promise<Array<{ id: string; username: string; displayName: string | null; avatarUrl: string | null }>>;
   };
-  post: {
-    findMany(args: unknown): Promise<
-      Array<{ id: string; authorId: string; content: string; createdAt: Date; media: Array<{ url: string }> }>
-    >;
-  };
 }
 
 /**
- * Your friends, and the latest thing each of them put out.
+ * Your friends — the people who stand on their own spokes in your web.
  *
  * Two follow queries rather than one join: the mutual test is an intersection
  * of "who I follow" and "who follows me", and doing it in memory keeps the
@@ -108,34 +114,12 @@ export async function readMyFriends(
   if (mutual.length === 0) return [];
   const ids = mutual.map((f) => f.followingId);
 
-  const [people, posts] = await Promise.all([
-    db.user.findMany({
-      where: { id: { in: ids }, isSuspended: false },
-      select: { id: true, username: true, displayName: true, avatarUrl: true },
-    }),
-    // The viewer's own NSFW policy applies to a friend's post exactly as it
-    // does everywhere else — the room is not a way around it.
-    db.post.findMany({
-      where: { authorId: { in: ids }, visibility: "public", ...nsfwHiddenWhere(viewer) },
-      orderBy: { createdAt: "desc" },
-      take: MAX_FRIENDS * 4,
-      select: {
-        id: true,
-        authorId: true,
-        content: true,
-        createdAt: true,
-        media: { select: { url: true }, take: 1 },
-      },
-    }),
-  ]);
+  const people = await db.user.findMany({
+    where: { id: { in: ids }, isSuspended: false },
+    select: { id: true, username: true, displayName: true, avatarUrl: true },
+  });
 
   const byId = new Map(people.map((p) => [p.id, p]));
-  // Posts arrive newest-first, so the FIRST one seen per author is their
-  // latest. Taking the last would silently show their oldest.
-  const latestByAuthor = new Map<string, (typeof posts)[number]>();
-  for (const post of posts) {
-    if (!latestByAuthor.has(post.authorId)) latestByAuthor.set(post.authorId, post);
-  }
 
   const out: MeshFriend[] = [];
   mutual.forEach((edge, index) => {
@@ -143,8 +127,6 @@ export async function readMyFriends(
     // Suspended or deleted: the follow row survives them, and a friend with no
     // account is not somebody who can be standing in your room.
     if (!person) return;
-    const post = latestByAuthor.get(person.id);
-    const text = (post?.content ?? "").trim();
     out.push({
       userId: person.id,
       username: person.username,
@@ -153,14 +135,6 @@ export async function readMyFriends(
       // Rank is the index in the ALREADY-SORTED mutual list, so it stays
       // 0,1,2… even when a suspended account is skipped above.
       rank: index,
-      latest: post
-        ? {
-            id: post.id,
-            title: text.split("\n")[0] || "Post",
-            imageUrl: post.media[0]?.url ?? null,
-            href: `/feed/${encodeURIComponent(post.id)}`,
-          }
-        : null,
     });
   });
   return out;

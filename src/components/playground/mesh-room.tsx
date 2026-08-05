@@ -1,8 +1,8 @@
 "use client";
 
-// THE PLAYGROUND. A PLACE, NOT A CHART.
+// THE PLAYGROUND. A WEB YOU STAND IN.
 //
-// Three attempts at this surface were infographics: a ring of urgency, then a
+// Two attempts at this surface were infographics: a ring of urgency, then a
 // hub of platforms. Both answered "what is going on with YOU", and both were
 // solo. This is the actual product — a room your Meshi stands in, that other
 // people's Meshis stand in at the same time, where being seen is the point.
@@ -11,6 +11,17 @@
 // not a camera panning over a diagram: YOU CLICK, YOUR BODY WALKS THERE, AND
 // EVERYONE IN THE ROOM WATCHES IT HAPPEN. Movement is the social act. Take it
 // away and you have a chart with faces on it, which is what I kept building.
+//
+// ── AND A CORRECTION TO THE PARAGRAPH ABOVE ────────────────────────────────
+//
+// It used to name "a hub of platforms" as proof that anything with a centre
+// was a chart, and a later design pass cited exactly that line to argue the
+// mesh should be flat horizontal bands with nothing in the middle. That is a
+// misreading of its own history, and it produced something that was not a web
+// at all. What made those attempts charts was that they were PICTURES OF DATA
+// YOU COULD NOT ENTER — not that they had a middle. Everything in the sentence
+// above about walking, being seen and other people's bodies is what makes this
+// a place, and it is all still true with your face at the centre of a web.
 //
 // ── EVERYTHING HARD HERE WAS ALREADY BUILT ─────────────────────────────────
 //
@@ -35,6 +46,7 @@ import { applySightings, createRoster, sweepRoster, type RemotePresence } from "
 import { readRoomPeople } from "@/components/mesh/live/room-payload";
 import { applySighting, createSprite, stepSpriteToward, type MeshiSprite } from "@/components/mesh/live/meshi-machine";
 import { setCanvasMeshi } from "@/components/mesh/live/meshi-presence";
+import { WEB_CENTRE, type WebNodeKind } from "@/lib/mesh/web-layout";
 
 /** Something standing in the room that is not a person — a post, a platform,
  * whatever the room is about. Walkable-to, not clickable-through. */
@@ -46,8 +58,10 @@ export type RoomProp = {
   vy: number;
   href?: string;
   imageUrl?: string | null;
-  /** What it is — drives how it LOOKS, never where it stands. */
-  kind?: "account" | "post" | "friend" | "friendPost" | "door";
+  /** What it is — drives how it LOOKS, never where it stands. Imported rather
+   * than re-spelled: a second copy of this union would let the layout grow a
+   * kind the renderer silently draws as a plain tile. */
+  kind?: WebNodeKind;
   /** A second line: a handle, a platform, "3 waiting". */
   detail?: string | null;
 };
@@ -62,6 +76,10 @@ export type RoomThread = {
   fromVy: number;
   toVx: number;
   toVy: number;
+  /** Spokes are the structure; rings are the weave between them. Drawing both
+   * at one weight makes a net — a real web has heavy radials and fine
+   * spirals, and that difference is most of why it reads as a web. */
+  kind?: "radial" | "ring";
 };
 
 export function MeshRoom({
@@ -70,6 +88,7 @@ export function MeshRoom({
   viewerId,
   props: roomProps,
   threads = [],
+  centre = null,
 }: {
   /** Whose room this is. Presence is scoped to it — walking into someone
    * else's mesh means appearing in THEIR room, which is the whole point. */
@@ -77,6 +96,9 @@ export function MeshRoom({
   roomLabel: string;
   viewerId: string | null;
   props: RoomProp[];
+  /** Whose web this is — drawn at the centre, with every spoke starting on
+   * them. Null on surfaces that have no owner to anchor to. */
+  centre?: { label: string; imageUrl?: string | null; href?: string } | null;
   /** The web. Empty is legitimate — a mesh with one account has nothing to
    * join up yet, and drawing nothing is the honest picture of that. */
   threads?: RoomThread[];
@@ -373,12 +395,47 @@ export function MeshRoom({
               y1={`${t.fromVy * 100}%`}
               x2={`${t.toVx * 100}%`}
               y2={`${t.toVy * 100}%`}
-              stroke="#4a7bd1"
-              strokeOpacity={0.34}
-              strokeWidth={1.25}
+              // Rings SOLID and finer, spokes heavier — not dashed. A dashed
+              // line reads as a diagram's guide, and the rings are the part
+              // that has to read as silk: they are what makes this a web
+              // rather than a starburst, so they cannot look annotational.
+              stroke={t.kind === "ring" ? "#7fa8e4" : "#5b8ddb"}
+              strokeOpacity={t.kind === "ring" ? 0.34 : 0.5}
+              strokeWidth={t.kind === "ring" ? 1 : 1.6}
             />
           ))}
         </svg>
+      )}
+
+      {/* YOU, AT THE CENTRE OF YOUR OWN WEB. Every spoke starts here, so this
+          is drawn after the threads and before the furniture — the threads
+          should tuck under your face, not cross it. */}
+      {centre && (
+        <a
+          href={centre.href ?? "#"}
+          data-testid="web-centre"
+          onPointerDown={(e) => e.stopPropagation()}
+          className="absolute flex -translate-x-1/2 -translate-y-1/2 flex-col items-center"
+          style={{ left: `${WEB_CENTRE.vx * 100}%`, top: `${WEB_CENTRE.vy * 100}%`, zIndex: 5 }}
+        >
+          <span
+            // Shrinks on a NARROW room as well as a short one. The web is
+            // three rings wide, and 390px of phone has to hold your face plus
+            // three tiles either side of it — at the desktop sizes that came
+            // to 42px between a friend and their own post, which is overlap.
+            className="flex h-[72px] w-[72px] items-center justify-center overflow-hidden rounded-full [@media(max-height:700px)]:h-14 [@media(max-height:700px)]:w-14 [@media(max-width:480px)]:h-14 [@media(max-width:480px)]:w-14"
+            style={{ background: "#0f1d34", border: "2px solid #5b8ddb", boxShadow: "0 0 0 6px #5b8ddb1a" }}
+          >
+            {centre.imageUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={centre.imageUrl} alt="" className="h-full w-full object-cover" />
+            ) : (
+              <span style={{ color: "#dce4f5", fontSize: 20, fontWeight: 600 }}>
+                {centre.label.slice(0, 2).toUpperCase()}
+              </span>
+            )}
+          </span>
+        </a>
       )}
 
       {/* Props: what this room is about, standing in it. */}
@@ -392,10 +449,14 @@ export function MeshRoom({
           style={{ left: `${p.vx * 100}%`, top: `${p.vy * 100}%` }}
         >
           <span
+            // Narrow AND short both shrink a tile, and for the same reason:
+            // three rings of furniture have to fit either side of your face.
+            // The height query alone left a 390×716 phone drawing 56px tiles
+            // 42px apart, which is two pictures on top of each other.
             className={`flex items-center justify-center overflow-hidden ${
               p.kind === "friend"
-                ? "h-12 w-12 rounded-full [@media(max-height:700px)]:h-9 [@media(max-height:700px)]:w-9"
-                : "h-14 w-14 rounded-2xl [@media(max-height:700px)]:h-10 [@media(max-height:700px)]:w-10"
+                ? "h-12 w-12 rounded-full [@media(max-height:700px)]:h-9 [@media(max-height:700px)]:w-9 [@media(max-width:480px)]:h-9 [@media(max-width:480px)]:w-9"
+                : "h-14 w-14 rounded-2xl [@media(max-height:700px)]:h-10 [@media(max-height:700px)]:w-10 [@media(max-width:480px)]:h-10 [@media(max-width:480px)]:w-10"
             }`}
             style={{
               background: "#101c30",
