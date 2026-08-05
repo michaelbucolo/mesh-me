@@ -22,8 +22,12 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { MeshiMascot } from "@/components/meshi/meshi-mascot";
 import type { MapPin } from "@/lib/meshimap/coarse";
+import type { Doodle } from "@/lib/meshimap/doodles";
+import { decodeInk } from "@/lib/meshimap/ink";
+import { DoodlePad, InkPreview } from "./doodle-pad";
 import {
   clampZoom,
   clusterByCell,
@@ -44,13 +48,18 @@ export function MeshiMap({
   pins,
   you,
   nowMs,
+  doodles = [],
 }: {
   pins: MapPin[];
+  /** What people near you have drawn. Already gated — each one is here only
+   * because its author's pin survived the privacy rules. */
+  doodles?: Doodle[];
   /** Your own pin, so the map opens where you are and you can see what you
    * are broadcasting. Null when you are not sharing. */
   you: MapPin | null;
   nowMs: number;
 }) {
+  const router = useRouter();
   const hostRef = useRef<HTMLDivElement | null>(null);
   // The opening view FRAMES EVERYONE rather than picking a number. A fixed
   // zoom is wrong both ways — too tight and the map opens on an empty patch
@@ -68,6 +77,7 @@ export function MeshiMap({
   const [userCamera, setUserCamera] = useState<Camera | null>(null);
   const [size, setSize] = useState({ width: 0, height: 0 });
   const [selected, setSelected] = useState<MapPin | null>(null);
+  const [padOpen, setPadOpen] = useState(false);
 
   // THE MAP HAS TO KEEP MEASURING ITSELF.
   //
@@ -195,6 +205,40 @@ export function MeshiMap({
           </g>
         </svg>
 
+        {/* WHAT PEOPLE DREW, floating above the person who drew it. Rendered
+            in the same projected space as the bodies, so a doodle and its
+            author move together when the map pans. */}
+        {size.width > 0 &&
+          doodles.map((d) => {
+            const decoded = decodeInk(d.ink);
+            if (!decoded.ok) return null;
+            const at = project(d.at, camera, size);
+            if (at.x < -120 || at.y < -120 || at.x > size.width + 120 || at.y > size.height + 120) return null;
+            return (
+              <div
+                key={d.id}
+                data-testid="map-doodle"
+                data-user={d.userId}
+                className="pointer-events-none absolute"
+                style={{
+                  left: at.x,
+                  top: at.y - 74,
+                  width: 104,
+                  height: 52,
+                  transform: "translateX(-50%)",
+                  zIndex: Math.round(at.y) + 1,
+                }}
+              >
+                <div
+                  className="relative h-full w-full overflow-hidden rounded-lg"
+                  style={{ background: "#0b1526e6", border: "1px solid #ffffff1f" }}
+                >
+                  <InkPreview strokes={decoded.ink.strokes} />
+                </div>
+              </div>
+            );
+          })}
+
         {size.width > 0 &&
           cells.map((cell) =>
             cell.members.map((pin, i) => {
@@ -275,6 +319,23 @@ export function MeshiMap({
       </div>
 
       <ShareWhere initiallySharing={!!you} />
+
+      {/* Only offered when you are ON the map: a drawing goes where you are,
+          so without a pin there is nowhere for it to land. Saying so by not
+          offering the button beats offering it and then refusing the send. */}
+      {you && !padOpen && (
+        <button
+          type="button"
+          data-testid="doodle-open"
+          onClick={() => setPadOpen(true)}
+          className="absolute bottom-3 right-3 rounded-full px-3.5 py-2"
+          style={{ background: "#182642", color: "#dce4f5", fontSize: 13, fontWeight: 600 }}
+        >
+          Draw
+        </button>
+      )}
+
+      {padOpen && <DoodlePad onSent={() => router.refresh()} onClose={() => setPadOpen(false)} />}
 
       {selected && <PinCard pin={selected} nowMs={nowMs} isYou={selected.userId === you?.userId} />}
     </div>

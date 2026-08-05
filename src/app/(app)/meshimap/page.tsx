@@ -40,11 +40,11 @@ export default async function MeshiMapPage() {
     );
   }
 
-  const { pins, you, nowMs } = await readMap(user.id);
+  const { pins, you, nowMs, doodles } = await readMap(user.id);
 
   return (
     <Shell>
-      <MeshiMap pins={pins} you={you} nowMs={nowMs} />
+      <MeshiMap pins={pins} you={you} nowMs={nowMs} doodles={doodles} />
     </Shell>
   );
 }

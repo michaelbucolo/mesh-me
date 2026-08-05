@@ -1450,3 +1450,18 @@ CREATE TABLE IF NOT EXISTS "UserLocation" (
 
 -- CreateIndex
 CREATE INDEX IF NOT EXISTS "UserLocation_reportedAt_idx" ON "UserLocation"("reportedAt");
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "MapDoodle" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "userId" TEXT NOT NULL,
+    "ink" TEXT NOT NULL,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "MapDoodle_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "MapDoodle_createdAt_idx" ON "MapDoodle"("createdAt");
+
+-- CreateIndex
+CREATE INDEX IF NOT EXISTS "MapDoodle_userId_createdAt_idx" ON "MapDoodle"("userId", "createdAt");
