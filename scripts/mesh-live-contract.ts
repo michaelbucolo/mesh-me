@@ -24,6 +24,8 @@
 //    the subject's opt-in).
 
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import {
   ACTION_REPLAY_MAX_AGE_MS,
   ACTION_VERBS,
@@ -484,6 +486,67 @@ function entry(userId: string, mood = "happy"): RemotePresence {
   const samePost = redactWhere(loc, { inObservedRoom: false, viewingViewerMesh: false, samePost: true, shareWhere: false });
   ok(samePost.activePostId === "post:2" && samePost.viewingMesh === "", "same-post co-presence reveals only the shared post");
 }
+
+/**
+ * THE STREAM MUST RETIRE ITSELF BEFORE THE PLATFORM RETIRES IT.
+ *
+ * The SSE route had no lifetime of its own, so every healthy connection ran
+ * until the serverless ceiling and was killed. Production logged 116 of these
+ * across six users:
+ *
+ *   Vercel Runtime Timeout Error: Task timed out after 300 seconds
+ *
+ * Note what that means: sitting on the mesh for five minutes is the SUCCESS
+ * case for a presence stream, so the feature working generated the errors. And
+ * a kill is not a close — the function is torn down mid-frame, so the room goes
+ * dark until the browser notices.
+ *
+ * Asserted by reading the source rather than by running it, because the failure
+ * takes four minutes to reproduce and only on the platform. What matters is the
+ * RELATIONSHIP between the two numbers, which is exactly the thing a later edit
+ * to either one breaks silently.
+ */
+function streamLifetimeChecks() {
+  const src = readFileSync(join(process.cwd(), "src/app/api/mesh/presence/stream/route.ts"), "utf8");
+
+  const maxDuration = /export const maxDuration = (\d+)/.exec(src);
+  ok(!!maxDuration, "the stream route states its own maxDuration rather than inheriting a platform default");
+
+  const lifetime = /const STREAM_LIFETIME_MS = ([\d_]+)/.exec(src);
+  ok(!!lifetime, "the stream route sets a self-imposed lifetime");
+
+  const ceilingMs = Number(maxDuration![1]) * 1000;
+  const lifetimeMs = Number(lifetime![1].replace(/_/g, ""));
+
+  ok(
+    lifetimeMs < ceilingMs,
+    `the stream must close before the platform kills it (${lifetimeMs}ms lifetime vs ${ceilingMs}ms ceiling)`,
+  );
+  // Margin, not just order. A lifetime a second under the ceiling loses the
+  // race whenever a final push is slow or the runtime is cold, and the failure
+  // mode is the timeout error this exists to prevent.
+  ok(
+    ceilingMs - lifetimeMs >= 30_000,
+    `the lifetime needs real margin under the ceiling, not a photo finish (${(ceilingMs - lifetimeMs) / 1000}s)`,
+  );
+  // Long enough to be worth holding open: reconnecting every few seconds would
+  // trade the timeout for a connection storm.
+  ok(lifetimeMs >= 60_000, `a stream that retires this fast is a poll in disguise (${lifetimeMs}ms)`);
+
+  // The ending has to be a CLOSE the client can act on.
+  ok(/controller\.close\(\)/.test(src), "the lifetime path closes the controller rather than letting it lapse");
+  ok(/event: cycle/.test(src), "the planned ending announces itself as a `cycle` event");
+
+  // …and the client has to be listening for it, or the reconnect gap reads as
+  // the stream going quiet and drops the room onto the polling fallback.
+  const client = readFileSync(join(process.cwd(), "src/components/mesh/live/presence-client.ts"), "utf8");
+  ok(
+    /addEventListener\("cycle"/.test(client),
+    "the client listens for `cycle`, so a scheduled reconnect counts as health rather than a fault",
+  );
+}
+
+streamLifetimeChecks();
 
 transportChecks()
   .then(() => {

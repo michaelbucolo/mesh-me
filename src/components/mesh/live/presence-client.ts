@@ -258,6 +258,18 @@ export function createPresenceClient(options: PresenceClientOptions): PresenceCl
       lastEventAt = now();
       sseFails = 0;
     });
+    // The server retires a connection on a timer (see the stream route: it must
+    // end before the platform's function ceiling, or the kill is recorded as a
+    // runtime error and the room goes dark mid-frame). `cycle` is that planned
+    // ending, and it is counted as HEALTH rather than ignored: without it the
+    // reconnect gap is indistinguishable from a stream going quiet, which is
+    // exactly the condition the poll fallback watches for. Treating a scheduled
+    // reconnect as a fault would start polling every four minutes forever.
+    stream.addEventListener("cycle", () => {
+      if (es !== mine) return;
+      lastEventAt = now();
+      sseFails = 0;
+    });
     stream.addEventListener("presence", (event) => {
       if (es !== mine) return;
       lastEventAt = now();
