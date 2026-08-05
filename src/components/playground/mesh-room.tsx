@@ -46,6 +46,22 @@ export type RoomProp = {
   vy: number;
   href?: string;
   imageUrl?: string | null;
+  /** What it is — drives how it LOOKS, never where it stands. */
+  kind?: "account" | "post" | "friend" | "friendPost" | "door";
+  /** A second line: a handle, a platform, "3 waiting". */
+  detail?: string | null;
+};
+
+/** A thread between two things that are actually related — a post and the
+ * account it came from, a friend and their latest thing. Resolved upstream in
+ * mesh/web-layout so a thread to something that is not in the room cannot be
+ * drawn; an edge pointing at nothing renders as a line into the top-left
+ * corner, which reads as a glitch rather than as a missing node. */
+export type RoomThread = {
+  fromVx: number;
+  fromVy: number;
+  toVx: number;
+  toVy: number;
 };
 
 export function MeshRoom({
@@ -53,6 +69,7 @@ export function MeshRoom({
   roomLabel,
   viewerId,
   props: roomProps,
+  threads = [],
 }: {
   /** Whose room this is. Presence is scoped to it — walking into someone
    * else's mesh means appearing in THEIR room, which is the whole point. */
@@ -60,6 +77,9 @@ export function MeshRoom({
   roomLabel: string;
   viewerId: string | null;
   props: RoomProp[];
+  /** The web. Empty is legitimate — a mesh with one account has nothing to
+   * join up yet, and drawing nothing is the honest picture of that. */
+  threads?: RoomThread[];
 }) {
   const hostRef = useRef<HTMLDivElement | null>(null);
   const floorRef = useRef<HTMLDivElement | null>(null);
@@ -130,8 +150,12 @@ export function MeshRoom({
   // sprite record and off the wire.
   const remoteFacing = useRef(new Map<string, number>());
   // Where I am and where I am heading, in room space.
-  const me = useRef({ x: 0.5, y: 0.62 });
-  const target = useRef({ x: 0.5, y: 0.62 });
+  // YOU SPAWN ON THE OPEN FLOOR, not inside the furniture. At 0.62 you
+  // materialised in the middle of the friends band, standing on top of
+  // somebody — which looks like a rendering bug and hides them both. The web
+  // occupies the upper three quarters; the bottom quarter is where people are.
+  const me = useRef({ x: 0.5, y: 0.86 });
+  const target = useRef({ x: 0.5, y: 0.86 });
   const facing = useRef(1);
   // WHEN A PAYLOAD LAST LANDED — the eviction evidence the roster requires.
   // Both the stream and the client dedupe byte-identical payloads, so a room
@@ -330,6 +354,33 @@ export function MeshRoom({
         style={{ height: "46%", background: "linear-gradient(180deg, #ffffff00 0%, #4a7bd10f 40%, #4a7bd11a 100%)" }}
       />
 
+      {/* THE WEB ITSELF, under everything else.
+          Percentage coordinates with NO viewBox: SVG resolves a percentage x
+          against the viewport width and y against the height, which is exactly
+          the space `left: ${vx*100}%` / `top: ${vy*100}%` puts the nodes in.
+          A viewBox would introduce a second coordinate system and the threads
+          would drift away from the things they join as the room resized. */}
+      {threads.length > 0 && (
+        <svg
+          data-testid="room-threads"
+          className="pointer-events-none absolute inset-0 h-full w-full"
+          aria-hidden="true"
+        >
+          {threads.map((t, i) => (
+            <line
+              key={i}
+              x1={`${t.fromVx * 100}%`}
+              y1={`${t.fromVy * 100}%`}
+              x2={`${t.toVx * 100}%`}
+              y2={`${t.toVy * 100}%`}
+              stroke="#4a7bd1"
+              strokeOpacity={0.34}
+              strokeWidth={1.25}
+            />
+          ))}
+        </svg>
+      )}
+
       {/* Props: what this room is about, standing in it. */}
       {roomProps.map((p) => (
         <a
@@ -341,8 +392,16 @@ export function MeshRoom({
           style={{ left: `${p.vx * 100}%`, top: `${p.vy * 100}%` }}
         >
           <span
-            className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-2xl"
-            style={{ background: "#101c30", border: "1px solid #ffffff1f" }}
+            className={`flex items-center justify-center overflow-hidden ${
+              p.kind === "friend"
+                ? "h-12 w-12 rounded-full [@media(max-height:700px)]:h-9 [@media(max-height:700px)]:w-9"
+                : "h-14 w-14 rounded-2xl [@media(max-height:700px)]:h-10 [@media(max-height:700px)]:w-10"
+            }`}
+            style={{
+              background: "#101c30",
+              // A person reads as a person: round, and warmer than the things.
+              border: p.kind === "friend" ? "1px solid #4a7bd166" : "1px solid #ffffff1f",
+            }}
           >
             {p.imageUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -353,9 +412,26 @@ export function MeshRoom({
               </span>
             )}
           </span>
-          <span className="mt-1 max-w-[120px] truncate text-center" style={{ color: "#93a0bb", fontSize: 11 }}>
+          <span
+            // A label has to fit its SLOT. At 390px the five columns are ~62px
+            // apart, so the old flat max-w-[120px] ran a name into both of its
+            // neighbours and three friends read as one run-on word.
+            className="mt-1 max-w-[52px] truncate text-center sm:max-w-[96px] lg:max-w-[120px] [@media(max-height:700px)]:max-w-[60px] [@media(max-height:480px)]:hidden"
+            style={{ color: "#93a0bb", fontSize: 11 }}
+          >
             {p.label}
           </span>
+          {p.detail ? (
+            <span
+              // The detail line is the first thing to go when there is no
+              // vertical room — on a short screen it was the difference
+              // between bands that clear each other and bands that collide.
+              className="max-w-[52px] truncate text-center sm:max-w-[96px] lg:max-w-[120px] [@media(max-height:700px)]:hidden"
+              style={{ color: "#5f6b83", fontSize: 10 }}
+            >
+              {p.detail}
+            </span>
+          ) : null}
         </a>
       ))}
 
@@ -410,7 +486,10 @@ export function MeshRoom({
         </span>
       </div>
 
-      <div className="pointer-events-none absolute left-4 top-4" style={{ color: "#93a0bb", fontSize: 12.5 }}>
+      {/* The caption sits at the FOOT of the room, not the head. At the top it
+          shared space with the doors band and the Inbox door landed on top of
+          it; down here it is over the open floor, which is empty by design. */}
+      <div className="pointer-events-none absolute bottom-3 left-4" style={{ color: "#93a0bb", fontSize: 12.5 }}>
         {roomLabel}
         <span className="ml-2" style={{ color: "#5f6b83" }}>
           · tap anywhere to walk
