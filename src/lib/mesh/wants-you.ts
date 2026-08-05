@@ -44,7 +44,50 @@
 // has overridden an explicit instruction to make its own dashboard look busier.
 // The thread still exists and is still reachable; it is simply not an alarm.
 
-import type { FieldItem } from "@/components/meshfield/model/rings";
+// ── WHY THE ITEM TYPE LIVES HERE NOW ────────────────────────────────────────
+//
+// `FieldItem` used to be imported from components/meshfield/model/rings.ts,
+// where it was declared alongside `placeField` — the ring geometry that
+// arranged these items into distance bands. That surface is gone: /mesh is the
+// canvas scene again, the ring field and every module under meshfield/ has been
+// removed, and rings.ts went with it.
+//
+// The type did not go with it, because the type was never about rings. It is
+// the shape of ONE THING THAT MIGHT WANT YOU, which is what this module
+// decides and what read-wants-you.ts and read-my-presence.ts consume. It lived
+// in the view layer only because that is where the first consumer happened to
+// be, and a shared shape owned by one of its readers is how a deletion takes
+// out a rule that had nothing to do with it. It is declared where it is
+// produced now, and nothing outside src/lib/mesh needs it.
+//
+// The shape is unchanged, field for field, so no consumer had to adapt —
+// including `kind: "community"`, which no current reader emits but
+// read-my-presence still folds into "post". Narrowing it here would have been
+// a behaviour change smuggled in under a file move.
+
+type ItemKind = "message" | "mention" | "reply" | "person" | "post" | "community";
+
+/** One thing that may want the viewer, from any platform they are on. */
+export type FieldItem = {
+  id: string;
+  kind: ItemKind;
+  /** Who or what it is. Never truncated by this module — that is the view's call. */
+  title: string;
+  /** The platform it came from, for hue. "mesh" for native. */
+  platform: string;
+  /** Face or media. Absent is allowed; the view decides what to draw instead. */
+  imageUrl?: string | null;
+  /** Body text where there is any — a message preview, a caption. */
+  body?: string;
+  /** When it happened. Drives recency wherever it is shown. */
+  atMs: number;
+  /** Someone is live/active right now. */
+  live?: boolean;
+  /** It is addressed to the viewer and has had no reply from them. */
+  awaitingViewer?: boolean;
+  /** Where acting on it goes. */
+  href: string;
+};
 
 /**
  * One thread the viewer belongs to, already read out of the database.
@@ -180,20 +223,22 @@ export function wantsYou(input: {
   return items;
 }
 
-/**
- * The one-line summary of what wants you, across every platform at once.
- *
- * Separate from the items because the CORE says this and the RINGS show those,
- * and the two must not drift: this counts the very same `awaitingViewer` flag
- * the rings are placed by, rather than recomputing the rule a second time.
- */
-export function wantsYouSummary(items: readonly FieldItem[]): {
-  waiting: number;
-  platforms: string[];
-} {
-  const waiting = items.filter((i) => i.awaitingViewer);
-  return {
-    waiting: waiting.length,
-    platforms: [...new Set(waiting.map((i) => i.platform))].sort(),
-  };
-}
+// ── WHAT USED TO BE HERE, AND WHY IT IS NOT ────────────────────────────────
+//
+// `wantsYouSummary(items)` returned { waiting, platforms } for the ring field's
+// CENTRE — the headline that sat inside the innermost ring saying how many
+// things wanted you and from where. It existed so that the core and the rings
+// could not disagree: both counted the same `awaitingViewer` flag rather than
+// deriving the rule twice.
+//
+// The ring field is gone and the canvas has no such headline. Nothing in the
+// app called this, and the only thing keeping it alive was the gate that
+// tested it — a rule with no reader, held up by a test with no subject, which
+// is precisely the shape of dead code that reads as coverage. It has been
+// removed rather than left exported "in case", because the property it
+// protected (one computation of what is owed) is now enforced by there being
+// exactly one computation: `awaitingViewer`, set above, read directly by
+// read-my-presence.ts for its per-arm and total counts.
+//
+// It is in git history if a headline ever comes back. What must not come back
+// is a second place that decides what "waiting" means.

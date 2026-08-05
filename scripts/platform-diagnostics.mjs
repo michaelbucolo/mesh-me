@@ -372,34 +372,64 @@ const checks = [
     run: async () => {
       // THE FILE LIST IS PART OF THE ASSERTION.
       //
-      // This named three canvas files. The canvas is gone: the mesh is an SVG
-      // ring field now, so "mesh-scene"/"mesh-canvas"/"MeshScene" named an
-      // implementation rather than a surface, and asserting them would pin a
-      // thing that no longer exists.
+      // What this check is FOR has never changed: the mesh must stay reachable
+      // by a browser test AND by a screen reader. What it scans has changed
+      // twice, because /mesh changed hands twice.
       //
-      // What the check is FOR is unchanged and is the reason it still runs: the
-      // mesh must stay reachable by a browser test and by a screen reader. The
-      // field is strictly better on both counts than what it replaced — every
-      // node is a real <a> with an aria-label, and the same field is emitted as
-      // an ordered list — so the markers name those.
+      // It named three canvas files; then the canvas was replaced by an SVG
+      // ring field and it was repointed at meshfield/mesh-field.tsx; the canvas
+      // has now been restored and owns /mesh again (app/(app)/mesh/page.tsx →
+      // MeshSceneLoader → mesh-surface), so it is pointed back. Repointing is
+      // not a formality here — a gate scanning a file the app never renders is
+      // green and blind, which is the state this one spent ten days in.
       //
-      // A gate that keeps running while its subject disappears is worse than no
-      // gate, so a named file that no longer exists is still a failure in
-      // itself.
-      const files = ["src/components/meshfield/mesh-field.tsx"];
+      // The `absent` guard below is the thing that would have caught it, and it
+      // stays: a gate that keeps running while its subject disappears is worse
+      // than no gate, so a named file that no longer exists is a failure in
+      // itself, before any marker is looked for.
+      //
+      // ── THE ACCESSIBILITY HALF WAS RESTORED, NOT RELAXED ─────────────────
+      //
+      // The one thing the ring field genuinely did better was accessibility: it
+      // emitted the whole field as an sr-only ordered list on every render, so
+      // `data-testid="mesh-list"` was a real guarantee rather than a marker.
+      // The canvas as restored had no such fallback — a <canvas role="img">
+      // reaches a screen reader as a single string, and the canvas's list view
+      // only exists while the list MODE is open, which it is not on arrival.
+      //
+      // The tempting move was to drop `mesh-list` from this list so the check
+      // would pass against the canvas. That would have deleted a P1 guarantee
+      // to make a gate green. Instead the fallback came back as
+      // mesh/ui/mesh-outline.tsx, mounted unconditionally by mesh-surface.tsx,
+      // and the marker is still required — of that file, specifically, so a
+      // future edit that unmounts it fails here rather than silently going
+      // quiet.
+      const files = [
+        "src/components/mesh/scene/mesh-surface.tsx",
+        "src/components/mesh/ui/rail.tsx",
+        "src/components/mesh/ui/mesh-outline.tsx",
+      ];
       const absent = files.filter((f) => !fs.existsSync(path.join(root, f)));
       assert(absent.length === 0, `Mesh source files this check names no longer exist: ${absent.join(", ")}`);
       const source = files.map(read).join("");
       const required = [
-        'data-testid="mesh-field"',
-        'data-testid="mesh-node"',
-        'data-testid="mesh-core"',
+        'data-testid="mesh-scene"',
+        'data-testid="mesh-canvas"',
+        'data-testid="mesh-action-bar"',
         'data-testid="mesh-list"',
         "aria-label",
+        "MeshScene",
       ];
       const missing = required.filter((token) => !source.includes(token));
       assert(missing.length === 0, `Missing Mesh testability markers: ${missing.join(", ")}`);
-      return { evidence: `${files.length} Mesh source files scanned; all diagnostics markers present` };
+      // The outline must be MOUNTED, not merely present in the tree. A module
+      // nothing renders is exactly the failure this whole repoint is about.
+      const surface = read("src/components/mesh/scene/mesh-surface.tsx");
+      assert(
+        /<MeshOutline\b/.test(surface),
+        "The mesh canvas no longer mounts <MeshOutline>: the scene is a <canvas> again with no text alternative, so a screen reader gets one aria-label for the entire mesh.",
+      );
+      return { evidence: `${files.length} Mesh source files scanned; markers present and the sr-only outline is mounted` };
     },
   },
   {

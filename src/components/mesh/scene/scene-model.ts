@@ -193,11 +193,34 @@ export function buildSceneModel(data: MeshApiResponse, opts?: BuildSceneOptions)
     description: data.user.bio || undefined,
     avatarUrl: data.user.avatarUrl,
     // You are not one of the six categories, so you do not get one of the six
-    // plastics. The canvas paints this node from --accent and its strands from
-    // --ink-3 (see paint/nodes.ts and paint/edges.ts); this value is what the
-    // DOM surfaces — list view, search, node detail — put behind it, and as a
-    // custom property it tracks the theme, which the old #a5b4fc could not.
-    color: "var(--accent)",
+    // plastics. The canvas paints this node's disc from --accent and its
+    // strands from --ink-3 (see paint/nodes.ts and paint/edges.ts); this value
+    // is what every OTHER surface reads for "you" — the list-view and search
+    // dots, the node-detail avatar wash, the label pill's rim — and as a custom
+    // property it tracks the theme, which the old #a5b4fc could not.
+    //
+    // --accent-text, NOT --accent, and the distinction is the whole point.
+    // --accent is a FILL: it is judged by --accent-ink, the ink pinned ON it,
+    // and nothing measures it against paper. --accent-text is the same family
+    // measured the other way round — against all four papers, per preset, per
+    // theme — and it is the one applyCustomTheme re-derives when a user picks
+    // their own colour, so it holds for accents nobody has ever seen.
+    //
+    // Every mark this value reaches is judged against paper, so it wants the
+    // paper-measured token. Measured on the presets globals.css ships, worst
+    // of the four papers, as ink:
+    //
+    //     --accent   2.63:1 (forest, light)      --accent-text   4.60:1
+    //     --accent   1.81:1 (#22d3ee on #ffffff — the pairing that named this)
+    //
+    // and on the mark that actually renders, the list-view/search dot against
+    // the panel's --paper-1, against WCAG 1.4.11's 3:1 floor for a non-text
+    // object: --accent lands 3.30–3.68:1 on four of the six light presets,
+    // --accent-text lands 5.79–5.84:1. It is better or identical on all twelve
+    // preset/theme pairs — there is no side of this trade.
+    //
+    // This was fixed once and the verbatim restore of the scene undid it.
+    color: "var(--accent-text)",
     parentId: null,
     childIds: [],
     branch: null,

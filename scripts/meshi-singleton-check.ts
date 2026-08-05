@@ -47,15 +47,24 @@ const ok = () => { checks += 1; };
     else ok();
   }
 
-  const layer = strip(read("src/components/meshfield/mesh-field.tsx"));
+  // THE SUBJECT IS WHATEVER /mesh ACTUALLY MOUNTS, AND IT IS THE CANVAS AGAIN.
+  //
+  // For ten days this read src/components/meshfield/mesh-field.tsx, because the
+  // tile layout owned /mesh. That file is gone and the canvas is back:
+  // app/(app)/mesh/page.tsx renders MeshSceneLoader → mesh-surface → MeshiLayer,
+  // and MeshiLayer is the thing that decides whether a Meshi is on the surface.
+  // Repointed rather than retired: the handoff bug this gate exists for is a
+  // property of whichever component draws him, not of one implementation, and
+  // the canvas is where the bug originally lived.
+  const layer = strip(read("src/components/mesh/live/meshi-layer.tsx"));
   // Must report the LIVE value, not merely call the setter — an early draft of
   // this matched the `setCanvasMeshi(false)` in the cleanup and passed a
   // mutation that stopped reporting presence altogether.
   if (!/setCanvasMeshi\(\s*(?!false\s*\))[A-Za-z_$]/.test(layer)) {
-    fail("1 handoff", "the mesh field no longer reports whether it is drawing Meshi — the float cannot know when to yield");
+    fail("1 handoff", "meshi-layer no longer reports whether the canvas has Meshi — the float cannot know when to yield");
   } else ok();
   if (!/return\s*\(\)\s*=>\s*setCanvasMeshi\(false\)/.test(layer)) {
-    fail("1 handoff", "the mesh field does not clear the surface-Meshi flag on unmount, so the float stays hidden after you leave /mesh");
+    fail("1 handoff", "meshi-layer does not clear the canvas-Meshi flag on unmount, so the float stays hidden after you leave /mesh");
   } else ok();
 
   const float = strip(read("src/components/meshi/meshi-float.tsx"));
@@ -88,6 +97,15 @@ const ok = () => { checks += 1; };
     "src/components/meshi/meshi-chat.tsx",
     "src/components/meshi/meshi-actions-menu.tsx",
     "src/components/brand/meshi-brand-mark.tsx",
+    // Back on the list, because it is back on the screen. This entry was
+    // dropped with the note "it went with the canvas — a file that must not
+    // draw a Meshi cannot regress once it does not exist". Both halves of that
+    // have changed: the canvas is restored, mesh/ui/gates.tsx renders
+    // <MeshiWait> on the loading path, and the file's own comment records that
+    // it USED to draw the user's own <UserMeshi/> here — "a second body". A
+    // file that once drew a Meshi, no longer does, and sits on the very route
+    // where the third Meshi lived is exactly the file this rule is for.
+    "src/components/loading/meshi-wait.tsx",
   ];
   for (const file of CONSUMERS) {
     const src = strip(read(file));
@@ -96,9 +114,6 @@ const ok = () => { checks += 1; };
     } else ok();
   }
 
-  // NOTE: this used to also pin `loading/meshi-wait.tsx`, which drew nothing
-  // and existed only for the canvas's loading gate. It went with the canvas —
-  // a file that must not draw a Meshi cannot regress once it does not exist.
 }
 
 if (failures.length) {

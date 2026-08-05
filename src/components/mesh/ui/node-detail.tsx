@@ -129,7 +129,30 @@ export function NodeDetail({
       )}
 
       {muteKey && muted && (
-        <p className="mt-2.5 rounded-lg bg-amber-400/[0.08] px-2.5 py-1.5 text-micro leading-snug text-amber-100/80">
+        // THE SAME NOTE MATERIAL AS placeReason, four lines up — and it should
+        // always have been, because it is the same kind of sentence.
+        //
+        // This was `bg-amber-400/[0.08]` under `text-amber-100/80`: raw Tailwind
+        // palette, both halves translucent, so they composite twice and the ink
+        // is pulled toward the very surface it is sitting on. Measured over the
+        // .mesh-panel fill (--glass-card-bg -> --paper-1):
+        //
+        //     Daylight   #fffaed surface, #fef4cf ink      1.06:1
+        //     Worklight  #2e291e surface, #d4cba5 ink      8.87:1
+        //
+        // One theme fine, the other unreadable — which is exactly what an
+        // unmeasured pigment does, and why the range that first fixed this
+        // called it "an unreadable pair". The wash was invisible in Daylight
+        // too, so it was not even buying the warning colour it implied.
+        //
+        // And the colour was wrong on its own terms: amber says WARNING, while
+        // "you muted this, only you can see it" is a plain statement of fact
+        // about the viewer's own preference. Nothing is wrong; nothing needs
+        // attention.
+        //
+        // --text-tertiary on --paper-2 is measured by the contrast gate in both
+        // themes: 4.95:1 Daylight, 5.86:1 Worklight.
+        <p className="mt-2.5 rounded-lg bg-[var(--paper-2)] px-2.5 py-1.5 text-micro leading-snug text-[var(--text-tertiary)]">
           Muted — this source&apos;s posts stay off your mesh and Flow. Only you can see this.
         </p>
       )}

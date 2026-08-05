@@ -25,6 +25,7 @@ import { meshCopy } from "../ui/copy";
 import { MeshEmoteWheel } from "../ui/emote-wheel";
 import { MeshGates } from "../ui/gates";
 import { MeshListView } from "../ui/list-view";
+import { MeshOutline } from "../ui/mesh-outline";
 import { NodeDetail } from "../ui/node-detail";
 import { MeshPluckRing } from "../ui/pluck-ring";
 import { MeshSearchOverlay } from "../ui/search-overlay";
@@ -317,6 +318,17 @@ export function MeshScene({ viewUserId, viewMode = "mesh", viewerIsPro = false }
         onPointerCancel={input.onPointerCancel}
         onPointerLeave={input.onPointerLeave}
       />
+
+      {/* The canvas's alternative text — every node, in words, on every render.
+          A <canvas role="img"> reaches a screen reader as ONE string, and the
+          interactive twin (MeshListView, below) only exists while the list mode
+          is open, so without this a listener landing on /mesh gets "Your mesh
+          constellation" and nothing else. Sits immediately after the canvas so
+          the outline is the first thing read AFTER the picture it describes.
+          Invisible (sr-only) — nothing about the drawn scene changes.
+          See ui/mesh-outline.tsx for why this is separate from the list view,
+          and scripts/platform-diagnostics.mjs (mesh-testability) for the gate. */}
+      <MeshOutline model={world.model} copy={copy} />
 
       {/* Rate-limit pause pip: when the presence transport backs off after a
           429 it says so — a quiet room must never be a silent mystery. */}

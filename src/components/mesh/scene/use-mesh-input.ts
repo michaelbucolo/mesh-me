@@ -150,11 +150,32 @@ export function useMeshInput(rtRef: MeshRuntimeRef, deps: MeshInputDeps): MeshIn
     (node: SceneNode) => {
       const rt = rtRef.current;
       if (node.kind === "self") {
+        // TAPPING YOURSELF SELECTS YOU, like tapping anybody else.
+        //
+        // It used to CLEAR the selection and reframe the camera, and that was a
+        // touch dead end nobody saw on a desktop. Your card — bio, verified
+        // mark, View Profile — is canvas paint gated on `isHover || isSelected`
+        // (paint/nodes.ts), with sim/hitmap arming the button's hit rect on the
+        // very same condition. A mouse satisfies that gate for free by hovering.
+        // A finger cannot hover. So on touch the only gesture that could ever
+        // have opened your own card was the one gesture wired to close it, and
+        // the self node was the single node in the world with nothing behind it.
+        //
+        // Selecting is the whole fix: `isSelected` is the other half of a gate
+        // the painter and the hitmap already agreed on, so the panel draws and
+        // its View Profile button becomes tappable (handled in onPointerUp,
+        // which tests that rect before the node hit-test) — on every input
+        // device, from one line.
+        //
+        // Reframing is not lost, it is just no longer bound to the node it hid
+        // the card behind: the rail's Recenter key, the `0`/`f` shortcuts, and a
+        // double-tap on yourself all still call fitToContent().
         setActiveBranch(null);
-        setSelectedNode(null);
-        // A quiet indigo twinkle blooms out of you as the world reframes.
+        setSelectedNode(node);
+        // The quiet indigo twinkle stays — it always belonged to touching
+        // yourself, not to the reframe it used to trigger.
         spawnBurst(rt, node.dx, node.dy, "spark", 6);
-        fitToContent();
+        playSound("pop");
         return;
       }
       if (node.kind === "person" && node.userId) {
@@ -186,7 +207,7 @@ export function useMeshInput(rtRef: MeshRuntimeRef, deps: MeshInputDeps): MeshIn
       }
       flyToNode(node);
     },
-    [rtRef, fitToContent, flyToNode, setActiveBranch, setSelectedNode],
+    [rtRef, flyToNode, setActiveBranch, setSelectedNode],
   );
 
   const jumpToNode = useCallback(
@@ -619,16 +640,29 @@ export function useMeshInput(rtRef: MeshRuntimeRef, deps: MeshInputDeps): MeshIn
         // node still selects it (and the nearest-centre tiebreak in hitTest picks
         // the right one in a cluster). A mouse click stays pixel-precise (slop 0).
         const tapSlop = imprecise(e) ? 22 : 0;
-        // Double-tap / double-click on empty space zooms in on that spot.
+        // Double-tap / double-click on empty space zooms in on that spot; on
+        // YOURSELF it reframes the world.
         const now = performance.now();
         const prevTap = rt.lastTap;
         rt.lastTap = { x: e.clientX, y: e.clientY, t: now };
-        if (
+        const doubled =
           prevTap &&
           now - prevTap.t < 320 &&
-          Math.hypot(e.clientX - prevTap.x, e.clientY - prevTap.y) < 32 &&
-          !hitTest(e.clientX - rect.left, e.clientY - rect.top, tapSlop)
-        ) {
+          Math.hypot(e.clientX - prevTap.x, e.clientY - prevTap.y) < 32;
+        const tappedNode = hitTest(e.clientX - rect.left, e.clientY - rect.top, tapSlop);
+        if (doubled && tappedNode?.kind === "self") {
+          // "Take me back to the whole world" was the self node's single tap
+          // until it turned out that gesture was also the only one that could
+          // open your own card on a touch screen (see activateNode). The card
+          // won the single tap because it had no other gesture available; the
+          // reframe kept this one, which it shares with the rail's Recenter key
+          // and the `0` / `f` shortcuts, and which reads naturally: press
+          // yourself once to look at yourself, twice to look at everything.
+          rt.lastTap = null;
+          fitToContent();
+          return;
+        }
+        if (doubled && !tappedNode) {
           rt.lastTap = null;
           const base = rt.zoomTarget?.zoom ?? rt.camera.zoom;
           rt.zoomTarget = {
@@ -648,9 +682,11 @@ export function useMeshInput(rtRef: MeshRuntimeRef, deps: MeshInputDeps): MeshIn
             return;
           }
         }
-        const node = hitTest(e.clientX - rect.left, e.clientY - rect.top, tapSlop);
-        if (node) {
-          activateNode(node);
+        // Same hit-test the double-tap branch above already ran: the pointer has
+        // not moved between the two, and hit-testing twice is how a tap and its
+        // own double-tap end up disagreeing about what was under the finger.
+        if (tappedNode) {
+          activateNode(tappedNode);
           return;
         }
         // Tapping empty space clears the selection — the TOPMOST thing the
@@ -661,7 +697,7 @@ export function useMeshInput(rtRef: MeshRuntimeRef, deps: MeshInputDeps): MeshIn
         setActiveBranch(null);
       }
     },
-    [rtRef, activateNode, hitTest, imprecise, push, setActiveBranch, setSelectedNode, onFlick],
+    [rtRef, activateNode, fitToContent, hitTest, imprecise, push, setActiveBranch, setSelectedNode, onFlick],
   );
 
   // A browser-initiated cancel (system gesture, pointer stolen) should ABORT the

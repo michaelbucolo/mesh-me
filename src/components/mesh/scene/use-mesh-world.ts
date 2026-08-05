@@ -10,7 +10,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { meshApiUrl, takeMeshPrefetch } from "./mesh-prefetch";
 import { meshNodeMuteKey } from "@/lib/muted-sources";
-import type { MeshApiResponse } from "../core/domain";
+import { MeshPayloadError, parseMeshApiResponse, type MeshApiResponse } from "../core/domain";
 import type { ViewerCaps } from "../core/viewer";
 import { MIN_ZOOM } from "../core/camera";
 import { buildSceneModel, type BranchKey, type SceneModel } from "./scene-model";
@@ -219,11 +219,36 @@ export function useMeshWorld(
     const contentW = Math.max(b.maxX - b.minX, 400) + 220;
     const contentH = Math.max(b.maxY - b.minY, 400) + 220;
     const isNarrowViewport = width < 640;
+    // HOME IS A FIT, ON EVERY WIDTH.
+    //
+    // The narrow branch used to pin zoom at 0.72 CENTRED ON THE ORIGIN, which
+    // is not a framing decision at all — it ignores both the viewport and where
+    // the world actually sits. Measured at 390x844 it framed one blurry node
+    // and acres of empty space: the mesh was fully built and laid out, and the
+    // camera simply refused to show it. Nothing about the phone makes a fit
+    // wrong; the branch existed because a constant is easier to type than a
+    // measurement.
+    //
+    // Both branches now compute the same fit and differ only in how they clamp
+    // it. Narrow clamps to [0.5, 0.9] — close enough that a face reads at arm's
+    // length, far enough that you see the neighbourhood you are in. Wide keeps
+    // its cap of 1 (never magnify past life size) with a floor of 0.42. That
+    // floor is the LABEL TIER: edges stop drawing their labels below
+    // camera.zoom 0.42 (paint/edges.ts) and post cards below the same value
+    // (POST_CARD_MIN_ZOOM), so a resting frame under it opens on a world of
+    // unlabelled dots. A home frame you have to zoom in from before it says
+    // anything is a home frame that failed.
+    //
+    // The centre follows the same rule: the world's real midpoint on every
+    // width. Pinning midX/midY to 0 on narrow assumed the layout is centred on
+    // the origin, which it is not — sceneBounds exists precisely because it is
+    // not.
+    const fitted = Math.min(1, Math.min(width / contentW, (height - 130) / contentH));
     const zoom = isNarrowViewport
-      ? Math.max(MIN_ZOOM, 0.72)
-      : Math.max(MIN_ZOOM, Math.min(1, Math.min(width / contentW, (height - 130) / contentH)));
-    const midX = isNarrowViewport ? 0 : (b.minX + b.maxX) / 2;
-    const midY = isNarrowViewport ? 0 : (b.minY + b.maxY) / 2;
+      ? Math.max(MIN_ZOOM, Math.min(0.9, Math.max(0.5, fitted)))
+      : Math.max(MIN_ZOOM, Math.max(0.42, fitted));
+    const midX = (b.minX + b.maxX) / 2;
+    const midY = (b.minY + b.maxY) / 2;
     // Nudge the world down so the top arc never hides under the top bar.
     rt.camera = { zoom, panX: -midX * zoom, panY: -midY * zoom + 30 };
   }, [rtRef]);
@@ -245,7 +270,10 @@ export function useMeshWorld(
           : await fetch(url, { cache: "no-store", signal: loadOpts?.signal });
         if (loadOpts?.signal?.aborted) return;
         if (!res.ok) throw new Error(String(res.status));
-        const payload: MeshApiResponse = await res.json();
+        // The boundary: validate + normalize here, once, so every branch below
+        // (and the scene builder downstream) reads arrays that are arrays and
+        // identity fields that are strings, instead of trusting a bare cast.
+        const payload = parseMeshApiResponse(await res.json());
         if (payload.privateMesh) {
           // Locked mesh: keep the owner's identity for the locked state UI.
           setMeshData(payload);
@@ -331,6 +359,12 @@ export function useMeshWorld(
         setStatus("ready");
       } catch (err) {
         if (err instanceof DOMException && err.name === "AbortError") return;
+        // A malformed payload is a server bug, not a network blip: name the
+        // offending path so it is diagnosable from a user's console instead of
+        // presenting as the same silent "error" state a 500 produces.
+        if (err instanceof MeshPayloadError) {
+          console.error(`Mesh payload rejected at "${err.path}":`, err.message);
+        }
         if (!loadOpts?.quiet) setStatus("error");
         if (!loadOpts?.quiet) setMeshData(null);
       }

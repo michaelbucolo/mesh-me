@@ -11,11 +11,15 @@
 // per theme change and hands the canvas the same values the DOM is using. One
 // place to change a colour, and the mesh moves with everything else.
 //
-// It MUST work without a DOM: scripts/mesh-render-parity.ts renders both
-// engines in Node against a recording context, so `read()` falls back to the
-// Worklight constants rather than throwing. Those fallbacks are the only
-// colour literals left in paint/, and they exist so the contract tests have
-// something deterministic to compare.
+// It MUST work without a DOM, so paintTheme() falls back to the Worklight
+// constants rather than throwing. That requirement used to be enforced by
+// scripts/mesh-render-parity.ts, which rendered both engines in Node against a
+// recording context and compared the op streams; it was deleted along with the
+// canvas and has not come back, so nothing executes the DOM-less path today.
+// The requirement itself has not gone anywhere — paint/ is imported by modules
+// that run before hydration and outside the browser, where getComputedStyle
+// does not exist — but the literals below are now unproven as well as
+// unguarded. See the note above WORKLIGHT.
 
 export interface PaintTheme {
   /** Page / card / sunken surfaces. */
@@ -55,27 +59,52 @@ export interface PaintTheme {
 }
 
 /**
- * Worklight. The fallback, and the values the parity tests compare against.
+ * ── THE MIRROR IS LOAD-BEARING ──────────────────────────────────────────────
  *
- * These were the OLD WARM RAMP — #1a1714 paper, #8fb0e0 accent, #8cbe97 success
- * — kept verbatim long after tokens.css went true-neutral black. A fallback
- * that disagrees with the file it is standing in for is not a fallback, it is a
- * second palette waiting for a DOM-less render to reveal it, and the mesh
- * render-parity tests were comparing against the brown the theme no longer is.
- * Every value below is now the literal that tokens.css declares under `.dark`.
+ * Read this before changing a literal below.
+ *
+ * The two constants in this file are not "defaults" and not "roughly the theme".
+ * They are a SECOND STATEMENT of the palette that tokens.css states first, and
+ * the only thing that keeps them from becoming a second palette is that a human
+ * keeps them equal. When they drift, they do not drift loudly: paintTheme()
+ * overwrites every field it can read off the document root, so in a browser the
+ * stale literals are invisible. They surface exactly where nothing is watching
+ * — the first frame before the root is read, and any render with no DOM at all.
+ * A fallback that disagrees with the file it is standing in for is not a
+ * fallback, it is a second palette waiting for a DOM-less render to reveal it.
+ *
+ * This has now gone wrong twice, the same way both times.
+ *
+ *   1. tokens.css moved to the true-neutral Apple ramp and this file kept the
+ *      old warm one — #1a1714 papers, a periwinkle accent — so the canvas
+ *      render-parity tests were comparing against the brown the theme no longer
+ *      was. Four files stated the palette; one of them was changed.
+ *   2. The same values were corrected, and then this scene was deleted and
+ *      restored VERBATIM from a commit that predates the correction. The warm
+ *      ramp came back with it. That is what these literals were until this
+ *      commit: a palette the app stopped using, re-imported by a restore.
+ *
+ * WHAT USED TO CATCH IT: scripts/palette-check.ts read tokens.css and this file
+ * and failed the build when they disagreed. It was deleted along with the
+ * canvas, so the mirror is currently unguarded — which is precisely why the
+ * drift got back in. Until a gate reads these two files again, this comment is
+ * the guard, and it is a worse one. If you change a colour in tokens.css,
+ * change it here in the same commit.
+ *
+ * Worklight — every value is the literal tokens.css declares under `.dark`.
  */
 const WORKLIGHT: PaintTheme = {
-  paper0: "#0a0a0a",
-  paper1: "#1a1a1a",
-  paper2: "#050505",
-  ink1: "#f5f5f5",
-  ink2: "#c2c2c2",
+  paper0: "#000000",
+  paper1: "#1c1c1e",
+  paper2: "#2c2c2e",
+  ink1: "#ffffff",
+  ink2: "#d1d1d1",
   ink3: "#a8a8a8",
-  ink4: "#6a6a6a",
+  ink4: "#5a5a5a",
   edge: "#8e8e8e",
-  inkInverse: "#0a0a0a",
-  accent: "#93a9ff",
-  accentLine: "rgba(147,169,255,.28)",
+  inkInverse: "#000000",
+  accent: "#409cff",
+  accentLine: "rgba(64,156,255,.38)",
   warm: "#f486b0",
   success: "#5fcb98",
   warning: "#f3be55",
@@ -86,17 +115,17 @@ const WORKLIGHT: PaintTheme = {
 
 /** Daylight. Likewise the literals tokens.css declares under `:root, .light`. */
 const DAYLIGHT: PaintTheme = {
-  paper0: "#efeae1",
-  paper1: "#fdfbf6",
-  paper2: "#e5dfd4",
-  ink1: "#1a1a1d",
-  ink2: "#46454c",
-  ink3: "#57535a",
-  ink4: "#9a948a",
-  edge: "#786f64",
-  inkInverse: "#fdfbf6",
-  accent: "#2b45c4",
-  accentLine: "rgba(43,69,196,.26)",
+  paper0: "#f2f2f7",
+  paper1: "#ffffff",
+  paper2: "#e9e9ee",
+  ink1: "#000000",
+  ink2: "#48484a",
+  ink3: "#636366",
+  ink4: "#aeaeb2",
+  edge: "#78787d",
+  inkInverse: "#ffffff",
+  accent: "#0056d6",
+  accentLine: "rgba(0,86,214,.30)",
   warm: "#992756",
   success: "#155839",
   warning: "#754c08",

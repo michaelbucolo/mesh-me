@@ -17,7 +17,9 @@
 // - Heartbeats keep the adaptive cadence with a 500MS MOVING FLOOR (~120/min
 //   sustained) + 2s idle keepalive + a 350ms hard global gap (≤ ~171/min
 //   absolute worst case with action beats — under the 180/min budget).
-//   Movement is measured in world units normalized by zoom.
+//   Movement is measured in the CALLER'S OWN position space, normalized by
+//   zoom — see `moveEpsilon` and MOVE_EPSILON_ROOM for why the threshold
+//   belongs to the caller and not to this module.
 // - Instant action beats (`beat()`) jump the queue but never break the
 //   global gap: too-soon beats are latched and flushed on the next tick.
 //
@@ -41,9 +43,60 @@ const ES_CLOSED = 2;
 export const HEARTBEAT_MIN_GAP_MS = 350;
 export const HEARTBEAT_MOVE_FLOOR_MS = 500;
 const HEARTBEAT_KEEPALIVE_MS = 2000;
-/** Movement threshold in world units (divided by zoom so it feels the same
- * at every zoom level). */
-const MOVE_EPSILON_WORLD = 6;
+/**
+ * The DEFAULT movement threshold — how far you must move before a heartbeat is
+ * worth spending — expressed in NORMALISED 0..1 room units. Callers that
+ * broadcast in any other space pass their own via `moveEpsilon`.
+ *
+ * 0.004 is ~0.4% of the room: roughly 4px on a 1000px-wide screen, below what
+ * anybody can see, and small enough that a walk broadcasts continuously while
+ * a body standing still stays silent. The 500ms moving floor above is what
+ * actually bounds the request rate; this only decides what counts as worth
+ * saying.
+ *
+ * ── WHY THIS IS THE CALLER'S CHOICE AND NOT ONE GLOBAL NUMBER ──────────────
+ *
+ * This threshold has now been wrong in BOTH directions, for the same root
+ * cause each time: it was a single module-level constant guarding a distance
+ * whose UNITS are chosen by whoever calls in.
+ *
+ * It began life as 6 — six WORLD units — written for the mesh canvas, which
+ * unprojects the pointer through a pan/zoom camera and broadcasts scene
+ * coordinates that run into the hundreds. At that scale 6 is a sensible "you
+ * actually moved", and dividing it by zoom kept it feeling identical whether
+ * you were zoomed out over the whole mesh or right down on one node.
+ *
+ * Then the canvas was deleted. The surfaces left behind — the walk-around room
+ * and the ring field — report normalised 0..1 positions, where the longest
+ * possible move across the ENTIRE space is √2 ≈ 1.41. A threshold of 6 is
+ * unreachable there: nothing counted as movement for ten days, every position
+ * rode the 2s idle keepalive, and a room whose whole point is watching
+ * somebody walk played at 30 heartbeats/min instead of ~120 — a flipbook
+ * instead of a person. It survived because the contract harness injected
+ * world-scale steps, so it was proving the threshold worked in a space no
+ * caller used any more. It was caught by opening two browsers, and fixed by
+ * moving the constant to 0.004.
+ *
+ * The canvas is now RESTORED, which retires the premise that fix rested on
+ * ("the canvas is gone"). Its number, alone, is now wrong the other way: the
+ * canvas eases its camera exponentially (`panX += (tx - panX) * k`, stopping
+ * only once within 1.5px) and decelerates flings, so every pan, zoom and fling
+ * trails a settling tail of sub-pixel world deltas. Against 0.004 WORLD units
+ * that whole tail reads as movement and holds the 500ms moving floor
+ * (~120/min), where 6 let it fall quiet and hand back to the 2s keepalive. The
+ * hard 350ms gap still caps the worst case under the 180/min budget, so
+ * nothing breaks — but it is exactly the settling noise the original 6 existed
+ * to reject, spent on a body that has visibly stopped.
+ *
+ * No single number can serve a space measured in hundreds and a space measured
+ * in thousandths, so the space is now declared by whoever reports positions.
+ * The DEFAULT is deliberately the room-unit value rather than the world one:
+ * a caller that forgets to declare gets a threshold that is too SENSITIVE —
+ * noisy, bounded harmlessly by the moving floor, and obvious in a request log
+ * — instead of one that is unreachable, which fails silently and invisibly and
+ * is exactly how the last ten days happened.
+ */
+const MOVE_EPSILON_ROOM = 0.004;
 
 const POLL_FALLBACK_MS = 2000;
 /** Stream with no event for this long is stale (keepalives come every 15s). */
@@ -64,8 +117,25 @@ export interface PresenceClientOptions {
   isVisible(): boolean;
   /** The full heartbeat POST body (cosmetics, mood, position, action…). */
   buildBody(): Record<string, unknown>;
-  /** Current broadcast position + zoom, for the movement threshold. */
+  /** Current broadcast position + zoom, for the movement threshold. The x/y
+   * units are yours to choose — declare them with `moveEpsilon`. */
   getMovement(): { x: number; y: number; zoom: number };
+  /**
+   * How far this caller must move, IN ITS OWN position space, before a
+   * heartbeat is worth spending. Divided by the reported zoom, so the
+   * threshold feels the same at every zoom level.
+   *
+   * Omit it when you report normalised 0..1 positions — the walk-around room
+   * and the ring field both do, and the default (MOVE_EPSILON_ROOM = 0.004) is
+   * tuned for exactly that space.
+   *
+   * Pass an explicit value when you report anything else. The mesh canvas
+   * broadcasts unprojected WORLD coordinates running into the hundreds and
+   * wants `6`, the value that lived here as MOVE_EPSILON_WORLD before the two
+   * spaces had to coexist. Read MOVE_EPSILON_ROOM for why a shared constant
+   * could never be right for both at once.
+   */
+  moveEpsilon?: number;
   /** A fresh (deduped) room payload arrived. */
   onPayload(payload: unknown): void;
   /** Link state changed (fires only on transitions). */
@@ -98,6 +168,10 @@ export function createPresenceClient(options: PresenceClientOptions): PresenceCl
     ((url: string): EventSourceLike | null =>
       typeof EventSource !== "undefined" ? new EventSource(url) : null);
   const random = options.random ?? Math.random;
+  // Resolved ONCE, at construction: the space a caller reports positions in is
+  // a property of that caller, not of the moment — re-reading it every tick
+  // would only invite it to drift mid-flight.
+  const moveEpsilon = options.moveEpsilon ?? MOVE_EPSILON_ROOM;
 
   let stopped = true;
   let interval: ReturnType<typeof setInterval> | null = null;
@@ -257,7 +331,7 @@ export function createPresenceClient(options: PresenceClientOptions): PresenceCl
     const m = options.getMovement();
     const moved =
       Math.hypot(m.x - lastSent.x, m.y - lastSent.y) >
-      MOVE_EPSILON_WORLD / Math.max(m.zoom, 0.2);
+      moveEpsilon / Math.max(m.zoom, 0.2);
     const moveDue = moved && t - lastBeatAt >= HEARTBEAT_MOVE_FLOOR_MS;
     const keepaliveDue = t - lastBeatAt >= HEARTBEAT_KEEPALIVE_MS;
     if (!force && !moveDue && !keepaliveDue) return;

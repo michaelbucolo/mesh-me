@@ -6,6 +6,7 @@
 
 import { platformLogoDataUri } from "@/components/platform/platform-logo";
 import type { SceneNode } from "../scene/scene-model";
+import { canvasSans } from "./fonts";
 
 // Rasterized brand marks (YouTube, Instagram, TikTok, …) for canvas drawing.
 // Public brand SVGs only — never user content — so a module-level cache is
@@ -173,7 +174,18 @@ export function drawPill(
   padX: number,
 ) {
   ctx.save();
-  ctx.font = `600 ${fontSize}px ui-sans-serif, system-ui, sans-serif`;
+  // The app's own face, not the operating system's. This line read
+  // `ui-sans-serif, system-ui, sans-serif` — a literal that predates the
+  // product having a typeface, survived the move to Instrument Sans, and came
+  // BACK with the verbatim restore of this scene. Every pill this draws (the
+  // "New" chip, the strand labels) sits inches from DOM chrome set in the real
+  // face, so the mismatch reads as two products in one frame.
+  //
+  // canvasSans() resolves --font-sans-loaded, so this is the same family the
+  // DOM is using, and falls back to the identical system stack without a
+  // document — which is why the width measured on the next line, and therefore
+  // the pill's geometry, is unchanged in any DOM-less render.
+  ctx.font = `600 ${fontSize}px ${canvasSans()}`;
   const textW = ctx.measureText(text).width;
   const h = fontSize + 8;
   const w = textW + padX * 2;

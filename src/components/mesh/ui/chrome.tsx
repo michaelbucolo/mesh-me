@@ -182,10 +182,10 @@ function MeshMarquee({ item }: { item: MarqueeItem | null }) {
         type="button"
         onClick={item.onStart}
         onPointerDown={(e) => e.stopPropagation()}
-        className="absolute left-1/2 top-32 z-30 flex items-center gap-1.5 rounded-full border border-cyan-300/30 bg-cyan-400/10 px-3.5 py-1.5 text-xs font-semibold text-cyan-100 backdrop-blur transition-colors hover:bg-cyan-400/20"
+        className="absolute left-1/2 top-32 z-30 flex items-center gap-1.5 rounded-full border border-cyan-300/40 bg-black/70 px-3.5 py-1.5 text-xs font-semibold text-white backdrop-blur transition-colors hover:bg-black/80"
         style={{ animation: "chipBob 3.4s ease-in-out infinite" }}
       >
-        <Sparkles size={13} />
+        <Sparkles size={13} className="text-cyan-200" />
         Catch up: {item.count === 1 ? "1 new thing" : `${item.count} new things`} since your last visit
       </button>
     );
@@ -195,10 +195,10 @@ function MeshMarquee({ item }: { item: MarqueeItem | null }) {
     return (
       <div
         key={item.key}
-        className="pointer-events-none absolute left-1/2 top-32 z-30 flex items-center gap-1.5 rounded-full border border-emerald-300/25 bg-emerald-400/10 px-3.5 py-1.5 text-xs font-semibold text-emerald-100 backdrop-blur"
+        className="pointer-events-none absolute left-1/2 top-32 z-30 flex items-center gap-1.5 rounded-full border border-emerald-300/35 bg-black/70 px-3.5 py-1.5 text-xs font-semibold text-white backdrop-blur"
         style={{ animation: "meshWeaveToast 4s ease forwards" }}
       >
-        <Sparkles size={13} />
+        <Sparkles size={13} className="text-emerald-200" />
         {item.count === 1 ? "Something new just arrived" : `${item.count} new things just arrived`}
       </div>
     );
@@ -207,7 +207,7 @@ function MeshMarquee({ item }: { item: MarqueeItem | null }) {
   return (
     <div
       key={item.key}
-      className="pointer-events-none absolute left-1/2 top-32 z-30 flex items-center gap-1.5 rounded-full border border-violet-300/25 bg-violet-400/10 px-3.5 py-1.5 text-xs font-semibold text-violet-100 backdrop-blur"
+      className="pointer-events-none absolute left-1/2 top-32 z-30 flex items-center gap-1.5 rounded-full border border-violet-300/35 bg-black/70 px-3.5 py-1.5 text-xs font-semibold text-white backdrop-blur"
       style={{ animation: "meshWeaveToast 3.5s ease forwards" }}
     >
       {item.text}

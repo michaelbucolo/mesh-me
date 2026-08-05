@@ -193,7 +193,22 @@ export function ContentLens({
 
   return (
     <div
-      className="absolute inset-0 z-50 flex animate-[fadeIn_.18s_ease] items-end justify-center bg-black/65 p-3 backdrop-blur-md sm:items-center"
+      // THE LENS HAS TO CLEAR THE MOBILE TAB BAR.
+      //
+      // On a phone the lens is bottom-anchored (`items-end`), so its last row —
+      // Prev/Next — sits at the very bottom of the overlay. The overlay ended at
+      // the viewport bottom, and the mobile tab bar is a fixed strip sitting on
+      // top of exactly that band: measured at 390x844 the Prev control landed at
+      // y852 against a bar starting at y844, with 33 of its 44 touch pixels
+      // covered. The control was visible, which is what made it hard to notice —
+      // it just did not take the tap.
+      //
+      // Same recipe as every other bottom-anchored overlay in the product
+      // (`.mesh-hud`, the Meshi actions menu): the padding the lens already had,
+      // plus the notch inset, plus the bar's own declared height. Released at
+      // `sm:` where the lens centres itself and the tab bar does not exist —
+      // otherwise the desktop lens would carry 3.5rem of dead space under it.
+      className="absolute inset-0 z-50 flex animate-[fadeIn_.18s_ease] items-end justify-center bg-black/65 p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom)+var(--mobile-nav-h,0px))] backdrop-blur-md sm:items-center sm:pb-3"
       onPointerDown={(e) => {
         e.stopPropagation();
         if (e.target === e.currentTarget) onClose();

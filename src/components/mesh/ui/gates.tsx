@@ -79,8 +79,28 @@ function MeshLoadingGate({ viewUserId, isGlobal }: { viewUserId?: string; isGlob
           invented, and an invented number costs every later real one. */}
       <MeshFormingLoader backdrop className="opacity-80" />
       <div className="absolute inset-0 flex items-center justify-center">
+        {/* NO `meshi-wait-on-dark` HERE, and this is the second time that has
+            had to be said. That modifier pins a near-white ink (#f4efe6) for
+            text sitting over something dark — but this gate's backdrop is
+            `bg-[var(--paper-0)]` two elements up, and MeshFormingLoader in
+            `backdrop` mode paints a TRANSPARENT canvas over it. So the ink was
+            pinned dark-only on a surface that FOLLOWS THE THEME.
+
+            Measured in Daylight, on the values tokens.css ships today:
+
+              headline  #f4efe6 on --paper-0 #f2f2f7          1.03:1
+              detail    62% #f4efe6 -> #f3f0ec on #f2f2f7      1.02:1
+
+            That is not "low contrast", that is invisible — the headline was
+            photographed as ghost text during the audit. The class was removed
+            once already; the verbatim restore of this scene brought it back,
+            because the restore came from a commit that predates the fix.
+
+            The default inks are var(--text-primary) and var(--text-tertiary),
+            which the contrast gate measures on every paper in BOTH themes:
+            18.82:1 and 5.37:1 in Daylight, 21.00:1 and 8.83:1 in Worklight.
+            A theme-following backdrop gets theme-following ink. */}
         <MeshiWait
-          className="meshi-wait-on-dark"
           headline={
             viewUserId ? "Opening their world…" : isGlobal ? "Weaving the Global Mesh…" : "Weaving your world…"
           }

@@ -31,51 +31,20 @@
  *     needs an airbrush wheel no consumer stylus has.
  *   - ALTITUDE/AZIMUTH as a baseline. Chromium has had them since 86, but WebKit
  *     only since Safari 18.2 — so they are read defensively and never required.
+ *   - PRESSURE and TILT as exported helpers. `pressure` and `tiltX`/`tiltY` are
+ *     the two rich signals genuinely available on both engines, so they are
+ *     what a future pressure-varying stroke would build on — but nothing in the
+ *     product varies with them today, and helpers with no call site are just
+ *     untested code claiming to be an API. They come back with the feature that
+ *     needs them, from an event, in the same commit.
  *
- * `pressure` and `tiltX`/`tiltY` are the two rich signals that are genuinely
- * available on both engines, so those are what the product may build on.
+ * What ships here is only what the canvas actually reads: precision per event,
+ * and the pen-vs-palm arbiter.
  */
 
 /** Pointer types that resolve a position precisely enough to trust exactly. */
 export function isPrecisePointer(pointerType: string | undefined | null): boolean {
   return pointerType === "mouse" || pointerType === "pen";
-}
-
-/** A stylus specifically — for affordances only a pen should get. */
-export function isPen(pointerType: string | undefined | null): boolean {
-  return pointerType === "pen";
-}
-
-/**
- * Hover, as opposed to contact. Apple Pencil (M2 iPad and later) and the S Pen
- * both report a hovering tip as a pen pointer with no buttons held and, per
- * spec, zero pressure. Contact reports pressure > 0.
- */
-export function isPenHover(event: Pick<PointerEvent, "pointerType" | "pressure" | "buttons">): boolean {
-  return event.pointerType === "pen" && event.buttons === 0 && event.pressure === 0;
-}
-
-/** 0..1, defaulting to a firm-but-not-maximum press when unreported. */
-export function penPressure(event: Pick<PointerEvent, "pointerType" | "pressure">): number {
-  if (event.pointerType !== "pen") return 1;
-  // Spec: 0 when the hardware cannot report it. 0.5 is the documented default
-  // for a device with no pressure sensor, so an unreported press is not silent.
-  const raw = event.pressure;
-  if (!Number.isFinite(raw) || raw <= 0) return 0.5;
-  return Math.min(1, raw);
-}
-
-/**
- * Tilt as a 0..1 lean, or null when the tip is upright or unreported.
- * tiltX/tiltY are degrees from vertical in each plane, -90..90 on both engines.
- */
-export function penTilt(event: Pick<PointerEvent, "pointerType" | "tiltX" | "tiltY">): number | null {
-  if (event.pointerType !== "pen") return null;
-  const x = Number.isFinite(event.tiltX) ? event.tiltX : 0;
-  const y = Number.isFinite(event.tiltY) ? event.tiltY : 0;
-  if (x === 0 && y === 0) return null;
-  const lean = Math.min(90, Math.hypot(x, y)) / 90;
-  return lean;
 }
 
 /**
@@ -104,7 +73,7 @@ export function notePenUp(event: Pick<PointerEvent, "pointerId">): void {
 }
 
 /** Is a stylus currently in contact anywhere? */
-export function penIsDown(): boolean {
+function penIsDown(): boolean {
   return penPointers.size > 0;
 }
 
@@ -117,9 +86,4 @@ export function penIsDown(): boolean {
  */
 export function yieldsToPen(event: Pick<PointerEvent, "pointerType">): boolean {
   return penIsDown() && event.pointerType !== "pen";
-}
-
-/** Test seam: the module holds process-wide state, so tests must be able to reset it. */
-export function resetPenArbiterForTest(): void {
-  penPointers.clear();
 }

@@ -1,17 +1,51 @@
 // The mesh → Flow seen-bridge contract, pinned.
 //
-// The bridge moved off the deleted canvas onto the ring field, so the ID SHAPE
-// it reasons about changed: a canvas node was a prefixed string ("post:<id>",
-// "friend-post:<owner>:<id>") that had to be parsed, while a field item carries
-// the real row — a native post is kind "post" from platform "mesh", and its
-// `id` IS the Post id.
+// The FROZEN contract (blueprint invariant #5 — "native-id-only seen bridge,
+// skip Global/guest"):
 //
-// The three rules the bridge exists to enforce did NOT change, and are the
-// reason this gate still exists:
+//   1. NATIVE POST IDS ONLY — only a mesh.me Post row's id is ever beaconed
+//      to POST /api/flow/impression; platform/external content never is.
+//   2. NEVER FROM GLOBAL — the Global viewer is untracked; ViewerCaps
+//      structurally withholds `canRecordImpressions` and the bridge yields
+//      nothing.
+//   3. NEVER FOR GUESTS — the endpoint itself answers 204 and writes no row
+//      without a session (asserted against the route source below, since this
+//      gate runs without a DB).
 //
-//   1. NATIVE POSTS ONLY — external/platform content has no Flow seen-set key.
-//   2. NEVER FROM GLOBAL — Global viewers are untracked, structurally.
-//   3. NEVER FOR GUESTS  — the endpoint writes nothing without a session.
+// Also pinned here: Catch-up mode consumes UNSEEN items OLDEST-FIRST via the
+// pure catchUpTourIds, and mark-seen/mute stay viewer-side (mute keys parse
+// strictly; mark-seen is a local watermark that only clears isNew flags).
+//
+// ── WHY THIS FILE MOVED BACK, AND WHAT IT KEPT ─────────────────────────────
+//
+// For ten days this gate imported `impressionIdFor` from
+// src/components/meshfield/seen-bridge.ts — the copy belonging to the tile
+// layout that briefly replaced the canvas. It passed the whole time. It was
+// proving a property of code no user could reach, which is the worst state a
+// gate can be in: green, and blind to the thing it names. The canvas owns
+// /mesh again (app/(app)/mesh/page.tsx → MeshSceneLoader → mesh-surface), so
+// the gate points at the module the canvas actually calls:
+// ui/content-lens.tsx beacons through `impressionIdFor`, and ui/pluck-ring.tsx
+// decides Like/Save through `nativePostId`.
+//
+// Repointing means the FIXTURES change shape, because the two surfaces carry
+// identity differently. A field item was a real row ({ id, kind, platform });
+// a canvas node is a prefixed string that has to be parsed:
+//
+//     { id: "post:abc123" }              -> "abc123"   your own post
+//     { id: "friend-post:u7:p3" }        -> "p3"       a friend's post
+//     { id: "platform-post:acct1:pp9" }  -> null       external, never beaconed
+//     { id: "person:u9" }                -> null       not content
+//
+// ONE ASSERTION IS DELIBERATELY NOT THE ONE THAT WAS HERE BEFORE THE FIELD.
+// The pre-field version pinned `nativePostId({ id: "post:" }) === ""` and
+// called that "degenerate id stays falsy". "" is neither a Post id nor an
+// absence, and content-lens writes `nativePostId(node) ?? node.id` — `??` does
+// not catch "", so a malformed node stamped an EMPTY content id onto the DOM
+// and silently un-targeted the element for everything that reads it. The
+// meshfield rewrite closed that hole and the live module has taken the fix
+// back (both branches normalise with `|| null`). So the assertion below reads
+// `null`, not "": restoring the canvas must not restore its bug.
 //
 // Runs standalone (no DOM, no DB): `npm run mesh:seen-contract`.
 
@@ -19,7 +53,9 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { deriveViewerCaps } from "../src/components/mesh/core/viewer";
-import { impressionIdFor } from "../src/components/meshfield/seen-bridge";
+import { impressionIdFor, nativePostId } from "../src/components/mesh/ui/seen-bridge";
+import { applySeenState, catchUpTourIds } from "../src/components/mesh/scene/seen-marks";
+import type { SceneModel, SceneNode } from "../src/components/mesh/scene/scene-model";
 import {
   accountMuteKey,
   authorMuteKey,
@@ -29,34 +65,22 @@ import {
 } from "../src/lib/muted-sources";
 
 // ---------------------------------------------------------------------------
-// 1. Native-posts-only: what counts as a native post is decided exactly once.
+// 1. Native-id-only: what counts as a native post is decided exactly once.
 // ---------------------------------------------------------------------------
 
-const tracked = { canRecordImpressions: true };
-const untracked = { canRecordImpressions: false };
-
-const nativePost = { id: "abc123", kind: "post", platform: "mesh" };
-
-assert.equal(impressionIdFor(nativePost, tracked), "abc123", "a native post records its own id");
+assert.equal(nativePostId({ id: "post:abc123" }), "abc123", "own native post id must extract");
+assert.equal(nativePostId({ id: "friend-post:user9:post77" }), "post77", "friend native post id must extract");
+assert.equal(nativePostId({ id: "platform-post:acct1:pp1" }), null, "platform posts are NOT native");
+assert.equal(nativePostId({ id: "platform:acct1" }), null, "platform hubs are NOT native");
+assert.equal(nativePostId({ id: "person:user9" }), null, "people are NOT native posts");
+assert.equal(nativePostId({ id: "activity:xyz" }), null, "activities are NOT native posts");
+// NULL, not "" — see the header. A prefix with nothing behind it is an
+// absence, and `??` at the call site has to be able to see that.
+assert.equal(nativePostId({ id: "post:" }), null, "a degenerate own-post id is an absence, never an empty string");
 assert.equal(
-  impressionIdFor({ id: "pp1", kind: "post", platform: "instagram" }, tracked),
+  nativePostId({ id: "friend-post:user9:" }),
   null,
-  "platform posts are NOT native and must never be beaconed",
-);
-assert.equal(
-  impressionIdFor({ id: "user9", kind: "person", platform: "mesh" }, tracked),
-  null,
-  "people are NOT posts",
-);
-assert.equal(
-  impressionIdFor({ id: "t1", kind: "message", platform: "mesh" }, tracked),
-  null,
-  "messages are NOT posts",
-);
-assert.equal(
-  impressionIdFor({ id: "", kind: "post", platform: "mesh" }, tracked),
-  null,
-  "a degenerate id is never beaconed",
+  "a degenerate friend-post id is an absence too — both branches normalise, or the hole moves",
 );
 
 // ---------------------------------------------------------------------------
@@ -78,10 +102,13 @@ assert.equal(globalViewer.canSave, false);
 assert.equal(globalViewer.canMuteSources, false);
 assert.equal(globalViewer.canBroadcastPresence, false);
 
-assert.equal(impressionIdFor(nativePost, owner), "abc123", "owner opening native content records it");
-assert.equal(impressionIdFor(nativePost, visitor), "abc123", "visitor opening native content records it");
-assert.equal(impressionIdFor(nativePost, globalViewer), null, "Global NEVER records — even native ids");
-assert.equal(impressionIdFor(nativePost, untracked), null, "an untracked viewer records nothing");
+const nativeNode = { id: "post:abc123" };
+const untracked = { canRecordImpressions: false };
+assert.equal(impressionIdFor(nativeNode, owner), "abc123", "owner opening native content records it");
+assert.equal(impressionIdFor(nativeNode, visitor), "abc123", "visitor opening native content records it");
+assert.equal(impressionIdFor(nativeNode, globalViewer), null, "Global NEVER records — even native ids");
+assert.equal(impressionIdFor(nativeNode, untracked), null, "an untracked viewer records nothing");
+assert.equal(impressionIdFor({ id: "platform-post:a:b" }, owner), null, "non-native NEVER records — even for the owner");
 
 // ---------------------------------------------------------------------------
 // 3. Guests: the endpoint writes nothing without a session. This gate has no
@@ -106,8 +133,60 @@ assert.ok(
 );
 
 // ---------------------------------------------------------------------------
-// 4. Mute keys: strict format, derived only from source-bearing node ids.
-//    (Still the only gate covering muted-sources, so it stays here.)
+// 4. Catch-up consumes UNSEEN items oldest-first (ties broken by id).
+//
+//    This section went away with the canvas and comes back with it: catch-up
+//    is a canvas mode (ui/use-catchup.ts), and while the field owned /mesh
+//    there was nothing for it to describe.
+// ---------------------------------------------------------------------------
+
+function makeNode(partial: Partial<SceneNode> & { id: string }): SceneNode {
+  return {
+    kind: "post",
+    label: partial.id,
+    color: "#fff",
+    parentId: null,
+    childIds: [],
+    branch: "posts",
+    weight: 0.3,
+    x: 0, y: 0, angle: 0, depth: 2, dx: 0, dy: 0, vx: 0, vy: 0,
+    ...partial,
+  } as SceneNode;
+}
+
+function modelOf(nodes: SceneNode[]): SceneModel {
+  return { selfId: "self", nodes: new Map(nodes.map((n) => [n.id, n])) };
+}
+
+const tourModel = modelOf([
+  makeNode({ id: "post:new-late", isNew: true, createdAtMs: 3000 }),
+  makeNode({ id: "post:new-early", isNew: true, createdAtMs: 1000 }),
+  makeNode({ id: "post:new-tie-b", isNew: true, createdAtMs: 2000 }),
+  makeNode({ id: "post:new-tie-a", isNew: true, createdAtMs: 2000 }),
+  makeNode({ id: "post:old-seen", isNew: false, createdAtMs: 500 }),
+  makeNode({ id: "person:friend", kind: "person", isNew: true, createdAtMs: 100, branch: "people" }),
+]);
+assert.deepEqual(
+  catchUpTourIds(tourModel),
+  ["post:new-early", "post:new-tie-a", "post:new-tie-b", "post:new-late"],
+  "catch-up must stream UNSEEN CONTENT only, oldest-first, id tiebreak",
+);
+
+// Mark-seen is viewer-side: a branch watermark + session ids only ever clear
+// isNew presentation flags — layout inputs (x/y/angle) are untouched.
+const seenModel = modelOf([
+  makeNode({ id: "post:a", isNew: true, createdAtMs: 1000, x: 42, y: 7 }),
+  makeNode({ id: "post:b", isNew: true, createdAtMs: 9999, x: 3, y: 4 }),
+]);
+applySeenState(seenModel, { posts: 5000 }, new Set());
+assert.equal(seenModel.nodes.get("post:a")!.isNew, false, "at/under the watermark → seen");
+assert.equal(seenModel.nodes.get("post:b")!.isNew, true, "after the watermark → still new");
+assert.equal(seenModel.nodes.get("post:a")!.x, 42, "mark-seen must never move a node");
+applySeenState(seenModel, {}, new Set(["post:b"]));
+assert.equal(seenModel.nodes.get("post:b")!.isNew, false, "session-read ids → seen");
+
+// ---------------------------------------------------------------------------
+// 5. Mute keys: strict format, derived only from source-bearing node ids.
 // ---------------------------------------------------------------------------
 
 assert.equal(meshNodeMuteKey("platform-post:acct1:pp9"), accountMuteKey("acct1"));
@@ -127,4 +206,4 @@ assert.deepEqual(
 );
 assert.deepEqual(parseMutedSources("not json"), [], "corrupt rows read as no mutes");
 
-console.log("mesh seen-bridge contract OK — native-posts-only, Global untracked, guests dropped, mute keys strict");
+console.log("mesh seen-bridge contract OK — native-id-only, Global untracked, guests dropped, catch-up oldest-first, mute keys strict");

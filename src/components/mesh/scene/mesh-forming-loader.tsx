@@ -404,7 +404,31 @@ export function MeshFormingLoader({
   return (
     <div
       className={cn(
-        "relative flex min-h-[calc(100dvh-8rem)] w-full items-end justify-center overflow-hidden rounded-[28px] border border-[#17345d] bg-[#050b18]",
+        // THE SHELL WEARS THE APP'S OWN PAPER.
+        //
+        // These were the last two navy literals on the login -> loading -> mesh
+        // journey: border #17345d, fill #050b18, both spelled once and applied
+        // in BOTH themes. The weave canvas that fills this box already reads
+        // paintTheme() for its gradient (see the `backdrop` branch of draw()
+        // above), so the box and its contents were painted from two different
+        // palettes — and the box's palette was nobody's.
+        //
+        // Measured against the page's own mat, which is what surrounds it:
+        //
+        //     Daylight   #050b18 on --paper-0 #f2f2f7    17.63:1
+        //     Worklight  #050b18 on --paper-0 #000000     1.07:1
+        //
+        // In Daylight that is a black hole punched through a light page — the
+        // first thing anyone sees on /mesh, announcing that the loader and the
+        // app are not the same product. In Worklight it is a 1.07:1 box that
+        // cannot be seen at all, so the rounded shell that gives the loader its
+        // shape simply is not there. One literal, wrong in opposite directions.
+        //
+        // --paper-0 and --border-primary follow the theme, so the shell is the
+        // same mat as the page in both, and the rounded edge is the same
+        // hairline every other panel wears. --bg-primary is the alias fallback
+        // for any surface that has not been migrated to the paper ramp.
+        "relative flex min-h-[calc(100dvh-8rem)] w-full items-end justify-center overflow-hidden rounded-[28px] border border-[var(--border-primary)] bg-[var(--paper-0,var(--bg-primary))]",
         className,
       )}
       role="status"
@@ -415,10 +439,24 @@ export function MeshFormingLoader({
       {label ? (
         <div className="relative z-10 mb-[15vh] flex flex-col items-center gap-2 px-6 text-center">
           <p className="mesh-forming-caption text-sm font-medium ">{label}</p>
+          {/* The pulse dots were the shell's navy literals in miniature —
+              `bg-[#8aa1ff]`, three times, in both themes. Once the shell above
+              stopped being a navy box, they were periwinkle marks on the app's
+              own mat: 2.18:1 against --paper-0 and 2.44:1 against --paper-1 in
+              Daylight, under the 3:1 WCAG 1.4.11 asks of a non-text mark. They
+              were fine in Worklight (8.62 / 6.99) and nowhere else, which is
+              what a literal always is — right in the one theme it was picked in.
+
+              --accent-text, for the same reason scene-model.ts gives the self
+              node: this mark is judged AGAINST PAPER, and --accent-text is the
+              accent measured against all four papers in every preset and theme
+              (worst case 4.60:1), while --accent is only ever measured as a
+              fill by the ink pinned on it. The loader and the scene it hands
+              off to now name the same token for the same job. */}
           <span className="flex gap-1" aria-hidden>
-            <span className="mesh-forming-dot h-1.5 w-1.5 rounded-full bg-[#8aa1ff]" />
-            <span className="mesh-forming-dot h-1.5 w-1.5 rounded-full bg-[#8aa1ff]" style={{ animationDelay: "0.18s" }} />
-            <span className="mesh-forming-dot h-1.5 w-1.5 rounded-full bg-[#8aa1ff]" style={{ animationDelay: "0.36s" }} />
+            <span className="mesh-forming-dot h-1.5 w-1.5 rounded-full bg-[var(--accent-text)]" />
+            <span className="mesh-forming-dot h-1.5 w-1.5 rounded-full bg-[var(--accent-text)]" style={{ animationDelay: "0.18s" }} />
+            <span className="mesh-forming-dot h-1.5 w-1.5 rounded-full bg-[var(--accent-text)]" style={{ animationDelay: "0.36s" }} />
           </span>
         </div>
       ) : (

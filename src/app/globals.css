@@ -5019,7 +5019,7 @@ body,
      19.2px against --radius-*'s 8 / 10 / 14 / 20 — disagreeing at every step by
      0.8 to 1.2px. Too small to see in isolation, and exactly large enough to
      stop a row of parts reading as one moulding. Aliased rather than deleted so
-     the 27 `rounded-[var(--ds-radius-*)]` call sites need no edit; nothing that
+     the 27 ds-radius call sites need no edit; nothing that
      tunes shape should have two places to do it. shape-check.ts only matched
      --radius-*, so this second ladder was invisible to the gate meant to keep
      them in step. */
@@ -8026,7 +8026,17 @@ button, [role="button"] {
    `.settings-row`, three of which exist nowhere in this codebase. It shipped
    green, changed nothing, and left dead CSS behind — which is the same kind of
    decorative-but-inert work that made the product feel cheap in the first
-   place. */
+   place.
+
+   (A comment terminator sat here, nine lines early, from #387 onward.
+   Everything below it up to the real one was raw prose sitting in the
+   stylesheet, so the parser failed on `.settings-list > a` and gave up — which
+   took the dev server down and truncated the built stylesheet at this point.
+   It hid for weeks because `next build` still exits 0 and only prints a
+   warning. Do not write the two-character close sequence inside a comment when
+   describing this; doing so re-opens the identical bug, which is how the first
+   attempt at this note failed.)
+
    That pass is superseded by the settings block at the end of this file, and
    this rule is deleted with it, for two measured reasons. `.settings-list > a`
    and `.settings-list > button` match nothing — every direct child of a

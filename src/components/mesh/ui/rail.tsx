@@ -5,7 +5,8 @@
 
 "use client";
 
-import { Check, CircleHelp, History, List, LocateFixed, PenLine, Search, Share2, Smile } from "lucide-react";
+import Link from "next/link";
+import { Check, CircleHelp, History, Inbox, List, LocateFixed, PenLine, Search, Share2, Smile } from "lucide-react";
 import type { ViewerCaps } from "../core/viewer";
 import type { MeshCopy } from "./copy";
 import { useShare } from "./use-share";
@@ -33,6 +34,41 @@ function RailButton({
       <span className="flex h-5 w-5 shrink-0 items-center justify-center">{children}</span>
       <span className="mesh-rail-label text-xs font-medium">{label}</span>
     </button>
+  );
+}
+
+/**
+ * The same key, when the control is a DESTINATION rather than a layer.
+ *
+ * Every other rail control opens something over the canvas and stays on /mesh,
+ * so a <button> is honest for them. The inbox is a different page, and a page
+ * you navigate to is a link: middle-click, cmd-click, "open in new tab" and the
+ * browser's own hover preview all come free, and none of them can be recovered
+ * from an onClick that calls router.push. It renders identically to RailButton —
+ * a link that looks like a key is fine; a key that is secretly a link is not.
+ */
+function RailLink({
+  label,
+  href,
+  children,
+}: {
+  label: string;
+  href: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <Link
+      href={href}
+      aria-label={label}
+      // The canvas underneath treats a pointerdown as the start of a drag. Every
+      // other rail control stops it for the same reason: without this, reaching
+      // for the rail pans the world out from under you.
+      onPointerDown={(e) => e.stopPropagation()}
+      className="mesh-rail-btn mesh-glass mesh-ctl ds-focus-ring flex h-11 items-center rounded-full px-3 text-[var(--text-secondary)]"
+    >
+      <span className="flex h-5 w-5 shrink-0 items-center justify-center">{children}</span>
+      <span className="mesh-rail-label text-xs font-medium">{label}</span>
+    </Link>
   );
 }
 
@@ -81,6 +117,28 @@ export function MeshRail({
         <RailButton label={copy.composeLabel} onClick={onCompose}>
           <PenLine size={16} />
         </RailButton>
+      )}
+      {/* THE ONE INBOX — every DM, mention, reply and comment from every
+          connected platform, in one queue.
+
+          It lives here because this is where its only door has ever been. The
+          inbox was built alongside a tile-layout /mesh whose one link to it was
+          a node in that layout; when this canvas came back, the tiles went, and
+          /inbox became a page with a working read, a working view, and no way
+          in — reachable only by typing the URL. That is not a broken build and
+          nothing else in the toolchain notices it, which is exactly why
+          reachability:check exists and why it failed.
+
+          The mesh is the picture of your presence; the inbox is the queue that
+          picture is telling you about. Sitting next to Compose makes the rail's
+          top pair the two things you came here to DO, with everything below
+          them being ways to look. Owner-only by capability, the same shape the
+          emote handler uses: it is YOUR inbox, so it has no meaning standing on
+          someone else's mesh, and none at all in the guest-open Global view. */}
+      {viewer.isOwner && (
+        <RailLink label="Inbox" href="/inbox">
+          <Inbox size={16} />
+        </RailLink>
       )}
       <RailButton label={copy.searchLabel} onClick={onSearch}>
         <Search size={16} />
