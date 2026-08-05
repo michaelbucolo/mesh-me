@@ -36,6 +36,7 @@ import { isUniqueConstraintError } from "./prisma-errors";
 import { getFeedPostById } from "./feed-data";
 import { normalizeStudioWeights, authorKey, dominantFormat } from "./flow-ranking";
 import { normalizePlatformId } from "./platform-capabilities";
+import { isValidMutedSourceKey, parseMutedSources, serializeMutedSources } from "./muted-sources";
 
 async function hashAuthTokenValue(token: string) {
   const crypto = await import("crypto");
@@ -1634,6 +1635,27 @@ export async function toggleFollow(targetUserId: string) {
   return { success: true, following: !existing, isFriend };
 }
 
+/** Read-only: does the signed-in viewer already follow this user? Seeds UI
+ * that must not guess before letting toggleFollow act — e.g. the private-mesh
+ * gate, whose locked payload carries no viewer-follow state; guessing `false`
+ * there would turn the first click into a silent unfollow.
+ *
+ * Restored from 7131bbd alongside the mesh scene that called it. Note this is
+ * deliberately NOT areMutualFollowers: the private gate renders precisely the
+ * one-way "you follow them, waiting for them" state, where the mutual check
+ * returns false — seeding from it would reintroduce the silent-unfollow bug
+ * this function exists to prevent. It answers only about the VIEWER's own
+ * edge, so it discloses nothing about the target the viewer didn't already do. */
+export async function getViewerFollowsUser(targetUserId: string) {
+  const user = await getCurrentUser();
+  if (!user || user.id === targetUserId) return { following: false };
+  const existing = await prisma.follow.findUnique({
+    where: { followerId_followingId: { followerId: user.id, followingId: targetUserId } },
+    select: { id: true },
+  });
+  return { following: Boolean(existing) };
+}
+
 // ─── Profile Actions ─────────────────────────────────────────
 
 function normalizeProfileInterests(formData: FormData) {
@@ -2324,6 +2346,40 @@ export async function adminDeletePost(postId: string) {
 // the viewer's OWN FeedPreference row: the muted source's content drops out of
 // this viewer's mesh payload and Flow candidates only. Nothing the muted
 // source (or anyone else) can see ever changes — privacy by construction.
+//
+// Restored from 7131bbd. ad6188b deleted this action as collateral when the
+// mesh canvas went, but only the WRITER died: the column (FeedPreference
+// .mutedSources), the key helpers, and the reader that actually subtracts the
+// content (flow-ranking's dropMutedSources) all stayed in the tree. That left
+// mutes permanently un-settable and, worse, un-clearable for anyone who had
+// already muted a source. The section comment above survived the deletion
+// with nothing under it, which is how the half-feature was found.
+export async function toggleMeshSourceMute(sourceKey: string) {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Not authenticated" };
+  if (!isValidMutedSourceKey(sourceKey)) return { error: "Invalid source" };
+
+  const pref = await prisma.feedPreference.findUnique({
+    where: { userId: user.id },
+    select: { mutedSources: true },
+  });
+  const current = parseMutedSources(pref?.mutedSources);
+  const muted = !current.includes(sourceKey);
+  // serializeMutedSources applies the cap, so the add path doesn't re-slice.
+  const next = muted ? [...current, sourceKey] : current.filter((key) => key !== sourceKey);
+
+  await prisma.feedPreference.upsert({
+    where: { userId: user.id },
+    update: { mutedSources: serializeMutedSources(next) },
+    create: { userId: user.id, mutedSources: serializeMutedSources(next) },
+  });
+
+  // Only the viewer's own cached mesh payload changes — muting is invisible
+  // to the muted source, so no other cache entry is touched.
+  clearMeshCache(user.id);
+  return { success: true, muted };
+}
+
 // ─── Repost Actions ─────────────────────────────────────────
 
 export async function repost(postId: string) {

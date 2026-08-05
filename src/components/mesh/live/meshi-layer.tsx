@@ -22,7 +22,6 @@ import {
   type MeshiHair,
   type MeshiHat,
   type MeshiMood,
-  type MeshiOutfit,
 } from "@/components/meshi/meshi-mascot";
 import type { MeshiPreferences } from "@/hooks/use-meshi-preferences";
 import { GHOST_EVENT, readGhostMode } from "@/lib/ghost-mode";
@@ -95,6 +94,13 @@ const RemoteMeshi = memo(function RemoteMeshi({
           presence heartbeat and is already part of this component's memo key
           (live/roster.ts), so a membership change repaints without a reload. */}
       <div className={p.isPro ? "meshi-world-scale meshi-pro-rim" : "meshi-world-scale"}>
+        {/* NO `outfit` ON ANY MESHI IN THIS FILE. The outfit cosmetic was
+            retired platform-wide: the mascot has no such prop, nothing sources
+            one (there is no outfit preference to pick), and the columns that
+            remain — MeshiPreference.outfitStyle, MeshPresence.meshiOutfit —
+            are kept only so existing rows stay valid, with nothing reading or
+            writing them. Every OTHER cosmetic is untouched, so a visitor still
+            arrives wearing exactly the Meshi they built. */}
         <MeshiMascot
           size={54}
           color={p.meshiColor as MeshiColor}
@@ -103,7 +109,6 @@ const RemoteMeshi = memo(function RemoteMeshi({
           accessory={(p.meshiAccessory || "none") as MeshiAccessory}
           eyeStyle={(p.meshiEyeStyle || "regular") as MeshiEyeStyle}
           badge={(p.meshiBadge || "none") as MeshiBadge}
-          outfit={(p.meshiOutfit || "none") as MeshiOutfit}
           mood={(p.meshiMood as MeshiMood) || "happy"}
           animate
           showGlow={false}
@@ -231,16 +236,24 @@ export function MeshiLayer({
         >
           <div className={viewerIsPro ? "meshi-world-scale meshi-pro-rim" : "meshi-world-scale"}>
             <div className={isGhosting ? "mesh-ghosted" : undefined}>
+              {/* THE FACE PREFERENCE IS NO LONGER A MOOD. It used to be one —
+                  this Meshi's resting expression WAS `prefs.face` — but the
+                  face was split out into a persistent eye identity with its own
+                  prop, leaving mood to mean what you're DOING. So the chosen
+                  face rides `face` (exactly as every other Meshi surface
+                  renders you, see components/meshi/user-meshi) and the resting
+                  mood falls back to the mascot's own "happy". The doing-ladder
+                  above it — composing, hovering, room behaviour — is unchanged. */}
               <MeshiMascot
                 size={54}
                 color={prefs.color}
                 hat={prefs.hat}
-                mood={showCompose ? "thinking" : hoverNode ? "excited" : behaviorMood ?? prefs.face}
+                face={prefs.face}
+                mood={showCompose ? "thinking" : hoverNode ? "excited" : behaviorMood ?? "happy"}
                 hair={prefs.hair}
                 accessory={prefs.accessory}
                 eyeStyle={prefs.eye}
                 badge={prefs.badge}
-                outfit={prefs.outfit}
                 prop="compass"
               />
             </div>
@@ -279,6 +292,13 @@ export function MeshiLayer({
                   </>
                 )}
                 <div className={isOwnMesh && isGhosting ? "mesh-ghosted" : undefined}>
+                  {/* `faceStyle` is the owner's stored face, and — same split as
+                      the cursor Meshi above — a face is an identity now, not a
+                      mood, so it rides `face`. Passing it as the resting mood
+                      would silently drop it (an eye id is not in the mood
+                      union), which would be the one cosmetic a visitor could
+                      not see. Unknown/legacy values resolve to the default face
+                      inside the mascot, so old "happy"-style rows still render. */}
                   <MeshiMascot
                     size={54}
                     color={(m.colorTheme || "blue") as MeshiColor}
@@ -287,7 +307,7 @@ export function MeshiLayer({
                     accessory={(m.accessoryStyle || "none") as MeshiAccessory}
                     eyeStyle={(m.eyeStyle || "regular") as MeshiEyeStyle}
                     badge={(m.badgeStyle || "none") as MeshiBadge}
-                    outfit={(m.outfitStyle || "none") as MeshiOutfit}
+                    face={m.faceStyle}
                     mood={
                       !ownerOnline
                         ? "sleepy"
@@ -297,7 +317,7 @@ export function MeshiLayer({
                             ? "excited"
                             : isOwnMesh && behaviorMood
                               ? behaviorMood
-                              : ((m.faceStyle || "happy") as MeshiMood)
+                              : "happy"
                     }
                     animate={ownerOnline}
                     showGlow={ownerOnline}
@@ -344,7 +364,6 @@ export function MeshiLayer({
               accessory={(l.p.meshiAccessory || "none") as MeshiAccessory}
               eyeStyle={(l.p.meshiEyeStyle || "regular") as MeshiEyeStyle}
               badge={(l.p.meshiBadge || "none") as MeshiBadge}
-              outfit={(l.p.meshiOutfit || "none") as MeshiOutfit}
               mood="sleepy"
               animate={false}
               showGlow={false}

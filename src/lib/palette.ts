@@ -92,6 +92,10 @@ export const BRANCH_PLASTIC = {
   activity: "tomato",
 } as const satisfies Record<string, MouldName>;
 
+/** The fill for a mesh branch. */
+export function branchFill(branch: keyof typeof BRANCH_PLASTIC): string {
+  return MOULD[BRANCH_PLASTIC[branch]].fill;
+}
 
 /**
  * The ink for a fill drawn from this palette.

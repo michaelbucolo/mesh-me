@@ -57,7 +57,12 @@ export interface MeshApiResponse {
     accessoryStyle: string;
     eyeStyle: string;
     badgeStyle: string;
-    outfitStyle: string;
+    // No `outfitStyle`: outfits were retired from Meshi customization, so no
+    // /api/mesh, /api/mesh?user= or /api/mesh/global response carries the field
+    // any more. It stayed declared (and REQUIRED) here after the removal, which
+    // is why every server-built payload had to be forced through a cast to
+    // satisfy this type — the column survives in the database purely so old
+    // rows stay valid, and the boundary should not claim otherwise.
   };
   meshCosmetics?: Array<{ type: string; value: string; isActive?: boolean }>;
   stats: {

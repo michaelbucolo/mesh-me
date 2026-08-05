@@ -39,6 +39,15 @@ export function parseMutedSources(raw: string | null | undefined): string[] {
   }
 }
 
+// The write-side counterpart to parseMutedSources. Removed in ad6188b as dead
+// code when the mesh scene — and with it toggleMeshSourceMute, its only
+// caller — was deleted; restored here alongside that action. It lives in this
+// module rather than in actions.ts so the cap stays defined exactly once: a
+// second copy of MAX_MUTED_SOURCES is the kind of duplication that drifts.
+export function serializeMutedSources(keys: string[]): string {
+  return JSON.stringify(keys.slice(-MAX_MUTED_SOURCES));
+}
+
 /**
  * The mute key behind a scene-node id, or null when that node has no mutable
  * source (your own native posts, activities, the self node…).

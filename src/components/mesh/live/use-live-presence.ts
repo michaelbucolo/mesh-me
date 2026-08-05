@@ -361,7 +361,13 @@ export function useLivePresence(
         meshiAccessory: p.accessory,
         meshiEyeStyle: p.eye,
         meshiBadge: p.badge,
-        meshiOutfit: p.outfit,
+        // No `meshiOutfit`: the wire (and the MeshPresence row behind it) still
+        // carries the field, but the outfit cosmetic was retired platform-wide
+        // — nothing sources it, since there is no such preference any more, and
+        // nothing renders it, since the mascot has no such prop. Sending it
+        // would only beat `undefined` at the room forever, so it is dropped
+        // here rather than pretended at. Every other cosmetic still rides the
+        // heartbeat unchanged, so hats and hair keep changing live.
         // Broadcast what you're DOING, not just your default face — the
         // ladder lives pure in live/mood.
         meshiMood: deriveBroadcastMood({
