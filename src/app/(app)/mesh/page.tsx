@@ -6,7 +6,7 @@ import { readTheirMesh } from "@/lib/mesh/read-their-mesh";
 import { readMyPresence } from "@/lib/mesh/read-my-presence";
 import { MeshField } from "@/components/meshfield/mesh-field";
 import { readMyFriends, type MeshFriend } from "@/lib/mesh/read-my-friends";
-import { layoutWeb, threadsFor, type WebNodeInput } from "@/lib/mesh/web-layout";
+import { layoutWeb, threadsFor, WEB_CAPS, type WebNodeInput } from "@/lib/mesh/web-layout";
 import { MeshRoom, type RoomProp, type RoomThread } from "@/components/playground/mesh-room";
 
 export const metadata: Metadata = { title: "Mesh Dashboard" };
@@ -137,6 +137,15 @@ export default async function MeshPage({ searchParams }: { searchParams: Promise
         viewerId={user.id}
         props={web.props}
         threads={web.threads}
+        // YOU, AT THE MIDDLE OF IT. Every spoke starts on this face, which is
+        // what makes the shape a web rather than a scatter — and tapping it
+        // goes to your profile, because the centre of your own web is the one
+        // node that should obviously be you.
+        centre={{
+          label: user.displayName || user.username,
+          imageUrl: user.avatarUrl,
+          href: `/profile/${user.username}`,
+        }}
       />
     </Shell>
   );
@@ -158,15 +167,22 @@ export default async function MeshPage({ searchParams }: { searchParams: Promise
  * keeps slot 0 forever and adding something never moves something else. That
  * property has a gate of its own, because nothing else can see it.
  *
- * ── AND WHY IT IS NOT A DIAGRAM ────────────────────────────────────────────
+ * ── IT IS A WEB, AND A WEB HAS A CENTRE ───────────────────────────────────
  *
- * mesh-room.tsx's header records that three attempts at this surface were
- * infographics, and names "a hub of platforms" as the second. Threads
- * radiating from your avatar at the centre would be that same chart again. So
- * nothing sits at the centre and nothing radiates: the layout is bands you
- * walk between, and the threads run between things that are genuinely
- * related — a post to the account it came from, a friend to their latest
- * thing. The web is the shape of the room, not a picture hung inside it.
+ * This paragraph used to say the opposite. mesh-room.tsx's header records that
+ * earlier attempts at this surface were infographics and names "a hub of
+ * platforms" as one of them, and I read that as proving anything with a middle
+ * was a chart — so the layout became horizontal BANDS with nothing at the
+ * centre and nothing radiating. That was wrong, and it was wrong in a way
+ * worth writing down, because the reasoning felt rigorous: what makes a
+ * surface a chart is not having a middle, it is being a picture of data you
+ * cannot enter. This is a room you walk around inside whose SHAPE is a web,
+ * and a web without a centre is not a web at all.
+ *
+ * So your face sits in the middle, spokes run out to the platforms and people
+ * you are connected to, posts hang further out along those same spokes, and
+ * rings tie neighbouring spokes together. You still walk around in it, and
+ * other people still walk around in it with you.
  */
 function buildMyWeb(
   presence: Awaited<ReturnType<typeof readMyPresence>>,
@@ -185,7 +201,9 @@ function buildMyWeb(
 
   // Accounts, oldest first. `state !== "offer"` keeps unconnected platforms
   // out of the web — an offer is an invitation, not part of your presence.
-  const arms = presence.arms.filter((a) => a.state !== "offer");
+  // Capped by the geometry, not by taste: `WEB_CAPS` is how many tiles three
+  // rings hold without overlapping on a phone, and it is checked as such.
+  const arms = presence.arms.filter((a) => a.state !== "offer").slice(0, WEB_CAPS.accounts);
   arms.forEach((arm, i) => {
     const accountId = `account-${arm.platform}`;
     nodes.push({
@@ -200,7 +218,7 @@ function buildMyWeb(
     // already existed in the old code and was thrown away: both the arm and
     // its items were pushed into one flat array, so nothing downstream could
     // ever know which post belonged to which account.
-    arm.items.slice(0, 2).forEach((item, j) => {
+    arm.items.slice(0, WEB_CAPS.postsPerAccount).forEach((item, j) => {
       nodes.push({
         id: item.id,
         kind: "post",
@@ -214,7 +232,7 @@ function buildMyWeb(
   });
 
   // Your friends, and the last thing each of them put out, threaded to them.
-  friends.forEach((friend) => {
+  friends.slice(0, WEB_CAPS.friends).forEach((friend) => {
     const friendId = `friend-${friend.userId}`;
     nodes.push({
       id: friendId,
@@ -225,21 +243,16 @@ function buildMyWeb(
       href: `/mesh?user=${encodeURIComponent(friend.username)}`,
       imageUrl: friend.avatarUrl,
     });
-    if (friend.latest) {
-      nodes.push({
-        id: friend.latest.id,
-        // Its OWN kind, so it sits in the band directly under its friend.
-        // Sharing the "post" band with your own posts sent every friend-thread
-        // diagonally across the account layer and the room read as a tangle.
-        kind: "friendPost",
-        // Same rank as the friend, so it lands in their column.
-        rank: friend.rank,
-        label: friend.latest.title,
-        href: friend.latest.href,
-        imageUrl: friend.latest.imageUrl,
-        parentId: friendId,
-      });
-    }
+    // THEIR LATEST POST IS NOT IN YOUR WEB, and that is deliberate.
+    //
+    // It used to be, as a fourth ring of tiles, and the geometry contract
+    // measured the result: thirty tiles on three rings overlapped on an
+    // iPhone, and no amount of tuning the radii fixed it — a phone that has to
+    // hold your face plus three tiles either side of it simply does not have
+    // the width. Something had to go, and this is the right something. The web
+    // is your platforms, your posts and your people; a friend's tile leads to
+    // THEIR web, where their posts are, so nothing is lost — the shape is just
+    // recursive rather than flattened into yours.
   });
 
   const laid = layoutWeb(nodes);
@@ -259,6 +272,10 @@ function buildMyWeb(
       fromVy: t.fromVy,
       toVx: t.toVx,
       toVy: t.toVy,
+      // Carried through, not dropped: spokes are drawn heavy and rings fine,
+      // and a web whose two thread families are the same weight reads as a
+      // net. Forwarding one field is the whole difference.
+      kind: t.kind,
     })),
   };
 }
