@@ -15,12 +15,13 @@ import { createCamera } from "../core/camera";
 import type { MeshScheduler } from "../core/scheduler";
 import { createHitmap, type Hitmap } from "../sim/hitmap";
 import { createPhysicsState, type PhysicsState } from "../sim/physics";
-import { createStrumState, type StrumState } from "../sim/strum";
+import { createStrumState, type StrumSide, type StrumState } from "../sim/strum";
 import { createToysState, type ToysState } from "../sim/toys";
 import type { PaintEngine } from "../paint";
 import type { ReactionTrail } from "../paint/types";
 import { createReplayGate, type ActionReplayGate, type ActionVerb } from "../live/action-bus";
 import { createFunVerbGate, type FunVerbGate } from "../live/emotes";
+import { createStrumBroadcastGate, type StrumBroadcastGate } from "../live/strum-broadcast";
 import type { MeshiSprite } from "../live/meshi-machine";
 import { createBehaviorMoodState, type BehaviorMoodState } from "../live/mood";
 import { createRoster, type RemotePresence, type RoomRoster } from "../live/roster";
@@ -157,6 +158,10 @@ export interface MeshRuntime {
   /** Client-side courtesy caps on outgoing fun verbs (flick hearts, emote
    * wheel) — on TOP of the server's presence-route rate limits. */
   funGate: FunVerbGate;
+  /** The strum's own, much harder outgoing cadence cap (live/strum-broadcast).
+   * Separate from funGate because a sweep is MACHINE-paced, not hand-paced —
+   * and because it must never slow the local instrument, only the wire. */
+  strumWire: StrumBroadcastGate;
   /** Pending long-press: armed on pointer-down over a content node, fires
    * the pluck if the pointer stays put; cancelled by move/lift/pinch. */
   pluckHold: { timer: ReturnType<typeof setTimeout>; nodeId: string; pointerId: number } | null;
@@ -188,8 +193,17 @@ export interface MeshRuntime {
   hearts: FlyingHeart[];
   heartSeq: number;
   strandPulses: Map<string, number>;
-  /** Strummed strands (edge key → start time): fx shimmer + re-strum cooldown. */
+  /** Strummed strands (edge key → start time): fx shimmer + re-strum cooldown.
+   * ONE map for your strums and the room's — it is one physical strand, so an
+   * incoming strum shares your 550ms cooldown on it, and the receiver's
+   * reduced-motion preference governs every strum in it (use-mesh-frame
+   * withholds this whole map from the painter) regardless of who wrote it. */
   strandStrums: Map<string, number>;
+  /** Strums that arrived off the wire, waiting for the sim phase to apply them
+   * on the LOCAL rAF clock. Staged rather than applied inline because the
+   * network callback runs on Date.now() and this map is measured in
+   * performance.now(); see live/strum-broadcast. */
+  incomingStrums: { childId: string; side: StrumSide; atMs: number }[];
   /** Incoming reactions' comet trails (fx layer, tier-budgeted). */
   trails: ReactionTrail[];
 
@@ -254,6 +268,7 @@ export function createMeshRuntime(): MeshRuntime {
     toys: createToysState(),
     strum: createStrumState(),
     funGate: createFunVerbGate(),
+    strumWire: createStrumBroadcastGate(),
     pluckHold: null,
     pluckPointerId: null,
     pluckEmote: false,
@@ -277,6 +292,7 @@ export function createMeshRuntime(): MeshRuntime {
     heartSeq: 0,
     strandPulses: new Map(),
     strandStrums: new Map(),
+    incomingStrums: [],
     trails: [],
 
     heartbeatNow: null,

@@ -39,6 +39,7 @@ import { applySighting, createSprite } from "./meshi-machine";
 import { deriveBroadcastMood, stepBehaviorMood } from "./mood";
 import { createPresenceClient, type LiveLink } from "./presence-client";
 import { applySightings, PRESENCE_GRACE_MS, resetRoster, sweepRoster, type RemotePresence, type RosterEvents } from "./roster";
+import { stageIncomingStrum } from "./strum-broadcast";
 
 /** A staged world action rides the heartbeat for this long (receivers
  * dedupe by its timestamp, so lingering is safe and covers packet loss). */
@@ -169,6 +170,16 @@ export function useLivePresence(
     rt.presence.actionGate = createReplayGate();
     rt.presence.ownerHereWorld = null;
     rt.presence.ownerSeenAt = 0;
+    // A strand staged from the old room names a node the new one may not have
+    // — harmless (applyStrum ignores it) but it would be a stranger's strum
+    // ringing in a room they were never in.
+    rt.incomingStrums.length = 0;
+    // …and the mirror image on the way OUT. `pendingAction` is age-gated by
+    // ACTION_RIDE_MS below, so a stale one cannot ride — but a strum staged
+    // moments before a room switch still can, and it would name a strand the
+    // new room has never had. Harmless to them; it is simply not their
+    // business what you were playing next door.
+    rt.pendingAction = null;
 
     // When the last DELIVERED payload arrived — the sweep's eviction
     // evidence. Both the SSE route and the transport dedupe byte-identical
@@ -341,10 +352,43 @@ export function useLivePresence(
           // to its target (canvas fx layer; tier-budgeted, reduced-motion
           // skipped, hard-capped inside).
           spawnReactionTrail(rt, ox, oy, ev.targetId);
+        } else if (ev.verb === "strum") {
+          // SOMEBODY IS PLAYING THE WEB. A strum names a STRAND, not a point in
+          // space, so it needs no sprite and no position — it is applied to the
+          // filament itself, which is why it can also be the one verb the owner
+          // gets a replay lane for below. Staged, never applied here: this
+          // callback runs on the wall clock and the strum map is measured in
+          // the rAF clock (see live/strum-broadcast). Note this branch sits
+          // ABOVE the targetless-flourish fallback — without it a strum would
+          // render as five reaction glyphs at the sender's Meshi, which is the
+          // wrong effect in the wrong place.
+          if (ev.targetId) stageIncomingStrum(rt, ev.targetId);
         } else if (at) {
           // Targetless flourish — blooms at the sender's Meshi.
           spawnBurst(rt, at.x, at.y - 12, ev.verb, 5);
         }
+      }
+      // THE OWNER'S OWN STRUMS. The roaming roster deliberately excludes the
+      // mesh owner (they are represented once, by the heart Meshi), and the
+      // replay loop above iterates that roster — so nothing the owner does has
+      // ever replayed to their visitors. For most verbs that is a cosmetic gap;
+      // for this one it is the headline case, because the person most likely to
+      // play a web like an instrument is the person whose web it is, standing
+      // in their own room. A strum needs no sprite, so the owner gets exactly
+      // one lane, for exactly this verb. Other owner verbs still consume their
+      // dedupe slot here and produce nothing — the same graceful silence the
+      // bus gives an unknown verb, and the hook a later owner-heart lane would
+      // slot into. (No self-echo: the server never puts the viewer in their own
+      // payload, so on the owner's own client `ownerPresence` is always
+      // undefined and their strums are never played back at them.)
+      if (ownerPresence) {
+        const ownerEv = admitRoomAction(
+          rt.presence.actionGate,
+          ownerPresence.userId,
+          ownerPresence.lastAction,
+          nowSeen,
+        );
+        if (ownerEv?.verb === "strum" && ownerEv.targetId) stageIncomingStrum(rt, ownerEv.targetId);
       }
       sealReplayBaseline(rt.presence.actionGate);
 

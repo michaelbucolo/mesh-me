@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import {
+  actionNeedsTarget,
   encodeLastAction,
   isKnownVerb,
   parseActionBody,
@@ -49,21 +50,22 @@ export async function POST(request: Request) {
     const ghosting = ghostMode === true || user.ghostMode === true;
 
     // Tiny world actions broadcast to the room: a Meshi throwing a heart at a
-    // post, a reaction burst (star/spark/wow), or a wave hello on arrival.
-    // Parsed at the edge through the versioned action bus — the v1 JSON
-    // envelope ({v,type,targetId,atMs}) and the legacy shape ({type,…,at})
-    // are both accepted — then validated against the fixed verb set and
-    // stored in the legacy pipe encoding old clients already parse. `heart`
-    // (a real like) and `fling` (the cosmetic fun-verb heart) fly at a target
-    // node so they require a targetId; the others are targetless flourishes
-    // that spawn at the sender's Meshi.
+    // post, a reaction burst (star/spark/wow), a wave hello on arrival, or a
+    // strand strummed. Parsed at the edge through the versioned action bus —
+    // the v1 JSON envelope ({v,type,targetId,atMs}) and the legacy shape
+    // ({type,…,at}) are both accepted — then validated against the fixed verb
+    // set and stored in the legacy pipe encoding old clients already parse.
+    // Verbs that ADDRESS something (`heart` = a real like, `fling` = the
+    // cosmetic fun-verb heart, `strum` = a named strand) are dropped without a
+    // target, because a receiver has nothing to resolve; the rest are
+    // targetless flourishes that spawn at the sender's Meshi. The rule itself
+    // lives in the action bus so this edge and the client can't drift.
     let lastAction: string | null = null;
     const wireAction = parseActionBody(action);
     if (
       wireAction &&
       isKnownVerb(wireAction.verb) &&
-      ((wireAction.verb !== "heart" && wireAction.verb !== "fling") ||
-        wireAction.targetId.length > 0)
+      (!actionNeedsTarget(wireAction.verb) || wireAction.targetId.length > 0)
     ) {
       lastAction = encodeLastAction(wireAction);
     }

@@ -11,7 +11,7 @@ import { createQualityGovernor, probeStartTier, type QualityGovernor } from "../
 import { createPaintEngine } from "../paint";
 import { rebuildHitmap } from "../sim/hitmap";
 import { driftScaleFor, stepScenePhysics } from "../sim/physics";
-import { stepStrum } from "../sim/strum";
+import { applyStrum, stepStrum, STRUM_STALE_MS, type StrumEvent } from "../sim/strum";
 import { stepToys } from "../sim/toys";
 import type { MeshRuntimeRef } from "./runtime";
 
@@ -36,9 +36,12 @@ export function useMeshFrame(
     viewMode: "mesh" | "global";
     isOwnMesh: boolean;
     fitToContent: () => void;
-    /** A strand was strummed this frame — the surface owns the tone (opt-in
-     * gated sound) and the one-time "Sound on?" affordance. */
-    onStrum?: (note: number) => void;
+    /** A strand rang this frame — yours or somebody else's in the room. The
+     * surface owns the tone (one preference-gated sound for both) and, for a
+     * LOCAL strum only, the broadcast. Must be referentially stable: it is in
+     * this effect's dependency list, so a fresh callback each render would tear
+     * down the sim/paint phases and re-rasterize the whole scene. */
+    onStrum?: (event: StrumEvent) => void;
   },
 ): void {
   const { viewUserId, viewMode, isOwnMesh, fitToContent, onStrum } = opts;
@@ -140,7 +143,14 @@ export function useMeshFrame(
     scheduler?.setPhase("sim", ({ time, dt }) => {
       const { width, height } = rt.size;
       const model = rt.model;
-      if (!model || !width || !height) return;
+      if (!model || !width || !height) {
+        // No scene this frame, so nothing for a remote strum to ring. Drop the
+        // queue rather than letting it wait for a later frame: a strum is a
+        // moment, and a strand that rings seconds after it was played is a lie
+        // about when somebody's hand was there.
+        rt.incomingStrums.length = 0;
+        return;
+      }
       // Physics: node springs toward the closeness/time layout, drifting at
       // the owner's chosen motion style. Every Meshi in the room — yours
       // included — disturbs nearby strands as it passes, so the web reacts
@@ -176,6 +186,41 @@ export function useMeshFrame(
           rt.reducedMotion,
           onStrum,
         );
+      }
+      // …and the same strands rung by somebody ELSE in this room. Applied here
+      // rather than in the network callback for three reasons, all of them
+      // structural: `time` is the rAF clock the shimmer and the stamp
+      // collector are measured in (the wire's timestamp is Date.now() and
+      // would produce a shimmer that never draws and a stamp never collected);
+      // `rt.strandStrums` and `rt.physics` get exactly one writer; and both
+      // paths pass through the same `applyStrum`, so a remote strum is the
+      // same act as a local one — same cooldown, same kick, same pitch — and
+      // reads THIS viewer's reduced-motion flag, never the sender's.
+      // An unknown strand is ignored inside applyStrum, silently and cheaply:
+      // a visitor is not served the node set the owner sees, so naming a
+      // strand this client does not have is normal, not an error.
+      // A BACKGROUNDED TAB MUST NOT REPLAY A CROWD. The drop above only fires
+      // when there is no scene; the dominant real case is the browser pausing
+      // rAF for a hidden tab while payloads keep arriving. On refocus the whole
+      // backlog would ring at once — seconds after those hands moved, which is
+      // the same lie the drop above refuses to tell.
+      //
+      // Measured on the WALL clock because that is the one that keeps running
+      // while rAF is paused. The window has to clear the slowest legitimate
+      // delivery, not the fastest: a receiver on the 2s fallback poll is
+      // already up to two seconds behind through no fault of its own.
+      const wallNow = Date.now();
+      for (let i = rt.incomingStrums.length - 1; i >= 0; i -= 1) {
+        if (wallNow - rt.incomingStrums[i].atMs > STRUM_STALE_MS) rt.incomingStrums.splice(i, 1);
+      }
+      const incoming = rt.incomingStrums;
+      if (incoming.length) {
+        for (let i = 0; i < incoming.length; i += 1) {
+          const { childId, side } = incoming[i];
+          const rang = applyStrum(model, rt.physics, rt.strandStrums, childId, time, rt.reducedMotion, side);
+          if (rang) onStrum?.({ childId, side, local: false });
+        }
+        incoming.length = 0;
       }
 
       // Inertial pan: carry the fling velocity after release, with decay.
