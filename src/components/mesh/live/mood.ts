@@ -105,8 +105,11 @@ export interface BroadcastMoodInput {
 export function deriveBroadcastMood(input: BroadcastMoodInput): string {
   const { now, pendingAction } = input;
   if (pendingAction && now - pendingAction.at < BROADCAST_ACTION_GLOW_MS) {
-    // A heart-throw (real like or cosmetic fling) beams love; a wave or
-    // reaction burst reads as excited.
+    // A heart-throw (real like or cosmetic fling) beams love; a wave, a
+    // reaction burst or a strand being played reads as excited. The strum is
+    // the one verb that can hold this rung for a whole sweep rather than a
+    // single beat — which is right: your face should say you are playing for
+    // as long as you are playing.
     return pendingAction.kind === "heart" || pendingAction.kind === "fling" ? "love" : "excited";
   }
   if (input.composing) return "thinking";

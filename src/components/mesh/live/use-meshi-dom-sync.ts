@@ -98,8 +98,13 @@ export function useMeshiDomSync(
     // pops on the post it was thrown at — nudging the count up as it lands
     // (real likes only; cosmetic fun-verb hearts land without counting).
     const stepHearts = (now: number) => {
-      const host = rt.heartsEl;
-      if (!host) return;
+      // The strand-decoration collectors run BEFORE the hearts host check, not
+      // after it. They used to sit below an `if (!host) return`, which meant a
+      // frame with no hearts layer mounted collected nothing — survivable while
+      // the only writer was your own hand, but strums arrive from other people
+      // now: every remote strum would leave a stamp that is never swept, and a
+      // stamp that is never swept is a strand pinned in permanent cooldown, so
+      // the room would gradually go dead on exactly the strands it plays most.
       rt.strandPulses.forEach((start, key) => {
         if (now - start > 1400) rt.strandPulses.delete(key);
       });
@@ -108,6 +113,8 @@ export function useMeshiDomSync(
       rt.strandStrums.forEach((start, key) => {
         if (now - start > 900) rt.strandStrums.delete(key);
       });
+      const host = rt.heartsEl;
+      if (!host) return;
       // Reaction trails: drop each once its lingering tail has faded.
       for (let i = rt.trails.length - 1; i >= 0; i -= 1) {
         if (now - rt.trails[i].born > rt.trails[i].dur * 1.2 + 60) rt.trails.splice(i, 1);

@@ -1,5 +1,6 @@
 // The versioned action bus — the ONE wire format for the tiny world actions
-// Meshis broadcast to a room (a thrown heart, a reaction burst, a wave hello).
+// Meshis broadcast to a room (a thrown heart, a reaction burst, a wave hello,
+// a strand strummed).
 //
 // Wire contract (PR6):
 // - OUTGOING actions ride the presence heartbeat as a versioned JSON envelope
@@ -30,14 +31,48 @@ const ACTION_BUS_VERSION = 1;
  * non-counting variant (the displayed Likes tick never moves). `heart` stays
  * reserved for a real like write. Old clients ignore `fling` by the
  * unknown-verb rule above — a mixed-version room degrades to silence, never
- * to a phantom count. */
-export const ACTION_VERBS = ["heart", "star", "spark", "wow", "wave", "fling"] as const;
+ * to a phantom count.
+ *
+ * `strum` is the seventh, and it is a different ANIMAL from the other six.
+ *
+ * - It names a STRAND, not a point: its targetId is the strand's CHILD node id
+ *   (optionally prefixed "-" for the direction the hand swept — see
+ *   live/strum-broadcast), and the receiver rebuilds the edge key
+ *   `parent>child` from its OWN model. Sending the child id rather than the
+ *   key halves the length against MAX_TARGET_ID (which truncates SILENTLY, and
+ *   a truncated id matches nothing), keeps the existing "targetId is a node
+ *   id" meaning, and means nobody ever splits an id on ">".
+ * - It is the first MACHINE-PACED verb. The other six come from a hand — a
+ *   tap, a flick, a wheel — and are capped by a courtesy gate at 700ms. A
+ *   sweep can legitimately strum many strands per second, so the broadcast is
+ *   throttled separately and much harder in live/strum-broadcast, and it
+ *   yields the single `pendingAction` slot to a fresh social verb rather than
+ *   eating somebody's like. Nothing about the LOCAL instrument is slowed.
+ * - An unknown strand is IGNORED on receive, exactly as an unknown verb is —
+ *   and unlike an unknown verb it is a normal, expected event, because two
+ *   people in one room are not served the same node set (see sim/strum).
+ *
+ * MIXED-VERSION ROOMS: a client that predates this verb parses `strum|…|…`
+ * fine, records its dedupe stamp, and returns null at the verb gate below. It
+ * shows nothing and it can never replay the strum later as a stale surprise —
+ * the room simply stays quiet on the strands it does not understand, which is
+ * the same graceful degradation `fling` shipped under. */
+export const ACTION_VERBS = ["heart", "star", "spark", "wow", "wave", "fling", "strum"] as const;
 export type ActionVerb = (typeof ACTION_VERBS)[number];
 
 const VERB_SET: ReadonlySet<string> = new Set(ACTION_VERBS);
 
 export function isKnownVerb(verb: string): verb is ActionVerb {
   return VERB_SET.has(verb);
+}
+
+/** Verbs that address something and are meaningless without it: the two hearts
+ * fly AT a node, and a strum rings a named strand. The rest are targetless
+ * flourishes that bloom at the sender's Meshi. Lives here so the server edge
+ * and the client agree on the rule by importing it, rather than by two
+ * hand-maintained lists of verb names. */
+export function actionNeedsTarget(verb: string): boolean {
+  return verb === "heart" || verb === "fling" || verb === "strum";
 }
 
 /** A validated, known action ready to replay. */

@@ -16,8 +16,10 @@ import { createMeshStore, type MeshStore } from "../core/store";
 import { flickHeart, sendEmote } from "../live/emotes";
 import { emitHeart } from "../live/hearts";
 import { MeshiLayer } from "../live/meshi-layer";
+import { broadcastStrum } from "../live/strum-broadcast";
 import { useLivePresence } from "../live/use-live-presence";
 import { useMeshiDomSync } from "../live/use-meshi-dom-sync";
+import type { StrumEvent } from "../sim/strum";
 import { MeshChrome, pickMarqueeItem, useMeshChrome, type MeshChromeController } from "../ui/chrome";
 import { ContentLens } from "../ui/content-lens";
 import { MeshComposeModal } from "../ui/compose-modal";
@@ -83,8 +85,6 @@ export function MeshScene({ viewUserId, viewMode = "mesh", viewerIsPro = false }
     anchor: { x: number; y: number };
     held: boolean;
   } | null>(null);
-  // The one-time "Sound on?" affordance — armed by the first playful gesture
-  // of the session, and only while no explicit sound choice exists.
   // Travel veil, keyed by the view it started from — arriving at the new view
   // (new props) derives it away without an imperative reset.
   const viewKey = `${viewUserId ?? ""}|${viewMode}`;
@@ -160,6 +160,34 @@ export function MeshScene({ viewUserId, viewMode = "mesh", viewerIsPro = false }
     [rtRef, isOwnMesh],
   );
 
+  // A STRAND RANG. The one hook where the local instrument and the room meet:
+  // the frame loop calls this for a strand you swept AND for one somebody else
+  // in the room swept, with the same note (derived from the strand's laid-out
+  // length, so it is the same pitch on every screen). The tone is therefore
+  // identical whoever played it, which is the point — you and the people
+  // watching you hear the same string.
+  //
+  // Only a LOCAL strum broadcasts. A remote one must never re-broadcast, or a
+  // single pluck would ring around the room forever, and the cadence cap lives
+  // in live/strum-broadcast rather than here so the mechanic itself is never
+  // slowed to protect a budget. Broadcasting is gated on `canEmote` for the
+  // same capability-by-construction reason the fun verbs are: the read-only
+  // Global view never wires a sender at all. It still hears its own strands.
+  //
+  // useCallback is load-bearing, not tidiness: this goes into useMeshFrame's
+  // effect dependency list, so a fresh identity each render would tear down the
+  // sim/paint phases, dispose the paint engine and re-rasterize the scene.
+  const handleStrum = useCallback(
+    (event: StrumEvent) => {
+      // Motion only — the mesh does not sing. See sim/strum.ts's header for
+      // why a shared tone was built here and then taken back out.
+      if (event.local && canEmote) {
+        broadcastStrum(rtRef.current, event.childId, event.side, Date.now());
+      }
+    },
+    [rtRef, canEmote],
+  );
+
   // --- world / frame / input / chrome / live ---
   const world = useMeshWorld(rtRef, viewer, {
     viewUserId,
@@ -167,7 +195,13 @@ export function MeshScene({ viewUserId, viewMode = "mesh", viewerIsPro = false }
     onWorldReplaced: clearSelectionOnly,
     onSelectionInvalid: clearSelectionOnly,
   });
-  useMeshFrame(rtRef, { viewUserId, viewMode, isOwnMesh, fitToContent: world.fitToContent });
+  useMeshFrame(rtRef, {
+    viewUserId,
+    viewMode,
+    isOwnMesh,
+    fitToContent: world.fitToContent,
+    onStrum: handleStrum,
+  });
 
   const chromeRef = useRef<MeshChromeController | null>(null);
   const push = useCallback((href: string) => router.push(href), [router]);
@@ -494,9 +528,9 @@ export function MeshScene({ viewUserId, viewMode = "mesh", viewerIsPro = false }
         />
       )}
 
-      {/* The one-time "Sound on?" opt-in — the mesh's fun sounds stay silent
-          until the user explicitly says yes (persisted through the ONE
-          existing sound preference; no second toggle). */}
+      {/* No sound opt-in lives here. Every sound the mesh makes — an emote
+          pop, a heart landing, a strand ringing — follows the ONE Sounds
+          preference in Settings. There is no second toggle to mount. */}
 
       {/* The same world, as a list — the canvas's accessible twin. */}
       {chrome.isOpen("list") && world.status === "ready" && (
