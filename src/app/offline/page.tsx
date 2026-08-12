@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 // network. Static, tiny, and dependency-free so it always renders.
 export default function OfflinePage() {
   return (
-    <main className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-[#05070f] px-6 text-center">
+    <main className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-[var(--paper-0)] px-6 text-center">
       <span className="text-2xl font-semibold tracking-tight text-white">mesh.me</span>
       <p className="max-w-xs text-sm leading-6 text-white/60">
         You&apos;re offline. Your mesh is still out there — reconnect and pick up right

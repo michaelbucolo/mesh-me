@@ -690,12 +690,21 @@ export function OnboardingFlow({
               </button>
             )}
             {step < steps.length - 1 ? (
-              <Button type="button" onClick={next} disabled={isPending} data-testid="onboarding-next">
+              // DISTINCT `key`s ON PURPOSE. Without them React sees one <Button>
+              // at this tree position across every step and reconciles the SAME
+              // DOM node in place — so on the last-but-one step the node's
+              // `type` mutates from "button" to "submit" underneath the click
+              // that is still being processed, and the browser's default action
+              // submits the whole form. That skipped the Apps step and the
+              // explicit "Finish setup" consent for everyone who walked the
+              // wizard with Next. Different keys force an unmount/remount, so the
+              // clicked node is only ever the Next button it was drawn as.
+              <Button key="onboarding-next" type="button" onClick={next} disabled={isPending} data-testid="onboarding-next">
                 Next
                 <ArrowRight size={16} aria-hidden="true" />
               </Button>
             ) : (
-              <Button type="submit" disabled={isPending} data-testid="onboarding-finish">
+              <Button key="onboarding-finish" type="submit" disabled={isPending} data-testid="onboarding-finish">
                 {isPending ? <PaperWait size="sm" /> : <Check size={16} aria-hidden="true" />}
                 Finish setup
               </Button>

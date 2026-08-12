@@ -71,8 +71,8 @@
   --mesh-blue: var(--accent);
   --mesh-cyan: var(--accent);
   --mesh-ice: var(--accent-hover);
-  --mesh-text: var(--ink-1);
-  --mesh-text-secondary: var(--ink-2);
+  --mesh-text: var(--text-primary);
+  --mesh-text-secondary: var(--text-secondary);
   --mesh-text-muted: var(--ink-3);
   --mesh-border: var(--rule);
   --mesh-border-active: var(--rule-focus);
@@ -887,7 +887,11 @@ select:focus-visible {
   top: 0;
   left: 0;
   right: 0;
-  z-index: 30;
+  /* Above the mesh action rail (z-30), not tied with it. The account menu is
+     nested in this topbar's stacking context; at a z-30 tie the rail won on
+     later DOM order and painted over the open menu, so "Sign out" and the
+     items below it were unclickable on /mesh. */
+  z-index: 40;
   background: linear-gradient(180deg, var(--mesh-bg-deep) 0%, transparent 100%);
   border-bottom: none;
 }

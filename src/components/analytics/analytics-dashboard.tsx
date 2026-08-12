@@ -233,16 +233,16 @@ function PlatformRow({ account, index }: { account: AnalyticsDashboardData["plat
         <span
           className={`ml-auto rounded-full px-2 py-0.5 text-micro font-semibold ${
             account.syncStatus === "error"
-              ? "bg-red-500/15 text-[var(--danger)]"
+              ? "bg-[var(--ds-danger-bg)] text-[var(--danger)]"
               : account.isActive
-                ? "bg-emerald-500/12 text-[var(--success)]"
+                ? "bg-[var(--ds-success-bg)] text-[var(--success)]"
                 : "bg-white/8 text-[var(--text-muted)]"
           }`}
         >
           {account.syncStatus === "error" ? "Sync error" : account.isActive ? "Synced" : "Paused"}
         </span>
         {account.followerGrowth !== 0 && (
-          <span className={`rounded-full px-2 py-0.5 text-micro font-semibold ${account.followerGrowth > 0 ? "bg-emerald-500/12 text-[var(--success)]" : "bg-red-500/12 text-[var(--danger)]"}`}>
+          <span className={`rounded-full px-2 py-0.5 text-micro font-semibold ${account.followerGrowth > 0 ? "bg-[var(--ds-success-bg)] text-[var(--success)]" : "bg-[var(--ds-danger-bg)] text-[var(--danger)]"}`}>
             {account.followerGrowth > 0 ? "+" : ""}
             {compact(account.followerGrowth)} this month
           </span>
@@ -464,9 +464,9 @@ function CheckRow({ label, passed, detail }: { label: string; passed: boolean; d
   return (
     <div className="leaf flex items-start gap-2.5 py-2">
       {passed ? (
-        <CheckCircle2 size={15} className="mt-0.5 shrink-0 text-emerald-400" aria-hidden="true" />
+        <CheckCircle2 size={15} className="mt-0.5 shrink-0 text-[var(--success)]" aria-hidden="true" />
       ) : (
-        <XCircle size={15} className="mt-0.5 shrink-0 text-amber-400" aria-hidden="true" />
+        <XCircle size={15} className="mt-0.5 shrink-0 text-[var(--warning)]" aria-hidden="true" />
       )}
       <div className="min-w-0">
         <p className="text-xs font-semibold text-[var(--text-primary)]">{label}</p>
@@ -481,7 +481,7 @@ function StatusPill({ label, ok }: { label: string; ok: boolean }) {
     <span
       className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-micro font-semibold ${
         ok
-          ? "border-emerald-500/25 bg-emerald-500/10 text-[var(--success)]"
+          ? "border-[var(--ds-success-border)] bg-[var(--ds-success-bg)] text-[var(--success)]"
           : "border-[var(--border-primary)] bg-[var(--bg-secondary)] text-[var(--text-muted)]"
       }`}
     >
@@ -635,7 +635,7 @@ export function AnalyticsDashboard({ data, embedded = false }: { data: Analytics
       <section className="plate mt-10 p-4 md:p-5" aria-label="Data and privacy">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="flex items-center gap-2 text-sm font-semibold text-[var(--text-primary)]">
-            <ShieldCheck size={15} className="text-emerald-400" aria-hidden="true" />
+            <ShieldCheck size={15} className="text-[var(--success)]" aria-hidden="true" />
             Data &amp; privacy
           </h2>
           <span className="text-xs text-[var(--text-secondary)]">
@@ -668,7 +668,7 @@ export function AnalyticsDashboard({ data, embedded = false }: { data: Analytics
         <div className="mt-4 grid gap-4 @3xl:grid-cols-2">
           <div>
             <p className="mb-2 flex items-center gap-2 text-xs font-semibold mesh-eyebrow text-[var(--text-muted)]">
-              <ShieldCheck size={13} className="text-emerald-400" aria-hidden="true" />
+              <ShieldCheck size={13} className="text-[var(--success)]" aria-hidden="true" />
               Security checklist
             </p>
             <div className="tray px-3 py-2">

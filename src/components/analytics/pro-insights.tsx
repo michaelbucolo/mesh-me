@@ -41,7 +41,7 @@ function TimingRow({ platformName, finding, index }: { platformName: string; fin
       <div className="flex items-baseline justify-between gap-3">
         <span className="text-sm font-semibold text-[var(--mesh-text)]">{platformName}</span>
         {finding.status === "ok" && (
-          <span className={`text-xs font-semibold ${finding.lift >= 0 ? "text-emerald-400" : "text-[var(--text-muted)]"}`}>
+          <span className={`text-xs font-semibold ${finding.lift >= 0 ? "text-[var(--success)]" : "text-[var(--text-muted)]"}`}>
             {finding.lift >= 0 ? "+" : ""}
             {finding.lift}% vs your average
           </span>
@@ -188,13 +188,13 @@ export function ProInsights({ data }: { data: ProAnalytics }) {
                 </div>
                 <div className="flex shrink-0 items-center gap-1.5">
                   {m.netFollowerChange >= 0 ? (
-                    <TrendingUp className="size-3.5 text-emerald-400" aria-hidden />
+                    <TrendingUp className="size-3.5 text-[var(--success)]" aria-hidden />
                   ) : (
-                    <TrendingDown className="size-3.5 text-rose-400" aria-hidden />
+                    <TrendingDown className="size-3.5 text-[var(--danger)]" aria-hidden />
                   )}
                   <span
                     className={`text-sm font-semibold tabular-nums ${
-                      m.netFollowerChange >= 0 ? "text-emerald-400" : "text-rose-400"
+                      m.netFollowerChange >= 0 ? "text-[var(--success)]" : "text-[var(--danger)]"
                     }`}
                   >
                     {m.netFollowerChange >= 0 ? "+" : ""}
