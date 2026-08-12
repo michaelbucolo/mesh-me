@@ -157,17 +157,17 @@ assert.match(
 // most useful thing this gate has ever taught. The purge of already-orphaned
 // threads shipped as a migration, and PRODUCTION NEVER RUNS MIGRATIONS: the
 // remote database is provisioned with `prisma db push` and kept current by
-// scripts/ensure-remote-schema.mjs, which is strictly additive. So a gate that
+// scripts/ensure-schema.mjs, which is strictly additive. So a gate that
 // reads prisma/migrations was reporting a guarantee about a file, and the file
 // was not the thing that governs the live data.
 //
 // One fact — "orphaned mirrored threads are deleted" — needs a statement in each
 // place that can enact it, and this pins the second one.
-const remote = read("scripts/ensure-remote-schema.mjs");
+const remote = read("scripts/ensure-schema.mjs");
 assert.match(
   remote,
   /DELETE FROM "MessageThread"[\s\S]{0,200}?"connectedAccountId" NOT IN \(SELECT "id" FROM "ConnectedAccount"\)/,
-  "scripts/ensure-remote-schema.mjs must purge mirrored threads whose connection is gone.\n" +
+  "scripts/ensure-schema.mjs must purge mirrored threads whose connection is gone.\n" +
     "  The migration that does this NEVER RUNS in production — the remote database is synced by\n" +
     "  this script, not by prisma migrate. Without the sweep here, the purge exists only in a file\n" +
     "  no deployment executes, and the correspondence stays in the live database.",
@@ -176,7 +176,7 @@ for (const table of ["Message", "ThreadMember"]) {
   assert.match(
     remote,
     new RegExp(String.raw`DELETE FROM "${table}" WHERE "threadId" IN`),
-    `scripts/ensure-remote-schema.mjs must also purge "${table}" rows of orphaned threads.\n` +
+    `scripts/ensure-schema.mjs must also purge "${table}" rows of orphaned threads.\n` +
       "  Production's MessageThread has no foreign key, so nothing cascades for us — every table\n" +
       "  has to be named, deepest first. Message rows are the message bodies themselves.",
   );
@@ -252,7 +252,7 @@ assert.match(
 assert.match(
   remote,
   /DELETE FROM "Message"\s*\n?\s*WHERE "messageType" = 'imported_comment'\s*\n?\s*AND "threadId" IN \(SELECT "id" FROM "MessageThread" WHERE "threadType" <> 'direct'\)/,
-  "scripts/ensure-remote-schema.mjs must remove imported comments that were delivered into\n" +
+  "scripts/ensure-schema.mjs must remove imported comments that were delivered into\n" +
     "  group or community threads. The import matched its thread on membership alone, so for any\n" +
     "  two people who shared a community it selected the community room and published the comment\n" +
     "  to everyone in it. The code path is fixed; these rows are what it already did.",
@@ -260,7 +260,7 @@ assert.match(
 assert.match(
   remote,
   /messageType" = 'imported_comment'[\s\S]{0,400}?NOT EXISTS \([\s\S]{0,300}?"ConnectedAccount"[\s\S]{0,200}?ca\."platform" = m\."sourcePlatform"/,
-  "scripts/ensure-remote-schema.mjs must also purge imported comments whose authorizing\n" +
+  "scripts/ensure-schema.mjs must also purge imported comments whose authorizing\n" +
     "  connection is already gone — the disconnects that happened before the teardown learned to\n" +
     "  do it. The import only runs for the account that owns the commented-on post, so the thread\n" +
     "  member who is not the sender is that account holder; if nobody but the sender still has\n" +
@@ -331,5 +331,5 @@ console.log(
     "  Adding it means a SQLite table rebuild, and both Message and ThreadMember cascade off\n" +
     "  MessageThread, so a DROP without a reliable PRAGMA foreign_keys=OFF deletes every message\n" +
     "  in the product. The enforcing path there is the application-level teardown above; the\n" +
-    "  cascade protects freshly provisioned databases. See the note in ensure-remote-schema.mjs.",
+    "  cascade protects freshly provisioned databases. See the note in ensure-schema.mjs.",
 );

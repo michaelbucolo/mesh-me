@@ -415,6 +415,15 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     return NextResponse.json({ error: "Thread not found" }, { status: 404 });
   }
 
+  // blockUser never removes threadMember rows, so a blocked user still passes
+  // getAuthorizedThread and — unlike POST, which gates at line 272 — could
+  // react to and edit messages in a shared thread, surfacing to the blocker on
+  // their next poll. Enforce the same block gate POST uses (checks both
+  // directions) so blocking someone stops all their writes into the thread.
+  if (await blockedInsideThread(thread, user.id)) {
+    return NextResponse.json({ error: "Cannot change messages in this chat." }, { status: 403 });
+  }
+
   // React/edit/unsend each do a DB read + write; throttle like POST so they
   // can't be looped into write amplification (POST caps sends, PATCH was open).
   if (!rateLimit(`msg-patch:${user.id}`, 120, 60 * 1000).allowed) {

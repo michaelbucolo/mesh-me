@@ -118,11 +118,12 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
 
   const fx = useRef<ConstellationState>({ energy: 0, stage: "identity", phase: "idle", sparks: 0 });
   const anchorRef = useRef<HTMLDivElement>(null);
+  const identityRef = useRef<HTMLInputElement>(null);
   const passwordRef = useRef<HTMLInputElement>(null);
 
   // This flag intentionally gates browser-only identity interactions after hydration.
-  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => setHydrated(true), []);
+
   useEffect(() => {
     fx.current.stage = stage;
   }, [stage]);
@@ -131,6 +132,42 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
     fx.current.energy = 1;
     // Bump the keystroke counter so the constellation flings a caret spark.
     fx.current.sparks = (fx.current.sparks ?? 0) + 1;
+  }, []);
+
+  // ── TAKE WHAT THE BROWSER ALREADY PUT IN THE FIELDS ────────────────────────
+  //
+  // The identity field is `autoFocus`, so the caret is in it the moment the HTML
+  // paints and people start typing immediately — which is the point. But this is
+  // a CONTROLLED input, and until React hydrates there is no onChange listener
+  // on the page at all. Those keystrokes land in the DOM and nowhere else.
+  //
+  // What that looked like, reproduced against a dev server: the field visibly
+  // reads `alex@mesh.me`, and `identifier` is still `""`. The Continue control's
+  // `is-ready` class comes from `identifier.trim()`, so it stays at opacity 0
+  // with pointer-events none — the button is INVISIBLE and unclickable while
+  // your username sits right there in the box. Pressing Enter submits an empty
+  // identity. There is no error, nothing to react to, and no way to tell from
+  // the screen that the app disagrees with what you can plainly see. You are
+  // simply stuck on the front door of the product.
+  //
+  // `suppressHydrationWarning` below is why it was silent: it is there for the
+  // legitimate reason (browsers and password managers prefill these fields
+  // before React looks), and it suppresses this mismatch along with that one.
+  //
+  // So read the DOM back on mount and believe it. The person typed it; the
+  // browser filled it. Either way the DOM holds the truth and React's empty
+  // initial state is the stale copy. Written as an updater so a value that
+  // arrived through onChange in the same tick always wins.
+  useEffect(() => {
+    const typedIdentity = identityRef.current?.value ?? "";
+    if (typedIdentity) {
+      setIdentifier((current) => current || typedIdentity);
+      spark();
+    }
+    const typedPassword = passwordRef.current?.value ?? "";
+    if (typedPassword) setPassword((current) => current || typedPassword);
+    // Mount only: from here on, onChange is attached and authoritative.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // How many signup fields are filled — used to warm the halo as Meshi comes alive.
@@ -374,6 +411,7 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
             <div ref={anchorRef} className="mesh-gate-inputwrap">
               <input
                 autoFocus
+                ref={identityRef}
                 value={identifier}
                 onChange={(e) => {
                   setIdentifier(e.target.value);

@@ -115,10 +115,10 @@ if (hasMeshPro(null) || hasMeshPro(undefined)) {
 
 // ── 5. The deploy grant is idempotent and unconditional ──────────────────────
 {
-  const ensure = read("scripts/ensure-remote-schema.mjs");
+  const ensure = read("scripts/ensure-schema.mjs");
   const grant = /UPDATE User SET isMeshPro = 1[\s\S]{0,240}?isMeshPro = 0/.exec(ensure);
   if (!grant) {
-    fail("5 deploy", "the founder MeshPro grant is gone from ensure-remote-schema.mjs");
+    fail("5 deploy", "the founder MeshPro grant is gone from ensure-schema.mjs");
   } else {
     ok();
     // `AND isMeshPro = 0` is what makes replaying it harmless.

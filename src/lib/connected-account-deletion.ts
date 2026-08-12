@@ -140,7 +140,7 @@ async function purgeConnectedAccountRows(
       if (emptied.length > 0) {
         const huskIds = emptied.map((t) => t.id);
         // Members named explicitly: production's MessageThread table carries no
-        // foreign key at all (see scripts/ensure-remote-schema.mjs), so nothing
+        // foreign key at all (see scripts/ensure-schema.mjs), so nothing
         // is guaranteed to cascade for us there.
         await tx.threadMember.deleteMany({ where: { threadId: { in: huskIds } } });
         await tx.messageThread.deleteMany({ where: { id: { in: huskIds } } });

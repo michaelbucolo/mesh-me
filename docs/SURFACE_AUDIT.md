@@ -368,7 +368,7 @@ orphans.
    removing any pretence that a specific ratio number is protective.
 
    **3. PRODUCTION NEVER RUNS MIGRATIONS.** Verified here: `npm run build` is
-   `prisma generate && node scripts/ensure-remote-schema.mjs && next build`, and
+   `prisma generate && node scripts/ensure-schema.mjs && next build`, and
    that script applies `prisma/ensure-schema.sql`. There is no
    `prisma migrate deploy` anywhere in the deploy path. **Any index or column the
    importer needs must land in two files** — the Prisma schema *and*

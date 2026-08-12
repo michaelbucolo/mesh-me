@@ -288,8 +288,19 @@ export default function RootLayout({
             <RootClientEffects />
           </MotionConfig>
         </ThemeProvider>
-        {/* Vercel Speed Insights — real-user Core Web Vitals for every route. */}
-        <SpeedInsights />
+        {/* Vercel Speed Insights — real-user Core Web Vitals for every route.
+            Only mounted on Vercel, because only Vercel serves the script. The
+            tag points at /_vercel/speed-insights/script.js, which anywhere else
+            is an ordinary 404, answered with Next's HTML error page under
+            `Content-Type: text/html` and `X-Content-Type-Options: nosniff`. So
+            the browser refuses to execute it and logs a failed script load on
+            every page view — a permanent red line in every developer's console
+            for a feature that cannot work off-Vercel anyway.
+
+            `process.env.VERCEL === "1"` is how next.config.ts already asks this
+            question, and this file is a server component, so the check runs on
+            the server and production renders exactly what it rendered before. */}
+        {process.env.VERCEL === "1" && <SpeedInsights />}
       </body>
     </html>
   );
