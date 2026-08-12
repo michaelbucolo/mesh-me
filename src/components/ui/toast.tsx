@@ -48,8 +48,8 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   );
 
   const icons = {
-    success: <CheckCircle className="h-4 w-4 text-emerald-300" />,
-    error: <AlertCircle className="h-4 w-4 text-red-300" />,
+    success: <CheckCircle className="h-4 w-4 text-[var(--ds-success)]" />,
+    error: <AlertCircle className="h-4 w-4 text-[var(--ds-danger)]" />,
     info: <Info className="h-4 w-4 text-[var(--accent-text)]" />,
   };
 
@@ -68,8 +68,8 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   };
 
   const closeButtonStyles = {
-    success: "text-emerald-300/80 hover:text-emerald-100",
-    error: "text-red-300/80 hover:text-red-100",
+    success: "text-[var(--ds-success)] hover:text-[var(--text-primary)]",
+    error: "text-[var(--ds-danger)] hover:text-[var(--text-primary)]",
     info: "text-[var(--text-muted)] hover:text-[var(--text-primary)]",
   };
 

@@ -57,7 +57,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       return (
         <ToastProvider>
           <NativeInit />
-          <div className="flex h-dvh min-h-0 flex-col bg-[#05070f]">
+          <div className="flex h-dvh min-h-0 flex-col bg-[var(--paper-0)]">
             <header className="flex shrink-0 items-center justify-between gap-3 border-b border-white/10 bg-black/40 px-4 py-2.5 backdrop-blur">
               <Link href="/" className="text-sm font-semibold tracking-tight text-white">
                 mesh.me
