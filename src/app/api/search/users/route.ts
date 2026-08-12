@@ -37,18 +37,25 @@ export async function GET(request: Request) {
       ],
       id: { notIn: [user.id, ...blocked] },
       isSuspended: false,
-      isPublic: true,
-      showInDiscovery: true,
       // The profile rule governs being DISCOVERED — found by someone who does
       // not know you. It must not sever people you are already connected to:
       // this endpoint feeds MeChat's new-conversation picker, so gating it
       // flatly would leave you unable to message, or add to a group, someone
       // you already follow. An existing follow edge in either direction is the
       // relationship the rule is explicitly about being "outside" of.
+      //
+      // The public gate (isPublic + showInDiscovery + discovery consent) must
+      // therefore live INSIDE the stranger branch of this OR, not at the top
+      // level. When it was a top-level AND, it ran on every row and excluded a
+      // private account BEFORE the follow branches could exempt it — so the
+      // exemption was dead code, and you could not start a DM or a group with
+      // someone private you already follow. Now the public requirement gates
+      // only the discovery path; a follow edge in either direction is its own
+      // sufficient branch.
       AND: [
         {
           OR: [
-            profileDiscoveryConsentWhere(),
+            { isPublic: true, showInDiscovery: true, ...profileDiscoveryConsentWhere() },
             { following: { some: { followingId: user.id } } },
             { followers: { some: { followerId: user.id } } },
           ],

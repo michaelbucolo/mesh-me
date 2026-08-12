@@ -59,6 +59,20 @@ if (!/hideActivityStatus/.test(typingSrc)) {
     `${typingRoute}: hideActivityStatus not referenced — the typing branch no longer honors the activity-status toggle`,
   );
 }
+// Ghost Mode is the strongest hide and drops mesh presence outright; a live
+// typing beat is the same activity signal, so the typing gate must fold
+// ghostMode in too. Assert both that ghostMode is read and that it participates
+// in the visibility gate, so it cannot be selected-but-ignored.
+if (!/ghostMode/.test(typingSrc)) {
+  failures.push(
+    `${typingRoute}: ghostMode not referenced — a ghosted member's keystrokes still broadcast a live "typing" presence`,
+  );
+}
+if (!/!\s*self\??\.?\s*\.?ghostMode|&&\s*!self\.ghostMode|!self\?\.ghostMode/.test(typingSrc)) {
+  failures.push(
+    `${typingRoute}: ghostMode is read but not negated into the visibility gate — Ghost Mode must SUPPRESS the typing beat, not merely be selected`,
+  );
+}
 // The original defect verbatim: a bare `else` on the keystroke path that fires
 // setMeChatTyping with no toggle gate (comments between are tolerated).
 if (/}\s*else\s*\{\s*(?:\/\/[^\n]*\r?\n\s*)*setMeChatTyping\s*\(/.test(typingSrc)) {
@@ -74,4 +88,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log("mechat-guard: PATCH is block-gated and the typing heartbeat honors hideActivityStatus.");
+console.log("mechat-guard: PATCH is block-gated and the typing heartbeat honors hideActivityStatus + ghostMode.");
