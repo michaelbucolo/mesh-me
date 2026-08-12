@@ -124,7 +124,11 @@ export async function DELETE(req: NextRequest) {
       // No body provided
     }
   }
-  if (!alterEgoId) return NextResponse.json({ error: "alterEgoId required" }, { status: 400 });
+  // req.json() is `any`, so a non-string body value (number, {}, []) slips past a
+  // bare falsy check and reaches Prisma's String-typed `id`, throwing a validation
+  // error that escapes the (json-only) try/catch as a 500. Reject non-strings here
+  // — matching emails/route.ts and phones/route.ts — so a bad body is a clean 400.
+  if (!alterEgoId || typeof alterEgoId !== "string") return NextResponse.json({ error: "alterEgoId required" }, { status: 400 });
 
   const alterEgo = await prisma.alterEgo.findUnique({ where: { id: alterEgoId } });
   if (!alterEgo || alterEgo.userId !== session.userId) {
