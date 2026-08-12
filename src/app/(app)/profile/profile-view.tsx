@@ -174,7 +174,7 @@ export async function InstagramProfileView({ username, tab }: { username: string
               <div className="min-w-0 flex-1">
                 {/* Name row */}
                 <div className="flex flex-wrap items-center gap-2.5">
-                  <h1 className="profile-name text-2xl font-semibold text-[var(--mesh-text)]">{profile.displayName}</h1>
+                  <h2 className="profile-name min-w-0 break-words text-2xl font-semibold text-[var(--mesh-text)]">{profile.displayName}</h2>
                   {/* The only public part of the milestone board, and only
                       because wearing it is a choice. The board itself is
                       private: "connected six platforms" is a fact about

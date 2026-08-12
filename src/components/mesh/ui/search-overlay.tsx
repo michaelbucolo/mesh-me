@@ -91,7 +91,7 @@ export function MeshSearchOverlay({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="w-full max-w-md animate-[bubbleIn_.36s_cubic-bezier(0.22,1,0.36,1)] rounded-2xl mesh-panel p-2 shadow-2xl">
+      <div role="dialog" aria-modal="true" aria-label="Search your Mesh" className="w-full max-w-md animate-[bubbleIn_.36s_cubic-bezier(0.22,1,0.36,1)] rounded-2xl mesh-panel p-2 shadow-2xl">
         <div className="flex items-center gap-2 px-2">
           <Search size={15} className="shrink-0 text-[var(--text-tertiary)]" />
           <input
@@ -102,6 +102,7 @@ export function MeshSearchOverlay({
               if (e.key === "Enter" && searchResults[0]) onJump(searchResults[0]);
             }}
             placeholder={placeholder}
+            aria-label={placeholder}
             className="w-full bg-transparent py-2.5 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:outline-none"
           />
           <button

@@ -23,7 +23,7 @@ export function MeshComposeModal({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="w-full max-w-xl animate-[bubbleIn_.36s_cubic-bezier(0.22,1,0.36,1)] rounded-2xl mesh-panel p-3 shadow-2xl">
+      <div role="dialog" aria-modal="true" aria-label="Create on your mesh" className="w-full max-w-xl animate-[bubbleIn_.36s_cubic-bezier(0.22,1,0.36,1)] rounded-2xl mesh-panel p-3 shadow-2xl">
         <div className="mb-2 flex items-start justify-between px-1">
           <div className="flex items-center gap-2">
             <Sparkles size={15} className="text-[var(--accent)]" />
