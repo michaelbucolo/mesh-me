@@ -9,9 +9,19 @@
  *   - EXTERNAL REQUESTS MUST BE BLOCKED. `page.screenshot()` hangs forever on
  *     "waiting for fonts to load" otherwise.
  *   - Login is TWO STEPS with different testids: identity → `entry-continue-button`
- *     (which is DISABLED until the field validates) → password →
- *     `entry-submit-button`. Not the same button.
+ *     → password → `entry-submit-button`. Not the same button.
+ *   - The step buttons are NEVER `disabled`. They are gated with `opacity: 0` +
+ *     `pointer-events: none` until the field validates, so `!el.disabled` is
+ *     vacuously true from the first paint and every run that waited on it went
+ *     straight to a 30s click timeout — "element is visible, enabled and stable"
+ *     while the input underneath swallowed the click. Wait on what actually
+ *     decides: pointer-events and opacity. `actionable()` below is that wait.
  *   - `pressSequentially`, not `fill` — the form validates per keystroke.
+ *   - KEYSTROKES BEFORE HYDRATION ARE LOST. The identity field is autofocused,
+ *     so the browser invites typing the instant the HTML lands, but React
+ *     re-asserts its own empty state when it hydrates and the field comes back
+ *     blank. Typing once and trusting it is how this harness broke. `type()`
+ *     retypes until the value sticks, which is also what a real person does.
  *   - `domcontentloaded`, never `networkidle` (live presence sockets never idle).
  *   - Theme is a class on <html> read from localStorage key `mesh-theme`
  *     (values `light` / `dark`), applied pre-hydration. It must be set in an
@@ -40,16 +50,36 @@ export async function drive({ theme = "light", width = 1440, height = 900, port 
   }, theme);
 
   const base = `http://localhost:${port}`;
+
+  /** Type into a gate field and confirm it stuck. See the hydration note above. */
+  async function type(testId, value) {
+    const field = page.locator(`[data-testid="${testId}"]`);
+    await field.waitFor({ state: "visible", timeout: 20000 });
+    for (let attempt = 0; attempt < 24; attempt += 1) {
+      await field.fill("");
+      await field.pressSequentially(value, { delay: 8 });
+      if ((await field.inputValue()) === value) return;
+      await page.waitForTimeout(250);
+    }
+    throw new Error(`[drive] ${testId} never kept the value it was given — the gate is discarding input.`);
+  }
+
+  /** Wait for a gate button to be genuinely clickable, not merely present. */
+  async function actionable(testId) {
+    await page.waitForFunction((id) => {
+      const el = document.querySelector(`[data-testid="${id}"]`);
+      if (!el || el.disabled) return false;
+      const style = getComputedStyle(el);
+      return style.pointerEvents !== "none" && Number(style.opacity) > 0.5;
+    }, testId, { timeout: 20000 });
+    await page.locator(`[data-testid="${testId}"]`).click();
+  }
+
   await page.goto(`${base}/login`, { waitUntil: "domcontentloaded" });
-  await page.locator('[data-testid="entry-identity-input"]').pressSequentially(creds.id, { delay: 8 });
-  await page.waitForFunction(() => {
-    const el = document.querySelector('[data-testid="entry-continue-button"]');
-    return el && !el.disabled;
-  });
-  await page.locator('[data-testid="entry-continue-button"]').click();
-  await page.locator('[data-testid="entry-password-input"]').waitFor({ state: "visible" });
-  await page.locator('[data-testid="entry-password-input"]').pressSequentially(creds.pw, { delay: 8 });
-  await page.locator('[data-testid="entry-submit-button"]').click();
+  await type("entry-identity-input", creds.id);
+  await actionable("entry-continue-button");
+  await type("entry-password-input", creds.pw);
+  await actionable("entry-submit-button");
   await page.waitForURL(/\/(mesh|flow|home|onboarding)?$/, { timeout: 30000 }).catch(() => {});
 
   /** Navigate and wait for the page to have actually rendered prose. */
