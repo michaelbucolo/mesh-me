@@ -4,8 +4,8 @@
  * `prisma/schema.prisma` is what the Prisma client is generated from — the
  * shape every query in the app assumes. `prisma/ensure-schema.sql` is what the
  * BUILD applies to the live database, because production never runs migrations
- * (package.json: `prisma generate && node scripts/ensure-remote-schema.mjs &&
- * next build`). The reconciliation pass in ensure-remote-schema.mjs diffs the
+ * (package.json: `prisma generate && node scripts/ensure-schema.mjs &&
+ * next build`). The reconciliation pass in ensure-schema.mjs diffs the
  * live database against THE SQL FILE, not against the Prisma schema.
  *
  * So a column can exist in schema.prisma, have a migration, typecheck, lint,

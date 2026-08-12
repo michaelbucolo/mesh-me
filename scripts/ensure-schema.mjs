@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Additive production schema sync.
+ * Additive schema sync — for EVERY database this checkout points at.
  *
  * The production database is a remote libSQL/Turso instance provisioned via
  * `prisma db push`, and the Vercel build does not run migrations. That left the
@@ -10,24 +10,108 @@
  * This runs during the build and applies `prisma/ensure-schema.sql`, which is
  * the full schema rendered as `CREATE TABLE/INDEX IF NOT EXISTS`. It is strictly
  * additive: it creates missing tables/indexes and never drops or alters existing
- * data. Local builds (file: URLs) are skipped — those use migrations.
+ * data.
+ *
+ * ── WHY LOCAL DATABASES ARE NO LONGER SKIPPED ────────────────────────────────
+ *
+ * This script used to open with `if (!url || url.startsWith("file:")) exit(0)`,
+ * under the comment "Local dev/CI uses a file DB + migrations". The second half
+ * of that sentence is the part that was never true in practice. A dev database
+ * provisioned once by `prisma db push` has no migration history, so
+ * `prisma migrate deploy` refuses it outright:
+ *
+ *     P3005  The database schema is not empty.
+ *
+ * From then on nothing applies anything, and the local database silently falls
+ * further behind `schema.prisma` with every model that lands. It does not
+ * degrade — it works perfectly until the first query touches a table that was
+ * added after the push, and then a whole tab is a 500:
+ *
+ *     DriverAdapterError: SQLITE_ERROR: no such table: main.UserLocation
+ *       at readMap  →  /meshimap, blank
+ *
+ * That was found by driving the tabs, not by any gate, and it had been true for
+ * however long `UserLocation` had existed. The table was in schema.prisma, in a
+ * migration, AND in ensure-schema.sql — three correct statements of the fact,
+ * and the one file that actually creates tables was forbidden from reading any
+ * of them locally.
+ *
+ * So local databases get the same additive sync now. It is the same SQL, and it
+ * is idempotent by construction, so on an up-to-date database it is a few
+ * hundred no-ops. What it buys is that a stale checkout repairs itself at
+ * `npm run dev` / `npm run build` instead of presenting as a hard crash on one
+ * surface, and that a fresh clone gets a complete database without anybody
+ * having to know which provisioning command is the blessed one.
+ *
+ * The DATA blocks at the bottom stay remote-only, and that split is deliberate:
+ * they exist to repair choices real users made under old defaults and to sweep
+ * rows that leaked into the live database. They have nothing to repair in a dev
+ * database, and some of them DELETE. Local mode is structural only — it adds
+ * tables, columns and indexes, and touches no row.
  */
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createClient } from "@libsql/client";
 
-const url = (process.env.DATABASE_URL || "").trim();
+const here = path.dirname(fileURLToPath(import.meta.url));
+const repoRoot = path.join(here, "..");
+
+// ── Finding the database when nothing exported it ───────────────────────────
+// On Vercel, DATABASE_URL arrives in the environment and the block below never
+// runs. Locally, a plain `node scripts/…` process gets no .env loading from
+// anyone — Prisma's CLI does that for its own commands, and Next does it for
+// the app, but neither is in this call path. That is why the file half of this
+// script had to be inert to be harmless: it could not have found the local
+// database even if it had tried. Read the same files Next does, in the same
+// precedence order, and only for keys the environment has not already set — so
+// a real deployment's configuration always wins.
+if (!process.env.DATABASE_URL) {
+  for (const name of [".env.local", ".env"]) {
+    let raw;
+    try {
+      raw = readFileSync(path.join(repoRoot, name), "utf8");
+    } catch {
+      continue;
+    }
+    for (const line of raw.split("\n")) {
+      const match = /^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$/.exec(line);
+      if (!match) continue;
+      const [, key] = match;
+      if (key in process.env) continue;
+      let value = match[2].trim();
+      const quote = value[0];
+      if (quote === '"' || quote === "'") {
+        const end = value.lastIndexOf(quote);
+        value = end > 0 ? value.slice(1, end) : value.slice(1);
+      } else {
+        value = value.replace(/\s+#.*$/, "").trim();
+      }
+      process.env[key] = value;
+    }
+  }
+}
+
+const rawUrl = (process.env.DATABASE_URL || "").trim();
 const authToken = (process.env.DATABASE_AUTH_TOKEN || "").trim() || undefined;
 
-// Only sync remote databases. Local dev/CI uses a file DB + migrations.
-if (!url || url.startsWith("file:")) {
-  console.log("[ensure-schema] Local/file database — skipping remote schema sync.");
+if (!rawUrl) {
+  console.log("[ensure-schema] No DATABASE_URL — nothing to sync.");
   process.exit(0);
 }
 
-const here = path.dirname(fileURLToPath(import.meta.url));
-const sqlPath = path.join(here, "..", "prisma", "ensure-schema.sql");
+const isLocal = rawUrl.startsWith("file:");
+
+// libSQL resolves a relative `file:` path against the process CWD. Anchor it to
+// the repo instead, so running this from a subdirectory syncs the database the
+// app actually opens rather than quietly creating a second one beside you.
+const url = (() => {
+  if (!isLocal) return rawUrl;
+  const filePath = rawUrl.slice("file:".length);
+  return `file:${path.isAbsolute(filePath) ? filePath : path.join(repoRoot, filePath)}`;
+})();
+
+const sqlPath = path.join(repoRoot, "prisma", "ensure-schema.sql");
 const raw = readFileSync(sqlPath, "utf8");
 
 // Split into individual statements (strip -- comments, split on `;`).
@@ -70,7 +154,20 @@ const runStatements = async (list) => {
   }
 };
 
+/** Table names the database has right now — the only honest measure of what
+ * this run actually repaired. `created` counts statements that executed, and
+ * `CREATE TABLE IF NOT EXISTS` executes successfully whether or not it did
+ * anything, so it cannot tell "in sync" from "was missing 40 tables". */
+const listTables = async () => {
+  const result = await client.execute(
+    "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'",
+  );
+  return new Set(result.rows.map((row) => String(row.name)));
+};
+
 try {
+  const tablesBefore = await listTables();
+
   // Phase 1: tables only, so every table exists before we diff columns.
   await runStatements(tableStatements);
 
@@ -144,7 +241,30 @@ try {
 
   // Phase 3: indexes and everything else — safe now that all columns exist.
   await runStatements(otherStatements);
-  console.log(`[ensure-schema] Remote schema in sync (${created} applied, ${skipped} pre-existing).`);
+
+  const addedTables = [...(await listTables())].filter((name) => !tablesBefore.has(name)).sort();
+  console.log(
+    `[ensure-schema] ${isLocal ? "Local" : "Remote"} schema in sync ` +
+      `(${created} applied, ${skipped} pre-existing).`,
+  );
+
+  // Say it out loud when the database really was behind. On a healthy run this
+  // prints nothing; when it prints, it is naming the exact tables whose absence
+  // would otherwise have surfaced as "no such table" on some unrelated tab.
+  if (addedTables.length || addedColumns) {
+    console.log(
+      `[ensure-schema] The database was BEHIND the schema — created ` +
+        `${addedTables.length} table(s) and ${addedColumns} column(s).`,
+    );
+    for (const name of addedTables) console.log(`[ensure-schema]   + table ${name}`);
+  }
+
+  if (isLocal) {
+    // Structural only — see the header. Everything below repairs live data.
+    // Closed explicitly because `process.exit` skips the `finally`.
+    await client.close?.();
+    process.exit(0);
+  }
 
   // ── One-time data normalizations ────────────────────────────────────────
   // Guarded by a marker table so each runs exactly once — they must never
