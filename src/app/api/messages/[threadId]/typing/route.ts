@@ -54,9 +54,15 @@ export async function POST(request: NextRequest, context: RouteContext) {
   // — loaded once here so the typing branch can't leak presence past the toggle.
   const self = await prisma.user.findUnique({
     where: { id: user.id },
-    select: { readReceipts: true, hideActivityStatus: true },
+    select: { readReceipts: true, hideActivityStatus: true, ghostMode: true },
   });
-  const activityVisible = Boolean(self?.readReceipts && !self.hideActivityStatus);
+  // Ghost Mode is the strongest hide — mesh presence drops a ghosted member's
+  // heartbeat outright (mesh-presence-store: `if (entry.ghostMode) continue`).
+  // A live "typing…" or "in the chat now" beat is exactly that same activity
+  // signal on a different surface, so Ghost Mode has to suppress it too; without
+  // this line, going invisible hid you on the mesh while your keystrokes still
+  // lit you up in every open DM.
+  const activityVisible = Boolean(self?.readReceipts && !self.hideActivityStatus && !self.ghostMode);
   if (body.typing === false && body.viewing === true) {
     // Viewing heartbeat: the thread is open and visible, Bitmoji-style
     // presence — the member's Meshi sits quietly in the chat. Honors the
