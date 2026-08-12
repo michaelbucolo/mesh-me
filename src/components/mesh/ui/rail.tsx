@@ -29,7 +29,9 @@ function RailButton({
       // A labeled control, not a mystery icon: on touch the label is always
       // shown (no hover to reveal it); with a mouse it stays a tidy icon that
       // expands its label on hover/focus. Comfortable 44px touch target.
-      className="mesh-rail-btn mesh-glass mesh-ctl ds-focus-ring flex h-11 items-center rounded-full px-3 text-[var(--text-secondary)]"
+      // `pointer-events-auto` re-arms this child under the container's
+      // `pointer-events-none` (see the toolbar wrapper).
+      className="pointer-events-auto mesh-rail-btn mesh-glass mesh-ctl ds-focus-ring flex h-11 items-center rounded-full px-3 text-[var(--text-secondary)]"
     >
       <span className="flex h-5 w-5 shrink-0 items-center justify-center">{children}</span>
       <span className="mesh-rail-label text-xs font-medium">{label}</span>
@@ -64,7 +66,9 @@ function RailLink({
       // other rail control stops it for the same reason: without this, reaching
       // for the rail pans the world out from under you.
       onPointerDown={(e) => e.stopPropagation()}
-      className="mesh-rail-btn mesh-glass mesh-ctl ds-focus-ring flex h-11 items-center rounded-full px-3 text-[var(--text-secondary)]"
+      // `pointer-events-auto` re-arms this child under the container's
+      // `pointer-events-none` (see the toolbar wrapper).
+      className="pointer-events-auto mesh-rail-btn mesh-glass mesh-ctl ds-focus-ring flex h-11 items-center rounded-full px-3 text-[var(--text-secondary)]"
     >
       <span className="flex h-5 w-5 shrink-0 items-center justify-center">{children}</span>
       <span className="mesh-rail-label text-xs font-medium">{label}</span>
@@ -111,7 +115,12 @@ export function MeshRail({
       data-testid="mesh-action-bar"
       role="toolbar"
       aria-label="Mesh actions"
-      className="absolute right-3 top-1/2 z-30 flex -translate-y-1/2 flex-col items-end gap-2"
+      // The container spans a tall right-edge column, most of it transparent gap
+      // between the buttons. As a normal element that whole column captured
+      // pointer events, so nodes and hovers behind the empty space were dead.
+      // `pointer-events-none` here hands those events back to the canvas; each
+      // interactive child re-arms hit-testing with `pointer-events-auto`.
+      className="pointer-events-none absolute right-3 top-1/2 z-30 flex -translate-y-1/2 flex-col items-end gap-2"
     >
       {canCompose && (
         <RailButton label={copy.composeLabel} onClick={onCompose}>

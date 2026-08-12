@@ -22,9 +22,9 @@ export default async function ExplorePage() {
     // never NSFW) — hand it the real user or nothing at all.
     getExplorePosts(1, 30),
     getMergedForYouFeedPosts(viewer, 30),
-    getTrendingTags(),
-    user ? getDiscoverUsers(user) : Promise.resolve([]),
-    getTrendingCommunities(),
+    getTrendingTags().catch(() => []),
+    (user ? getDiscoverUsers(user) : Promise.resolve([])).catch(() => []),
+    getTrendingCommunities().catch(() => []),
   ]);
 
   const seen = new Set<string>();
