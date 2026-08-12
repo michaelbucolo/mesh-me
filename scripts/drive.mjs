@@ -44,7 +44,26 @@ export async function drive({ theme = "light", width = 1440, height = 900, port 
   const context = await browser.newContext({ viewport: { width, height }, deviceScaleFactor: 2 });
   const page = await context.newPage();
 
-  await page.route("**/*", (r) => (r.request().url().includes("localhost") ? r.continue() : r.abort()));
+  // Block external requests ONLY, and — critically — do not intercept the app's
+  // own traffic at all.
+  //
+  // The previous form matched `**/*` and called `route.continue()` for anything
+  // on localhost. That is not a no-op: every allowed response is then proxied
+  // back through the Playwright driver, and a large one loses the race against
+  // the next navigation. `/_next/static/chunks/app/global-error.js` is 2.9 MB
+  // under dev's eval-source-map; the browser was receiving 851,964 bytes of it,
+  // cut off mid-string, and throwing `Invalid or unexpected token`.
+  //
+  // It looked exactly like a real defect, and a moving one — the chunk is
+  // fetched opportunistically, so the error landed on a different tab each run
+  // (/inbox and /notifications one pass, /explore and /meshpro the next). curl
+  // against the same URL returns all 2,895,995 bytes and `node --check` parses
+  // them, which is what proved the app was innocent. Matching only the requests
+  // that are actually going to be aborted leaves the app's own bytes untouched.
+  await page.route(
+    (url) => !/^(localhost|127\.0\.0\.1|\[::1\])$/.test(url.hostname),
+    (r) => r.abort(),
+  );
   await page.addInitScript((t) => {
     try { localStorage.setItem("mesh-theme", t); } catch {}
   }, theme);
