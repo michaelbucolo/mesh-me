@@ -37,7 +37,7 @@ export const MESHI_OPTION_VALUES = {
   // lashes" and keeps working via resolveLash(), so nobody's Meshi changes
   // under them.
   eyes: new Set<string>(["regular", ...MESHI_LASH_IDS]),
-  badges: new Set(["none", "spark", "heart", "shield", "verified", "creator", "founder", "charter"]),
+  badges: new Set(["none", "spark", "heart", "shield", "verified", "creator", "founder", "charter", "patron"]),
 };
 
 export type MeshiPreferenceUpdate = {

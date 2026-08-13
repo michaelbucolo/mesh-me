@@ -66,6 +66,17 @@ export async function syncMeshProSubscription(
   fallbackUserId?: string,
   options: { revalidate?: boolean } = {},
 ) {
+  // THE BELT. This function writes isMeshPro absolutely from subscription
+  // status, and resolves its user by customer id as a last resort — so a
+  // subscription that belongs to any OTHER product, arriving here through a
+  // webhook mis-route or a future refactor, would grant or revoke MeshPro
+  // from a purchase that never bought it. Refuse-foreign, never strict:
+  // payment-link subscriptions are legally metadata-less and must keep
+  // flowing, so only a subscription POSITIVELY stamped as another product's
+  // is turned away.
+  const product = subscription.metadata?.product;
+  if (product && product !== "meshpro") return null;
+
   const subscriptionId = subscription.id;
   const customerId = stripeObjectId(subscription.customer);
   const userId = subscription.metadata?.userId || fallbackUserId;

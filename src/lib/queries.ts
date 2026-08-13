@@ -343,6 +343,9 @@ export async function getUserProfile(username: string) {
       // on — the toggle travels with the number so the render is one check.
       charterNumber: true,
       showCharterNumber: true,
+      // Patron chip: same shape — the set-once record plus its own switch.
+      patronSince: true,
+      showPatronChip: true,
       interests: {
         select: { id: true, tag: true },
         orderBy: { tag: "asc" },
@@ -1638,6 +1641,8 @@ export async function getUserSettings() {
     achievements: achievements.map((a) => ({ slug: a.achievement.slug })),
     isMeshPro: user.isMeshPro,
     charterHolder: user.charterNumber != null,
+    // The RECORD, not standing — a lapsed patron keeps the pin.
+    patronRecord: user.patronSince != null,
     ownedMeshiItems: ownedMeshiRows.map((row) => `${row.category}:${row.value}`),
   };
 }

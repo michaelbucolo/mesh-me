@@ -7,8 +7,10 @@ import { CalendarClock, CheckCircle2, CreditCard, Crown, ExternalLink, ShieldChe
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CharterChipToggle } from "@/components/meshpro/charter-chip-toggle";
+import { PatronChipToggle } from "@/components/meshpro/patron-chip-toggle";
 import { BillingPortalButton } from "@/components/meshpro/mesh-pro-actions";
 import { getCurrentUser } from "@/lib/auth";
+import { getActivePatronStint } from "@/lib/patron";
 import { getMeshProBillingState } from "@/lib/stripe-billing";
 
 export const metadata: Metadata = {
@@ -31,7 +33,10 @@ export default async function BillingPage() {
   if (!user) redirect("/login?next=/billing");
   if (!user.onboarded) redirect("/onboarding");
 
-  const billing = await getMeshProBillingState(user.id);
+  const [billing, patronStint] = await Promise.all([
+    getMeshProBillingState(user.id),
+    getActivePatronStint(user.id),
+  ]);
   if (!billing) redirect("/settings");
 
   const isPro = billing.isMeshPro;
@@ -81,6 +86,17 @@ export default async function BillingPage() {
             {" · "}№{user.charterNumber} of 100
           </p>
           <CharterChipToggle initialShown={user.showCharterNumber} />
+        </section>
+      )}
+
+      {user.patronSince != null && (
+        <section className="mesh-surface flex flex-wrap items-center justify-between gap-3 rounded-lg px-4 py-3">
+          <p className="text-sm text-[var(--text-secondary)]">
+            <span className="font-semibold text-[var(--text-primary)]">Patron</span>
+            {patronStint && <>{" · "}${Math.round(patronStint.monthlyCents / 100)} monthly</>}
+            {" · "}since {formatDate(user.patronSince)}
+          </p>
+          <PatronChipToggle initialShown={user.showPatronChip} />
         </section>
       )}
 

@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { attachCharterSession, CHARTER_PRICE_CENTS, CHARTER_SESSION_TTL_S, releaseCharterHold, reserveCharterSeat } from "@/lib/charter";
 import { isFounderUsername, isMeshProGiftActive, MESH_PRO_GIFT_MESSAGE_MAX, MESH_PRO_GIFT_PRICING } from "@/lib/mesh-pro";
 import { isGiftableMeshiItem, MESHI_ITEM_PRICE_CENTS, meshiItemLabel } from "@/lib/meshi-wardrobe";
+import { getActivePatronStint, parsePatronTier, PATRON_TIERS } from "@/lib/patron";
 import { prisma } from "@/lib/prisma";
 import { isSameOriginRequest } from "@/lib/request-guard";
 import { getAppBaseUrl, getMeshProGiftPriceId, getMeshProPaymentLink, getMeshProPriceId, getStripeClient, parseMeshProGiftPlan, parseMeshProPlan } from "@/lib/stripe";
@@ -305,6 +306,70 @@ export async function POST(req: Request) {
         );
       }
       return NextResponse.json({ url: charterSession.url });
+    }
+
+    // ── Patron: a recurring monthly contribution that buys nothing ──────────
+    if (payload?.patron !== undefined) {
+      const tier = parsePatronTier(payload.patron);
+      if (!tier) {
+        return NextResponse.json({ error: "Invalid patron amount" }, { status: 400 });
+      }
+
+      const liveStint = await getActivePatronStint(user.id);
+      if (liveStint) {
+        return NextResponse.json(
+          { error: "You're already a patron. Manage it from billing.", alreadyActive: true },
+          { status: 409 },
+        );
+      }
+
+      const stripe = getStripeClient();
+      // No payment-link fallback: a static link cannot carry patronUserId,
+      // and a contribution the webhook cannot route is money taken for a
+      // record never written.
+      if (!stripe) {
+        return NextResponse.json(
+          { error: "Payment is not configured yet. Please check back soon." },
+          { status: 503 },
+        );
+      }
+
+      const baseUrl = getAppBaseUrl(req);
+      const patronMetadata = { product: "patron", patronUserId: user.id };
+      const patronSession = await stripe.checkout.sessions.create({
+        mode: "subscription",
+        line_items: [
+          {
+            price_data: {
+              currency: "usd",
+              unit_amount: PATRON_TIERS[tier],
+              recurring: { interval: "month" },
+              product_data: { name: "Mesh.me Patron" },
+            },
+            quantity: 1,
+          },
+        ],
+        // The SAME metadata on both objects — subscription_data.metadata is
+        // the single most load-bearing line here: customer.subscription.*
+        // events see only the SUBSCRIPTION's metadata, and an unstamped
+        // patron subscription would resolve through the shared customer id
+        // and rewrite MeshPro standing from patron billing state.
+        // Deliberately NO userId key, NO client_reference_id, NO promotion
+        // codes: nothing the MeshPro reconciler could read as ownership.
+        metadata: patronMetadata,
+        subscription_data: { metadata: patronMetadata },
+        success_url: `${baseUrl}/meshpro/patron?payment=success&session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${baseUrl}/meshpro/patron?payment=cancelled`,
+        ...(user.stripeCustomerId ? { customer: user.stripeCustomerId } : { customer_email: user.email }),
+      });
+
+      if (!patronSession.url) {
+        return NextResponse.json(
+          { error: "Stripe did not return a checkout URL. Please try again." },
+          { status: 502 },
+        );
+      }
+      return NextResponse.json({ url: patronSession.url });
     }
 
     const plan = parseMeshProPlan(payload?.plan);

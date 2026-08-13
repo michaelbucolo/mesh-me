@@ -3,6 +3,7 @@ import Stripe from "stripe";
 import { prisma } from "@/lib/prisma";
 import { applyCharterRefund, applyCharterSession, releaseExpiredCharterSession } from "@/lib/charter";
 import { applyMeshiItemRefund, applyMeshiItemSession } from "@/lib/meshi-item";
+import { applyPatronCheckoutSession, applyPatronRefund, syncPatronSubscription } from "@/lib/patron";
 import { applyMeshProGiftSession, syncMeshProSubscription } from "@/lib/stripe-billing";
 import { getStripeClient, stripeObjectId } from "@/lib/stripe";
 
@@ -70,6 +71,15 @@ export async function POST(req: Request) {
           break;
         }
 
+        // Patron is the one product here that IS a subscription, so falling
+        // through would land in the `if (subscriptionId)` arm below and buy
+        // MeshPro for $2/month. Routed first, like everything else — and the
+        // belt inside syncMeshProSubscription is the second wall.
+        if (session.metadata?.product === "patron") {
+          await applyPatronCheckoutSession(session, { revalidate: true });
+          break;
+        }
+
         const userId = session.metadata?.userId;
         const subscriptionId = stripeObjectId(session.subscription);
 
@@ -92,11 +102,25 @@ export async function POST(req: Request) {
       case "customer.subscription.created":
       case "customer.subscription.updated": {
         const subscription = event.data.object as Stripe.Subscription;
+        // Patron churn routes to its own sync FIRST: unrouted, this renewal
+        // would fall through to the MeshPro sync, resolve the user by the
+        // SHARED customer id, and rewrite isMeshPro from patron billing state.
+        if (subscription.metadata?.product === "patron") {
+          await syncPatronSubscription(subscription, { revalidate: true });
+          break;
+        }
         await syncMeshProSubscription(subscription, undefined, { revalidate: true });
         break;
       }
       case "customer.subscription.deleted": {
         const subscription = event.data.object as Stripe.Subscription;
+        // The headline bomb lives here: without this branch, CANCELING a
+        // patron contribution would revoke a separately-purchased MeshPro
+        // (same customer id, isMeshPro written from the patron sub's status).
+        if (subscription.metadata?.product === "patron") {
+          await syncPatronSubscription(subscription, { revalidate: true });
+          break;
+        }
         await syncMeshProSubscription(subscription, undefined, { revalidate: true });
         break;
       }
@@ -119,6 +143,10 @@ export async function POST(req: Request) {
         // Full refund of a wardrobe piece revokes the receipt (and, for a
         // non-Pro owner with no surviving receipt, resets the equipped axis).
         await applyMeshiItemRefund(charge);
+        // Full refund of a patron invoice marks its stint; the record erases
+        // only when no un-refunded stint survives. Self-narrows through the
+        // charge's invoice → subscription → PatronStint lookup.
+        await applyPatronRefund(charge);
         break;
       }
       case "invoice.payment_failed": {

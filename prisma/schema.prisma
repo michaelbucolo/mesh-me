@@ -84,6 +84,13 @@ model User {
   charterSeats               CharterSeat[]
   ownedMeshiItems            OwnedMeshiItem[]            @relation("meshiItemOwner")
   purchasedMeshiItems        OwnedMeshiItem[]            @relation("meshiItemPurchaser")
+  /// When this account FIRST became a patron — a record of fact, set once by
+  /// syncPatronSubscription and never cleared by churn (a lapsed patron keeps
+  /// the record; cancellation must cost nothing visible). Nulled only by
+  /// full-refund erasure in applyPatronRefund: money back, record erased.
+  patronSince                DateTime?
+  showPatronChip             Boolean                     @default(true)
+  patronStints               PatronStint[]
   // Privacy toggles
   showInDiscovery            Boolean                     @default(false)
   hideActivityStatus         Boolean                     @default(false)
@@ -1122,6 +1129,27 @@ model OwnedMeshiItem {
 
   @@index([ownerId])
   @@index([purchaserId])
+}
+
+/// One patron subscription's lifetime — a receipt of standing, never an
+/// entitlement (patronage buys nothing; User.patronSince is the record the
+/// marks render from). Keyed on the Stripe subscription id so redelivered or
+/// out-of-order webhooks converge: a stale `deleted` for an old subscription
+/// can only end its OWN stint, never the live one. `refundedAt` is written
+/// only by full-refund bookkeeping in applyPatronRefund.
+model PatronStint {
+  id                   String    @id @default(cuid())
+  userId               String
+  stripeSubscriptionId String    @unique
+  monthlyCents         Int
+  startedAt            DateTime  @default(now())
+  endedAt              DateTime?
+  refundedAt           DateTime?
+  updatedAt            DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 /// One paid Gift of MeshPro — the receipt row, not the entitlement (that is

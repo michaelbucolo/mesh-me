@@ -24,6 +24,8 @@ CREATE TABLE IF NOT EXISTS "User" (
     "meshProGiftUntil" DATETIME,
     "charterNumber" INTEGER,
     "showCharterNumber" BOOLEAN NOT NULL DEFAULT true,
+    "patronSince" DATETIME,
+    "showPatronChip" BOOLEAN NOT NULL DEFAULT true,
     "stripeCustomerId" TEXT,
     "stripeSubscriptionId" TEXT,
     "signupNumber" INTEGER,
@@ -678,6 +680,19 @@ CREATE TABLE IF NOT EXISTS "CharterSeat" (
     "retiredAt" DATETIME,
     "updatedAt" DATETIME NOT NULL,
     CONSTRAINT "CharterSeat_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE SET NULL ON UPDATE CASCADE
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "PatronStint" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "userId" TEXT NOT NULL,
+    "stripeSubscriptionId" TEXT NOT NULL,
+    "monthlyCents" INTEGER NOT NULL,
+    "startedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "endedAt" DATETIME,
+    "refundedAt" DATETIME,
+    "updatedAt" DATETIME NOT NULL,
+    CONSTRAINT "PatronStint_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 -- CreateTable
@@ -1352,6 +1367,10 @@ INSERT OR IGNORE INTO "CharterSeat" ("number", "updatedAt") VALUES
 (98, '2026-08-13 00:00:00'),
 (99, '2026-08-13 00:00:00'),
 (100, '2026-08-13 00:00:00');
+
+CREATE UNIQUE INDEX IF NOT EXISTS "PatronStint_stripeSubscriptionId_key" ON "PatronStint"("stripeSubscriptionId");
+
+CREATE INDEX IF NOT EXISTS "PatronStint_userId_idx" ON "PatronStint"("userId");
 
 CREATE UNIQUE INDEX IF NOT EXISTS "OwnedMeshiItem_stripeSessionId_key" ON "OwnedMeshiItem"("stripeSessionId");
 
