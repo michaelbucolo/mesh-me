@@ -111,7 +111,11 @@ export async function POST(req: Request) {
         line_items: [{ price: giftPriceId, quantity: 1 }],
         success_url: `${baseUrl}/profile/${recipient.username}?gift=sent`,
         cancel_url: `${baseUrl}/meshpro/gift?to=${recipient.username}&payment=cancelled`,
-        client_reference_id: user.id,
+        // Deliberately NO client_reference_id and no `userId` metadata key: the
+        // reconciler in syncMeshProCheckoutSessionForUser treats those as "this
+        // session's owner may claim MeshPro from it", and a gift must never be
+        // claimable as the purchaser's own entitlement. The webhook routes
+        // gifts purely by product + purchaserUserId/recipientUserId.
         metadata: {
           product: "meshpro-gift",
           purchaserUserId: user.id,
