@@ -331,6 +331,7 @@ export async function getUserProfile(username: string) {
       isPublic: true,
       isVerified: true,
       isMeshPro: true,
+      meshProGiftUntil: true,
       isSuspended: true,
       createdAt: true,
       lastSeenAt: true,
@@ -553,7 +554,12 @@ export async function getUserProfile(username: string) {
     // Founder accounts read as MeshPro to everyone, not just to themselves —
     // getCurrentUser resolves this for the session user, and this is the same
     // rule on the OTHER side of the request, for the profile being viewed.
+    // (Gifted windows fold in the same way, through hasMeshPro.)
     isMeshPro: hasMeshPro(user),
+    // Selected only so hasMeshPro() can be called on the row — when someone's
+    // gift runs out is between them and the person who gave it, not a fact
+    // their profile broadcasts. Same treatment as hideActivityStatus above.
+    meshProGiftUntil: undefined,
     bio: profileVisible ? user.bio : null,
     location: profileVisible ? user.location : null,
     website: profileVisible ? user.website : null,

@@ -1,4 +1,5 @@
 import Stripe from "stripe";
+import type { MeshProGiftPlan } from "./mesh-pro";
 import { PRODUCTION_APP_URL } from "./oauth";
 
 /**
@@ -30,6 +31,26 @@ export const MESH_PRO_PLANS = {
 } as const;
 
 export type MeshProPlan = keyof typeof MESH_PRO_PLANS;
+
+/**
+ * Gift MeshPro price IDs — these MUST be one-time Prices in the Stripe
+ * Dashboard, never the recurring STRIPE_MONTHLY/YEARLY prices: a gift checkout
+ * runs `mode: "payment"`, and Stripe rejects recurring prices in payment mode
+ * outright. Same envKey pattern as MESH_PRO_PLANS above.
+ */
+export const MESH_PRO_GIFT_PLANS = {
+  "1m": { envKey: "STRIPE_GIFT_1M_PRICE_ID" },
+  "3m": { envKey: "STRIPE_GIFT_3M_PRICE_ID" },
+  "12m": { envKey: "STRIPE_GIFT_12M_PRICE_ID" },
+} as const;
+
+export function parseMeshProGiftPlan(value: unknown): MeshProGiftPlan | null {
+  return value === "1m" || value === "3m" || value === "12m" ? value : null;
+}
+
+export function getMeshProGiftPriceId(plan: MeshProGiftPlan) {
+  return process.env[MESH_PRO_GIFT_PLANS[plan].envKey]?.trim() || null;
+}
 
 let stripeClient: Stripe | null | undefined;
 

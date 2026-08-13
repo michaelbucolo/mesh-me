@@ -15,9 +15,11 @@ export default async function ProfilePage({
   searchParams,
 }: {
   params: Promise<{ username: string }>;
-  searchParams: Promise<{ tab?: string }>;
+  searchParams: Promise<{ tab?: string; gift?: string }>;
 }) {
   const { username } = await params;
-  const { tab } = await searchParams;
-  return <InstagramProfileView username={username} tab={tab} />;
+  const { tab, gift } = await searchParams;
+  // ?gift=sent is where Stripe lands the PURCHASER after a Gift MeshPro
+  // checkout — the one quiet confirmation that the payment went through.
+  return <InstagramProfileView username={username} tab={tab} giftSent={gift === "sent"} />;
 }

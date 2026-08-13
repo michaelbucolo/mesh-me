@@ -1,5 +1,5 @@
 import { cache } from "react";
-import { isFounderUsername } from "@/lib/mesh-pro";
+import { isFounderUsername, isMeshProGiftActive } from "@/lib/mesh-pro";
 import { prisma } from "./prisma";
 import bcrypt from "bcryptjs";
 import { randomBytes } from "crypto";
@@ -129,12 +129,22 @@ export const getCurrentUser = cache(async () => {
   const user = session.user;
   if (!user || user.isSuspended) return null;
 
-  // Founder accounts carry MeshPro for life. Resolved here, at the one place
-  // every authenticated request loads its user, so nothing downstream has to
-  // remember — see FOUNDER_USERNAMES in lib/mesh-pro.ts for why this is derived
-  // rather than a row.
-  if (!user.isMeshPro && isFounderUsername(user.username)) {
-    return { ...user, isMeshPro: true, meshProSince: user.meshProSince ?? user.createdAt };
+  // Founder accounts carry MeshPro for life, and a gifted window carries it
+  // until it expires. Resolved here, at the one place every authenticated
+  // request loads its user, so nothing downstream has to remember — see
+  // FOUNDER_USERNAMES in lib/mesh-pro.ts for why founder status is derived
+  // rather than a row, and User.meshProGiftUntil for why a gift lives outside
+  // the isMeshPro column entirely. Every raw `user.isMeshPro` read of the
+  // SESSION user in the codebase leans on this patch (founder-pro-check §6
+  // exempts them for exactly that reason), so a new entitlement leg that is
+  // not resolved here would silently read as free everywhere.
+  if (!user.isMeshPro) {
+    if (isFounderUsername(user.username)) {
+      return { ...user, isMeshPro: true, meshProSince: user.meshProSince ?? user.createdAt };
+    }
+    if (isMeshProGiftActive(user.meshProGiftUntil)) {
+      return { ...user, isMeshPro: true };
+    }
   }
   return user;
 });

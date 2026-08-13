@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { LucideIcon } from "lucide-react";
-import { CalendarRange, Crown, LineChart, Palette, SlidersHorizontal, WandSparkles } from "lucide-react";
+import { CalendarRange, Crown, Gift, LineChart, Palette, SlidersHorizontal, WandSparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BillingPortalButton, MeshProCheckoutButton } from "@/components/meshpro/mesh-pro-actions";
 import { getCurrentUser } from "@/lib/auth";
@@ -119,6 +119,17 @@ const unlocks: Array<{
   },
 ];
 
+// Not an unlock — the one thing on this page you buy FOR someone else. Same
+// contract as the cards above though: the claim names the code that delivers
+// it, and scripts/meshpro-claims-check.ts asserts both halves exist.
+const giftCard = {
+  title: "Give MeshPro",
+  body: "A month, a season, or a year for someone else. One payment, no subscription — their months just start, and stack on anything they have.",
+  href: "/meshpro/gift",
+  icon: Gift,
+  enforcedIn: { file: "src/lib/stripe-billing.ts", symbol: "applyMeshProGiftSession" },
+};
+
 export default async function MeshProPage({ searchParams }: MeshProPageProps) {
   const user = await getCurrentUser();
   if (!user) redirect("/login?next=/meshpro");
@@ -137,6 +148,12 @@ export default async function MeshProPage({ searchParams }: MeshProPageProps) {
   const billing = await getMeshProBillingState(user.id);
   const isPro = Boolean(billing?.isMeshPro);
   const renewalDate = formatBillingDate(billing?.currentPeriodEnd ?? null);
+  const hasSubscription = Boolean(billing?.stripeSubscriptionId);
+  const giftedThrough = formatBillingDate(billing?.giftUntil ?? null);
+  // A gifted member sees the plans too — subscribing while gifted is fair by
+  // construction (checkout trials the subscription until the gift ends, so no
+  // day is paid for twice), and hiding the grid would strand them at expiry.
+  const showPricing = !isPro || (Boolean(billing?.giftUntil) && !hasSubscription);
 
   return (
     <main className="simple-page mx-auto grid w-full max-w-3xl gap-10 pb-16">
@@ -168,7 +185,9 @@ export default async function MeshProPage({ searchParams }: MeshProPageProps) {
         <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
           {isPro ? (
             <>
-              <BillingPortalButton>Manage billing</BillingPortalButton>
+              {/* A pure gift recipient has no Stripe customer — a billing
+                  portal button would only open an error for them. */}
+              {billing?.stripeCustomerId && <BillingPortalButton>Manage billing</BillingPortalButton>}
               <Button asChild variant="secondary">
                 <Link href="/settings">Customize</Link>
               </Button>
@@ -180,6 +199,12 @@ export default async function MeshProPage({ searchParams }: MeshProPageProps) {
         {isPro && renewalDate && (
           <p className="mt-3 text-xs text-[var(--text-muted)]">
             {billing?.cancelAtPeriodEnd ? "Access through" : "Renews"} {renewalDate}
+          </p>
+        )}
+        {giftedThrough && (
+          <p className="mt-3 text-xs text-[var(--text-muted)]">
+            Gifted through {giftedThrough}.
+            {!hasSubscription && " If you subscribe, paid time starts after that — no day is billed twice."}
           </p>
         )}
       </header>
@@ -198,7 +223,17 @@ export default async function MeshProPage({ searchParams }: MeshProPageProps) {
         ))}
       </section>
 
-      {!isPro && (
+      <section>
+        <Link href={giftCard.href} className="mesh-choice group flex items-start gap-4 rounded-xl p-5 transition">
+          <giftCard.icon className="mt-0.5 h-5 w-5 shrink-0 text-[var(--accent-text)]" aria-hidden="true" />
+          <span className="min-w-0">
+            <span className="block text-sm font-semibold text-[var(--text-primary)]">{giftCard.title}</span>
+            <span className="mt-1 block text-[0.78125rem] leading-5 text-[var(--text-secondary)]">{giftCard.body}</span>
+          </span>
+        </Link>
+      </section>
+
+      {showPricing && (
         <section id="pricing" className="grid gap-3 sm:grid-cols-2">
           {Object.values(MESH_PRO_PRICING).map((plan) => (
             <article

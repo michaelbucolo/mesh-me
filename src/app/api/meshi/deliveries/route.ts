@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
+import { hasMeshPro } from "@/lib/mesh-pro";
 import { parseDeliveryNotificationMessage } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
 import { isSameOriginRequest, readJsonObject } from "@/lib/request-guard";
@@ -35,6 +36,8 @@ export async function GET() {
             username: true,
             displayName: true,
             avatarUrl: true,
+            isMeshPro: true,
+            meshProGiftUntil: true,
             meshiPreference: {
               select: {
                 colorTheme: true,
@@ -113,6 +116,9 @@ export async function GET() {
       meshiAccessory: n.actor?.meshiPreference?.accessoryStyle || "none",
       meshiEyeStyle: n.actor?.meshiPreference?.eyeStyle || "regular",
       meshiBadge: n.actor?.meshiPreference?.badgeStyle || "none",
+      // The sender's Meshi walks in wearing their own mark — hasMeshPro(),
+      // never the raw column, which is unpatched for non-session rows.
+      isPro: n.actor ? hasMeshPro(n.actor) : false,
       timestamp: n.createdAt.getTime(),
     }));
 

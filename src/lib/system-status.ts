@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { getMeshProPaymentLink, getMeshProPriceId, getStripeClient, MESH_PRO_PLANS } from "@/lib/stripe";
+import { getMeshProGiftPriceId, getMeshProPaymentLink, getMeshProPriceId, getStripeClient, MESH_PRO_GIFT_PLANS, MESH_PRO_PLANS } from "@/lib/stripe";
 import { getOAuthClientId, getOAuthClientSecret, OAUTH_CONFIGS } from "@/lib/oauth";
 import { hasSecretEncryptionKey } from "@/lib/secret-store";
 
@@ -147,13 +147,20 @@ export async function getPublicSystemStatus(): Promise<PublicSystemStatus> {
         const meshProPlan = plan as keyof typeof MESH_PRO_PLANS;
         return (stripeConfigured && getMeshProPriceId(meshProPlan)) || getMeshProPaymentLink(meshProPlan);
       });
+      // Gift checkouts have no payment-link fallback (a static link cannot
+      // carry the recipient), so they count only when Stripe + a price exist.
+      const availableGiftPlans = stripeConfigured
+        ? Object.keys(MESH_PRO_GIFT_PLANS).filter((plan) =>
+            getMeshProGiftPriceId(plan as keyof typeof MESH_PRO_GIFT_PLANS),
+          )
+        : [];
 
       return {
         status: availablePlans.length > 0 ? "operational" : "setup_needed",
         summary: availablePlans.length > 0 ? "Operational" : "Setup needed",
         detail:
           availablePlans.length > 0
-            ? `${availablePlans.length} MeshPro checkout option${availablePlans.length === 1 ? "" : "s"} can route to Stripe. Mesh.me does not store card numbers.`
+            ? `${availablePlans.length} MeshPro checkout option${availablePlans.length === 1 ? "" : "s"} and ${availableGiftPlans.length} gift option${availableGiftPlans.length === 1 ? "" : "s"} can route to Stripe. Mesh.me does not store card numbers.`
             : "Stripe checkout needs a secret key plus price IDs or payment links before MeshPro purchases can run.",
       };
     }),

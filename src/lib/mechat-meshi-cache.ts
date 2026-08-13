@@ -7,6 +7,8 @@
 
 import { getUserMeshiPreference } from "@/lib/actions";
 import type { TypingMeshi } from "@/lib/mechat-presence";
+import { hasMeshPro } from "@/lib/mesh-pro";
+import { prisma } from "@/lib/prisma";
 
 type MeshiCacheGlobal = typeof globalThis & {
   __meshTypingMeshiCache?: Map<string, { meshi: TypingMeshi | null; expiresAt: number }>;
@@ -25,7 +27,17 @@ export async function getCachedMeshiFor(userId: string): Promise<TypingMeshi | n
     return cached.meshi;
   }
 
-  const pref = await getUserMeshiPreference(userId);
+  // The Pro mark rides the same cache as the wardrobe: MeChat draws people AS
+  // their Meshi, so the gold rim has to travel wherever the cosmetics do.
+  // hasMeshPro() (paid, founder, or gifted window) — never the raw column,
+  // which is unpatched for anyone who isn't the session user.
+  const [pref, row] = await Promise.all([
+    getUserMeshiPreference(userId),
+    prisma.user.findUnique({
+      where: { id: userId },
+      select: { username: true, isMeshPro: true, meshProGiftUntil: true },
+    }),
+  ]);
   const meshi: TypingMeshi | null = pref
     ? {
         color: pref.colorTheme,
@@ -34,6 +46,7 @@ export async function getCachedMeshiFor(userId: string): Promise<TypingMeshi | n
         accessory: pref.accessoryStyle,
         eyeStyle: pref.eyeStyle,
         badge: pref.badgeStyle,
+        isPro: hasMeshPro(row),
       }
     : null;
   // Opportunistically evict expired entries (this runs only on a cache miss, so

@@ -63,6 +63,9 @@ type TypingMeshi = {
   accessory: string;
   eyeStyle: string;
   badge: string;
+  /* Optional client-side: an in-flight payload from before the field existed
+     simply renders without the rim. */
+  isPro?: boolean;
 };
 
 type TypingUser = {
@@ -1251,7 +1254,7 @@ export function MeChatThread({
                           <span
                             key={reader.userId}
                             title={`Seen by ${reader.displayName}`}
-                            className="inline-flex h-5 w-5 items-center justify-center"
+                            className={`inline-flex h-5 w-5 items-center justify-center${reader.meshi.isPro ? " meshi-pro-rim" : ""}`}
                           >
                             <MeshiMascot
                               size={19}
@@ -1300,7 +1303,7 @@ export function MeChatThread({
                 user.meshi ? (
                   <span
                     key={user.userId}
-                    className="mechat-typing-meshi inline-flex h-8 w-8 items-center justify-center"
+                    className={`mechat-typing-meshi inline-flex h-8 w-8 items-center justify-center${user.meshi.isPro ? " meshi-pro-rim" : ""}`}
                     style={{ animationDelay: `${index * 160}ms` }}
                   >
                     <MeshiMascot
@@ -1346,7 +1349,7 @@ export function MeChatThread({
             <div className="flex -space-x-1.5">
               {viewers.slice(0, 3).map((user) =>
                 user.meshi ? (
-                  <span key={user.userId} className="inline-flex h-7 w-7 items-center justify-center" title={user.displayName}>
+                  <span key={user.userId} className={`inline-flex h-7 w-7 items-center justify-center${user.meshi.isPro ? " meshi-pro-rim" : ""}`} title={user.displayName}>
                     <MeshiMascot
                       size={26}
                       mood="happy"

@@ -53,6 +53,9 @@ export type FeedCurrentUser = {
   displayName: string;
   avatarUrl: string | null;
   isVerified: boolean;
+  /** Required, mirroring hasMeshPro()'s shape: a viewer object must SAY it has
+      no gifted window rather than silently omitting the field. */
+  meshProGiftUntil: Date | null;
   nsfwEnabled?: boolean | null;
   adultVerificationStatus?: string | null;
   adultVerificationExpiresAt?: Date | string | null;
@@ -70,6 +73,7 @@ export const ANONYMOUS_VIEWER: FeedCurrentUser = {
   displayName: "Guest",
   avatarUrl: null,
   isVerified: false,
+  meshProGiftUntil: null,
   nsfwEnabled: false,
 };
 

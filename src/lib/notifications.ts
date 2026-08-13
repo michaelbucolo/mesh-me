@@ -144,6 +144,9 @@ const NOTIFICATION_TYPE_CATEGORY: Record<string, NotificationCategory> = {
   mention: "mentions",
   repost: "shares",
   share: "shares",
+  // A gift is a moment between two people, like a carried message — and
+  // without this entry the fallback below would misroute it to "privacy".
+  meshpro_gift: "messages",
   security_alert: "security",
 };
 
@@ -168,7 +171,10 @@ function classifyNotificationType(type: string): NotificationCategory {
   return "privacy";
 }
 
-function getNotificationHref(notification: Pick<SerializedNotification, "category" | "postId" | "actor" | "post">) {
+function getNotificationHref(notification: Pick<SerializedNotification, "type" | "category" | "postId" | "actor" | "post">) {
+  // A gift notification opens what you were given, not a message thread that
+  // doesn't exist — /meshpro is where the gifted window is shown.
+  if (notification.type === "meshpro_gift") return "/meshpro";
   if (notification.postId) return `/feed/${notification.postId}`;
   if (notification.category === "messages") return "/messages";
   if (notification.category === "security") return "/settings?tab=security";
@@ -221,6 +227,7 @@ export function buildPushPayload(input: {
   const title =
     parseDeliveryNotificationMessage(input.message?.trim()).text || labelForCategory(category);
   const url = getNotificationHref({
+    type: input.type,
     category,
     postId: input.postId ?? null,
     actor: null,

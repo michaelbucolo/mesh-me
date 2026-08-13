@@ -5,6 +5,8 @@ export type TypingMeshi = {
   accessory: string;
   eyeStyle: string;
   badge: string;
+  /** Server-derived via hasMeshPro() — the gold rim on MeChat's tiny Meshis. */
+  isPro: boolean;
 };
 
 export type MeChatPresenceMode = "typing" | "viewing";

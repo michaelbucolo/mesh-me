@@ -443,7 +443,7 @@ export type StudioWeights = {
  * that each call site re-decides is an entitlement that eventually differs.
  */
 export function resolveStudioWeights(
-  user: { username?: string | null; isMeshPro?: boolean | null; flowStudio?: string | null } | null | undefined,
+  user: { username?: string | null; isMeshPro?: boolean | null; meshProGiftUntil: Date | null; flowStudio?: string | null } | null | undefined,
   override?: string | null,
 ): StudioWeights | null {
   if (!user) return null;

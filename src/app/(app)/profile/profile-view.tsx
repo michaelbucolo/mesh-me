@@ -7,6 +7,7 @@ import {
   Bookmark,
   ExternalLink,
   EyeOff,
+  Gift as GiftIcon,
   Globe,
   Heart,
   Link as LinkIcon,
@@ -29,6 +30,7 @@ import {
 import { Avatar } from "@/components/ui/avatar";
 import { PostCard } from "@/components/feed/post-card";
 import { getCurrentUser } from "@/lib/auth";
+import { isFounderUsername } from "@/lib/mesh-pro";
 import { isUserLiveNow } from "@/lib/mesh-presence-store";
 import { getSavedFlowItems, getSavedPostCount, getSavedPosts, getUserCommunities, getUserPosts, getUserProfile } from "@/lib/queries";
 import { formatCount, formatLastActive, formatRelativeTime, safeHref } from "@/lib/utils";
@@ -56,7 +58,7 @@ function PlatformIcon({ platform }: { platform: string }) {
   return <PlatformLogo platform={platform} size={36} className="rounded-full" />;
 }
 
-export async function InstagramProfileView({ username, tab }: { username: string; tab?: string }) {
+export async function InstagramProfileView({ username, tab, giftSent }: { username: string; tab?: string; giftSent?: boolean }) {
   const currentUser = await getCurrentUser();
   if (!currentUser) redirect("/login");
 
@@ -122,6 +124,12 @@ export async function InstagramProfileView({ username, tab }: { username: string
     <div className="profile-layout mx-auto grid w-full max-w-6xl gap-6 px-4 py-6 lg:grid-cols-[minmax(0,1fr)_340px]">
       {/* Main column */}
       <div className="min-w-0 space-y-6">
+        {giftSent && !isOwnProfile && (
+          <section className="rounded-lg border border-[var(--ds-success-border)] bg-[var(--ds-success-bg)] px-4 py-3 text-sm font-semibold text-[var(--ds-success)]">
+            Your gift is on its way — it lands on {profile.displayName}&apos;s account the moment
+            payment settles.
+          </section>
+        )}
         {/* Profile header */}
         <section className="profile-header-card rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] overflow-hidden">
           {/* Banner */}
@@ -326,19 +334,24 @@ export async function InstagramProfileView({ username, tab }: { username: string
             {/* Meshi card + Actions */}
             <div className="profile-actions mt-5 flex flex-wrap items-center gap-3">
               <div className="flex items-center gap-3 rounded-xl border border-[var(--mesh-border)] bg-[var(--mesh-panel)] px-4 py-2.5">
-                <MeshiMascot
-                  size={40}
-                  color={meshi.colorTheme as MeshiColor}
-                  hat={meshi.hatStyle as MeshiHat}
-                  face={meshi.faceStyle}
-                  hair={meshi.hairStyle as MeshiHair}
-                  accessory={meshi.accessoryStyle as MeshiAccessory}
-                  eyeStyle={meshi.eyeStyle as MeshiEyeStyle}
-                  badge={meshi.badgeStyle as MeshiBadge}
-                  animate
-                  interactive={isOwnProfile}
-                  showGlow={false}
-                />
+                {/* The same gold hairline the mesh draws — profile payload's
+                    isMeshPro is already hasMeshPro()-derived (queries.ts), so
+                    founders and gifted members carry it here too. */}
+                <div className={profile.isMeshPro ? "meshi-pro-rim shrink-0" : "shrink-0"}>
+                  <MeshiMascot
+                    size={40}
+                    color={meshi.colorTheme as MeshiColor}
+                    hat={meshi.hatStyle as MeshiHat}
+                    face={meshi.faceStyle}
+                    hair={meshi.hairStyle as MeshiHair}
+                    accessory={meshi.accessoryStyle as MeshiAccessory}
+                    eyeStyle={meshi.eyeStyle as MeshiEyeStyle}
+                    badge={meshi.badgeStyle as MeshiBadge}
+                    animate
+                    interactive={isOwnProfile}
+                    showGlow={false}
+                  />
+                </div>
                 <div>
                   <p className="text-sm font-semibold text-[var(--mesh-text)]">
                     {isOwnProfile ? "Your Meshi" : `${profile.displayName.split(" ")[0]}'s Meshi`}
@@ -384,6 +397,18 @@ export async function InstagramProfileView({ username, tab }: { username: string
                       Message
                     </Link>
                   </Button>
+                  {/* Quiet by design: a ghost verb next to Block, no price, no
+                      copy — the ask lives on /meshpro/gift, not on a friend's
+                      face. Founders already have MeshPro for life, so for them
+                      the entry (not just the checkout) disappears. */}
+                  {!isFounderUsername(profile.username) && (
+                    <Button asChild variant="ghost">
+                      <Link href={`/meshpro/gift?to=${profile.username}`}>
+                        <GiftIcon size={16} aria-hidden="true" />
+                        Gift MeshPro
+                      </Link>
+                    </Button>
+                  )}
                   <BlockUserButton userId={profile.id} username={profile.username} isBlocked={false} />
                 </>
               )}
