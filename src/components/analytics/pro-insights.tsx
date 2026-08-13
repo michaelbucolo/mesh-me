@@ -15,6 +15,7 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import { Clock, Crown, Layers, TrendingDown, TrendingUp } from "lucide-react";
 import type { FormatFinding, ProAnalytics, TimingFinding } from "@/lib/pro-analytics";
+import { EASE_OUT } from "@/lib/motion";
 
 const CARD =
   "rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] p-4";
@@ -23,7 +24,7 @@ const CARD =
 const stagger = (i: number) => ({
   initial: { opacity: 0, y: 8 },
   animate: { opacity: 1, y: 0 },
-  transition: { duration: 0.32, delay: Math.min(i, 8) * 0.045, ease: [0.22, 1, 0.36, 1] as const },
+  transition: { duration: 0.32, delay: Math.min(i, 8) * 0.045, ease: EASE_OUT },
 });
 
 function Insufficient({ have, need, unit }: { have: number; need: number; unit: string }) {
@@ -80,7 +81,7 @@ function FormatRow({ platformName, finding, index }: { platformName: string; fin
                     className="h-full rounded-full bg-[var(--accent)]"
                     initial={{ width: 0 }}
                     animate={{ width: `${Math.max(3, Math.round((row.averageScore / top) * 100))}%` }}
-                    transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+                    transition={{ duration: 0.5, ease: EASE_OUT }}
                   />
                 </div>
                 <span className="w-8 shrink-0 text-right text-xs tabular-nums text-[var(--text-muted)]">{row.count}</span>

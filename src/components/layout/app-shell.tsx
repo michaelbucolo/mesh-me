@@ -28,6 +28,7 @@ import { Avatar } from "@/components/ui/avatar";
 import { GhostModeToggle } from "@/components/layout/ghost-mode-toggle";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { primaryNavItems, resolveNavHref, isNavItemActive, type NavItem } from "@/components/layout/navigation-config";
+import { SPRING_PANEL } from "@/lib/motion";
 
 const CommandPalette = dynamic(
   () => import("@/components/layout/command-palette").then((module) => module.CommandPalette),
@@ -121,7 +122,7 @@ const isOnFlow = (p: string) => p === "/flow" || p.startsWith("/flow/");
 const isOnMap = (p: string) => p === "/meshimap" || p.startsWith("/meshimap/");
 
 // Shared morphing sidebar indicator + a spring pop when an icon lands active.
-const SIDEBAR_INDICATOR_SPRING = { type: "spring" as const, stiffness: 380, damping: 30 };
+const SIDEBAR_INDICATOR_SPRING = SPRING_PANEL;
 const SIDEBAR_ICON_POP = { duration: 0.46, ease: [0.34, 1.56, 0.64, 1] as const, times: [0, 0.4, 0.7, 1] };
 
 function SidebarNavItem({ item, href, active }: { item: NavItem; href: string; active: boolean }) {

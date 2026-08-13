@@ -8,8 +8,9 @@ import { ArrowLeft, ArrowRight, ChevronDown, Lock, Plus, ShieldCheck } from "luc
 import type { getCommunitiesHubData } from "@/lib/community-hub";
 import { Button } from "@/components/ui/button";
 import { formatCount, formatRelativeTime } from "@/lib/utils";
+import { SPRING_PANEL } from "@/lib/motion";
 
-const HUB_SPRING = { type: "spring" as const, stiffness: 380, damping: 32 };
+const HUB_SPRING = SPRING_PANEL;
 
 type CommunitiesHubData = NonNullable<Awaited<ReturnType<typeof getCommunitiesHubData>>>;
 type Community = CommunitiesHubData["communities"][number];

@@ -13,6 +13,7 @@ import { useToast } from "@/components/ui/toast";
 import { PlatformLogo } from "@/components/platform/platform-logo";
 import { getPlatformCapability, normalizePlatformId } from "@/lib/platform-capabilities";
 import { setFlowStudioWeights } from "@/lib/actions";
+import { EASE_OUT, SPRING_PANEL } from "@/lib/motion";
 
 export type FlowPost = {
   id: string;
@@ -98,10 +99,10 @@ const laneStageVariants = {
     x: dir < 0 ? "17%" : "-17%",
     scale: 0.96,
     filter: "blur(3px)",
-    transition: { duration: 0.28, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] },
+    transition: { duration: 0.28, ease: EASE_OUT },
   }),
 };
-const laneStageTransition = { type: "spring" as const, stiffness: 360, damping: 34, mass: 0.85 };
+const laneStageTransition = SPRING_PANEL;
 
 // The platform's loading motif: a sparkle with a brand mote orbiting it —
 // on-brand where a spinner or pulse used to be. Framer degrades it to a calm
@@ -1739,7 +1740,7 @@ export function FlowClient({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+          transition={{ duration: 0.22, ease: EASE_OUT }}
         >
           <motion.div
             role="dialog"
@@ -1749,7 +1750,7 @@ export function FlowClient({
             initial={{ y: 48, opacity: 0, scale: 0.98 }}
             animate={{ y: 0, opacity: 1, scale: 1 }}
             exit={{ y: 30, opacity: 0, scale: 0.98 }}
-            transition={{ type: "spring", stiffness: 380, damping: 32, mass: 0.9 }}
+            transition={SPRING_PANEL}
           >
             <p className="text-base font-semibold text-white">How should your Flow rank?</p>
             <p className="mt-0.5 text-xs text-white/50">

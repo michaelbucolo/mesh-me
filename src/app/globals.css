@@ -35,15 +35,15 @@
   --glass-surface: rgba(14, 18, 28, 0.72);
   --glass-input: rgba(10, 13, 22, 0.78);
 
-  /* ─── Mesh Motion — the platform's signature easing curves ─── */
+  /* ─── Mesh Motion — the platform's signature easing curves ───
+     Three curves + one lush accent, mirrored in src/lib/motion.ts for the
+     framer-motion side. Retired (zero call sites, do not resurrect):
+     --mesh-ease-spring (duplicate of --mesh-spring), --mesh-spring-soft,
+     --mesh-ease-swift, --mesh-ease-glide (duplicate of --mesh-ease-out). */
   --mesh-ease-out: cubic-bezier(0.16, 1, 0.3, 1);          /* decisive glide, the workhorse */
-  --mesh-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);    /* springy overshoot */
   --mesh-ease-press: cubic-bezier(0.2, 0.8, 0.2, 1);        /* crisp tactile give */
-  --mesh-spring: cubic-bezier(0.34, 1.56, 0.64, 1);         /* alias for spring */
+  --mesh-spring: cubic-bezier(0.34, 1.56, 0.64, 1);         /* springy overshoot */
   --mesh-spring-lush: cubic-bezier(0.22, 1.61, 0.36, 1);    /* deeper, playful overshoot */
-  --mesh-spring-soft: cubic-bezier(0.4, 1.32, 0.5, 1);      /* gentle settle, no jerk */
-  --mesh-ease-swift: cubic-bezier(0.45, 0, 0.1, 1);         /* fast anticipation-in */
-  --mesh-ease-glide: cubic-bezier(0.16, 1, 0.3, 1);         /* = ease-out */
   --mesh-transition-fast: 160ms var(--mesh-ease-out);
   --mesh-transition-medium: 260ms var(--mesh-ease-out);
   --mesh-hover-y: 0px;  /* Hover never travels. Every consumer of this token
@@ -7460,7 +7460,12 @@ body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
    was right over a permanently dark canvas and is 1.1:1 on paper. */
 .mesh-ctl {
   color: var(--text-secondary);
-  transition: background-image 0.16s ease, color 0.16s ease, border-color 0.16s ease;
+  transition: background-image 0.16s ease, color 0.16s ease, border-color 0.16s ease,
+    transform 0.14s var(--mesh-ease-press);
+}
+/* The press: a small, crisp give on the down-stroke — felt, not watched. */
+.mesh-ctl:active {
+  transform: scale(0.97);
 }
 .mesh-ctl:hover {
   color: var(--text-primary);

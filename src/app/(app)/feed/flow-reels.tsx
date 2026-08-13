@@ -5,6 +5,7 @@ import { motion, useReducedMotion } from "framer-motion";
 import { createPortal } from "react-dom";
 import { ChevronLeft, ChevronRight, ChevronsDown, Sparkles, X } from "lucide-react";
 import { PostCard } from "@/components/feed/post-card";
+import { EASE_OUT } from "@/lib/motion";
 
 type ReelPost = {
   id: string;
@@ -158,7 +159,7 @@ export function FlowReels({
       style={{ animation: "none" }}
       initial={reduce ? { opacity: 0 } : { opacity: 0, clipPath: "circle(0% at 50% 62%)" }}
       animate={reduce ? { opacity: 1 } : { opacity: 1, clipPath: "circle(150% at 50% 62%)" }}
-      transition={reduce ? { duration: 0.2 } : { duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+      transition={reduce ? { duration: 0.2 } : { duration: 0.5, ease: EASE_OUT }}
     >
       {/* Brand glows bloom in behind the content (kept below the feed). */}
       {!reduce && (
@@ -172,7 +173,7 @@ export function FlowReels({
           }}
           initial={{ opacity: 0, scale: 0.85 }}
           animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1], delay: 0.05 }}
+          transition={{ duration: 0.6, ease: EASE_OUT, delay: 0.05 }}
         />
       )}
       <motion.button

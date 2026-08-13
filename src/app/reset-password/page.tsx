@@ -9,8 +9,8 @@ import { PaperWait } from "@/components/loading/paper-wait";
 import { resetPassword } from "@/lib/actions";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { MeshiMascot } from "@/components/meshi/meshi-mascot";
+import { EASE_OUT } from "@/lib/motion";
 
-const EASE_OUT: [number, number, number, number] = [0.16, 1, 0.3, 1];
 
 // Brand-tinted sparkle particles flung outward when the reset succeeds.
 // Uses the shared `.mesh-burst-particle` primitive (self-guarded for reduced

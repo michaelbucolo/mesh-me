@@ -19,6 +19,7 @@ import {
 } from "@/components/meshi/meshi-mascot";
 import { IdentityProviderButtons } from "@/components/auth/identity-provider-buttons";
 import type { IdentityProvider } from "@/lib/identity-auth";
+import { EASE_OUT } from "@/lib/motion";
 import {
   MeshBorderConstellation,
   type ConstellationState,
@@ -69,7 +70,7 @@ function GoSheen() {
       aria-hidden="true"
       initial={{ x: "-130%", opacity: 0 }}
       animate={{ x: "130%", opacity: [0, 0.85, 0] }}
-      transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+      transition={{ duration: 0.7, ease: EASE_OUT }}
       style={{
         position: "absolute",
         inset: 0,
@@ -352,7 +353,7 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
           aria-hidden="true"
           initial={{ scale: 0, opacity: 0 }}
           animate={{ scale: [0, 0.16, 8], opacity: [0, 0.95, 1] }}
-          transition={{ duration: 0.85, ease: [0.16, 1, 0.3, 1], times: [0, 0.2, 1] }}
+          transition={{ duration: 0.85, ease: EASE_OUT, times: [0, 0.2, 1] }}
           style={{
             position: "fixed",
             left: "50%",
@@ -378,7 +379,7 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
             ? { scale: [1, 0.955, 1.04], opacity: [1, 1, 0.72] }
             : undefined
         }
-        transition={{ duration: 0.85, ease: [0.16, 1, 0.3, 1], times: [0, 0.2, 1] }}
+        transition={{ duration: 0.85, ease: EASE_OUT, times: [0, 0.2, 1] }}
       >
         {/* IDENTITY — a blank page and a single question */}
         {stage === "identity" && (

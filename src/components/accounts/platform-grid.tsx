@@ -25,6 +25,7 @@ import { motion, useReducedMotion } from "framer-motion";
 import { AlertTriangle, Check, Lock } from "lucide-react";
 import { PlatformLogo } from "@/components/platform/platform-logo";
 import { cn } from "@/lib/utils";
+import { SPRING_PANEL } from "@/lib/motion";
 
 export type TileState = "merged" | "attention" | "open" | "locked";
 
@@ -40,7 +41,7 @@ export type PlatformTile = {
   connectHref: string | null;
 };
 
-const SPRING = { type: "spring" as const, stiffness: 400, damping: 30, mass: 0.7 };
+const SPRING = SPRING_PANEL;
 
 /** Corner marker per state. `open` deliberately has none — nothing has happened yet. */
 function StateMark({ state }: { state: TileState }) {
