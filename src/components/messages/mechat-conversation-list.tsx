@@ -504,7 +504,7 @@ export function MeChatConversationList({
                         </span>
                       )}
                       {unread && thread.unread > 1 && (
-                        <span className="absolute -right-1 -top-0.5 rounded-full bg-[var(--accent)] px-1.5 py-0.5 text-micro font-semibold text-[var(--accent-contrast)] shadow-lg">
+                        <span className="absolute -right-1 -top-0.5 rounded-full bg-[var(--accent)] px-1.5 py-0.5 text-micro font-semibold text-[var(--accent-contrast)]">
                           {thread.unread > 99 ? "99+" : thread.unread}
                         </span>
                       )}
@@ -512,7 +512,9 @@ export function MeChatConversationList({
 
                     <div className="min-w-0 flex-1">
                       <div className="flex items-baseline gap-1.5">
-                        <span className={`truncate text-sm ${unread ? "font-semibold text-[var(--mesh-text)]" : "font-semibold text-[var(--mesh-text)]"}`}>
+                        {/* Weight is the truth channel: unread rows are the
+                            only bold rows, so the list can be scanned. */}
+                        <span className={`truncate text-sm text-[var(--mesh-text)] ${unread ? "font-semibold" : "font-medium"}`}>
                           {threadDisplay(thread)}
                         </span>
                         {isVerified && <BadgeCheck size={14} className="shrink-0 self-center text-[var(--accent-text)]" />}

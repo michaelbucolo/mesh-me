@@ -207,7 +207,7 @@ async function blockedInsideThread(thread: ThreadWithMembers, currentUserId: str
   return Boolean(block);
 }
 
-export async function GET(_request: NextRequest, context: RouteContext) {
+export async function GET(request: NextRequest, context: RouteContext) {
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
@@ -217,6 +217,48 @@ export async function GET(_request: NextRequest, context: RouteContext) {
   const thread = await getAuthorizedThread(threadId, user.id);
   if (!thread) {
     return NextResponse.json({ error: "Thread not found" }, { status: 404 });
+  }
+
+  // History page: everything strictly older than the (createdAt, id) tuple —
+  // a tuple cursor because stored timestamps can tie. Reading history is not
+  // reading the newest, so this branch bumps no lastRead and carries no
+  // typing payload; it exists so the 151st-oldest message is reachable at
+  // all (the main window below caps at the latest 150).
+  const url = new URL(request.url);
+  const before = url.searchParams.get("before");
+  const beforeId = url.searchParams.get("beforeId");
+  if (before && beforeId) {
+    const cursor = new Date(before);
+    if (Number.isNaN(cursor.getTime())) {
+      return NextResponse.json({ error: "Bad cursor" }, { status: 400 });
+    }
+    const older = (
+      await prisma.message.findMany({
+        where: {
+          threadId,
+          OR: [
+            { createdAt: { lt: cursor } },
+            { createdAt: cursor, id: { lt: beforeId } },
+          ],
+        },
+        include: {
+          sender: {
+            select: { id: true, username: true, displayName: true, avatarUrl: true },
+          },
+        },
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+        take: 150,
+      })
+    ).reverse();
+    const olderById = new Map(older.map((message) => [message.id, {
+      id: message.id,
+      content: message.content,
+      sender: { displayName: message.sender.displayName, username: message.sender.username },
+    }]));
+    const meshiByUser = await resolveMemberMeshis(thread);
+    return NextResponse.json({
+      messages: older.map((message) => serializeMessage(message, thread, olderById, meshiByUser)),
+    });
   }
 
   const now = new Date();
@@ -359,8 +401,10 @@ export async function POST(request: NextRequest, context: RouteContext) {
       data: { lastRead: new Date() },
     }),
     prisma.notification.createMany({
+      // Muted members still receive the message and their unread count —
+      // mute silences interruptions, it never hides messages.
       data: thread.members
-        .filter((member) => member.userId !== user.id)
+        .filter((member) => member.userId !== user.id && !member.notificationsMuted)
         .map((member) => ({
           type: "message",
           recipientId: member.userId,
@@ -378,7 +422,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     ? `${user.displayName} sent a message in ${thread.title || "a MeChat group"}`
     : `${user.displayName} sent you a message`;
   for (const member of thread.members) {
-    if (member.userId === user.id) continue;
+    if (member.userId === user.id || member.notificationsMuted) continue;
     const recipientId = member.userId;
     after(() => sendPushForNotification(recipientId, { type: "message", message: pushMessage }));
   }
@@ -439,6 +483,19 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       data: { lastRead: new Date() },
     });
     return NextResponse.json({ ok: true });
+  }
+
+  if (action === "mute") {
+    // Your own membership row only — nobody mutes a thread for someone else.
+    // Mute stops notification rows and push at the send fanout; it never
+    // touches unread counts or hides a single message.
+    const mine = thread.members.find((member) => member.userId === user.id);
+    const muted = !mine?.notificationsMuted;
+    await prisma.threadMember.update({
+      where: { userId_threadId: { userId: user.id, threadId } },
+      data: { notificationsMuted: muted },
+    });
+    return NextResponse.json({ ok: true, muted });
   }
 
   if (action === "react") {

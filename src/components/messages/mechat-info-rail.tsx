@@ -39,16 +39,6 @@ type MeChatInfoRailProps = {
   fileCount: number;
 };
 
-function platformColor(platform: string) {
-  const value = platform.toLowerCase();
-  if (value === "twitter" || value === "x") return "text-sky-300";
-  if (value === "instagram") return "text-pink-300";
-  if (value === "youtube") return "text-red-300";
-  if (value === "discord") return "text-indigo-300";
-  if (value === "whatsapp") return "text-emerald-300";
-  return "text-[var(--accent-text)]";
-}
-
 export function MeChatInfoRail({
   title,
   subtitle,
@@ -70,9 +60,8 @@ export function MeChatInfoRail({
       <section className="mesh-surface mesh-pop-in rounded-[28px] border border-[var(--mesh-border)] p-5 shadow-[var(--shadow-lg)]">
         <div className="flex flex-col items-center text-center">
           <div className="relative">
-            <div className="absolute inset-0 rounded-full bg-[radial-gradient(circle,_color-mix(in_srgb,var(--accent)_28%,transparent)_0%,_color-mix(in_srgb,var(--accent)_8%,transparent)_45%,_transparent_72%)] blur-2xl" />
             {isGroupThread ? (
-              <div className="relative flex h-24 w-24 items-center justify-center rounded-full border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] shadow-[0_0_36px_var(--accent-glow)]">
+              <div className="relative flex h-24 w-24 items-center justify-center rounded-full border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)]">
                 <div className="relative h-12 w-12">
                   {memberPreview.length > 0 ? (
                     memberPreview.slice(0, 4).map((member, index) => (
@@ -96,7 +85,7 @@ export function MeChatInfoRail({
                 src={avatarUrl ?? null}
                 alt={title}
                 size="lg"
-                className="relative h-24 w-24 ring-2 ring-[var(--accent)]/30 shadow-[0_0_36px_var(--accent-glow)]"
+                className="relative h-24 w-24 ring-2 ring-[var(--accent)]/30"
               />
             )}
           </div>
@@ -170,7 +159,9 @@ export function MeChatInfoRail({
           <div className="space-y-2">
             {sourceSummaries.map((source) => (
               <div key={source.platform} className="flex items-center justify-between gap-3 rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] px-3 py-2">
-                <span className={`text-sm font-medium ${platformColor(source.platform)}`}>{source.label}</span>
+                {/* The page's own ink — the count chip beside it already
+                    carries the accent; pastel platform tints were sub-AA. */}
+                <span className="text-sm font-medium text-[var(--mesh-text)]">{source.label}</span>
                 <span className="rounded-full bg-[var(--accent)]/12 px-2.5 py-1 text-xs font-semibold text-[var(--accent-text)]">
                   {source.count}
                 </span>

@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { motion, useReducedMotion } from "framer-motion";
-import { ArrowDown, CheckCheck, Flame, Heart, Image as ImageIcon, Laugh, Link2, MessageCircleReply, Paperclip, Pencil, Search, Send, SmilePlus, ThumbsUp, Undo2, Users, X, type LucideIcon } from "lucide-react";
+import { ArrowDown, Check, CheckCheck, Copy, Flame, Heart, Image as ImageIcon, Laugh, Link2, MessageCircleReply, Paperclip, Pencil, Search, Send, SmilePlus, ThumbsUp, Undo2, Users, X, type LucideIcon } from "lucide-react";
 import { publishMeshiCause } from "@/lib/meshi-bus";
 import { CoBrowseRoom } from "@/components/mechat/co-browse-room";
 import { PaperWait } from "@/components/loading/paper-wait";
@@ -278,6 +278,30 @@ function createOptimisticMessage({
   };
 }
 
+/**
+ * Fold a freshly-polled latest-150 window into what's already loaded. The
+ * poll payload is a WINDOW, not the whole thread — once older pages have
+ * been fetched, replacing state with the window would silently delete them.
+ * Everything strictly older than the payload's head survives; the payload
+ * itself is authoritative for the window it covers; union is by id.
+ */
+function mergeThreadMessages(
+  prev: MeChatSerializedMessage[],
+  latest: MeChatSerializedMessage[],
+): MeChatSerializedMessage[] {
+  if (latest.length === 0) return prev;
+  if (prev.length === 0) return latest;
+  const latestIds = new Set(latest.map((message) => message.id));
+  const headTime = +new Date(latest[0].createdAt);
+  const headId = latest[0].id;
+  const older = prev.filter((message) => {
+    if (latestIds.has(message.id)) return false;
+    const time = +new Date(message.createdAt);
+    return time < headTime || (time === headTime && message.id < headId);
+  });
+  return older.length > 0 ? [...older, ...latest] : latest;
+}
+
 export function MeChatThread({
   currentUser,
   initialThreadId,
@@ -389,6 +413,18 @@ export function MeChatThread({
   // Track which message ids have already been shown so only genuinely new
   // arrivals spring in — initial history and search re-filters stay calm.
   const seenIdsRef = useRef<Set<string>>(new Set(initialMessages.map((message) => message.id)));
+  // Upward pagination past the latest-150 window. One in-flight page at a
+  // time; an empty page means the top of the thread has been reached. After
+  // a prepend commits, the scroll offset is restored from this snapshot so
+  // the viewport doesn't jump (and the "new messages" pill stays down —
+  // history is not news).
+  const loadingOlderRef = useRef(false);
+  const historyDoneRef = useRef(false);
+  const restoreScrollRef = useRef<{ height: number; top: number } | null>(null);
+  // The quoted-reply jump target — drives a brief recall flash on landing.
+  const [recalledId, setRecalledId] = useState<string | null>(null);
+  // Which message was just copied — flips its Copy key to a check briefly.
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const visibleMessages = useMemo(
     () => messages.filter((message) => messageMatchesSearch(message, searchQuery)),
@@ -447,11 +483,14 @@ export function MeChatThread({
     }>(response);
     if (!response.ok) throw new Error(data.error || "Could not load messages");
     // Polling identical data every few seconds shouldn't re-render the
-    // thread — only apply state when something actually changed.
+    // thread — only apply state when something actually changed. The payload
+    // is folded through mergeThreadMessages so paged-in history survives
+    // every poll instead of being wiped by the latest-150 window.
     const nextMessages = data.messages || [];
-    setMessages((prev) =>
-      JSON.stringify(prev) === JSON.stringify(nextMessages) ? prev : nextMessages,
-    );
+    setMessages((prev) => {
+      const merged = mergeThreadMessages(prev, nextMessages);
+      return JSON.stringify(prev) === JSON.stringify(merged) ? prev : merged;
+    });
     const nextTyping = data.typingUsers || [];
     setTypingUsers((prev) =>
       prev.length === nextTyping.length && JSON.stringify(prev) === JSON.stringify(nextTyping)
@@ -459,6 +498,52 @@ export function MeChatThread({
         : nextTyping,
     );
   }, []);
+
+  // Scroll-top history fetch: the page older than the oldest loaded message.
+  // Prepended ids are pre-seeded as "seen" so history never replays entrance
+  // springs, and the scroll snapshot makes the prepend visually still.
+  const fetchOlder = async () => {
+    if (!activeThreadId || loadingOlderRef.current || historyDoneRef.current) return;
+    const oldest = messages[0];
+    if (!oldest) return;
+    loadingOlderRef.current = true;
+    try {
+      const response = await fetch(
+        `/api/messages/${activeThreadId}?before=${encodeURIComponent(oldest.createdAt)}&beforeId=${encodeURIComponent(oldest.id)}`,
+        { cache: "no-store", credentials: "same-origin" },
+      );
+      const data = await safeFetchJson<{ messages?: MeChatSerializedMessage[] }>(response);
+      if (!response.ok) return;
+      const older = data.messages || [];
+      if (older.length === 0) {
+        historyDoneRef.current = true;
+        return;
+      }
+      for (const message of older) seenIdsRef.current.add(message.id);
+      const el = scrollRef.current;
+      restoreScrollRef.current = el ? { height: el.scrollHeight, top: el.scrollTop } : null;
+      setMessages((prev) => {
+        const known = new Set(prev.map((message) => message.id));
+        const fresh = older.filter((message) => !known.has(message.id));
+        return fresh.length > 0 ? [...fresh, ...prev] : prev;
+      });
+    } catch {
+      // A failed page fetch is silent; the next scroll to top retries.
+    } finally {
+      loadingOlderRef.current = false;
+    }
+  };
+
+  // The quoted-reply jump: scroll the original into view and flash it. A
+  // rendered quote's target is always in the loaded window (replyTo hydration
+  // is window-scoped server-side), so there is no fetch fallback to need.
+  const jumpToMessage = (id: string) => {
+    const target = scrollRef.current?.querySelector(`[data-message-id="${CSS.escape(id)}"]`);
+    if (!target) return;
+    target.scrollIntoView({ block: "center", behavior: reduceMotion ? "auto" : "smooth" });
+    setRecalledId(id);
+    window.setTimeout(() => setRecalledId((current) => (current === id ? null : current)), 1400);
+  };
 
   useEffect(() => {
     if (!activeThreadId) return;
@@ -481,6 +566,15 @@ export function MeChatThread({
   useEffect(() => {
     const grew = messages.length - prevLenRef.current;
     prevLenRef.current = messages.length;
+    // A history prepend just committed: restore the scroll offset so the
+    // viewport stays on the same bubble, and stop here — paged-in history
+    // must neither raise the "new messages" pill nor pin to the bottom.
+    if (restoreScrollRef.current) {
+      const el = scrollRef.current;
+      if (el) el.scrollTop = el.scrollHeight - restoreScrollRef.current.height + restoreScrollRef.current.top;
+      restoreScrollRef.current = null;
+      return;
+    }
     // Opening a thread with unread history lands on the "New" divider so you
     // resume where you left off; without one you start at the newest message.
     if (!didInitialScrollRef.current) {
@@ -512,6 +606,9 @@ export function MeChatThread({
     nearBottomRef.current = true;
     prevLenRef.current = 0;
     setNewBelowCount(0);
+    loadingOlderRef.current = false;
+    historyDoneRef.current = false;
+    restoreScrollRef.current = null;
   }, [activeThreadId]);
 
   // Once a message has rendered it counts as "seen" — later re-mounts (search
@@ -841,7 +938,9 @@ export function MeChatThread({
             suppressHydrationWarning
           />
           {searchQuery && (
-            <span className="text-xs font-semibold text-[var(--text-muted)]">{searchCount}</span>
+            <span role="status" className="text-xs font-semibold text-[var(--text-muted)]">
+              {searchCount} {searchCount === 1 ? "match" : "matches"}
+            </span>
           )}
         </label>
 
@@ -920,6 +1019,8 @@ export function MeChatThread({
           nearBottomRef.current = near;
           if (near && newBelowCount) setNewBelowCount(0);
           setShowJump(!near); // React bails out when the value hasn't changed
+          // Near the top: pull the previous page of history into view.
+          if (el.scrollTop < 80) void fetchOlder();
         }}
         className="min-h-0 overflow-y-auto px-3 py-4 md:px-4"
       >
@@ -953,7 +1054,7 @@ export function MeChatThread({
                 : `rounded-[1.3rem] ${groupedWithPrev ? "rounded-tl-[0.5rem]" : ""} ${groupedWithNext ? "rounded-bl-[0.5rem]" : ""}`;
 
               return (
-                <div key={message.id}>
+                <div key={message.id} data-message-id={message.id} className={recalledId === message.id ? "mechat-recall" : undefined}>
                 {newDay && (
                   <div className={`flex items-center justify-center ${index === 0 ? "mb-4" : "my-4"}`}>
                     <span className="rounded-full border border-[var(--border-primary)] bg-[var(--bg-secondary)]/70 px-3 py-1 text-micro font-semibold mesh-eyebrow text-[var(--text-muted)]">
@@ -1013,10 +1114,25 @@ export function MeChatThread({
                         overlay opaque paper instead. */}
                     {!message.metadata.unsent && (
                       <div
+                        data-testid="mechat-message-actions"
                         onClick={(event) => event.stopPropagation()}
+                        onKeyDown={(event) => {
+                          // Escape closes the pinned bar from the bar itself,
+                          // not only from the composer.
+                          if (event.key === "Escape") setActionsFor(null);
+                        }}
                         className={`absolute top-1/2 z-10 -translate-y-1/2 items-center gap-0.5 rounded-[var(--radius-lg)] border border-[var(--rule)] bg-[var(--paper-1)] px-1.5 py-1 shadow-[var(--shadow-float)] ${
                           isMine ? "right-full mr-2" : "left-full ml-2"
-                        } ${pinnedActions ? "flex" : "hidden md:group-hover:flex"}`}
+                        } ${
+                          pinnedActions
+                            ? "flex"
+                            // Below md: display-gated (an always-in-tree bar at
+                            // left-full/right-full would overflow the scroll
+                            // pane). At md+: visibility-gated so the keys stay
+                            // in the tab order — keyboard users reach react/
+                            // reply/edit/unsend through focus, not hover.
+                            : "hidden md:flex md:opacity-0 md:pointer-events-none md:group-hover:opacity-100 md:group-hover:pointer-events-auto md:group-focus-within:opacity-100 md:group-focus-within:pointer-events-auto"
+                        }`}
                       >
                         {/* `hover:scale-125` — the control GROWING under the pointer.
                             Growth is emission; a key answers by pressing in. Chip
@@ -1048,6 +1164,30 @@ export function MeChatThread({
                         >
                           <MessageCircleReply size={14} aria-hidden="true" />
                         </button>
+                        {/* Copy — the fourth verb, and the only one that works
+                            on ANY message with content, incoming included. */}
+                        {message.content && (
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              try {
+                                await navigator.clipboard.writeText(message.content);
+                                setCopiedId(message.id);
+                                window.setTimeout(
+                                  () => setCopiedId((current) => (current === message.id ? null : current)),
+                                  1500,
+                                );
+                              } catch {
+                                // Clipboard denied: leave the key as-is.
+                              }
+                            }}
+                            className="mechat-key mechat-key-chip key flex h-8 w-8 items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                            aria-label={copiedId === message.id ? "Copied" : "Copy"}
+                            title="Copy"
+                          >
+                            {copiedId === message.id ? <Check size={13} aria-hidden="true" /> : <Copy size={13} aria-hidden="true" />}
+                          </button>
+                        )}
                         {isMine && !isExternalThread && message.messageType === "text" && (
                           <button
                             type="button"
@@ -1123,16 +1263,18 @@ export function MeChatThread({
                         </p>
                       ) : null}
 
-                      {/* A real control — it jumps you to the quoted message — drawn
-                          as a translucent wash of whatever bubble it happened to
-                          land in: `bg-white/10` over the accent gradient on one
-                          side, --bg-secondary (the RECESS colour) on the other, and
-                          no --edge ring in either. One key, one face, one pinned
-                          ink, the same in both bubbles. */}
+                      {/* The quote is a door: tapping it scrolls the ORIGINAL
+                          message into view and flashes it — it does not filter
+                          the thread, does not touch search, hides nothing. A
+                          rendered quote's target is always in the loaded
+                          window (replyTo hydration is window-scoped), so the
+                          jump either lands or quietly does nothing. */}
                       {message.replyTo && (
                         <button
                           type="button"
-                          onClick={() => setSearchQuery(message.replyTo?.content || "")}
+                          onClick={() => {
+                            if (message.replyTo) jumpToMessage(message.replyTo.id);
+                          }}
                           className="mechat-key key mb-2 block w-full px-3 py-2 text-left text-xs text-[var(--text-secondary)]"
                         >
                           <span className="block font-semibold">{message.replyTo.senderName}</span>

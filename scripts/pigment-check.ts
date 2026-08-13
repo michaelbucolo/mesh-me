@@ -42,6 +42,7 @@ const MUST_BE_CLEAN = [
   "src/components/analytics/pro-insights.tsx",
   "src/components/analytics/analytics-dashboard.tsx",
   "src/components/platform/platform-logo.tsx",
+  "src/components/messages/mechat-info-rail.tsx",
 ];
 
 /** Frozen ceiling for the rest of the app. Ratchet DOWN only. Set from a real

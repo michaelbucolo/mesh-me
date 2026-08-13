@@ -6687,13 +6687,17 @@ body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
   background: linear-gradient(180deg, var(--accent), var(--accent-hover));
   color: var(--accent-contrast);
 }
-@keyframes mechatSendIn {
-  from { opacity: 0; transform: translateY(14px) scale(0.92); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
+/* ".mechat-send-in" was deleted: zero call sites (the thread's entrance
+   springs took over send-in duty), and its bezier was the near-miss family
+   the motion gate retired. The block's CSS-motion example is now
+   .mechat-recall below — the quoted-reply jump's landing flash. */
+@keyframes mechatRecall {
+  from { background-color: color-mix(in srgb, var(--accent) 16%, transparent); }
+  to { background-color: transparent; }
 }
-.mechat-send-in { animation: mechatSendIn 0.28s cubic-bezier(0.22, 1, 0.36, 1); }
+.mechat-recall { animation: mechatRecall 1.2s var(--mesh-ease-out); border-radius: var(--radius-lg); }
 @media (prefers-reduced-motion: reduce) {
-  .mechat-send-in { animation: none; }
+  .mechat-recall { animation: none; }
 }
 
 /* ═══════════════════════════════════════════════════════════════════
