@@ -16,6 +16,14 @@ interface MeshiReasoningInput {
     mood?: string;
     action?: MeshiAction;
   };
+  /** Meshi's journal — SERVER-populated only (recallJournalDigest re-checks
+   *  grant + the read rule); never read from the client body. Every value in
+   *  it is text the owner typed themselves. */
+  memoryDigest?: {
+    nickname: string | null;
+    keepsakes: string[];
+    thread: string | null;
+  };
   user?: {
     username?: string | null;
     displayName?: string | null;
@@ -169,6 +177,18 @@ export async function callMeshiReasoning(input: MeshiReasoningInput): Promise<Me
     ? `User: @${input.user.username || "unknown"} (${input.user.displayName || "unnamed"}), MeshPro: ${input.user.isMeshPro ? "yes" : "no"}`
     : "User: authenticated Mesh.me user";
 
+  // Meshi's journal: consented, owner-typed memories. Woven in as things you
+  // simply know — never announced as "according to my records" (being known,
+  // not watched). Absent entirely when the journal is off or paused.
+  const journalContext = input.memoryDigest
+    ? [
+        "Meshi's journal (things this user asked you to remember, in their own words — use naturally, never recite unprompted):",
+        input.memoryDigest.nickname ? `They like to be called: ${input.memoryDigest.nickname}` : null,
+        ...input.memoryDigest.keepsakes.map((k) => `- ${k}`),
+        input.memoryDigest.thread ? `Where you left off last time (their words): ${input.memoryDigest.thread}` : null,
+      ].filter(Boolean).join("\n")
+    : null;
+
   const response = await fetch("https://api.openai.com/v1/responses", {
     method: "POST",
     headers: {
@@ -189,6 +209,7 @@ export async function callMeshiReasoning(input: MeshiReasoningInput): Promise<Me
               type: "input_text",
               text: [
                 userContext,
+                ...(journalContext ? [journalContext] : []),
                 describeMeshContext(input.context),
                 databaseContext,
                 `Recent conversation:\n${describeHistory(input.history)}`,

@@ -1,6 +1,17 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { hasMeshiConsent, meshiDeniedUserIds } from "@/lib/consent";
+import {
+  detectJournalIntent,
+  forgetEntry,
+  grantMeshiJournal,
+  listJournal,
+  recallJournalDigest,
+  rememberKeepsake,
+  saveThread,
+  setNickname,
+  withdrawMeshiJournal,
+} from "@/lib/meshi-memory";
 import { prisma } from "@/lib/prisma";
 import { meshiQuery } from "@/lib/meshi-engine";
 import { callMeshiReasoning } from "@/lib/meshi-reasoning";
@@ -563,6 +574,67 @@ export async function POST(req: Request) {
       );
     }
 
+    // MESHI'S JOURNAL VERBS — spoken, handled here, never sent upstream.
+    // The journal is its own consent domain (the grant row), separate from the
+    // read rule below: remembering requires the grant; the lib re-checks it on
+    // every call, so these handlers parse and relay, never decide. The at-cap
+    // and no-grant refusals deliberately never name Pro.
+    const journalIntent = detectJournalIntent(message);
+    if (journalIntent) {
+      const respond = (content: string) =>
+        NextResponse.json(createMeshiResponse({ content, mood: "happy", source: "database", engineReady: true, grounded: false }));
+      switch (journalIntent.kind) {
+        case "grant": {
+          await grantMeshiJournal(user.id);
+          return respond("I'll keep a journal — only what you tell me to write, and you can read or burn every page in Settings. Try “remember that…”");
+        }
+        case "remember": {
+          const result = await rememberKeepsake(user, journalIntent.text);
+          if ("error" in result) {
+            if (result.error === "no-grant") {
+              return respond("I don't keep a journal yet — I only ever write what you dictate, and switching it off deletes it for real. Say “keep a journal” and I'll start one.");
+            }
+            if (result.error === "at-cap") return respond(result.message);
+            return respond("That came through empty — what should I remember?");
+          }
+          return respond("Kept.");
+        }
+        case "nickname": {
+          const result = await setNickname(user, journalIntent.text);
+          if ("error" in result) {
+            if (result.error === "no-grant") {
+              return respond("I'd love to — but I don't keep a journal yet. Say “keep a journal” first, and the name is the first thing I'll write.");
+            }
+            return respond("That name came through empty.");
+          }
+          return respond(`${result.value} it is.`);
+        }
+        case "list": {
+          const journal = await listJournal(user.id);
+          if (!journal || journal.entries.length === 0) {
+            return respond("My journal is empty — nothing has been written in it. “Remember that…” is how a page gets filled.");
+          }
+          const lines = journal.entries
+            .filter((entry) => entry.kind !== "thread")
+            .map((entry) => (entry.kind === "nickname" ? `You like to be called ${entry.value}.` : `— ${entry.value}`));
+          const spoken = ["Here's every page, in your own words:", ...lines, "Say “forget …” and I'll tear one out — deleted, not hidden."].join("\n");
+          return respond(spoken);
+        }
+        case "forget": {
+          const journal = await listJournal(user.id);
+          const needle = journalIntent.text.toLowerCase();
+          const match = journal?.entries.find((entry) => entry.kind === "keepsake" && entry.value.toLowerCase().includes(needle));
+          if (!match) return respond("I couldn't find that page. Say “what do you remember” to see them all.");
+          await forgetEntry(user.id, match.id);
+          return respond("Forgotten — deleted, not hidden.");
+        }
+        case "forget-all": {
+          await withdrawMeshiJournal(user.id);
+          return respond("Done. The journal and every page in it are deleted — not archived, not hidden. If you ever want one again, just say “keep a journal.”");
+        }
+      }
+    }
+
     // The caller's own "Meshi memory" rule. When it is switched off, Meshi must
     // not read their mesh (no grounding query) and must not ship their mesh
     // context upstream — the reasoning provider is off-device, so the context
@@ -633,6 +705,11 @@ export async function POST(req: Request) {
       }
     }
 
+    // The journal joins the prompt ONLY here — server-populated, computed per
+    // request (never cached), and recallJournalDigest itself re-checks the
+    // grant AND the read rule, so a paused rule leaves it dormant.
+    const memoryDigest = await recallJournalDigest(user);
+
     let databaseAnswer: { content: string; mood: string; action?: MeshiAction } | undefined;
     const openEndedTask = isOpenEndedCreativeTask(message);
     const focusedContentTask = isFocusedContentTask(message, groundedContext);
@@ -675,6 +752,9 @@ export async function POST(req: Request) {
         // would ship upstream exactly what the gate just withheld.
         history: meshiMayUseCallerData ? history : undefined,
         databaseAnswer,
+        memoryDigest: memoryDigest
+          ? { nickname: memoryDigest.nickname, keepsakes: memoryDigest.keepsakes, thread: memoryDigest.thread }
+          : undefined,
         user: {
           username: user.username,
           displayName: user.displayName,
@@ -682,6 +762,10 @@ export async function POST(req: Request) {
         },
       });
       if (engineResult) {
+        // The open thread: a verbatim tail of the USER'S OWN message — never
+        // the model's reply, never grounded context. saveThread self-gates
+        // (grant + read rule + plan), so this is a no-op for most accounts.
+        await saveThread(user, message).catch(() => {});
         return NextResponse.json(engineResult);
       }
     } catch {

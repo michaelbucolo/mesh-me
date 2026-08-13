@@ -3,6 +3,7 @@ import { revalidatePath } from "next/cache";
 import { getCurrentUser } from "@/lib/auth";
 import { readJsonObject } from "@/lib/api-validation";
 import { prisma } from "@/lib/prisma";
+import { listJournal } from "@/lib/meshi-memory";
 import { isSameOriginRequest } from "@/lib/request-guard";
 import { clearMeshCache } from "@/lib/mesh-cache";
 
@@ -195,6 +196,10 @@ export async function GET(req: NextRequest) {
     prisma.dataVisibilityPolicy.findMany({ where: { userId: user.id } }),
   ]);
 
+  // Meshi's journal joins the dump through its single-definition lib (the
+  // journal tables are never queried outside src/lib/meshi-memory.ts).
+  const meshiJournal = await listJournal(user.id);
+
   return NextResponse.json({
     exportedAt: new Date().toISOString(),
     user: {
@@ -212,6 +217,7 @@ export async function GET(req: NextRequest) {
     nativeActivity: { posts, comments, reactions, follows, followers, communities, messages, meChatSessions, notifications },
     connectedAccounts,
     visibilityPolicies,
+    meshiJournal,
     syncedData: { platformPosts, platformComments, platformFollowers, platformMedia, platformAnalytics },
   });
 }

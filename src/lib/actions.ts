@@ -2,6 +2,8 @@
 
 import { prisma } from "./prisma";
 import { parseAccessories, serializeAccessories } from "@/components/meshi/meshi-slots";
+import { hasMeshiConsent } from "./consent";
+import { listJournal } from "./meshi-memory";
 import {
   buildOwnedMeshiSets,
   DEFAULT_MESHI_PREFERENCE,
@@ -3293,6 +3295,57 @@ export async function setShowCharterNumber(show: boolean) {
   revalidatePath(`/profile/${user.username}`);
   revalidatePath("/billing");
   return { success: true };
+}
+
+/**
+ * The journal's review surface: ownership only, deliberately NOT gated on the
+ * read rule — someone who paused "Meshi memory" must still see and delete
+ * every page. `paused` tells the panel to say recall is dormant.
+ */
+export async function getMeshiJournalOverview() {
+  const user = await getCurrentUser();
+  if (!user) return null;
+  const [journal, mayRecall] = await Promise.all([listJournal(user.id), hasMeshiConsent(user.id)]);
+  if (!journal) return { granted: false as const };
+  return {
+    granted: true as const,
+    grantedAt: journal.grantedAt,
+    paused: !mayRecall,
+    entries: journal.entries.map((entry) => ({
+      id: entry.id,
+      kind: entry.kind,
+      value: entry.value,
+      createdAt: entry.createdAt,
+    })),
+  };
+}
+
+/**
+ * The chat's opening line, personalized ONLY when a journal exists — shown to
+ * the owner on their own device, never egressed. Copy honesty (the K8 rule):
+ * `grantedAt` is the JOURNAL's anniversary, never "when we met" — that date
+ * would be false for every account older than the feature.
+ */
+export async function getMeshiGreeting() {
+  const user = await getCurrentUser();
+  if (!user) return null;
+  const journal = await listJournal(user.id);
+  if (!journal) return null;
+
+  const nickname = journal.entries.find((entry) => entry.kind === "nickname")?.value ?? null;
+  const opener = nickname ? `Hey, ${nickname}.` : "Hey — good to see you.";
+
+  const now = new Date();
+  const granted = journal.grantedAt;
+  const years = now.getUTCFullYear() - granted.getUTCFullYear();
+  const isAnniversary = years >= 1
+    && now.getUTCMonth() === granted.getUTCMonth()
+    && now.getUTCDate() === granted.getUTCDate();
+  const anniversary = isAnniversary
+    ? ` ${years === 1 ? "A year" : `${years} years`} since I started keeping our journal.`
+    : "";
+
+  return `${opener}${anniversary} Ask me to search, explain, or help with your Mesh. You decide what I can see in Privacy controls.`;
 }
 
 /**
