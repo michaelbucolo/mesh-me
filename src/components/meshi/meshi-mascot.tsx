@@ -561,6 +561,16 @@ const BADGES: Record<string, React.ReactNode> = {
       <path d="M-2.6 1.9 L-1.8 -1.8 L0 -0.4 L1.8 -1.8 L2.6 1.9 Z" fill="white" />
     </g>
   ),
+  // The charter seal: a brass ring over a bar — a wax stamp, drawn, never
+  // typeset, and deliberately without the holder's digits (the pin marks THAT
+  // you hold a seat; the number itself lives on the profile chip).
+  charter: (
+    <g transform="translate(11, 11)">
+      <circle cx="0" cy="0" r="4.4" fill="#a16207" stroke="rgba(255,255,255,0.85)" strokeWidth="1.2" />
+      <circle cx="0" cy="-0.9" r="1.5" fill="none" stroke="white" strokeWidth="1.1" />
+      <path d="M-2.2 2 L2.2 2" stroke="white" strokeWidth="1.1" strokeLinecap="round" />
+    </g>
+  ),
 };
 
 

@@ -147,6 +147,8 @@ const NOTIFICATION_TYPE_CATEGORY: Record<string, NotificationCategory> = {
   // A gift is a moment between two people, like a carried message — and
   // without this entry the fallback below would misroute it to "privacy".
   meshpro_gift: "messages",
+  // Your charter seat confirmation — recipient-only, never social.
+  charter: "messages",
   security_alert: "security",
 };
 
@@ -175,6 +177,8 @@ function getNotificationHref(notification: Pick<SerializedNotification, "type" |
   // A gift notification opens what you were given, not a message thread that
   // doesn't exist — /meshpro is where the gifted window is shown.
   if (notification.type === "meshpro_gift") return "/meshpro";
+  // A charter confirmation opens the seat's own page — the holder's receipt.
+  if (notification.type === "charter") return "/meshpro/charter";
   if (notification.postId) return `/feed/${notification.postId}`;
   if (notification.category === "messages") return "/messages";
   if (notification.category === "security") return "/settings?tab=security";

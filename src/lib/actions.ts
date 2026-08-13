@@ -3045,7 +3045,7 @@ const MESHI_OPTION_VALUES = {
   // lashes" and keeps working via resolveLash(), so nobody's Meshi changes
   // under them.
   eyes: new Set<string>(["regular", ...MESHI_LASH_IDS]),
-  badges: new Set(["none", "spark", "heart", "shield", "verified", "creator", "founder"]),
+  badges: new Set(["none", "spark", "heart", "shield", "verified", "creator", "founder", "charter"]),
 };
 
 function cleanMeshiOption(value: string | undefined, allowed: Set<string>, fallback?: string) {
@@ -3143,6 +3143,15 @@ export async function updateMeshiPreference(data: MeshiPreferenceUpdate) {
     badgeStyle: cleanMeshiOption(data.badgeStyle, MESHI_OPTION_VALUES.badges),
   };
 
+  // The charter pin is gated on the seat, not the subscription: holders wear
+  // it free or Pro, and NOBODY else does — a Pro subscriber without a seat is
+  // refused exactly like a free account. Adjudicated here, before the Pro
+  // wardrobe gate, and carved out of it below (a free holder's first save of
+  // the pin must not read as acquiring a paid cosmetic).
+  if (next.badgeStyle === "charter" && user.charterNumber == null) {
+    return { error: "The charter pin belongs to charter seat holders." };
+  }
+
   if (!hasMeshPro(user)) {
     const current = await prisma.meshiPreference.findUnique({
       where: { userId: user.id },
@@ -3151,7 +3160,8 @@ export async function updateMeshiPreference(data: MeshiPreferenceUpdate) {
         hairColor: true, accessoryStyle: true, eyeStyle: true, badgeStyle: true,
       },
     });
-    const lockedOption = findLockedMeshiOptionForFreeUser(next, current ?? {});
+    const gated = next.badgeStyle === "charter" ? { ...next, badgeStyle: undefined } : next;
+    const lockedOption = findLockedMeshiOptionForFreeUser(gated, current ?? {});
     if (lockedOption) {
       return { error: `MeshPro is required for that Meshi ${lockedOption}.` };
     }
@@ -3219,6 +3229,25 @@ export async function getUserMeshiPreference(userId: string) {
         badgeStyle: pref.badgeStyle,
       }
     : null;
+}
+
+/**
+ * The charter chip's visibility switch. Holder-only by construction (a
+ * non-holder has nothing to show or hide), and the seat itself is untouched —
+ * this is about wearing the number, not owning it.
+ */
+export async function setShowCharterNumber(show: boolean) {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Not authenticated" };
+  if (user.charterNumber == null) return { error: "No charter seat on this account." };
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { showCharterNumber: show === true },
+  });
+  revalidatePath(`/profile/${user.username}`);
+  revalidatePath("/billing");
+  return { success: true };
 }
 
 // ─── Mesh Cosmetics Actions ─────────────────────────────────

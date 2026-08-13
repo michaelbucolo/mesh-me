@@ -193,6 +193,15 @@ export async function InstagramProfileView({ username, tab, giftSent }: { userna
                       {profile.activeTitle}
                     </span>
                   )}
+                  {/* Bought and earned coexist, deliberately distinct: the
+                      charter chip never occupies the activeTitle slot (that is
+                      the milestone board's public face), and it has an off
+                      switch. Same quiet treatment — no gold, no link. */}
+                  {profile.charterNumber != null && profile.showCharterNumber && (
+                    <span className="inline-flex items-center rounded-lg bg-[var(--text-muted)]/10 px-2.5 py-0.5 text-xs font-semibold text-[var(--text-secondary)]">
+                      Charter №{profile.charterNumber}
+                    </span>
+                  )}
                   {profile.isVerified && (
                     <ShieldCheck className="h-5 w-5 shrink-0 text-[var(--accent-text)]" aria-label="Verified" />
                   )}

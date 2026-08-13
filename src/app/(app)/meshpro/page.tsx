@@ -2,11 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { LucideIcon } from "lucide-react";
-import { CalendarRange, Crown, Gift, LineChart, Palette, SlidersHorizontal, WandSparkles } from "lucide-react";
+import { CalendarRange, Crown, Gift, Landmark, LineChart, Palette, SlidersHorizontal, WandSparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BillingPortalButton, MeshProCheckoutButton } from "@/components/meshpro/mesh-pro-actions";
 import { getCurrentUser } from "@/lib/auth";
+import { charterSeatsRemaining } from "@/lib/charter";
 import { MESH_PRO_PRICING } from "@/lib/mesh-pro";
+import { prisma } from "@/lib/prisma";
 import { getMeshProBillingState, syncMeshProCheckoutSessionForUser } from "@/lib/stripe-billing";
 
 type MeshProPageProps = {
@@ -130,6 +132,17 @@ const giftCard = {
   enforcedIn: { file: "src/lib/stripe-billing.ts", symbol: "applyMeshProGiftSession" },
 };
 
+// The one purchase on this page that buys no capability at all — and says so.
+// Renders ONLY while seats remain; at cap the section is simply gone (no
+// tombstone, no counter). Same enforcedIn contract as everything else here.
+const charterCard = {
+  title: "Charter Member",
+  body: "One hundred numbered seats. $79, once. It buys no features — it buys the number, worn quietly on your profile if you choose, and it keeps Mesh.me independent. When the hundredth seat is claimed, this card just goes away. No waitlist, no countdown.",
+  href: "/meshpro/charter",
+  icon: Landmark,
+  enforcedIn: { file: "src/lib/charter.ts", symbol: "applyCharterSession" },
+};
+
 export default async function MeshProPage({ searchParams }: MeshProPageProps) {
   const user = await getCurrentUser();
   if (!user) redirect("/login?next=/meshpro");
@@ -145,7 +158,13 @@ export default async function MeshProPage({ searchParams }: MeshProPageProps) {
       }))
     : null;
 
-  const billing = await getMeshProBillingState(user.id);
+  const [billing, charterRemaining, charterSeat] = await Promise.all([
+    getMeshProBillingState(user.id),
+    charterSeatsRemaining(),
+    user.charterNumber != null
+      ? prisma.charterSeat.findUnique({ where: { number: user.charterNumber }, select: { claimedAt: true } })
+      : Promise.resolve(null),
+  ]);
   const isPro = Boolean(billing?.isMeshPro);
   const renewalDate = formatBillingDate(billing?.currentPeriodEnd ?? null);
   const hasSubscription = Boolean(billing?.stripeSubscriptionId);
@@ -179,8 +198,8 @@ export default async function MeshProPage({ searchParams }: MeshProPageProps) {
           Real controls, not decorations
         </h1>
         <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-[var(--text-secondary)]">
-          Your algorithm, your year, your world&apos;s look. Pro is the only way Mesh.me makes
-          money — so there are no ads and your data is never sold.
+          Your algorithm, your year, your world&apos;s look. Pro and one hundred charter seats are
+          the only ways Mesh.me makes money — so there are no ads and your data is never sold.
         </p>
         <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
           {isPro ? (
@@ -232,6 +251,24 @@ export default async function MeshProPage({ searchParams }: MeshProPageProps) {
           </span>
         </Link>
       </section>
+
+      {user.charterNumber != null ? (
+        // The holder's quiet receipt — no button, nothing to do.
+        <section className="rounded-xl border border-[var(--ds-border)] bg-[var(--ds-surface)] px-5 py-4 text-sm text-[var(--text-secondary)]">
+          <span className="font-semibold text-[var(--text-primary)]">Charter №{user.charterNumber}</span>
+          {charterSeat?.claimedAt && <> — yours since {formatBillingDate(charterSeat.claimedAt)}</>}
+        </section>
+      ) : charterRemaining > 0 ? (
+        <section>
+          <Link href={charterCard.href} className="mesh-choice group flex items-start gap-4 rounded-xl p-5 transition">
+            <charterCard.icon className="mt-0.5 h-5 w-5 shrink-0 text-[var(--accent-text)]" aria-hidden="true" />
+            <span className="min-w-0">
+              <span className="block text-sm font-semibold text-[var(--text-primary)]">{charterCard.title}</span>
+              <span className="mt-1 block text-[0.78125rem] leading-5 text-[var(--text-secondary)]">{charterCard.body}</span>
+            </span>
+          </Link>
+        </section>
+      ) : null}
 
       {showPricing && (
         <section id="pricing" className="grid gap-3 sm:grid-cols-2">

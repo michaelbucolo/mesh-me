@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
+import { attachCharterSession, CHARTER_PRICE_CENTS, CHARTER_SESSION_TTL_S, releaseCharterHold, reserveCharterSeat } from "@/lib/charter";
 import { isFounderUsername, isMeshProGiftActive, MESH_PRO_GIFT_MESSAGE_MAX, MESH_PRO_GIFT_PRICING } from "@/lib/mesh-pro";
 import { prisma } from "@/lib/prisma";
 import { isSameOriginRequest } from "@/lib/request-guard";
@@ -134,6 +135,74 @@ export async function POST(req: Request) {
         );
       }
       return NextResponse.json({ url: giftSession.url });
+    }
+
+    // ── Charter seat: $79 once, status only ─────────────────────────────────
+    if (payload?.charter === true) {
+      const stripe = getStripeClient();
+      if (!stripe) {
+        return NextResponse.json(
+          { error: "Payment is not configured yet. Please check back soon." },
+          { status: 503 },
+        );
+      }
+
+      // The number is RESERVED before Stripe is ever called, so every session
+      // references an already-held seat and an abandoned checkout can never
+      // orphan or double-assign a number.
+      const reserved = await reserveCharterSeat(user.id);
+      if (!reserved.ok) {
+        return NextResponse.json(
+          reserved.reason === "already-holder"
+            ? { error: "You already hold a charter seat.", alreadyActive: true }
+            : { error: "All one hundred seats are claimed." },
+          { status: reserved.reason === "already-holder" ? 409 : 410 },
+        );
+      }
+
+      const baseUrl = getAppBaseUrl(req);
+      let charterSession: Stripe.Checkout.Session;
+      try {
+        charterSession = await stripe.checkout.sessions.create({
+          mode: "payment",
+          expires_at: Math.floor(Date.now() / 1000) + CHARTER_SESSION_TTL_S,
+          line_items: [
+            {
+              price_data: {
+                currency: "usd",
+                unit_amount: CHARTER_PRICE_CENTS,
+                product_data: { name: `Mesh.me Charter seat №${reserved.number}` },
+              },
+              quantity: 1,
+            },
+          ],
+          // No `userId` metadata key and no client_reference_id — the MeshPro
+          // reconciler treats those as "this session's owner may claim MeshPro
+          // from it", and a charter seat must never cross-grant Pro.
+          metadata: {
+            product: "charter-seat",
+            charterUserId: user.id,
+            seatNumber: String(reserved.number),
+          },
+          success_url: `${baseUrl}/meshpro/charter?payment=success&session_id={CHECKOUT_SESSION_ID}`,
+          cancel_url: `${baseUrl}/meshpro/charter?payment=cancelled`,
+          ...(user.stripeCustomerId ? { customer: user.stripeCustomerId } : { customer_email: user.email }),
+        });
+      } catch (error) {
+        // The hold must not outlive a session that never existed.
+        await releaseCharterHold(reserved.number, user.id);
+        throw error;
+      }
+
+      await attachCharterSession(reserved.number, user.id, charterSession.id);
+
+      if (!charterSession.url) {
+        return NextResponse.json(
+          { error: "Stripe did not return a checkout URL. Please try again." },
+          { status: 502 },
+        );
+      }
+      return NextResponse.json({ url: charterSession.url });
     }
 
     const plan = parseMeshProPlan(payload?.plan);
