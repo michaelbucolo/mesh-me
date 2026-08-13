@@ -262,10 +262,39 @@ for (const entry of entries) {
   } else ok();
 }
 
+// ── 6. The gift card keeps the same contract as the unlocks ──────────────────
+//
+// "Give MeshPro" is the one card on the page you buy FOR someone else, and it
+// is exactly as capable of rotting: a card pointing at a delivery path that
+// was renamed or deleted is money taken with nothing granted. Same rule, same
+// cost — the claim names a file and a symbol, and both must exist.
+{
+  const gift = /const giftCard\s*=\s*\{[\s\S]*?\n\};/.exec(page)?.[0] ?? "";
+  if (!gift) {
+    fail("6 gift", `no giftCard const found in ${PAGE} — if gifting was removed, remove this section with it; if it moved, point this gate at it`);
+  } else {
+    ok();
+    const file = /enforcedIn:\s*\{\s*file:\s*"([^"]+)"/.exec(gift)?.[1];
+    const symbol = /symbol:\s*"([^"]+)"/.exec(gift)?.[1];
+    if (!file || !symbol) {
+      fail("6 gift", `the gift card has no enforcedIn — name the code that actually grants a purchased gift, or delete the card`);
+    } else if (!existsSync(join(ROOT, file))) {
+      fail("6 gift", `the gift card claims to be enforced in ${file}, which does not exist`);
+    } else if (!new RegExp(`\\b${symbol.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`).test(read(file))) {
+      fail("6 gift", `the gift card claims \`${symbol}\` in ${file}, and that symbol is not there — the pointer is stale or the grant path is gone`);
+    } else ok();
+    // The card must actually render FROM the const, or the pointer checks a
+    // literal nobody displays while the visible card drifts free.
+    if (!/giftCard\.href/.test(page) || !/giftCard\.title/.test(page)) {
+      fail("6 gift", "the page no longer renders from the giftCard const — the checked claim and the visible card have come apart");
+    } else ok();
+  }
+}
+
 if (failures.length) {
   console.error(`\nmeshpro-claims: ${failures.length} failure(s) across ${checks + failures.length} assertions\n`);
   for (const f of failures) console.error("  " + f);
   console.error("");
   process.exit(1);
 }
-console.log(`meshpro-claims: ${checks} assertions passed — ${entries.length} advertised unlocks, every one pointing at code that exists.`);
+console.log(`meshpro-claims: ${checks} assertions passed — ${entries.length} advertised unlocks (and the gift card), every one pointing at code that exists.`);

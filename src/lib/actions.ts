@@ -839,7 +839,7 @@ export async function completeOnboarding(formData: FormData) {
     // The username being CLAIMED, not the pre-onboarding one: a founder picks
     // their handle in this very form, so judging them on the old value would
     // clamp away the cosmetics they are entitled to on the way in.
-  }, hasMeshPro({ username, isMeshPro: user.isMeshPro }));
+  }, hasMeshPro({ username, isMeshPro: user.isMeshPro, meshProGiftUntil: user.meshProGiftUntil }));
 
   if (username.length < 3 || username.length > 30 || !/^[a-z0-9_]+$/.test(username)) {
     return { error: "Username must be 3-30 characters and use letters, numbers, or underscores." };

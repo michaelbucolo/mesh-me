@@ -298,7 +298,10 @@ export async function GET(req: Request) {
     user: {
       id: user.id, username: user.username, displayName: user.displayName,
       avatarUrl: user.avatarUrl, bio: user.bio, isVerified: user.isVerified,
-      isMeshPro: user.isMeshPro,
+      // hasMeshPro(), same rule as the visited-mesh payload below (:707) —
+      // the session chokepoint makes the raw column founder-correct here, but
+      // one function deciding the mark beats two places being separately right.
+      isMeshPro: hasMeshPro(user),
     },
     following: followingData.map((f) => ({
       ...f.following,
@@ -521,6 +524,7 @@ async function getPublicMesh(targetUserId: string, viewer: Awaited<ReturnType<ty
       isPublic: true,
       isSuspended: true,
       isMeshPro: true,
+      meshProGiftUntil: true,
       meshPrivacy: { select: { meshVisibility: true, branchOverrides: true, showConnections: true, showStats: true } },
     },
   });

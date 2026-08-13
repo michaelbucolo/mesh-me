@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { prisma } from "@/lib/prisma";
-import { syncMeshProSubscription } from "@/lib/stripe-billing";
+import { applyMeshProGiftSession, syncMeshProSubscription } from "@/lib/stripe-billing";
 import { getStripeClient, stripeObjectId } from "@/lib/stripe";
 
 // Errors that should NOT trigger Stripe retry (permanent failures)
@@ -40,6 +40,17 @@ export async function POST(req: Request) {
     switch (event.type) {
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
+
+        // Gifts branch FIRST, before any userId/subscription logic. A gift is a
+        // one-time payment with no subscription, so without this branch it
+        // would fall into the `else if (userId)` below — which marks the
+        // metadata user Pro permanently — and the PURCHASER would be granted
+        // lifetime MeshPro for buying someone else a month.
+        if (session.metadata?.product === "meshpro-gift") {
+          await applyMeshProGiftSession(session, { revalidate: true });
+          break;
+        }
+
         const userId = session.metadata?.userId;
         const subscriptionId = stripeObjectId(session.subscription);
 

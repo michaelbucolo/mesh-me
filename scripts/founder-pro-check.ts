@@ -70,7 +70,7 @@ const ok = () => { checks += 1; };
 
 // ── 1. Both founders resolve to Pro with the column false ────────────────────
 for (const username of FOUNDER_USERNAMES) {
-  if (!hasMeshPro({ username, isMeshPro: false })) {
+  if (!hasMeshPro({ username, isMeshPro: false, meshProGiftUntil: null })) {
     fail("1 derived", `@${username} does not resolve to MeshPro when the stored column is false`);
   } else ok();
   // Usernames are stored as typed; the comparison must not care.
@@ -88,12 +88,12 @@ for (const expected of ["stephen", "michaelbucolo"]) {
 
 // ── 2. Not a blanket grant ───────────────────────────────────────────────────
 for (const outsider of ["alexcreates", "demouser", "", "stephenx", "notstephen"]) {
-  if (hasMeshPro({ username: outsider, isMeshPro: false })) {
+  if (hasMeshPro({ username: outsider, isMeshPro: false, meshProGiftUntil: null })) {
     fail("2 scope", `@${outsider} was granted MeshPro — the founder list is matching too broadly`);
   } else ok();
 }
 // A paying member is still Pro whatever their name.
-if (!hasMeshPro({ username: "somebody", isMeshPro: true })) {
+if (!hasMeshPro({ username: "somebody", isMeshPro: true, meshProGiftUntil: null })) {
   fail("2 scope", "a paid member no longer resolves to MeshPro");
 } else ok();
 if (hasMeshPro(null) || hasMeshPro(undefined)) {

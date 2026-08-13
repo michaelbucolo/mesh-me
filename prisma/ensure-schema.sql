@@ -21,6 +21,7 @@ CREATE TABLE IF NOT EXISTS "User" (
     "activeTitle" TEXT,
     "isMeshPro" BOOLEAN NOT NULL DEFAULT false,
     "meshProSince" DATETIME,
+    "meshProGiftUntil" DATETIME,
     "stripeCustomerId" TEXT,
     "stripeSubscriptionId" TEXT,
     "signupNumber" INTEGER,
@@ -663,6 +664,20 @@ CREATE TABLE IF NOT EXISTS "MeshiPreference" (
 );
 
 -- CreateTable
+CREATE TABLE IF NOT EXISTS "MeshProGift" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "purchaserId" TEXT,
+    "recipientId" TEXT NOT NULL,
+    "months" INTEGER NOT NULL,
+    "message" TEXT,
+    "occasion" TEXT,
+    "stripeSessionId" TEXT NOT NULL,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "MeshProGift_purchaserId_fkey" FOREIGN KEY ("purchaserId") REFERENCES "User" ("id") ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT "MeshProGift_recipientId_fkey" FOREIGN KEY ("recipientId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+-- CreateTable
 CREATE TABLE IF NOT EXISTS "MeshCosmetic" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "userId" TEXT NOT NULL,
@@ -1191,6 +1206,12 @@ CREATE UNIQUE INDEX IF NOT EXISTS "UserAchievement_userId_achievementId_key" ON 
 CREATE UNIQUE INDEX IF NOT EXISTS "MeshiPreference_userId_key" ON "MeshiPreference"("userId");
 
 -- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "MeshProGift_stripeSessionId_key" ON "MeshProGift"("stripeSessionId");
+
+CREATE INDEX IF NOT EXISTS "MeshProGift_recipientId_idx" ON "MeshProGift"("recipientId");
+
+CREATE INDEX IF NOT EXISTS "MeshProGift_purchaserId_idx" ON "MeshProGift"("purchaserId");
+
 CREATE INDEX IF NOT EXISTS "MeshCosmetic_userId_idx" ON "MeshCosmetic"("userId");
 
 -- CreateIndex

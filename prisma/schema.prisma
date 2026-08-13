@@ -65,9 +65,16 @@ model User {
   activeTitle                String?
   isMeshPro                  Boolean                     @default(false)
   meshProSince               DateTime?
+  /// Gifted MeshPro, kept OUTSIDE isMeshPro on purpose: syncMeshProSubscription
+  /// writes `isMeshPro: isActive` on every Stripe event, so a gift stored in
+  /// that column would be revoked the moment any subscription lapses. A gift
+  /// is a prepaid window, not a billing relationship — hasMeshPro() unions it.
+  meshProGiftUntil           DateTime?
   stripeCustomerId           String?                     @unique
   stripeSubscriptionId       String?
   signupNumber               Int?
+  meshProGiftsSent           MeshProGift[]               @relation("giftPurchaser")
+  meshProGiftsReceived       MeshProGift[]               @relation("giftRecipient")
   // Privacy toggles
   showInDiscovery            Boolean                     @default(false)
   hideActivityStatus         Boolean                     @default(false)
@@ -1052,6 +1059,28 @@ model MeshiPreference {
 }
 
 // ─── Mesh Cosmetics (MeshPro) ───────────────────────────────
+
+/// One paid Gift of MeshPro — the receipt row, not the entitlement (that is
+/// User.meshProGiftUntil, denormalized so hasMeshPro() costs no join).
+/// `stripeSessionId` is unique because Stripe redelivers webhooks: the second
+/// delivery hits the constraint and the grant is applied exactly once.
+/// Purchaser is SetNull, not Cascade — a gift outlives the giver's account.
+model MeshProGift {
+  id              String   @id @default(cuid())
+  purchaserId     String?
+  recipientId     String
+  months          Int
+  message         String?
+  occasion        String?
+  stripeSessionId String   @unique
+  createdAt       DateTime @default(now())
+
+  purchaser User? @relation("giftPurchaser", fields: [purchaserId], references: [id], onDelete: SetNull)
+  recipient User  @relation("giftRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+
+  @@index([recipientId])
+  @@index([purchaserId])
+}
 
 model MeshCosmetic {
   id        String   @id @default(cuid())

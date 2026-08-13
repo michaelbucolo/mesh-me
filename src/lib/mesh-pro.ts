@@ -21,16 +21,51 @@ export function isFounderUsername(username: string | null | undefined): boolean 
 }
 
 /**
- * Does this account have MeshPro? Paid, or a founder.
- *
- * Takes the two fields it needs rather than a full User so it can be called
- * from anywhere — the session user, a profile payload, a presence row — without
- * dragging a Prisma type through the signature.
+ * Is a gifted MeshPro window still open? Shared by hasMeshPro and the session
+ * chokepoint in auth.ts so the two cannot disagree about what "active" means.
  */
-export function hasMeshPro(user: { username?: string | null; isMeshPro?: boolean | null } | null | undefined): boolean {
-  if (!user) return false;
-  return Boolean(user.isMeshPro) || isFounderUsername(user.username);
+export function isMeshProGiftActive(until: Date | null | undefined): boolean {
+  return until != null && until.getTime() > Date.now();
 }
+
+/**
+ * Does this account have MeshPro? Paid, a founder, or inside a gifted window.
+ *
+ * Takes the fields it needs rather than a full User so it can be called from
+ * anywhere — the session user, a profile payload, a presence row — without
+ * dragging a Prisma type through the signature.
+ *
+ * `meshProGiftUntil` is REQUIRED in the shape, not optional, on purpose: an
+ * optional field would silently read as "no gift" at every call site whose
+ * select never fetched the column, and a gifted member would flicker between
+ * Pro and free depending on which query built the object. Requiring it makes
+ * the compiler walk every caller when the entitlement grows a new leg.
+ */
+export function hasMeshPro(
+  user: { username?: string | null; isMeshPro?: boolean | null; meshProGiftUntil: Date | null } | null | undefined,
+): boolean {
+  if (!user) return false;
+  return Boolean(user.isMeshPro) || isFounderUsername(user.username) || isMeshProGiftActive(user.meshProGiftUntil);
+}
+
+/**
+ * Gift MeshPro — prepaid months for someone else. One payment, no subscription
+ * attached to the recipient, and nothing here ever writes `isMeshPro`: the
+ * grant lands in `meshProGiftUntil`, which subscription churn cannot touch.
+ * Prices are one-time Stripe Prices (a recurring price is rejected outright by
+ * `mode: "payment"` checkouts) keyed by env in stripe.ts, mirroring
+ * MESH_PRO_PLANS.
+ */
+export const MESH_PRO_GIFT_PRICING = {
+  "1m": { id: "1m", months: 1, label: "1 month", price: "$4.99", detail: "A taste of the gold rim." },
+  "3m": { id: "3m", months: 3, label: "3 months", price: "$12.99", detail: "A season of it." },
+  "12m": { id: "12m", months: 12, label: "12 months", price: "$39.99", detail: "A whole year, on you." },
+} as const;
+
+export type MeshProGiftPlan = keyof typeof MESH_PRO_GIFT_PRICING;
+
+/** The longest message a gift can carry — rendered as plain text, never markup. */
+export const MESH_PRO_GIFT_MESSAGE_MAX = 280;
 
 export const MESH_PRO_PRICING = {
   monthly: {

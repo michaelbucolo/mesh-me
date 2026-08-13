@@ -34,6 +34,8 @@ interface Delivery {
   meshiAccessory: string;
   meshiEyeStyle: string;
   meshiBadge: string;
+  /* Optional: payloads from before the field existed render without the rim. */
+  isPro?: boolean;
   timestamp: number;
 }
 
@@ -118,7 +120,7 @@ export function MeshiDelivery() {
           <motion.div
             animate={{ y: [0, -4, 0] }}
             transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
-            className="shrink-0"
+            className={current.isPro ? "shrink-0 meshi-pro-rim" : "shrink-0"}
           >
             <MeshiMascot
               size={52}

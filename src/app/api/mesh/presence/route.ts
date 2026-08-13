@@ -6,6 +6,7 @@ import {
   parseActionBody,
 } from "@/components/mesh/live/action-bus";
 import { getCurrentUser } from "@/lib/auth";
+import { hasMeshPro } from "@/lib/mesh-pro";
 import { prisma } from "@/lib/prisma";
 import { isSameOriginRequest, readJsonObject } from "@/lib/request-guard";
 import {
@@ -97,7 +98,10 @@ export async function POST(request: Request) {
       ghostMode: ghosting,
       lastAction,
       // Server-authoritative: the gold Pro aura can't be spoofed by clients.
-      isPro: Boolean(user.isMeshPro),
+      // hasMeshPro(), not the raw column — one function decides the mark
+      // (paid, founder, or gifted window), so the rim other people see can
+      // never disagree with what /meshpro says about the same account.
+      isPro: hasMeshPro(user),
       lastSeen: Date.now(),
     });
 

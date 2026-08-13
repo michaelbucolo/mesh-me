@@ -84,19 +84,19 @@ const RANKED_SURFACES = rankedSurfaces();
   else ok();
 
   // A free account cannot have them, however they arrive.
-  const free = { username: "someone", isMeshPro: false, flowStudio: MIX };
+  const free = { username: "someone", isMeshPro: false, meshProGiftUntil: null, flowStudio: MIX };
   if (resolveStudioWeights(free) !== null) fail("1 entitlement", "a free account's stored weights were honoured");
   else ok();
   if (resolveStudioWeights(free, MIX) !== null) fail("1 entitlement", "a free account tuned the ranker by passing weights in the request");
   else ok();
 
   // A paying account gets the stored mix.
-  const pro = { username: "someone", isMeshPro: true, flowStudio: MIX };
+  const pro = { username: "someone", isMeshPro: true, meshProGiftUntil: null, flowStudio: MIX };
   if (resolveStudioWeights(pro)?.discovery !== 70) fail("1 entitlement", "a member's stored mix was not applied");
   else ok();
 
   // A founder has MeshPro derived, not stored — the same rule must hold here.
-  const founder = { username: "michaelbucolo", isMeshPro: false, flowStudio: MIX };
+  const founder = { username: "michaelbucolo", isMeshPro: false, meshProGiftUntil: null, flowStudio: MIX };
   if (resolveStudioWeights(founder)?.discovery !== 70) fail("1 entitlement", "a founder's stored mix was ignored because the column says false");
   else ok();
 
@@ -108,7 +108,7 @@ const RANKED_SURFACES = rankedSurfaces();
   // Garbage falls back rather than throwing or half-applying.
   if (resolveStudioWeights(pro, "not json")?.discovery !== 70) fail("1 entitlement", "an unparseable parameter did not fall back to the stored mix");
   else ok();
-  if (resolveStudioWeights({ username: "x", isMeshPro: true, flowStudio: "{{{" }) !== null) fail("1 entitlement", "an unparseable stored value did not resolve to null");
+  if (resolveStudioWeights({ username: "x", isMeshPro: true, meshProGiftUntil: null, flowStudio: "{{{" }) !== null) fail("1 entitlement", "an unparseable stored value did not resolve to null");
   else ok();
 
   // Out-of-range values are clamped, never trusted.
