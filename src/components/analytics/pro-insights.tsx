@@ -105,7 +105,8 @@ export function ProInsights({ data }: { data: ProAnalytics }) {
         </div>
         <p className="text-sm text-[var(--mesh-text-secondary)]">
           MeshPro reads the last {data.windowDays} days across every connected platform and works out when your
-          posts land best, which formats carry, and where your audience is actually moving.
+          posts land best, which formats carry, and where your audience is actually moving — and sets a month
+          of it on one page you can keep.
         </p>
         <Link href="/meshpro" className="text-sm font-semibold text-[var(--accent-text)] underline underline-offset-4">
           See MeshPro

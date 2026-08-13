@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Download, Trash2 } from "lucide-react";
+import { Download, Table2, Trash2 } from "lucide-react";
 import { PaperWait } from "@/components/loading/paper-wait";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
@@ -9,7 +9,7 @@ type Status = { type: "success" | "error"; message: string } | null;
 
 export function AnalyticsControls() {
   const [status, setStatus] = useState<Status>(null);
-  const [busyAction, setBusyAction] = useState<"export" | "delete-synced" | null>(null);
+  const [busyAction, setBusyAction] = useState<"export" | "csv" | "delete-synced" | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   async function exportData() {
@@ -30,6 +30,30 @@ export function AnalyticsControls() {
       setStatus({ type: "success", message: "Data export prepared." });
     } catch (err) {
       setStatus({ type: "error", message: err instanceof Error ? err.message : "Export failed" });
+    } finally {
+      setBusyAction(null);
+    }
+  }
+
+  async function downloadCsv() {
+    setBusyAction("csv");
+    setStatus(null);
+    try {
+      const res = await fetch("/api/analytics/series");
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({ error: "Download failed" }));
+        throw new Error(data.error || "Download failed");
+      }
+      const blob = new Blob([await res.text()], { type: "text/csv" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "meshme-analytics.csv";
+      a.click();
+      URL.revokeObjectURL(url);
+      setStatus({ type: "success", message: "Analytics CSV prepared." });
+    } catch (err) {
+      setStatus({ type: "error", message: err instanceof Error ? err.message : "Download failed" });
     } finally {
       setBusyAction(null);
     }
@@ -61,7 +85,7 @@ export function AnalyticsControls() {
           {status.message}
         </p>
       )}
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid gap-3 sm:grid-cols-3">
         <button
           onClick={exportData}
           disabled={busyAction !== null}
@@ -75,6 +99,22 @@ export function AnalyticsControls() {
           <span className="mt-3 inline-flex items-center gap-2 text-xs font-semibold text-[var(--accent-text)]">
             {busyAction === "export" && <PaperWait size="sm" />}
             Export
+          </span>
+        </button>
+
+        <button
+          onClick={downloadCsv}
+          disabled={busyAction !== null}
+          className="rounded-xl border border-[var(--glass-card-border)] bg-[var(--glass-card-bg)] p-4 text-left transition hover:border-[var(--accent-muted)] disabled:opacity-60"
+        >
+          <Table2 className="mb-3 h-5 w-5 text-[var(--accent-text)]" />
+          <h3 className="text-sm font-semibold text-[var(--text-primary)]">Download analytics CSV</h3>
+          <p className="mt-1 text-xs leading-5 text-[var(--text-secondary)]">
+            The dashboard&apos;s daily series and per-platform numbers as plain rows — your raw data, in machine shape.
+          </p>
+          <span className="mt-3 inline-flex items-center gap-2 text-xs font-semibold text-[var(--accent-text)]">
+            {busyAction === "csv" && <PaperWait size="sm" />}
+            Download
           </span>
         </button>
 

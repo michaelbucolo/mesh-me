@@ -92,7 +92,7 @@ export type TimingFinding =
     }
   | { status: "insufficient"; have: number; need: number };
 
-function bestTime(posts: { publishedAt: Date | null; score: number }[]): TimingFinding {
+export function bestTime(posts: { publishedAt: Date | null; score: number }[]): TimingFinding {
   const dated = posts.filter((p): p is { publishedAt: Date; score: number } => p.publishedAt !== null);
   if (dated.length < MIN_POSTS_FOR_TIMING) {
     return { status: "insufficient", have: dated.length, need: MIN_POSTS_FOR_TIMING };
@@ -140,7 +140,7 @@ export type FormatFinding =
   | { status: "ok"; rows: { postType: string; averageScore: number; count: number }[] }
   | { status: "insufficient"; have: number; need: number };
 
-function bestFormat(posts: { postType: string; score: number }[]): FormatFinding {
+export function bestFormat(posts: { postType: string; score: number }[]): FormatFinding {
   if (posts.length < MIN_POSTS_FOR_FORMAT) {
     return { status: "insufficient", have: posts.length, need: MIN_POSTS_FOR_FORMAT };
   }
