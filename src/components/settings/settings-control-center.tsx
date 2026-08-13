@@ -105,6 +105,8 @@ type SettingsSnapshot = {
   isMeshPro: boolean;
   /** Holds a charter seat — the only audience the charter pin renders for. */
   charterHolder: boolean;
+  /** Patron of record (patronSince set) — the only audience the patron pin renders for. */
+  patronRecord: boolean;
   /** Live "category:value" wardrobe receipts — owned pieces render unlocked. */
   ownedMeshiItems: string[];
   interests: Array<{ id?: string; tag: string }>;
@@ -672,8 +674,10 @@ export function SettingsControlCenter({
     // accessory sits. Locking them silently would be a paywall nobody decided.
     if (group.startsWith("slot:")) return false;
     // The charter pin is owned outright (only holders ever see the option),
-    // so the Pro wardrobe lock does not apply to it.
+    // so the Pro wardrobe lock does not apply to it. The patron pin is the
+    // same shape: a record, not a Pro cosmetic.
     if (group === "badges" && value === "charter") return false;
+    if (group === "badges" && value === "patron") return false;
     // A $1.99 wardrobe piece is owned the same way: unlocked, and rendered
     // exactly like a free option — no chip, no label, no provenance.
     if (settings.ownedMeshiItems.includes(`${group}:${value}`)) return false;
@@ -919,6 +923,7 @@ export function SettingsControlCenter({
             {activeSection === "meshi" && (
               <MeshiSection
                 charterHolder={settings.charterHolder}
+                patronRecord={settings.patronRecord}
                 meshiState={meshiState}
                 setMeshiState={setMeshiState}
                 saveMeshi={saveMeshi}
@@ -1960,6 +1965,7 @@ function MeshSection({
 
 function MeshiSection({
   charterHolder,
+  patronRecord,
   meshiState,
   setMeshiState,
   saveMeshi,
@@ -1990,7 +1996,13 @@ function MeshiSection({
   meshiLocked: (group: Parameters<typeof isFreeMeshiOption>[0] | `slot:${string}`, value: string) => boolean;
   isPending: boolean;
   charterHolder: boolean;
+  patronRecord: boolean;
 }) {
+  // baseBadges keeps the charter ternary literal intact (charter-check §9
+  // asserts that exact string); the patron pin stacks on top, record-holders
+  // only — non-patrons never see a locked tease.
+  const baseBadges = charterHolder ? [...badges, "charter"] : badges;
+  const shownBadges = patronRecord ? [...baseBadges, "patron"] : baseBadges;
   return (
     <form onSubmit={saveMeshi} className="settings-section-stack">
       <SettingsCard title="Customize Meshi" icon={Sparkles}>
@@ -2087,7 +2099,7 @@ function MeshiSection({
           })}
           {/* The charter pin renders ONLY for seat holders — never as a locked
               tease to anyone else, Pro or free. */}
-          <MeshiOptionGroup title="Badges" group="badges" values={charterHolder ? [...badges, "charter"] : badges} current={meshiState.badgeStyle} meshiState={meshiState} locked={meshiLocked} onPick={(value) => setMeshiState((current) => ({ ...current, badgeStyle: value }))} />
+          <MeshiOptionGroup title="Badges" group="badges" values={shownBadges} current={meshiState.badgeStyle} meshiState={meshiState} locked={meshiLocked} onPick={(value) => setMeshiState((current) => ({ ...current, badgeStyle: value }))} />
         </div>
         <SaveButton label="Save Meshi" pending={isPending} />
       </SettingsCard>

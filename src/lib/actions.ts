@@ -3116,6 +3116,15 @@ export async function updateMeshiPreference(data: MeshiPreferenceUpdate) {
     return { error: "The charter pin belongs to charter seat holders." };
   }
 
+  // The patron sprout is gated on the RECORD (patronSince), never on live
+  // standing and never on hasMeshPro: a lapsed patron keeps the pin (lapse
+  // must cost nothing visible), a Pro subscriber without the record is
+  // refused like anyone else. Carved out of the free wardrobe gate below for
+  // the same reason charter is.
+  if (next.badgeStyle === "patron" && user.patronSince == null) {
+    return { error: "The patron pin belongs to patrons of record." };
+  }
+
   if (!hasMeshPro(user)) {
     const [current, ownedRows] = await Promise.all([
       prisma.meshiPreference.findUnique({
@@ -3130,7 +3139,9 @@ export async function updateMeshiPreference(data: MeshiPreferenceUpdate) {
         select: { category: true, value: true },
       }),
     ]);
-    const gated = next.badgeStyle === "charter" ? { ...next, badgeStyle: undefined } : next;
+    const gated = next.badgeStyle === "charter" || next.badgeStyle === "patron"
+      ? { ...next, badgeStyle: undefined }
+      : next;
     const lockedOption = findLockedMeshiOptionForFreeUser(gated, current ?? {}, buildOwnedMeshiSets(ownedRows));
     if (lockedOption) {
       return { error: `MeshPro is required for that Meshi ${lockedOption}.` };
@@ -3278,6 +3289,25 @@ export async function setShowCharterNumber(show: boolean) {
   await prisma.user.update({
     where: { id: user.id },
     data: { showCharterNumber: show === true },
+  });
+  revalidatePath(`/profile/${user.username}`);
+  revalidatePath("/billing");
+  return { success: true };
+}
+
+/**
+ * The patron chip's visibility switch — patrons-of-record only (the RECORD,
+ * patronSince, never live standing: a lapsed patron keeps the choice). The
+ * record itself is untouched; this is about wearing it, not holding it.
+ */
+export async function setShowPatronChip(show: boolean) {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Not authenticated" };
+  if (user.patronSince == null) return { error: "No patron record on this account." };
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { showPatronChip: show === true },
   });
   revalidatePath(`/profile/${user.username}`);
   revalidatePath("/billing");

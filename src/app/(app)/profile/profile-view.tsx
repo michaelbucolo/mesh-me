@@ -202,6 +202,14 @@ export async function InstagramProfileView({ username, tab, giftSent }: { userna
                       Charter №{profile.charterNumber}
                     </span>
                   )}
+                  {/* Drawn from patronSince — the set-once record — NEVER from
+                      live standing, so lapsing changes nothing visible and the
+                      chip can never become a retention lever. */}
+                  {profile.patronSince != null && profile.showPatronChip && (
+                    <span className="inline-flex items-center rounded-lg bg-[var(--text-muted)]/10 px-2.5 py-0.5 text-xs font-semibold text-[var(--text-secondary)]">
+                      Patron &rsquo;{String(new Date(profile.patronSince).getUTCFullYear()).slice(2)}
+                    </span>
+                  )}
                   {profile.isVerified && (
                     <ShieldCheck className="h-5 w-5 shrink-0 text-[var(--accent-text)]" aria-label="Verified" />
                   )}

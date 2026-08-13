@@ -571,6 +571,16 @@ const BADGES: Record<string, React.ReactNode> = {
       <path d="M-2.2 2 L2.2 2" stroke="white" strokeWidth="1.1" strokeLinecap="round" />
     </g>
   ),
+  // The patron sprout: a stem with two leaves — something kept alive by
+  // steady tending, drawn like the charter seal (a mark, never typeset).
+  patron: (
+    <g transform="translate(11, 11)">
+      <circle cx="0" cy="0" r="4.4" fill="#15803d" stroke="rgba(255,255,255,0.85)" strokeWidth="1.2" />
+      <path d="M0 2.2 L0 -0.6" stroke="white" strokeWidth="1.1" strokeLinecap="round" />
+      <path d="M0 -0.4 C-0.4 -1.8 -1.9 -2.2 -2.4 -1.4 C-1.7 -0.4 -0.6 -0.2 0 -0.4 Z" fill="white" />
+      <path d="M0 0.6 C0.4 -0.6 1.8 -1 2.3 -0.3 C1.6 0.6 0.6 0.8 0 0.6 Z" fill="white" />
+    </g>
+  ),
 };
 
 

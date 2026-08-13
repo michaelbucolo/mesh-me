@@ -30,7 +30,7 @@ export async function POST(req: Request) {
 
     if (!user.stripeCustomerId) {
       return NextResponse.json(
-        { error: "No MeshPro billing profile found for this account yet." },
+        { error: "No billing profile found for this account yet." },
         { status: 400 },
       );
     }
