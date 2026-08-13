@@ -37,7 +37,7 @@ export function ExternalPostDetail({ post }: { post: FeedCardPost }) {
       }).toString()}`;
 
   return (
-    <div className="mx-auto w-full max-w-2xl px-3 py-4 text-[var(--mesh-text)] animate-page-enter sm:px-5 sm:py-6">
+    <div className="mx-auto w-full max-w-2xl px-3 py-4 text-[var(--mesh-text)] sm:px-5 sm:py-6">
       <Link
         href="/feed"
         className="mb-4 inline-flex items-center gap-2 rounded-full border border-[var(--mesh-border)] bg-[var(--mesh-panel)] px-3.5 py-1.5 text-sm font-semibold text-[var(--mesh-text-secondary)] transition hover:text-[var(--mesh-text)]"

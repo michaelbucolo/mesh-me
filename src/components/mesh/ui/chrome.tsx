@@ -40,6 +40,8 @@ type MeshLayerId =
 
 export interface MeshChromeController {
   isOpen: (id: MeshLayerId) => boolean;
+  /** True while a graceful layer is playing its exit — still mounted, leaving. */
+  isClosing: (id: MeshLayerId) => boolean;
   open: (id: MeshLayerId) => void;
   close: (id: MeshLayerId) => void;
   toggle: (id: MeshLayerId) => void;
@@ -50,6 +52,17 @@ export interface MeshChromeController {
   /** Reopen the welcome tips (from the shortcuts/help sheet). */
   reopenTips: () => void;
 }
+
+/** Layers that play a drawn exit before unmounting. Every close path — Escape
+ * via closeTop, a scrim tap, a close key — funnels through close(), so putting
+ * the grace HERE means no overlay has to reimplement it and no path can skip
+ * it. The felt audit measured these three vanishing 30-40ms after Escape: the
+ * entrance was choreographed and the exit was a hard unmount. Layers not in
+ * this set keep the old instant close (they have no exit drawn, and holding
+ * them mounted with nothing to show would just feel laggy). */
+const GRACEFUL_LAYERS = new Set<MeshLayerId>(["search", "compose", "shortcuts"]);
+/** Matches the 160ms exit animations (bubbleOut / fadeOut) plus a frame. */
+const EXIT_MS = 170;
 
 export function useMeshChrome(opts: {
   /** Close whatever the current selection drives (lens/detail) + any tour. */
@@ -77,20 +90,62 @@ export function useMeshChrome(opts: {
     stackRef.current = stack;
   }, [stack]);
 
+  // Graceful layers linger in the stack for EXIT_MS with `closing` set, so
+  // their exit animation has something to play on. One timer per layer; a
+  // reopen mid-exit cancels the pending removal.
+  const [closingSet, setClosingSet] = useState<ReadonlySet<MeshLayerId>>(new Set());
+  const closeTimersRef = useRef(new Map<MeshLayerId, ReturnType<typeof setTimeout>>());
+  useEffect(() => {
+    const timers = closeTimersRef.current;
+    return () => timers.forEach((t) => clearTimeout(t));
+  }, []);
+
   const open = useCallback((id: MeshLayerId) => {
+    const pending = closeTimersRef.current.get(id);
+    if (pending) {
+      clearTimeout(pending);
+      closeTimersRef.current.delete(id);
+      setClosingSet((c) => {
+        const next = new Set(c);
+        next.delete(id);
+        return next;
+      });
+    }
     setStack((s) => (s[s.length - 1] === id ? s : [...s.filter((x) => x !== id), id]));
   }, []);
   const close = useCallback((id: MeshLayerId) => {
-    setStack((s) => (s.includes(id) ? s.filter((x) => x !== id) : s));
+    if (!GRACEFUL_LAYERS.has(id)) {
+      setStack((s) => (s.includes(id) ? s.filter((x) => x !== id) : s));
+      return;
+    }
+    if (closeTimersRef.current.has(id)) return; // already leaving
+    if (!stackRef.current.includes(id)) return;
+    setClosingSet((c) => new Set(c).add(id));
+    closeTimersRef.current.set(
+      id,
+      setTimeout(() => {
+        closeTimersRef.current.delete(id);
+        setClosingSet((c) => {
+          const next = new Set(c);
+          next.delete(id);
+          return next;
+        });
+        setStack((s) => s.filter((x) => x !== id));
+      }, EXIT_MS),
+    );
   }, []);
   const toggle = useCallback(
     (id: MeshLayerId) => {
-      if (stackRef.current.includes(id)) close(id);
+      // A layer mid-exit is visually leaving: the intuitive toggle is "bring it
+      // back", which open() does by cancelling the pending removal.
+      if (closeTimersRef.current.has(id)) open(id);
+      else if (stackRef.current.includes(id)) close(id);
       else open(id);
     },
     [open, close],
   );
   const isOpen = useCallback((id: MeshLayerId) => stack.includes(id), [stack]);
+  const isClosing = useCallback((id: MeshLayerId) => closingSet.has(id), [closingSet]);
 
   const markTipsSeen = useCallback(() => {
     try {
@@ -101,7 +156,10 @@ export function useMeshChrome(opts: {
   }, []);
 
   const closeTop = useCallback((): boolean => {
-    const top = stackRef.current[stackRef.current.length - 1];
+    // Skip layers already playing their exit — Escape pressed twice during the
+    // 170ms grace should dismiss the NEXT layer down, not re-close a ghost.
+    const live = stackRef.current.filter((id) => !closeTimersRef.current.has(id));
+    const top = live[live.length - 1];
     if (!top) return false;
     if (top === "selection") closeSelection();
     else if (top === "rewind") closeRewind();
@@ -147,7 +205,7 @@ export function useMeshChrome(opts: {
     return () => window.removeEventListener("keydown", onKey);
   }, [open, toggle, closeTop, zoomBy, fitToContent]);
 
-  return { isOpen, open, close, toggle, closeTop, dismissTips, reopenTips };
+  return { isOpen, isClosing, open, close, toggle, closeTop, dismissTips, reopenTips };
 }
 
 // ---------------------------------------------------------------------------

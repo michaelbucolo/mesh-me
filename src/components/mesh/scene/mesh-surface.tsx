@@ -446,6 +446,7 @@ export function MeshScene({ viewUserId, viewMode = "mesh", viewerIsPro = false }
       )}
       {chrome.isOpen("shortcuts") && (
         <MeshShortcutsSheet
+          closing={chrome.isClosing("shortcuts")}
           isCoarsePointer={isCoarsePointer}
           onShowTips={chrome.reopenTips}
           onClose={() => chrome.close("shortcuts")}
@@ -455,6 +456,7 @@ export function MeshScene({ viewUserId, viewMode = "mesh", viewerIsPro = false }
       {/* The ONE mesh search — on-mesh nodes + "Across mesh.me" discovery. */}
       {chrome.isOpen("search") && (
         <MeshSearchOverlay
+          closing={chrome.isClosing("search")}
           rtRef={rtRef}
           model={world.model}
           placeholder={copy.searchPlaceholder}
@@ -551,6 +553,7 @@ export function MeshScene({ viewUserId, viewMode = "mesh", viewerIsPro = false }
           Global is read-only in every layer. */}
       {showCompose && viewer.canPost && world.meshUser && (
         <MeshComposeModal
+          closing={chrome.isClosing("compose")}
           meshUser={world.meshUser}
           onClose={() => chrome.close("compose")}
           onPostCreated={() => {

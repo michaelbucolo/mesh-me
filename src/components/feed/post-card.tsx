@@ -19,6 +19,7 @@ import { getFocusedContentPrompt, type MeshiContentMode } from "@/lib/meshi-cont
 import { getVideoEmbedUrl } from "@/lib/video-embed";
 import { Play } from "lucide-react";
 import { playSound } from "@/lib/sound";
+import { publishMeshiCause } from "@/lib/meshi-bus";
 
 // Platform colors for origin badges
 // COLOR AND ABBREVIATION ONLY — the NAME comes from lib/platform-capabilities.
@@ -334,6 +335,9 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
         setLiked(previousLiked);
         setLikeCount(previousCount);
         handleSourceActionError(String(result.error), newLiked ? "like" : "unlike");
+      } else if (newLiked) {
+        // Confirmed like only — unliking is tidying, not a moment.
+        publishMeshiCause({ kind: "post:liked" });
       }
     });
   };

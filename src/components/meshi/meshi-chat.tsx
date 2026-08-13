@@ -272,7 +272,7 @@ export function MeshiChat({
                         <>
                           <button
                             onClick={() => confirmPostAction(msg.id, msg.action!)}
-                            className="flex items-center gap-1 rounded-lg brand-button px-2.5 py-1 text-micro font-semibold transition-all hover:shadow"
+                            className="flex items-center gap-1 rounded-lg brand-button px-2.5 py-1 text-micro font-semibold transition-[color,background-color,border-color,box-shadow,transform,opacity] hover:shadow"
                           >
                             <PenLine className="h-3 w-3" />
                             Post it
@@ -377,7 +377,7 @@ export function MeshiChat({
               onClick={() => handleSend()}
               disabled={!input.trim() || isTyping}
               aria-label="Send message to Meshi"
-              className="rounded-xl brand-button p-2 transition-all hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-40"
+              className="rounded-xl brand-button p-2 transition-[color,background-color,border-color,box-shadow,transform,opacity] hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-40"
             >
               <Send className="h-4 w-4" />
             </button>

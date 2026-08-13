@@ -36,7 +36,7 @@ function FeaturedCard({ community }: { community: Community }) {
   return (
     <Link
       href={`/communities/${community.slug}`}
-      className="group relative flex min-w-[min(260px,80vw)] max-w-[300px] shrink-0 flex-col overflow-hidden rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] transition-all duration-200 hover:border-[var(--mesh-border-active)]"
+      className="group relative flex min-w-[min(260px,80vw)] max-w-[300px] shrink-0 flex-col overflow-hidden rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] transition-[color,background-color,border-color,box-shadow,transform,opacity] duration-200 hover:border-[var(--mesh-border-active)]"
     >
       <div className="relative h-36 bg-gradient-to-br from-[var(--mesh-bg)] to-[var(--mesh-bg-elevated)]">
         {community.iconUrl ? (
@@ -141,7 +141,7 @@ export function CommunityHub({ data }: { data: CommunitiesHubData }) {
   const selectedCommunity = dedupedCommunities.find((c) => c.id === selectedId) ?? featured[0] ?? null;
 
   return (
-    <div className="mx-auto grid w-full max-w-7xl gap-6 px-4 py-6 xl:grid-cols-[minmax(0,1fr)_380px] animate-page-enter">
+    <div className="mx-auto grid w-full max-w-7xl gap-6 px-4 py-6 xl:grid-cols-[minmax(0,1fr)_380px]">
       {/* Main column */}
       <div className="min-w-0 space-y-6">
         {/* THE FRONT DOOR THIS SURFACE DID NOT HAVE.

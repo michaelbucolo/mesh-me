@@ -331,7 +331,7 @@ export default async function AdminPage() {
             <div className="mt-4 grid gap-3">
               {data.securityAlerts.length ? (
                 data.securityAlerts.map((alert) => (
-                  <Link key={`${alert.title}-${alert.href}`} href={alert.href} className={cn("rounded-2xl border p-3 transition hover:-translate-y-0.5", severityStyles[alert.severity])}>
+                  <Link key={`${alert.title}-${alert.href}`} href={alert.href} className={cn("rounded-2xl border p-3 transition", severityStyles[alert.severity])}>
                     <div className="flex items-start gap-3">
                       <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
                       <div>

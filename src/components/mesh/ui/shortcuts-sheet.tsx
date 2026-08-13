@@ -18,6 +18,7 @@ const SHORTCUTS: Array<{ keys: string[]; label: string }> = [
 ];
 
 export function MeshShortcutsSheet({
+  closing = false,
   isCoarsePointer,
   onShowTips,
   onClose,
@@ -25,10 +26,12 @@ export function MeshShortcutsSheet({
   isCoarsePointer: boolean;
   onShowTips: () => void;
   onClose: () => void;
+  /** Chrome is playing the 170ms graceful exit — render leaving, swallow input. */
+  closing?: boolean;
 }) {
   return (
     <div
-      className="absolute inset-0 z-50 flex animate-[fadeIn_.18s_ease] items-end justify-center bg-black/55 p-4 backdrop-blur-sm sm:items-center"
+      className={`absolute inset-0 z-50 flex ${closing ? "pointer-events-none animate-[fadeOut_.16s_var(--mesh-ease-press)_both]" : "animate-[fadeIn_.18s_var(--mesh-ease-out)]"} items-end justify-center bg-black/55 p-4 backdrop-blur-sm sm:items-center`}
       onPointerDown={(e) => {
         e.stopPropagation();
         if (e.target === e.currentTarget) onClose();
@@ -37,7 +40,7 @@ export function MeshShortcutsSheet({
       <div
         role="dialog"
         aria-label="Help and keyboard shortcuts"
-        className="w-full max-w-sm animate-[bubbleIn_.36s_cubic-bezier(0.22,1,0.36,1)] rounded-2xl mesh-panel p-5 shadow-2xl"
+        className={`w-full max-w-sm ${closing ? "animate-[bubbleOut_.16s_var(--mesh-ease-press)_both]" : "animate-[bubbleIn_.36s_var(--mesh-ease-out)]"} rounded-2xl mesh-panel p-5 shadow-2xl`}
         onPointerDown={(e) => e.stopPropagation()}
       >
         <div className="mb-2 flex items-start justify-between">

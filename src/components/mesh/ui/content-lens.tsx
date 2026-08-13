@@ -432,7 +432,7 @@ export function ContentLens({
                 {Array.from({ length: catchup.total }, (_, i) => (
                   <span
                     key={i}
-                    className={`rounded-full transition-all ${
+                    className={`rounded-full transition-[color,background-color,border-color,box-shadow,transform,opacity] ${
                       i === catchup.index
                         ? "h-2 w-2 bg-cyan-300"
                         : i < catchup.index

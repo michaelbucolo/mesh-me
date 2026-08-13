@@ -451,7 +451,7 @@ export function FeedTimelineClient({
   };
 
   return (
-    <main className={`insta-feed-layout feed-x-layout feed-layout-mode-${layoutMode} feed-view-${contentFilter} animate-page-enter`} data-meshi-zone="feed">
+    <main className={`insta-feed-layout feed-x-layout feed-layout-mode-${layoutMode} feed-view-${contentFilter}`} data-meshi-zone="feed">
       <section className="min-w-0">
         {/* No identity cluster here: the app topbar states "Home" once — this
             bar (hidden under 768px) is only the desktop action strip. It also

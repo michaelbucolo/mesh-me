@@ -432,6 +432,7 @@ select:focus-visible {
 
 /* ─── Base Animations ─── */
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
 @keyframes slideUp {
   0% { opacity: 0; transform: translateY(14px) scale(0.98); }
   60% { opacity: 1; transform: translateY(-2px) scale(1.004); }
@@ -1379,7 +1380,7 @@ select:focus-visible {
   background: var(--bg-input);
   border: 1px solid var(--border-primary);
   color: var(--text-primary);
-  transition: all 0.2s ease;
+  transition: color var(--mesh-transition-fast), background-color var(--mesh-transition-fast), border-color var(--mesh-transition-fast), box-shadow var(--mesh-transition-fast);
 }
 .theme-input::placeholder { color: var(--text-muted); }
 .theme-input:focus {
@@ -7326,6 +7327,14 @@ body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
   0% { opacity: 0; transform: scale(0.92) translateY(16px); }
   62% { opacity: 1; transform: scale(1.015) translateY(-3px); }
   100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+/* The exit is the entrance played with intent, not in reverse: no overshoot on
+   the way out (leaving should feel decisive), just a short drop-and-fade on the
+   press bezier. Timed at 160ms to match --mesh-transition-fast and the chrome
+   layer's graceful-close window. */
+@keyframes bubbleOut {
+  0% { opacity: 1; transform: scale(1) translateY(0); }
+  100% { opacity: 0; transform: scale(0.95) translateY(10px); }
 }
 /* Right-hand sheets (the list view) spring in from the edge. */
 @keyframes sheetIn {

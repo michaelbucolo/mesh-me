@@ -729,7 +729,7 @@ function CommunityCard({ community, index, compact }: { community: SuggestedComm
     >
       <Link
         href={`/communities/${community.slug}`}
-        className={`glass-card group flex flex-col gap-2 rounded-2xl p-4 transition-all hover:border-[var(--border-primary)] ${
+        className={`glass-card group flex flex-col gap-2 rounded-2xl p-4 transition-[color,background-color,border-color,box-shadow,transform,opacity] hover:border-[var(--border-primary)] ${
           compact ? "w-56 shrink-0" : "h-full"
         }`}
       >
@@ -798,7 +798,7 @@ function ExplorePersonCard({
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ ...spring, delay: 0.04 * Math.min(index, 12) }}
-      className={`glass-card group rounded-2xl p-4 text-center transition-all hover:border-[var(--border-primary)] ${
+      className={`glass-card group rounded-2xl p-4 text-center transition-[color,background-color,border-color,box-shadow,transform,opacity] hover:border-[var(--border-primary)] ${
         fullWidth ? "w-full" : "w-44 shrink-0"
       }`}
     >
@@ -890,7 +890,7 @@ function ExploreTile({ post, index }: { post: FeedCardPost; index: number }) {
       onPointerMove={handlePointerMove}
       onPointerLeave={resetTilt}
       onClick={() => router.push(`/feed?flow=${encodeURIComponent(post.id)}`)}
-      className="glass-card group relative block w-full overflow-hidden rounded-2xl text-left transition-all hover:border-[var(--border-primary)]"
+      className="glass-card group relative block w-full overflow-hidden rounded-2xl text-left transition-[color,background-color,border-color,box-shadow,transform,opacity] hover:border-[var(--border-primary)]"
       // NO aria-label. It OVERRIDES name-from-contents, so everything inside
       // this button became unreachable: the media alt built by getPostMediaAlt
       // below, and — for a text-only tile — the whole post body. Content inside

@@ -71,7 +71,7 @@ export function CommunityCreateForm() {
                 onClick={() => setSpaceType(type.id)}
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0, scale: selected ? 1.02 : 1 }}
-                whileHover={{ y: -2 }}
+               
                 whileTap={{ scale: 0.97 }}
                 transition={{ ...CARD_SPRING, delay: 0.04 * index }}
                 className={cn(
@@ -142,7 +142,7 @@ export function CommunityCreateForm() {
               onClick={() => setVisibility("public")}
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0, scale: visibility === "public" ? 1.02 : 1 }}
-              whileHover={{ y: -2 }}
+             
               whileTap={{ scale: 0.97 }}
               transition={{ ...CARD_SPRING, delay: 0.08 }}
               className={cn(
@@ -161,7 +161,7 @@ export function CommunityCreateForm() {
               onClick={() => setVisibility("private")}
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0, scale: visibility === "private" ? 1.02 : 1 }}
-              whileHover={{ y: -2 }}
+             
               whileTap={{ scale: 0.97 }}
               transition={{ ...CARD_SPRING, delay: 0.12 }}
               className={cn(

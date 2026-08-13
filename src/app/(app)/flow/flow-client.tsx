@@ -355,7 +355,7 @@ function ReelMedia({
           <>
             <span className="pointer-events-none absolute inset-x-0 top-3 z-10 flex justify-center gap-1.5">
               {images.map((m, i) => (
-                <span key={m.id ?? i} className={`h-1 rounded-full transition-all duration-200 ${i === shownIndex ? "w-5 bg-white/90" : "w-2.5 bg-white/35"}`} />
+                <span key={m.id ?? i} className={`h-1 rounded-full transition-[width,background-color] duration-200 ${i === shownIndex ? "w-5 bg-white/90" : "w-2.5 bg-white/35"}`} />
               ))}
             </span>
             {shownIndex > 0 && (
@@ -1802,7 +1802,7 @@ export function FlowClient({
                     style={{ height: 24, width: 44, minHeight: 0, minWidth: 0 }}
                   >
                     <span
-                      className={`absolute top-0.5 h-5 w-5 rounded-full transition-all ${studio.enabled ? "left-[1.4rem] bg-black" : "left-0.5 bg-white"}`}
+                      className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full transition-[transform,background-color] duration-200 ${studio.enabled ? "translate-x-[0.9rem] bg-black" : "translate-x-0 bg-white"}`}
                     />
                   </button>
                 ) : (

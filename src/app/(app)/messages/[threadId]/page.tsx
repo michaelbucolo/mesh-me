@@ -431,7 +431,7 @@ export default async function ThreadDetailPage({ params, searchParams }: ThreadP
         : "Private conversation";
 
   return (
-    <div className="h-full min-h-0 overflow-hidden text-[var(--mesh-text)] animate-page-enter">
+    <div className="h-full min-h-0 overflow-hidden text-[var(--mesh-text)]">
       {/* minmax(0,1fr) on the single-column tier too: an implicit `auto` track
           takes the thread's min-content width, which ran past narrow phones. */}
       {/* Detail rail at xl, not lg: the messages layout already spends 360px

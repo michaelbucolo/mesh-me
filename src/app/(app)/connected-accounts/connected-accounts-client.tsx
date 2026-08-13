@@ -20,6 +20,7 @@ import { foldPersonaIntoMainIdentity } from "@/lib/one-account-actions";
 import { AccountMergePanel } from "./account-merge-panel";
 import type { SupplyNote } from "./public-supply-status";
 import type { AccountMergeCenter } from "@/lib/account-merge";
+import { publishMeshiCause } from "@/lib/meshi-bus";
 
 /** A separate identity (alter ego) that can be folded into the one account. */
 type PersonaView = {
@@ -173,6 +174,14 @@ export function ConnectedAccountsClient({
   // The just-connected account stays lit for a beat after you return from
   // OAuth, then settles in with the rest.
   const [justConnected, setJustConnected] = useState<string | null>(justConnectedPlatform);
+  // Returning from a completed OAuth flow IS the server confirmation — the
+  // account row exists or we wouldn't be lit. One brief celebration, in step
+  // with the tile burst the grid already fires for the same fact.
+  useEffect(() => {
+    if (justConnectedPlatform) publishMeshiCause({ kind: "account:connected" });
+    // The prop is set once by the server on the OAuth return render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [openPlatformId, setOpenPlatformId] = useState<string | null>(null);
   const [actionState, setActionState] = useState<ActionState>(null);
   const dismissToast = useCallback(() => setActionState(null), []);
@@ -433,7 +442,7 @@ export function ConnectedAccountsClient({
        the screen. `minmax(0, 1fr)` caps the column at the container. */
     <main
       data-testid="connected-accounts-center"
-      className="ds-page-shell animate-page-enter grid grid-cols-[minmax(0,1fr)] gap-6"
+      className="ds-page-shell grid grid-cols-[minmax(0,1fr)] gap-6"
     >
       {/* One line, and it stays one line. This wrapped on a phone — a promise
           and a button stacked into two rows of chrome above a page whose whole

@@ -255,7 +255,7 @@ export function SearchClient({ initialQuery }: { initialQuery: string }) {
   const showWeb = activeTab === "top" || activeTab === "web";
 
   return (
-    <main className="search-index-page mx-auto grid w-full max-w-[62rem] grid-cols-[minmax(0,1fr)] gap-3 animate-page-enter">
+    <main className="search-index-page mx-auto grid w-full max-w-[62rem] grid-cols-[minmax(0,1fr)] gap-3">
       <style>{`
         .search-row-magnetic { position: relative; }
         .search-row-magnetic::before {

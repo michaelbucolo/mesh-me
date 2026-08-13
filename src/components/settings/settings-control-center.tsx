@@ -63,6 +63,7 @@ import { broadcastWhereShare, readWhereShare, WHERE_SHARE_EVENT } from "@/lib/wh
 import { MESH_PAPERS } from "@/components/mesh/paint/papers";
 import { isFreeMeshiOption } from "@/lib/mesh-pro";
 import { getDisplayNameForAnyPlatform } from "@/lib/platform-capabilities";
+import { publishMeshiCause } from "@/lib/meshi-bus";
 
 /* TOYBOX — the two moulded plastics this surface uses.
    `.key-lit` (globals.css:4996) reads a PINNED TRIPLE off the element: face, ink
@@ -478,6 +479,7 @@ export function SettingsControlCenter({
           return;
         }
         setStatus({ type: "success", message: `${label} saved.` });
+        publishMeshiCause({ kind: "settings:saved" });
         router.refresh();
       } catch (error) {
         setStatus({ type: "error", message: error instanceof Error ? error.message : "Save failed." });
@@ -659,7 +661,7 @@ export function SettingsControlCenter({
   }
 
   return (
-    <main className="settings-traditional flex flex-col animate-page-enter">
+    <main className="settings-traditional flex flex-col">
       <header className="settings-traditional-header plate shrink-0 p-4 md:p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-3">

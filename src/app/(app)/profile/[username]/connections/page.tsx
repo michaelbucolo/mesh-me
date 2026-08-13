@@ -41,7 +41,7 @@ export default async function ConnectionsPage({
   const people = canSee ? await getProfileConnections(profile.id, activeTab) : [];
 
   return (
-    <div className="mx-auto w-full max-w-2xl px-4 py-6 animate-page-enter">
+    <div className="mx-auto w-full max-w-2xl px-4 py-6">
       <div className="mb-4 flex items-center gap-3">
         <Link
           href={`/profile/${profile.username}`}
