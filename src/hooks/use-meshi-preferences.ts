@@ -17,6 +17,8 @@ export interface MeshiPreferences {
   /** A face id — a persistent eye shape, not a mood. */
   face: string;
   hair: MeshiHair;
+  /** A hair color id from meshi-hair's HAIR_COLOR_TABLE; "inherit" = body-derived. */
+  hairColor: string;
   accessory: MeshiAccessory;
   eye: MeshiEyeStyle;
   badge: MeshiBadge;
@@ -33,6 +35,7 @@ const STORAGE_KEYS = {
   hat: "meshiHat",
   face: "meshiFace",
   hair: "meshiHair",
+  hairColor: "meshiHairColor",
   accessory: "meshiAccessory",
   eye: "meshiEye",
   badge: "meshiBadge",
@@ -47,6 +50,7 @@ const DEFAULTS: MeshiPreferences = {
   hat: "none",
   face: "bean",
   hair: "none",
+  hairColor: "inherit",
   accessory: "none",
   eye: "regular",
   badge: "none",
@@ -75,6 +79,7 @@ function readMeshiPreferencesFromStorage(): MeshiPreferences {
     hat: (localStorage.getItem(STORAGE_KEYS.hat) as MeshiHat) || DEFAULTS.hat,
     face: localStorage.getItem(STORAGE_KEYS.face) || DEFAULTS.face,
     hair: (localStorage.getItem(STORAGE_KEYS.hair) as MeshiHair) || DEFAULTS.hair,
+    hairColor: localStorage.getItem(STORAGE_KEYS.hairColor) || DEFAULTS.hairColor,
     accessory: ((storedAccessory === "lashes" ? "none" : storedAccessory) as MeshiAccessory) || DEFAULTS.accessory,
     eye: ((localStorage.getItem(STORAGE_KEYS.eye) || (storedAccessory === "lashes" ? "lashes" : "")) as MeshiEyeStyle) || DEFAULTS.eye,
     badge: (localStorage.getItem(STORAGE_KEYS.badge) as MeshiBadge) || DEFAULTS.badge,
@@ -92,6 +97,7 @@ function writeMeshiPreferencesToStorage(prefs: MeshiPreferences) {
   localStorage.setItem(STORAGE_KEYS.hat, prefs.hat);
   localStorage.setItem(STORAGE_KEYS.face, prefs.face);
   localStorage.setItem(STORAGE_KEYS.hair, prefs.hair);
+  localStorage.setItem(STORAGE_KEYS.hairColor, prefs.hairColor);
   localStorage.setItem(STORAGE_KEYS.accessory, prefs.accessory);
   localStorage.setItem(STORAGE_KEYS.eye, prefs.eye);
   localStorage.setItem(STORAGE_KEYS.badge, prefs.badge);
@@ -138,6 +144,7 @@ export function applyServerMeshiPreferences(serverPref: ServerMeshiPreference): 
     hat: (serverPref.hatStyle as MeshiHat) || local.hat,
     face: serverPref.faceStyle || local.face,
     hair: (serverPref.hairStyle as MeshiHair) || local.hair,
+    hairColor: serverPref.hairColor || local.hairColor,
     accessory: (serverPref.accessoryStyle as MeshiAccessory) || local.accessory,
     eye: (serverPref.eyeStyle as MeshiEyeStyle) || local.eye,
     badge: (serverPref.badgeStyle as MeshiBadge) || local.badge,

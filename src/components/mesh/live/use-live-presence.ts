@@ -402,6 +402,7 @@ export function useLivePresence(
         meshiColor: p.color,
         meshiHat: p.hat,
         meshiHair: p.hair,
+        meshiHairColor: p.hairColor,
         meshiAccessory: p.accessory,
         meshiEyeStyle: p.eye,
         meshiBadge: p.badge,

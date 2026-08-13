@@ -264,6 +264,7 @@ export async function getGlobalMeshSupply(viewer: Viewer): Promise<MeshApiRespon
       hatStyle: "none",
       faceStyle: "happy",
       hairStyle: "none",
+      hairColor: "inherit",
       accessoryStyle: "none",
       eyeStyle: "regular",
       badgeStyle: "none",

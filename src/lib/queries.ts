@@ -362,6 +362,7 @@ export async function getUserProfile(username: string) {
         select: {
           colorTheme: true,
           hatStyle: true,
+          hairColor: true,
           faceStyle: true,
           hairStyle: true,
           accessoryStyle: true,

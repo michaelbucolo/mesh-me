@@ -36,9 +36,10 @@
 // At a million people, ~1.3% share their exact combination with someone else.
 // At ten million, ~12.6% do. That is "everyone is a little unique", not
 // "everyone is provably unique", and the difference is worth stating plainly.
-// The single biggest remaining multiplier is giving hair its own colour
-// independent of the body (x14 -> 1.1 billion, ~0.9% at ten million); it needs
-// a stored field, so it is a separate change rather than a silent one.
+// The single biggest remaining multiplier — hair with its own colour,
+// independent of the body — now exists: MeshiPreference.hairColor, with the
+// palette in meshi-hair.tsx and the honest math in combinationCount below
+// (colours multiply only real hair; bald-with-blond is not a look).
 //
 // ── STORAGE STAYS PUT ───────────────────────────────────────────────────────
 //
@@ -155,6 +156,11 @@ export function combinationCount(counts: {
   faces: number;
   lashes: number;
   hair: number;
+  /** Hair-color ids INCLUDING "inherit". Colors only apply to real hair, so
+      the hair axis contributes 1 (bald) + (styles - 1) x colors — counting
+      bald-with-blond as distinct would inflate the number with looks nobody
+      can see. This is the multiplier the header comment above reserved. */
+  hairColors: number;
   hats: number;
   colors: number;
 }): number {
@@ -163,5 +169,6 @@ export function combinationCount(counts: {
       ? 2 ** (SLOT_ITEMS[slot].length - 1) // each mark independently on or off
       : SLOT_ITEMS[slot].length,
   ).reduce((a, b) => a * b, 1);
-  return counts.faces * counts.lashes * counts.hair * counts.hats * counts.colors * perSlot;
+  const hairLooks = 1 + (counts.hair - 1) * counts.hairColors;
+  return counts.faces * counts.lashes * hairLooks * counts.hats * counts.colors * perSlot;
 }

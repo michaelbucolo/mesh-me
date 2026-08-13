@@ -8,7 +8,7 @@ import {
   type MeshiFace,
   type MeshiLash,
 } from "@/components/meshi/meshi-face";
-import { MESHI_HAIR_IDS, MESHI_HAIR_LABELS } from "@/components/meshi/meshi-hair";
+import { MESHI_HAIR_COLOR_IDS, MESHI_HAIR_COLOR_LABELS, MESHI_HAIR_IDS, MESHI_HAIR_LABELS } from "@/components/meshi/meshi-hair";
 import {
   combinationCount,
   parseAccessories,
@@ -139,6 +139,7 @@ type MeshiSnapshot = {
   faceStyle: string;
   colorTheme: string;
   hairStyle: string;
+  hairColor: string;
   accessoryStyle: string;
   eyeStyle: string;
   badgeStyle: string;
@@ -213,11 +214,17 @@ function optionLabel(group: string, value: string): string {
   if (group === "faces") return MESHI_FACE_LABELS[value as MeshiFace] ?? value;
   if (group === "eyes") return MESHI_LASH_LABELS[value as MeshiLash] ?? value;
   if (group === "hairs") return MESHI_HAIR_LABELS[value] ?? value;
+  if (group === "hairColors") return MESHI_HAIR_COLOR_LABELS[value] ?? value;
   if (group.startsWith("slot:")) return value === "none" ? "None" : value[0].toUpperCase() + value.slice(1);
   return value;
 }
 
 const hairs = MESHI_HAIR_IDS;
+const hairColors = MESHI_HAIR_COLOR_IDS;
+/* Hair-color tiles need visible hair to color: when the current style is
+   "none", preview on the first real style so the tiles aren't identical
+   bald heads. */
+const HAIR_COLOR_PREVIEW_STYLE = MESHI_HAIR_IDS.find((id) => id !== "none") ?? "none";
 // Lash styles, from the same engine. ("regular" remains accepted on the way in
 // as the legacy spelling of "none"; it is not offered as a choice.)
 const eyes = MESHI_LASH_IDS;
@@ -384,6 +391,7 @@ export function SettingsControlCenter({
     hatStyle: meshi.hatStyle,
     faceStyle: meshi.faceStyle,
     hairStyle: meshi.hairStyle,
+    hairColor: meshi.hairColor,
     accessoryStyle: meshi.accessoryStyle,
     eyeStyle: meshi.eyeStyle,
     badgeStyle: meshi.badgeStyle,
@@ -586,6 +594,7 @@ export function SettingsControlCenter({
       hat: meshiState.hatStyle as MeshiHat,
       face: meshiState.faceStyle,
       hair: meshiState.hairStyle as MeshiHair,
+      hairColor: meshiState.hairColor,
       accessory: meshiState.accessoryStyle as MeshiAccessory,
       eye: meshiState.eyeStyle as MeshiEyeStyle,
       badge: meshiState.badgeStyle as MeshiBadge,
@@ -595,6 +604,7 @@ export function SettingsControlCenter({
       hatStyle: meshiState.hatStyle,
       faceStyle: meshiState.faceStyle,
       hairStyle: meshiState.hairStyle,
+      hairColor: meshiState.hairColor,
       accessoryStyle: meshiState.accessoryStyle,
       eyeStyle: meshiState.eyeStyle,
       badgeStyle: meshiState.badgeStyle,
@@ -671,6 +681,7 @@ export function SettingsControlCenter({
               hat={meshiState.hatStyle as MeshiHat}
               face={meshiState.faceStyle}
               hair={meshiState.hairStyle as MeshiHair}
+              hairColor={meshiState.hairColor}
               accessory={meshiState.accessoryStyle as MeshiAccessory}
               eyeStyle={meshiState.eyeStyle as MeshiEyeStyle}
               badge={meshiState.badgeStyle as MeshiBadge}
@@ -1948,6 +1959,7 @@ function MeshiSection({
     hatStyle: string;
     faceStyle: string;
     hairStyle: string;
+    hairColor: string;
     accessoryStyle: string;
     eyeStyle: string;
     badgeStyle: string;
@@ -1957,6 +1969,7 @@ function MeshiSection({
     hatStyle: string;
     faceStyle: string;
     hairStyle: string;
+    hairColor: string;
     accessoryStyle: string;
     eyeStyle: string;
     badgeStyle: string;
@@ -2008,6 +2021,7 @@ function MeshiSection({
           </PickerGroup>
           <MeshiOptionGroup title="Hat" group="hats" values={hats} current={meshiState.hatStyle} meshiState={meshiState} locked={meshiLocked} onPick={(value) => setMeshiState((current) => ({ ...current, hatStyle: value }))} />
           <MeshiOptionGroup title="Hair" group="hairs" values={hairs} current={meshiState.hairStyle} meshiState={meshiState} locked={meshiLocked} onPick={(value) => setMeshiState((current) => ({ ...current, hairStyle: value }))} />
+          <MeshiOptionGroup title="Hair color" group="hairColors" values={hairColors} current={meshiState.hairColor} meshiState={meshiState} locked={meshiLocked} onPick={(value) => setMeshiState((current) => ({ ...current, hairColor: value }))} />
           <MeshiOptionGroup title="Eyes" group="eyes" values={eyes} current={meshiState.eyeStyle} meshiState={meshiState} locked={meshiLocked} onPick={(value) => setMeshiState((current) => ({ ...current, eyeStyle: value }))} />
           <MeshiOptionGroup title="Face" group="faces" values={faces} current={meshiState.faceStyle} meshiState={meshiState} locked={meshiLocked} onPick={(value) => setMeshiState((current) => ({ ...current, faceStyle: value }))} />
           {/* The point of slots, said out loud. Computed from the live option
@@ -2017,6 +2031,7 @@ function MeshiSection({
               faces: MESHI_FACE_IDS.length,
               lashes: MESHI_LASH_IDS.length,
               hair: MESHI_HAIR_IDS.length,
+              hairColors: MESHI_HAIR_COLOR_IDS.length,
               hats: hats.length,
               colors: colors.length,
             }).toLocaleString()}{" "}
@@ -2301,6 +2316,7 @@ function MeshiOptionGroup({
     hatStyle: string;
     faceStyle: string;
     hairStyle: string;
+    hairColor: string;
     accessoryStyle: string;
     eyeStyle: string;
     badgeStyle: string;
@@ -2316,7 +2332,12 @@ function MeshiOptionGroup({
           color: meshiState.colorTheme as MeshiColor,
           hat: group === "hats" ? value as MeshiHat : meshiState.hatStyle as MeshiHat,
           face: group === "faces" ? value : meshiState.faceStyle,
-          hair: group === "hairs" ? value as MeshiHair : meshiState.hairStyle as MeshiHair,
+          hair: (group === "hairs"
+            ? value
+            : group === "hairColors" && meshiState.hairStyle === "none"
+              ? HAIR_COLOR_PREVIEW_STYLE
+              : meshiState.hairStyle) as MeshiHair,
+          hairColor: group === "hairColors" ? value : meshiState.hairColor,
           accessory: (group.startsWith("slot:")
             ? previewWithSlot(meshiState.accessoryStyle, group.slice(5), value)
             : meshiState.accessoryStyle) as MeshiAccessory,
@@ -2332,6 +2353,7 @@ function MeshiOptionGroup({
               hat={preview.hat}
               face={preview.face}
               hair={preview.hair}
+              hairColor={preview.hairColor}
               accessory={preview.accessory}
               eyeStyle={preview.eyeStyle}
               badge={preview.badge}

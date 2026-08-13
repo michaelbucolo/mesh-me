@@ -19,6 +19,7 @@ export type PresenceEntry = {
   meshiColor: string;
   meshiHat: string;
   meshiHair: string;
+  meshiHairColor: string;
   meshiAccessory: string;
   meshiEyeStyle: string;
   meshiBadge: string;
@@ -99,6 +100,7 @@ type PresenceRow = {
   meshiColor: string;
   meshiHat: string;
   meshiHair: string;
+  meshiHairColor: string;
   meshiAccessory: string;
   meshiEyeStyle: string;
   meshiBadge: string;
@@ -129,6 +131,7 @@ function rowToEntry(row: PresenceRow): PresenceEntry {
     meshiColor: row.meshiColor,
     meshiHat: row.meshiHat,
     meshiHair: row.meshiHair,
+    meshiHairColor: row.meshiHairColor,
     meshiAccessory: row.meshiAccessory,
     meshiEyeStyle: row.meshiEyeStyle,
     meshiBadge: row.meshiBadge,
@@ -162,6 +165,7 @@ function entryToRow(entry: PresenceEntry) {
     meshiColor: entry.meshiColor,
     meshiHat: entry.meshiHat,
     meshiHair: entry.meshiHair,
+    meshiHairColor: entry.meshiHairColor,
     meshiAccessory: entry.meshiAccessory,
     meshiEyeStyle: entry.meshiEyeStyle,
     meshiBadge: entry.meshiBadge,
@@ -458,6 +462,7 @@ export function buildPresencePayload(
       meshiColor: entry.meshiColor,
       meshiHat: entry.meshiHat,
       meshiHair: entry.meshiHair,
+      meshiHairColor: entry.meshiHairColor,
       meshiAccessory: entry.meshiAccessory,
       meshiEyeStyle: entry.meshiEyeStyle,
       meshiBadge: entry.meshiBadge,

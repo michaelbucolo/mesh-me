@@ -54,6 +54,7 @@ export interface MeshApiResponse {
     hatStyle: string;
     faceStyle: string;
     hairStyle: string;
+    hairColor: string;
     accessoryStyle: string;
     eyeStyle: string;
     badgeStyle: string;

@@ -355,6 +355,42 @@ export function resolveHair(value: string | null | undefined): MeshiHair {
 }
 
 /**
+ * Hair colors — the axis meshi-slots.ts reserved ("giving hair its own colour
+ * independent of the body ... needs a stored field, so it is a separate
+ * change"). "inherit" is the free default and IS today's behaviour: the tone
+ * derives from the body color in meshi-mascot.tsx, so a row that never chose
+ * a color renders byte-identically to before the column existed.
+ *
+ * The hexes are final hair tones, not body primaries: hair sits mostly
+ * OUTSIDE the r=16 body against the page, and every style's dark seam and
+ * parting overlays (rgba black) give even the light tones definition.
+ */
+export const HAIR_COLOR_TABLE: Record<string, { hex: string | null; label: string }> = {
+  inherit: { hex: null, label: "Match body" },
+  noir: { hex: "#1f2937", label: "Noir" },
+  chestnut: { hex: "#92400e", label: "Chestnut" },
+  blond: { hex: "#fbbf24", label: "Blond" },
+  copper: { hex: "#ea580c", label: "Copper" },
+  silver: { hex: "#e5e7eb", label: "Silver" },
+  snow: { hex: "#f8fafc", label: "Snow" },
+  rose: { hex: "#f472b6", label: "Rose" },
+  lavender: { hex: "#a78bfa", label: "Lavender" },
+  mint: { hex: "#34d399", label: "Mint" },
+  azure: { hex: "#60a5fa", label: "Azure" },
+};
+
+export type MeshiHairColor = keyof typeof HAIR_COLOR_TABLE;
+export const MESHI_HAIR_COLOR_IDS = Object.keys(HAIR_COLOR_TABLE) as MeshiHairColor[];
+export const MESHI_HAIR_COLOR_LABELS: Record<string, string> = Object.fromEntries(
+  Object.entries(HAIR_COLOR_TABLE).map(([id, c]) => [id, c.label]),
+);
+
+/** Unknown or absent values degrade to "inherit" — the byte-identical past. */
+export function resolveHairColor(value: string | null | undefined): MeshiHairColor {
+  return value && value in HAIR_COLOR_TABLE ? (value as MeshiHairColor) : "inherit";
+}
+
+/**
  * Where a hat's brim sits, so hair can be CLIPPED to it rather than scaled
  * into the face. A style not listed here does not cover the hair at all.
  */

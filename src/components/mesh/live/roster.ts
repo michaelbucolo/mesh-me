@@ -15,6 +15,7 @@ export type RemotePresence = {
   meshiColor: string;
   meshiHat: string;
   meshiHair?: string;
+  meshiHairColor?: string;
   meshiAccessory?: string;
   meshiEyeStyle?: string;
   meshiBadge?: string;
@@ -60,7 +61,7 @@ export function createRoster(): RoomRoster {
 
 /** Everything the layer renders from — re-render only when this changes. */
 function appearanceSignature(p: RemotePresence): string {
-  return `${p.userId}:${p.meshiColor}:${p.meshiHat}:${p.meshiHair}:${p.meshiAccessory}:${p.meshiEyeStyle}:${p.meshiBadge}:${p.meshiOutfit}:${p.meshiMood}:${p.isPro ? 1 : 0}:${p.username}`;
+  return `${p.userId}:${p.meshiColor}:${p.meshiHat}:${p.meshiHair}:${p.meshiHairColor}:${p.meshiAccessory}:${p.meshiEyeStyle}:${p.meshiBadge}:${p.meshiOutfit}:${p.meshiMood}:${p.isPro ? 1 : 0}:${p.username}`;
 }
 
 export interface RosterEvents {

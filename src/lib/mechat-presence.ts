@@ -2,6 +2,7 @@ export type TypingMeshi = {
   color: string;
   hat: string;
   hair: string;
+  hairColor: string;
   accessory: string;
   eyeStyle: string;
   badge: string;

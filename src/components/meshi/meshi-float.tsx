@@ -178,6 +178,10 @@ export function MeshiFloat() {
     if (typeof window === "undefined") return "none";
     try { return (localStorage.getItem("meshiHair") || "none") as MeshiHair; } catch { return "none" as MeshiHair; }
   });
+  const [meshiHairColor, setMeshiHairColor] = useState<string>(() => {
+    if (typeof window === "undefined") return "inherit";
+    try { return localStorage.getItem("meshiHairColor") || "inherit"; } catch { return "inherit"; }
+  });
   const [meshiAccessory, setMeshiAccessory] = useState<MeshiAccessory>(() => {
     if (typeof window === "undefined") return "none";
     try {
@@ -396,6 +400,7 @@ export function MeshiFloat() {
           if (pref.colorTheme) setMeshiColor(pref.colorTheme as MeshiColor);
           if (pref.hatStyle) setMeshiHat(pref.hatStyle as MeshiHat);
           if (pref.hairStyle) setMeshiHair(pref.hairStyle as MeshiHair);
+          if (pref.hairColor) setMeshiHairColor(pref.hairColor);
           if (pref.accessoryStyle) setMeshiAccessory(pref.accessoryStyle as MeshiAccessory);
           if (pref.eyeStyle) setMeshiEye(pref.eyeStyle as MeshiEyeStyle);
           if (pref.badgeStyle) setMeshiBadge(pref.badgeStyle as MeshiBadge);
@@ -423,6 +428,7 @@ export function MeshiFloat() {
       if (prefs.color) setMeshiColor(prefs.color);
       if (prefs.hat) setMeshiHat(prefs.hat);
       if (prefs.hair) setMeshiHair(prefs.hair);
+      if (prefs.hairColor) setMeshiHairColor(prefs.hairColor);
       if (prefs.accessory) setMeshiAccessory(prefs.accessory);
       if (prefs.eye) setMeshiEye(prefs.eye);
       if (prefs.badge) setMeshiBadge(prefs.badge);
@@ -435,6 +441,7 @@ export function MeshiFloat() {
       if (e.key === "meshiColor") setMeshiColor((e.newValue || "blue") as MeshiColor);
       if (e.key === "meshiHat") setMeshiHat((e.newValue || "none") as MeshiHat);
       if (e.key === "meshiHair") setMeshiHair((e.newValue || "none") as MeshiHair);
+      if (e.key === "meshiHairColor") setMeshiHairColor(e.newValue || "inherit");
       if (e.key === "meshiAccessory") setMeshiAccessory(((e.newValue === "lashes" ? "none" : e.newValue) || "none") as MeshiAccessory);
       if (e.key === "meshiEye") setMeshiEye((e.newValue || "regular") as MeshiEyeStyle);
       if (e.key === "meshiBadge") setMeshiBadge((e.newValue || "none") as MeshiBadge);
@@ -985,6 +992,7 @@ export function MeshiFloat() {
                 hat={meshiHat}
                 face={meshiFace}
                 hair={meshiHair}
+                hairColor={meshiHairColor}
                 accessory={isFullscreenVideo || isSearching ? "glasses" : meshiAccessory}
                 eyeStyle={meshiEye}
                 badge={meshiBadge}

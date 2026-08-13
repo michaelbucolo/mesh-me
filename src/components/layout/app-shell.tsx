@@ -468,6 +468,7 @@ export function AppShell({ children, user }: AppShellProps) {
           meshiColor: localStorage.getItem("meshiColor") || "blue",
           meshiHat: localStorage.getItem("meshiHat") || "none",
           meshiHair: localStorage.getItem("meshiHair") || "none",
+          meshiHairColor: localStorage.getItem("meshiHairColor") || "inherit",
           meshiAccessory: localStorage.getItem("meshiAccessory") || "none",
           meshiEyeStyle: localStorage.getItem("meshiEye") || "regular",
           meshiBadge: localStorage.getItem("meshiBadge") || "none",

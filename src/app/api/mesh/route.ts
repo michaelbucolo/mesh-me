@@ -130,7 +130,7 @@ export async function GET(req: Request) {
     }),
     prisma.meshiPreference.findUnique({
       where: { userId: user.id },
-      select: { colorTheme: true, hatStyle: true, faceStyle: true, hairStyle: true, accessoryStyle: true, eyeStyle: true, badgeStyle: true },
+      select: { colorTheme: true, hatStyle: true, faceStyle: true, hairStyle: true, hairColor: true, accessoryStyle: true, eyeStyle: true, badgeStyle: true },
     }),
     prisma.meshCosmetic.findMany({
       where: { userId: user.id, isActive: true },
@@ -474,6 +474,7 @@ export async function GET(req: Request) {
       hatStyle: "none",
       faceStyle: "happy",
       hairStyle: "none",
+      hairColor: "inherit",
       accessoryStyle: "none",
       eyeStyle: "regular",
       badgeStyle: "none",
@@ -664,7 +665,7 @@ async function getPublicMesh(targetUserId: string, viewer: Awaited<ReturnType<ty
     }),
     prisma.meshiPreference.findUnique({
       where: { userId: targetUserId },
-      select: { colorTheme: true, hatStyle: true, faceStyle: true, hairStyle: true, accessoryStyle: true, eyeStyle: true, badgeStyle: true },
+      select: { colorTheme: true, hatStyle: true, faceStyle: true, hairStyle: true, hairColor: true, accessoryStyle: true, eyeStyle: true, badgeStyle: true },
     }),
     // The owner's MeshPro visuals (atmosphere, thread color, node style,
     // motion) travel with their mesh — visitors see the world as it's dressed.
@@ -725,7 +726,7 @@ async function getPublicMesh(targetUserId: string, viewer: Awaited<ReturnType<ty
     })),
     connectedAccounts: visibleConnectedAccounts,
     alterEgos: [],
-    meshiPreference: meshiPrefData || { colorTheme: "blue", hatStyle: "none", faceStyle: "happy", hairStyle: "none", accessoryStyle: "none", eyeStyle: "regular", badgeStyle: "none" },
+    meshiPreference: meshiPrefData || { colorTheme: "blue", hatStyle: "none", faceStyle: "happy", hairStyle: "none", hairColor: "inherit", accessoryStyle: "none", eyeStyle: "regular", badgeStyle: "none" },
     meshCosmetics: meshCosmeticsData,
     stats: {
       followingCount: showStats ? followingCount : 0,

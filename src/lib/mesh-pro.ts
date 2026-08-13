@@ -91,6 +91,10 @@ export const FREE_MESHI_OPTIONS = {
   faces: new Set(["happy", "thinking", "wink"]),
   colors: new Set(["blue", "purple", "green"]),
   hairs: new Set(["none"]),
+  // "inherit" IS the pre-hairColor behaviour (tone derived from the body), so
+  // free accounts render byte-identically to before the axis existed. Every
+  // named hair color is Pro wardrobe, like the premium hairstyles themselves.
+  hairColors: new Set(["inherit"]),
   accessories: new Set(["none"]),
   eyes: new Set(["regular"]),
   badges: new Set(["none"]),

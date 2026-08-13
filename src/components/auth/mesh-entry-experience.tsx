@@ -38,6 +38,7 @@ type MeshiPreview = {
     hat: MeshiHat;
     face: MeshiMood;
     hair: MeshiHair;
+    hairColor: string;
     accessory: MeshiAccessory;
     eye: MeshiEyeStyle;
     badge: MeshiBadge;
@@ -192,6 +193,7 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
           hat: data.meshi.hat,
           face: data.meshi.face,
           hair: data.meshi.hair,
+          hairColor: data.meshi.hairColor || "inherit",
           accessory: data.meshi.accessory,
           eye: data.meshi.eye,
           badge: data.meshi.badge,
@@ -493,6 +495,7 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
                 }
                 hat={preview?.meshi.hat}
                 hair={preview?.meshi.hair}
+                hairColor={preview?.meshi.hairColor}
                 accessory={preview?.meshi.accessory}
                 eyeStyle={preview?.meshi.eye}
                 badge={preview?.meshi.badge}
