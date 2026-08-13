@@ -1547,7 +1547,7 @@ export async function getUserSettings() {
   const user = await getCurrentUser();
   if (!user) return null;
 
-  const [userWithProfile, achievements] = await Promise.all([
+  const [userWithProfile, achievements, ownedMeshiRows] = await Promise.all([
     prisma.user.findUnique({
       where: { id: user.id },
       select: {
@@ -1589,6 +1589,11 @@ export async function getUserSettings() {
     prisma.userAchievement.findMany({
       where: { userId: user.id },
       include: { achievement: { select: { slug: true } } },
+    }),
+    // Live wardrobe receipts only — a revoked (refunded) row unlocks nothing.
+    prisma.ownedMeshiItem.findMany({
+      where: { ownerId: user.id, revokedAt: null },
+      select: { category: true, value: true },
     }),
   ]);
 
@@ -1633,6 +1638,7 @@ export async function getUserSettings() {
     achievements: achievements.map((a) => ({ slug: a.achievement.slug })),
     isMeshPro: user.isMeshPro,
     charterHolder: user.charterNumber != null,
+    ownedMeshiItems: ownedMeshiRows.map((row) => `${row.category}:${row.value}`),
   };
 }
 

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { prisma } from "@/lib/prisma";
 import { applyCharterRefund, applyCharterSession, releaseExpiredCharterSession } from "@/lib/charter";
+import { applyMeshiItemRefund, applyMeshiItemSession } from "@/lib/meshi-item";
 import { applyMeshProGiftSession, syncMeshProSubscription } from "@/lib/stripe-billing";
 import { getStripeClient, stripeObjectId } from "@/lib/stripe";
 
@@ -61,6 +62,14 @@ export async function POST(req: Request) {
           break;
         }
 
+        // Wardrobe pieces too: a $1.99 hat that fell through would grant the
+        // purchaser lifetime Pro. Same two walls — product routed first, and
+        // the session carries no userId key or client_reference_id at all.
+        if (session.metadata?.product === "meshi-item") {
+          await applyMeshiItemSession(session, { revalidate: true });
+          break;
+        }
+
         const userId = session.metadata?.userId;
         const subscriptionId = stripeObjectId(session.subscription);
 
@@ -103,8 +112,13 @@ export async function POST(req: Request) {
       }
       case "charge.refunded": {
         const charge = event.data.object as Stripe.Charge;
+        // Both run; each self-narrows by looking up its own paymentIntentId,
+        // so a refund routes to whichever product the charge actually bought.
         // Full refund of a charter seat retires its number forever.
         await applyCharterRefund(charge);
+        // Full refund of a wardrobe piece revokes the receipt (and, for a
+        // non-Pro owner with no surviving receipt, resets the equipped axis).
+        await applyMeshiItemRefund(charge);
         break;
       }
       case "invoice.payment_failed": {

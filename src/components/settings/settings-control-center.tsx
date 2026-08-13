@@ -105,6 +105,8 @@ type SettingsSnapshot = {
   isMeshPro: boolean;
   /** Holds a charter seat — the only audience the charter pin renders for. */
   charterHolder: boolean;
+  /** Live "category:value" wardrobe receipts — owned pieces render unlocked. */
+  ownedMeshiItems: string[];
   interests: Array<{ id?: string; tag: string }>;
   connectedAccounts: Array<{
     id: string;
@@ -672,6 +674,9 @@ export function SettingsControlCenter({
     // The charter pin is owned outright (only holders ever see the option),
     // so the Pro wardrobe lock does not apply to it.
     if (group === "badges" && value === "charter") return false;
+    // A $1.99 wardrobe piece is owned the same way: unlocked, and rendered
+    // exactly like a free option — no chip, no label, no provenance.
+    if (settings.ownedMeshiItems.includes(`${group}:${value}`)) return false;
     return !settings.isMeshPro && !isFreeMeshiOption(group as Parameters<typeof isFreeMeshiOption>[0], value);
   }
 

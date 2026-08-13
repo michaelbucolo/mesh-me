@@ -1,11 +1,16 @@
 "use server";
 
 import { prisma } from "./prisma";
-// Ids only — the module's single dependency on the mascot is `import type`, so
-// nothing from the client component reaches this server bundle.
-import { MESHI_FACE_IDS, MESHI_LASH_IDS } from "@/components/meshi/meshi-face";
-import { MESHI_HAIR_COLOR_IDS, MESHI_HAIR_IDS } from "@/components/meshi/meshi-hair";
-import { ALL_ACCESSORY_ITEMS, parseAccessories, serializeAccessories } from "@/components/meshi/meshi-slots";
+import { parseAccessories, serializeAccessories } from "@/components/meshi/meshi-slots";
+import {
+  buildOwnedMeshiSets,
+  DEFAULT_MESHI_PREFERENCE,
+  isOwnedMeshiOption,
+  MESHI_LOCK_CHECKS,
+  MESHI_OPTION_VALUES,
+  type MeshiPreferenceUpdate,
+  type OwnedMeshiSets,
+} from "./meshi-wardrobe";
 import { getCurrentUser, hashPassword, createSession, destroySession, verifyPassword, invalidateAllUserSessions } from "./auth";
 import { GLOBAL_MESH_BRANCHES } from "./global-mesh";
 import { ABOUT_FIELDS, type AboutField, aboutFieldMaxLen, isAboutPrivacyLevel } from "./profile-info";
@@ -18,7 +23,7 @@ import { revalidatePath } from "next/cache";
 import { normalizeProfileLinks } from "@/lib/profile-links";
 import { slugify } from "./utils";
 import { getBaseUrl, isSupportedPlatform } from "./oauth";
-import { FREE_MESHI_OPTIONS, hasMeshPro, isFreeMeshiOption } from "./mesh-pro";
+import { hasMeshPro, isFreeMeshiOption } from "./mesh-pro";
 import { clearMeshCache } from "./mesh-cache";
 import { rateLimit, sanitizeForDisplay, validatePasswordStrength, validatePostContent, validateUrl } from "./security";
 import { canViewNsfw, classifyContentSafety, getNsfwPolicyForRegion, isAdultVerificationActive, normalizeUsState } from "./content-safety";
@@ -3030,62 +3035,16 @@ export async function sendCommunityMessageFromForm(formData: FormData): Promise<
 
 
 // ─── Meshi Customization Actions ────────────────────────────
-
-const MESHI_OPTION_VALUES = {
-  hats: new Set(["none", "tophat", "beanie", "cap", "party", "crown", "flower", "headphones", "halo", "wizard", "astronaut", "pirate", "chef", "beret", "headband", "bow", "cowboy", "graduation"]),
-  // faceStyle now stores a FACE — a persistent eye shape — not a mood. The old
-  // values were mood names, and resolveFace() maps anything unknown to "bean",
-  // so existing rows land on the default face instead of failing validation.
-  faces: new Set<string>(MESHI_FACE_IDS),
-  colors: new Set(["blue", "purple", "pink", "green", "orange", "cyan", "gold", "rainbow", "crimson", "midnight", "rose", "emerald", "arctic", "obsidian"]),
-  hairs: new Set<string>(MESHI_HAIR_IDS),
-  hairColors: new Set<string>(MESHI_HAIR_COLOR_IDS),
-  accessories: new Set<string>(ALL_ACCESSORY_ITEMS),
-  // eyeStyle now stores a LASH style. "regular" is the legacy value for "no
-  // lashes" and keeps working via resolveLash(), so nobody's Meshi changes
-  // under them.
-  eyes: new Set<string>(["regular", ...MESHI_LASH_IDS]),
-  badges: new Set(["none", "spark", "heart", "shield", "verified", "creator", "founder", "charter"]),
-};
+// The option vocabulary (MESHI_OPTION_VALUES, MESHI_LOCK_CHECKS,
+// DEFAULT_MESHI_PREFERENCE) lives in src/lib/meshi-wardrobe.ts — this file is
+// "use server" and can only export async functions. The gate functions below
+// stay HERE: they adjudicate saves, and the audit scripts read this file.
 
 function cleanMeshiOption(value: string | undefined, allowed: Set<string>, fallback?: string) {
   if (!value) return fallback;
   const normalized = value.trim().toLowerCase();
   return allowed.has(normalized) ? normalized : fallback;
 }
-
-type MeshiPreferenceUpdate = {
-  hatStyle?: string;
-  faceStyle?: string;
-  colorTheme?: string;
-  hairStyle?: string;
-  hairColor?: string;
-  accessoryStyle?: string;
-  eyeStyle?: string;
-  badgeStyle?: string;
-};
-
-const DEFAULT_MESHI_PREFERENCE = {
-  hatStyle: "none",
-  faceStyle: "happy",
-  colorTheme: "blue",
-  hairStyle: "none",
-  hairColor: "inherit",
-  accessoryStyle: "none",
-  eyeStyle: "regular",
-  badgeStyle: "none",
-};
-
-const MESHI_LOCK_CHECKS: Array<[keyof MeshiPreferenceUpdate, keyof typeof FREE_MESHI_OPTIONS, string]> = [
-  ["hatStyle", "hats", "hat"],
-  ["faceStyle", "faces", "expression"],
-  ["colorTheme", "colors", "color"],
-  ["hairStyle", "hairs", "hair"],
-  ["hairColor", "hairColors", "hair color"],
-  ["accessoryStyle", "accessories", "accessory"],
-  ["eyeStyle", "eyes", "eyes"],
-  ["badgeStyle", "badges", "badge"],
-];
 
 /**
  * Which option is a free account NEWLY reaching for that it may not have?
@@ -3104,11 +3063,16 @@ const MESHI_LOCK_CHECKS: Array<[keyof MeshiPreferenceUpdate, keyof typeof FREE_M
 function findLockedMeshiOptionForFreeUser(
   next: Partial<Record<keyof MeshiPreferenceUpdate, string | undefined>>,
   current: Partial<Record<keyof MeshiPreferenceUpdate, string | null | undefined>> = {},
+  owned: OwnedMeshiSets = {},
 ) {
   return MESHI_LOCK_CHECKS.find(([field, group]) => {
     const value = next[field];
     if (!value) return false;
     if (isFreeMeshiOption(group, value)) return false;
+    // Owned outright ($1.99 receipt, live): independent of `held`, so an owner
+    // can take a piece off and put it back on forever — held-forgiveness alone
+    // would forbid the re-acquisition.
+    if (isOwnedMeshiOption(owned, group, value)) return false;
     // Unchanged from what is already stored: not an acquisition.
     const held = current[field];
     return !held || held.trim().toLowerCase() !== value.trim().toLowerCase();
@@ -3153,15 +3117,21 @@ export async function updateMeshiPreference(data: MeshiPreferenceUpdate) {
   }
 
   if (!hasMeshPro(user)) {
-    const current = await prisma.meshiPreference.findUnique({
-      where: { userId: user.id },
-      select: {
-        hatStyle: true, faceStyle: true, colorTheme: true, hairStyle: true,
-        hairColor: true, accessoryStyle: true, eyeStyle: true, badgeStyle: true,
-      },
-    });
+    const [current, ownedRows] = await Promise.all([
+      prisma.meshiPreference.findUnique({
+        where: { userId: user.id },
+        select: {
+          hatStyle: true, faceStyle: true, colorTheme: true, hairStyle: true,
+          hairColor: true, accessoryStyle: true, eyeStyle: true, badgeStyle: true,
+        },
+      }),
+      prisma.ownedMeshiItem.findMany({
+        where: { ownerId: user.id, revokedAt: null },
+        select: { category: true, value: true },
+      }),
+    ]);
     const gated = next.badgeStyle === "charter" ? { ...next, badgeStyle: undefined } : next;
-    const lockedOption = findLockedMeshiOptionForFreeUser(gated, current ?? {});
+    const lockedOption = findLockedMeshiOptionForFreeUser(gated, current ?? {}, buildOwnedMeshiSets(ownedRows));
     if (lockedOption) {
       return { error: `MeshPro is required for that Meshi ${lockedOption}.` };
     }
@@ -3229,6 +3199,70 @@ export async function getUserMeshiPreference(userId: string) {
         badgeStyle: pref.badgeStyle,
       }
     : null;
+}
+
+/**
+ * The gift form's live preview: the friend's ACTUAL Meshi, so a wardrobe
+ * piece is chosen on them rather than off a shelf. The Meshi itself is public
+ * (getUserMeshiPreference above), but this endpoint still answers with ONE
+ * uniform error for unknown, suspended, and blocked-either-direction — the
+ * gift page must not become a way to probe who has blocked whom.
+ */
+export async function getGiftPreviewMeshi(username: string) {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const rl = rateLimit(`gift-preview:${user.id}`, 30, 60 * 1000);
+  if (!rl.allowed) return { error: "Slow down a moment." };
+
+  const clean = username.trim().toLowerCase().replace(/^@/, "");
+  const notFound = { error: "No one on Mesh.me has that username." };
+  if (!/^[a-z0-9_]{1,30}$/.test(clean)) return notFound;
+
+  const target = await prisma.user.findUnique({
+    where: { username: clean },
+    select: { id: true, username: true, displayName: true, isSuspended: true },
+  });
+  if (!target || target.isSuspended) return notFound;
+  if (target.id !== user.id) {
+    const blocked = await prisma.block.findFirst({
+      where: {
+        OR: [
+          { blockerId: user.id, blockedId: target.id },
+          { blockerId: target.id, blockedId: user.id },
+        ],
+      },
+      select: { id: true },
+    });
+    if (blocked) return notFound;
+  }
+
+  const [pref, ownedRows] = await Promise.all([
+    prisma.meshiPreference.findUnique({ where: { userId: target.id } }),
+    prisma.ownedMeshiItem.findMany({
+      where: { ownerId: target.id, revokedAt: null },
+      select: { category: true, value: true },
+    }),
+  ]);
+
+  return {
+    username: target.username,
+    displayName: target.displayName,
+    isSelf: target.id === user.id,
+    meshi: {
+      hatStyle: pref?.hatStyle ?? DEFAULT_MESHI_PREFERENCE.hatStyle,
+      faceStyle: pref?.faceStyle ?? DEFAULT_MESHI_PREFERENCE.faceStyle,
+      colorTheme: pref?.colorTheme ?? DEFAULT_MESHI_PREFERENCE.colorTheme,
+      hairStyle: pref?.hairStyle ?? DEFAULT_MESHI_PREFERENCE.hairStyle,
+      hairColor: pref?.hairColor ?? DEFAULT_MESHI_PREFERENCE.hairColor,
+      accessoryStyle: pref?.accessoryStyle ?? DEFAULT_MESHI_PREFERENCE.accessoryStyle,
+      eyeStyle: pref?.eyeStyle ?? DEFAULT_MESHI_PREFERENCE.eyeStyle,
+      badgeStyle: pref?.badgeStyle ?? DEFAULT_MESHI_PREFERENCE.badgeStyle,
+    },
+    // "category:value" — what their Meshi already owns, so the picker can say
+    // "already theirs" instead of selling a second copy.
+    owned: ownedRows.map((row) => `${row.category}:${row.value}`),
+  };
 }
 
 /**

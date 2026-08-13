@@ -82,6 +82,8 @@ model User {
   charterNumber              Int?                        @unique
   showCharterNumber          Boolean                     @default(true)
   charterSeats               CharterSeat[]
+  ownedMeshiItems            OwnedMeshiItem[]            @relation("meshiItemOwner")
+  purchasedMeshiItems        OwnedMeshiItem[]            @relation("meshiItemPurchaser")
   // Privacy toggles
   showInDiscovery            Boolean                     @default(false)
   hideActivityStatus         Boolean                     @default(false)
@@ -1094,6 +1096,32 @@ model CharterSeat {
   user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([status])
+}
+
+/// One purchased Meshi wardrobe item ($1.99) — owned outright by `ownerId`,
+/// forever: wearable without Pro, immune to Pro lapse, untouchable by any
+/// subscription event. Ownership = rows with `revokedAt: null`; `revokedAt`
+/// is written ONLY by full-refund bookkeeping, never by churn. No unique on
+/// (owner, category, value): a revoked receipt must never block an honest
+/// re-purchase — live-row uniqueness is enforced at checkout and re-checked
+/// at grant time (with an auto-refund if two checkouts raced).
+model OwnedMeshiItem {
+  id              String    @id @default(cuid())
+  ownerId         String
+  purchaserId     String?
+  category        String
+  value           String
+  message         String?
+  stripeSessionId String    @unique
+  paymentIntentId String?   @unique
+  revokedAt       DateTime?
+  createdAt       DateTime  @default(now())
+
+  owner     User  @relation("meshiItemOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  purchaser User? @relation("meshiItemPurchaser", fields: [purchaserId], references: [id], onDelete: SetNull)
+
+  @@index([ownerId])
+  @@index([purchaserId])
 }
 
 /// One paid Gift of MeshPro — the receipt row, not the entitlement (that is
