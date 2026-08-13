@@ -212,6 +212,40 @@ const HOUR = 60 * 60 * 1000;
   } else ok();
 }
 
+// ── 8. The render-time reconciler cannot be tricked into a lifetime grant ────
+//
+// syncMeshProCheckoutSessionForUser ends in a permanent `isMeshPro: true` for
+// any PAID session its caller owns, and /meshpro feeds it a caller-controlled
+// session_id. A gift session owned by the purchaser therefore must be doubly
+// unclaimable: the reconciler refuses any session whose metadata.product is
+// not "meshpro", and the gift checkout attaches no client_reference_id (the
+// ownership signal the reconciler falls back to). Either layer alone closes
+// the $4.99-buys-lifetime-Pro hole; this gate keeps both.
+{
+  const billing = strip(read("src/lib/stripe-billing.ts"));
+  const syncSession = /export async function syncMeshProCheckoutSessionForUser[\s\S]*?\n}/.exec(billing)?.[0] ?? "";
+  if (!syncSession) fail("8 reconciler", "syncMeshProCheckoutSessionForUser not found");
+  else {
+    ok();
+    // The guard must be a LIVE if-condition, not merely present in the text —
+    // `if (false && session.metadata?.product ...)` must fail this.
+    const guardAt = /if\s*\(\s*session\.metadata\?\.product\s*!==\s*"meshpro"\s*\)/.exec(syncSession)?.index ?? -1;
+    const grantAt = syncSession.indexOf("isMeshPro: true");
+    if (guardAt < 0) {
+      fail("8 reconciler", 'syncMeshProCheckoutSessionForUser no longer refuses sessions whose metadata.product !== "meshpro" — a gift purchaser can reconcile their gift session into permanent Pro');
+    } else ok();
+    if (guardAt >= 0 && grantAt >= 0 && guardAt > grantAt) {
+      fail("8 reconciler", "the product guard sits AFTER the permanent grant — it guards nothing");
+    } else ok();
+  }
+
+  const checkout = strip(read("src/app/api/stripe/checkout/route.ts"));
+  const giftBranch = /giftPlan !== undefined[\s\S]*?const plan = parseMeshProPlan/.exec(checkout)?.[0] ?? "";
+  if (giftBranch && /client_reference_id/.test(giftBranch)) {
+    fail("8 reconciler", "the gift checkout sets client_reference_id again — the reconciler's fallback ownership signal now points at the purchaser");
+  } else ok();
+}
+
 if (failures.length) {
   console.error(`\nmeshpro-gift: ${failures.length} failure(s) across ${checks + failures.length} assertions\n`);
   for (const f of failures) console.error("  " + f);

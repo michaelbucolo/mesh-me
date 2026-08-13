@@ -219,6 +219,19 @@ export async function syncMeshProCheckoutSessionForUser(sessionId: string, userI
     expand: ["subscription"],
   });
 
+  // ONLY MeshPro-subscription sessions may reconcile here. This function ends
+  // in a permanent `isMeshPro: true` for any PAID session the caller owns —
+  // which is exactly the wrong grant for every OTHER product that ever runs
+  // through checkout. Concretely: a Gift MeshPro session is a one-time payment
+  // owned by the PURCHASER, so without this guard a gift buyer who landed on
+  // /meshpro?payment=success&session_id=<their gift session> (the id is right
+  // in Stripe's checkout URL) bought themselves lifetime Pro for $4.99. The
+  // webhook routes each product by the same metadata key; the render-time
+  // reconciler must be exactly as narrow.
+  if (session.metadata?.product !== "meshpro") {
+    return { ok: false, message: "That checkout session is not a MeshPro purchase." };
+  }
+
   const sessionUserId = session.metadata?.userId || session.client_reference_id;
   if (sessionUserId !== userId) {
     return { ok: false, message: "That checkout session does not belong to this account." };
