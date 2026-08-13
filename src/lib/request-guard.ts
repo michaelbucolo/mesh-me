@@ -6,6 +6,12 @@ export function isSameOriginRequest(req: Request): boolean {
   if (fetchSite && !["same-origin", "same-site", "none"].includes(fetchSite)) {
     return false;
   }
+  // The app ships Referrer-Policy: no-referrer, so a same-origin GET fetch
+  // carries neither Origin nor Referer. Sec-Fetch-Site is set by the browser
+  // itself (a forbidden header name — page script cannot forge it), so
+  // "same-origin" is sufficient on its own. Anything weaker ("same-site",
+  // "none", or the header absent) still has to prove itself below.
+  if (fetchSite === "same-origin") return true;
 
   const origin = req.headers.get("origin");
   if (origin) {

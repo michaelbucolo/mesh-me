@@ -87,6 +87,7 @@ model User {
   purchasedMeshiItems        OwnedMeshiItem[]            @relation("meshiItemPurchaser")
   meshiRecipes               MeshiRecipe[]
   scheduledPosts             ScheduledPost[]
+  personalAccessTokens       PersonalAccessToken[]
   /// When this account FIRST became a patron — a record of fact, set once by
   /// syncPatronSubscription and never cleared by churn (a lapsed patron keeps
   /// the record; cancellation must cost nothing visible). Nulled only by
@@ -1235,6 +1236,32 @@ model ScheduledPost {
   @@index([status, scheduledFor])
   @@index([status, nextAttemptAt])
   @@index([userId, scheduledFor])
+}
+
+/// Personal access token: the hash, never the secret. Verifier shown once at
+/// mint, unrecoverable after. HASHED, NOT ENCRYPTED — encryptSecret exists
+/// for secrets mesh.me must replay upstream (OAuth); a PAT is only ever
+/// RECOGNIZED, so recoverability is pure downside (a DB dump plus
+/// APP_DATA_ENCRYPTION_KEY must never be a credential-recovery kit; this
+/// table has no key at all). The selector is an independent random lookup
+/// handle — it reveals zero verifier bits, which is what makes the
+/// constant-time compare do real work. Read/written ONLY by
+/// src/lib/personal-access-token.ts (pat-check §1).
+model PersonalAccessToken {
+  id           String    @id @default(cuid())
+  userId       String
+  name         String
+  selector     String    @unique
+  verifierHash String
+  scopes       String
+  createdAt    DateTime  @default(now())
+  expiresAt    DateTime
+  lastUsedAt   DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
 }
 
 /// One scheduler tick's receipt — the PublicSupplyRun precedent. Makes

@@ -235,6 +235,22 @@ checks += 1;
     "/api/auth/logout": "Posted to by a form, which names it as an action rather than as a fetch URL.",
     "/api/avatar": "An <img src> target — referenced as a URL in markup, not fetched in code.",
     "/api/banner": "An <img src> target, same as /api/avatar.",
+    // The personal data API: the caller is the account owner's own scripts,
+    // presenting a personal access token. Bearer-only by design (pat-check §4),
+    // so nothing in this repo fetches these.
+    "/api/me/v1": "The owner's own scripts, Bearer PAT only. Token introspection.",
+    "/api/me/v1/profile": "The owner's own scripts, Bearer PAT only.",
+    "/api/me/v1/posts": "The owner's own scripts, Bearer PAT only.",
+    "/api/me/v1/posts/[id]": "The owner's own scripts, Bearer PAT only.",
+    "/api/me/v1/comments": "The owner's own scripts, Bearer PAT only.",
+    "/api/me/v1/reactions": "The owner's own scripts, Bearer PAT only.",
+    "/api/me/v1/saves": "The owner's own scripts, Bearer PAT only.",
+    "/api/me/v1/imported/accounts": "The owner's own scripts, Bearer PAT only.",
+    "/api/me/v1/imported/posts": "The owner's own scripts, Bearer PAT only.",
+    "/api/me/v1/imported/comments": "The owner's own scripts, Bearer PAT only.",
+    "/api/me/v1/imported/media": "The owner's own scripts, Bearer PAT only.",
+    "/api/me/v1/analytics": "The owner's own scripts, Bearer PAT only.",
+    "/api/me/v1/journal": "The owner's own scripts, Bearer PAT only.",
   };
 
   // A DIFFERENT THING FROM AN EXEMPTION, AND KEPT SEPARATE SO IT CANNOT ROT
