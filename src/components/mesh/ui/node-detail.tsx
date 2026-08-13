@@ -10,8 +10,9 @@
 
 import Link from "next/link";
 import { Volume2, VolumeX, X } from "lucide-react";
-import { useState, useTransition } from "react";
-import { toggleFollow, toggleMeshSourceMute } from "@/lib/actions";
+import { useEffect, useState, useTransition } from "react";
+import { getMeshiProvenance, toggleFollow, toggleMeshSourceMute } from "@/lib/actions";
+import type { WornGiftLabel } from "@/lib/meshi-provenance";
 import { meshNodeMuteKey } from "@/lib/muted-sources";
 import type { ViewerCaps } from "../core/viewer";
 import type { SceneNode } from "../scene/scene-model";
@@ -39,6 +40,28 @@ export function NodeDetail({
   const [following, setFollowing] = useState(!!node.isFollowing);
   const [, startFollow] = useTransition();
   const { copied: shareCopied, share } = useShare();
+
+  // The stitched-in garment label: lazy, ambient, and server-adjudicated —
+  // the action re-runs the profile-visibility fence itself, so this render
+  // can only ever be as curious as the profile page. Nothing shows while
+  // loading or on failure; the lines arrive or they don't. The answer is
+  // keyed to the node it was fetched for, so switching nodes shows nothing
+  // rather than someone else's labels.
+  const [giftAnswer, setGiftAnswer] = useState<{ forUserId: string; labels: WornGiftLabel[] } | null>(null);
+  useEffect(() => {
+    if (!isPerson || !node.userId) return;
+    const forUserId = node.userId;
+    let alive = true;
+    getMeshiProvenance(forUserId)
+      .then((res) => {
+        if (alive && res && Array.isArray(res.labels)) setGiftAnswer({ forUserId, labels: res.labels });
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [isPerson, node.userId]);
+  const giftLabels = giftAnswer && giftAnswer.forUserId === node.userId ? giftAnswer.labels : [];
 
   // Mute-source: own mesh only (ViewerCaps), person/platform hubs only.
   const muteKey =
@@ -165,6 +188,19 @@ export function NodeDetail({
             <span key={m.label} className="rounded-lg bg-[var(--paper-2)] px-2.5 py-1 text-micro text-[var(--text-secondary)]">
               <span className="font-semibold text-[var(--text-primary)]">{m.value}</span> {m.label}
             </span>
+          ))}
+        </div>
+      )}
+
+      {/* The garment label: informs, never sells — the same note material as
+          placeReason above, no link, no price, no name. Month-year only. */}
+      {giftLabels.length > 0 && (
+        <div className="mt-2.5 rounded-lg bg-[var(--paper-2)] px-2.5 py-1.5">
+          {giftLabels.length > 1 && <p className="mesh-eyebrow text-[var(--text-tertiary)]">Stitched in</p>}
+          {giftLabels.map((line) => (
+            <p key={line.label} className="text-micro leading-snug text-[var(--text-tertiary)]">
+              {line.label} — a gift, {line.since}
+            </p>
           ))}
         </div>
       )}

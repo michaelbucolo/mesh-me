@@ -384,6 +384,18 @@ export async function InstagramProfileView({ username, tab, giftSent }: { userna
                       {presenceLabel ?? "Away"}
                     </span>
                   </div>
+                  {/* The garment label — static, no interaction, no link, and
+                      never a name: "someone gave this" is the whole sentence.
+                      Server-fenced in queries.ts behind profileVisible. */}
+                  {profile.wornGiftLabels.length > 0 && (
+                    <div className="mt-1">
+                      {profile.wornGiftLabels.map((line) => (
+                        <p key={line.label} className="text-micro text-[var(--mesh-text-muted)]">
+                          {line.label} — a gift, {line.since}
+                        </p>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
 

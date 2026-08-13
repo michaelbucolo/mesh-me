@@ -40,6 +40,7 @@ import {
   type MeshiHat,
 } from "@/components/meshi/meshi-mascot";
 import { updateMeshiLocalPreferences } from "@/hooks/use-meshi-preferences";
+import { MeshiWardrobePanel, type MeshiRecipeRow, type MeshiWardrobeRow } from "@/components/settings/meshi-wardrobe-panel";
 import { useTheme } from "@/components/theme-provider";
 import {
   changePassword,
@@ -109,6 +110,9 @@ type SettingsSnapshot = {
   patronRecord: boolean;
   /** Live "category:value" wardrobe receipts — owned pieces render unlocked. */
   ownedMeshiItems: string[];
+  /** The owner's own wardrobe history — the one surface that names gifters. */
+  meshiWardrobe: MeshiWardrobeRow[];
+  meshiRecipes: MeshiRecipeRow[];
   interests: Array<{ id?: string; tag: string }>;
   connectedAccounts: Array<{
     id: string;
@@ -929,6 +933,10 @@ export function SettingsControlCenter({
                 saveMeshi={saveMeshi}
                 meshiLocked={meshiLocked}
                 isPending={isPending}
+                isMeshPro={settings.isMeshPro}
+                ownedMeshiItems={settings.ownedMeshiItems}
+                meshiWardrobe={settings.meshiWardrobe}
+                meshiRecipes={settings.meshiRecipes}
               />
             )}
             {activeSection === "appearance" && (
@@ -1971,6 +1979,10 @@ function MeshiSection({
   saveMeshi,
   meshiLocked,
   isPending,
+  isMeshPro,
+  ownedMeshiItems,
+  meshiWardrobe,
+  meshiRecipes,
 }: {
   meshiState: {
     colorTheme: string;
@@ -1997,6 +2009,10 @@ function MeshiSection({
   isPending: boolean;
   charterHolder: boolean;
   patronRecord: boolean;
+  isMeshPro: boolean;
+  ownedMeshiItems: string[];
+  meshiWardrobe: MeshiWardrobeRow[];
+  meshiRecipes: MeshiRecipeRow[];
 }) {
   // baseBadges keeps the charter ternary literal intact (charter-check §9
   // asserts that exact string); the patron pin stacks on top, record-holders
@@ -2102,6 +2118,19 @@ function MeshiSection({
           <MeshiOptionGroup title="Badges" group="badges" values={shownBadges} current={meshiState.badgeStyle} meshiState={meshiState} locked={meshiLocked} onPick={(value) => setMeshiState((current) => ({ ...current, badgeStyle: value }))} />
         </div>
         <SaveButton label="Save Meshi" pending={isPending} />
+        {/* The shelves live INSIDE the form's card stack but write nothing to
+            it directly: Apply fills the pickers above, and the Save Meshi
+            button remains the one road to updateMeshiPreference. */}
+        <MeshiWardrobePanel
+          wardrobe={meshiWardrobe}
+          recipes={meshiRecipes}
+          current={meshiState}
+          ownedOptions={ownedMeshiItems}
+          isPro={isMeshPro}
+          charterHolder={charterHolder}
+          patronRecord={patronRecord}
+          onApply={(next) => setMeshiState(next)}
+        />
       </SettingsCard>
     </form>
   );

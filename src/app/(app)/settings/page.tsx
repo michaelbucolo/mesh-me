@@ -81,6 +81,8 @@ export default async function SettingsPage() {
         charterHolder: settings.charterHolder,
         patronRecord: settings.patronRecord,
         ownedMeshiItems: settings.ownedMeshiItems,
+        meshiWardrobe: settings.meshiWardrobe,
+        meshiRecipes: settings.meshiRecipes,
         interests: settings.interests,
         connectedAccounts: settings.connectedAccounts,
         links: settings.links,

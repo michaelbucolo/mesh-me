@@ -85,6 +85,7 @@ model User {
   charterSeats               CharterSeat[]
   ownedMeshiItems            OwnedMeshiItem[]            @relation("meshiItemOwner")
   purchasedMeshiItems        OwnedMeshiItem[]            @relation("meshiItemPurchaser")
+  meshiRecipes               MeshiRecipe[]
   /// When this account FIRST became a patron — a record of fact, set once by
   /// syncPatronSubscription and never cleared by churn (a lapsed patron keeps
   /// the record; cancellation must cost nothing visible). Nulled only by
@@ -1158,6 +1159,11 @@ model OwnedMeshiItem {
   paymentIntentId String?   @unique
   revokedAt       DateTime?
   createdAt       DateTime  @default(now())
+  /// Owner's per-piece opt-out of the PUBLIC gift mark (wearing a gift must
+  /// not compel disclosure). Written only by setMeshiGiftLabelQuiet — owner-
+  /// authenticated, gift rows only. Null = mark shows. Never hides the row
+  /// from the owner's own wardrobe history.
+  labelQuietedAt  DateTime?
 
   owner     User  @relation("meshiItemOwner", fields: [ownerId], references: [id], onDelete: Cascade)
   purchaser User? @relation("meshiItemPurchaser", fields: [purchaserId], references: [id], onDelete: SetNull)
@@ -1184,6 +1190,34 @@ model PatronStint {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId])
+}
+
+/// A named snapshot of a look — the owner's memory, not an entitlement.
+/// Columns mirror MeshiPreference verbatim (house style: columns, not a
+/// blob). Snapshotted SERVER-SIDE from the persisted MeshiPreference row —
+/// the client sends only a name — so a recipe can only bottle a look the
+/// wardrobe gate already admitted. Never rewritten by refunds, Pro lapse, or
+/// catalog drift: degrade happens at APPLY time, read-only, per axis.
+/// Private to the owner; deliberately zero API/share surface.
+model MeshiRecipe {
+  id             String   @id @default(cuid())
+  userId         String
+  name           String
+  hatStyle       String
+  faceStyle      String
+  colorTheme     String
+  hairStyle      String
+  hairColor      String
+  accessoryStyle String
+  eyeStyle       String
+  badgeStyle     String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, name])
   @@index([userId])
 }
 

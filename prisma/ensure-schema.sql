@@ -727,8 +727,27 @@ CREATE TABLE IF NOT EXISTS "OwnedMeshiItem" (
     "paymentIntentId" TEXT,
     "revokedAt" DATETIME,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "labelQuietedAt" DATETIME,
     CONSTRAINT "OwnedMeshiItem_ownerId_fkey" FOREIGN KEY ("ownerId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
     CONSTRAINT "OwnedMeshiItem_purchaserId_fkey" FOREIGN KEY ("purchaserId") REFERENCES "User" ("id") ON DELETE SET NULL ON UPDATE CASCADE
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "MeshiRecipe" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "userId" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "hatStyle" TEXT NOT NULL,
+    "faceStyle" TEXT NOT NULL,
+    "colorTheme" TEXT NOT NULL,
+    "hairStyle" TEXT NOT NULL,
+    "hairColor" TEXT NOT NULL,
+    "accessoryStyle" TEXT NOT NULL,
+    "eyeStyle" TEXT NOT NULL,
+    "badgeStyle" TEXT NOT NULL,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL,
+    CONSTRAINT "MeshiRecipe_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 -- CreateTable
@@ -1403,6 +1422,10 @@ CREATE UNIQUE INDEX IF NOT EXISTS "OwnedMeshiItem_paymentIntentId_key" ON "Owned
 CREATE INDEX IF NOT EXISTS "OwnedMeshiItem_ownerId_idx" ON "OwnedMeshiItem"("ownerId");
 
 CREATE INDEX IF NOT EXISTS "OwnedMeshiItem_purchaserId_idx" ON "OwnedMeshiItem"("purchaserId");
+
+CREATE INDEX IF NOT EXISTS "MeshiRecipe_userId_idx" ON "MeshiRecipe"("userId");
+
+CREATE UNIQUE INDEX IF NOT EXISTS "MeshiRecipe_userId_name_key" ON "MeshiRecipe"("userId", "name");
 
 CREATE UNIQUE INDEX IF NOT EXISTS "MeshProGift_stripeSessionId_key" ON "MeshProGift"("stripeSessionId");
 

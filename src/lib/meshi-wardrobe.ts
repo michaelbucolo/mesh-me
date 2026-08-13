@@ -20,8 +20,8 @@
 
 import { MESHI_FACE_IDS, MESHI_FACE_LABELS, MESHI_LASH_IDS, MESHI_LASH_LABELS, type MeshiFace, type MeshiLash } from "@/components/meshi/meshi-face";
 import { MESHI_HAIR_COLOR_IDS, MESHI_HAIR_COLOR_LABELS, MESHI_HAIR_IDS, MESHI_HAIR_LABELS } from "@/components/meshi/meshi-hair";
-import { ALL_ACCESSORY_ITEMS } from "@/components/meshi/meshi-slots";
-import { FREE_MESHI_OPTIONS } from "./mesh-pro";
+import { ALL_ACCESSORY_ITEMS, parseAccessories, serializeAccessories } from "@/components/meshi/meshi-slots";
+import { FREE_MESHI_OPTIONS, isFreeMeshiOption } from "./mesh-pro";
 
 export const MESHI_OPTION_VALUES = {
   hats: new Set(["none", "tophat", "beanie", "cap", "party", "crown", "flower", "headphones", "halo", "wizard", "astronaut", "pirate", "chef", "beret", "headband", "bow", "cowboy", "graduation"]),
@@ -124,6 +124,85 @@ export const GIFTABLE_MESHI_ITEMS: Record<GiftableMeshiCategory, string[]> = Obj
 export function isGiftableMeshiItem(category: string, value: string | null | undefined): category is GiftableMeshiCategory {
   const values = GIFTABLE_MESHI_ITEMS[category as GiftableMeshiCategory];
   return Boolean(values?.includes((value || "").trim().toLowerCase()));
+}
+
+// ─── Saved looks: applying a recipe ─────────────────────────────
+
+export type MeshiRecipeSnapshot = {
+  hatStyle: string;
+  faceStyle: string;
+  colorTheme: string;
+  hairStyle: string;
+  hairColor: string;
+  accessoryStyle: string;
+  eyeStyle: string;
+  badgeStyle: string;
+};
+
+export type MeshiRecipeEntitlements = {
+  isPro: boolean;
+  hasCharterSeat: boolean;
+  hasPatronRecord: boolean;
+};
+
+/**
+ * What would this saved look put on, given what the wearer may wear TODAY?
+ * Pure and client-side on purpose: Apply fills the studio form, the user
+ * presses the existing Save, and `updateMeshiPreference` stays the platform's
+ * one user-initiated wardrobe gate — this slice adds zero preference writers,
+ * and a tampered client lands in the same server gate it always did.
+ *
+ * Per axis, wearable mirrors that gate exactly: free ∪ owned-live ∪ Pro ∪
+ * already-equipped (held forgiveness), with the charter and patron pins
+ * additionally requiring their RECORD no matter the tier. Anything not
+ * wearable KEEPS THE CURRENTLY EQUIPPED VALUE — never the bare default: a
+ * recipe must not undress anyone. `fallbacks` names the axes that stayed put
+ * so the studio can say so once, quietly.
+ */
+export function resolveRecipeApplication(
+  recipe: MeshiRecipeSnapshot,
+  current: MeshiRecipeSnapshot,
+  owned: OwnedMeshiSets,
+  ents: MeshiRecipeEntitlements,
+): { next: MeshiRecipeSnapshot; fallbacks: string[] } {
+  const next = { ...current };
+  const fallbacks: string[] = [];
+
+  for (const [field, group, noun] of MESHI_LOCK_CHECKS) {
+    const value = (recipe[field as keyof MeshiRecipeSnapshot] ?? "").trim().toLowerCase();
+    const held = (current[field as keyof MeshiRecipeSnapshot] ?? "").trim().toLowerCase();
+    if (!value || value === held) continue;
+
+    let wearable: boolean;
+    if (group === "badges" && value === "charter") {
+      wearable = ents.hasCharterSeat;
+    } else if (group === "badges" && value === "patron") {
+      wearable = ents.hasPatronRecord;
+    } else if (group === "accessories") {
+      // Multi-token slot string: not one ownable value. A retired or unknown
+      // token would not survive the canonical parse round-trip — vocabulary
+      // drift keeps the current set rather than quietly undressing the axis.
+      // Free vocabulary is "none" alone, matching the server gate.
+      const canonical = serializeAccessories(parseAccessories(value));
+      wearable = canonical === value && (isFreeMeshiOption(group, value) || ents.isPro);
+    } else {
+      // Unknown vocabulary (a value the option table no longer accepts) is
+      // never wearable for anyone — keep what is equipped, quietly.
+      wearable =
+        MESHI_OPTION_VALUES[group].has(value) &&
+        (isFreeMeshiOption(group, value) ||
+          isOwnedMeshiOption(owned, group, value) ||
+          ents.isPro);
+    }
+
+    if (wearable) {
+      next[field as keyof MeshiRecipeSnapshot] = value;
+    } else {
+      fallbacks.push(noun);
+    }
+  }
+
+  return { next, fallbacks };
 }
 
 // ─── Labels (Stripe product names, notification copy, the gift form) ─
