@@ -86,6 +86,7 @@ model User {
   ownedMeshiItems            OwnedMeshiItem[]            @relation("meshiItemOwner")
   purchasedMeshiItems        OwnedMeshiItem[]            @relation("meshiItemPurchaser")
   meshiRecipes               MeshiRecipe[]
+  scheduledPosts             ScheduledPost[]
   /// When this account FIRST became a patron — a record of fact, set once by
   /// syncPatronSubscription and never cleared by churn (a lapsed patron keeps
   /// the record; cancellation must cost nothing visible). Nulled only by
@@ -564,6 +565,10 @@ model ConnectedAccount {
   expiresAt        DateTime?
   // OAuth scopes granted by the platform
   scopes           String?
+  /// The account's own service host (AT Protocol PDS, e.g. https://bsky.social).
+  /// Federated protocols never assume a host — a deliverer is assembled only
+  /// when this is present and isSafeService() accepts it.
+  serviceUrl       String?
   isActive         Boolean   @default(true)
   // Last successful sync timestamp
   lastSyncAt       DateTime?
@@ -1191,6 +1196,62 @@ model PatronStint {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+}
+
+/// A post written now to be published later. HOLDS NO CREDENTIALS — only the
+/// owner. Deliverers are resolved from ConnectedAccount AT FIRE TIME, so a
+/// disconnect between scheduling and firing degrades to publish.ts's honest
+/// "skipped" leg. Deleting the user cascades the queue.
+/// STATE MACHINE (every transition is one guarded updateMany; count===1 is
+/// the lock — the CharterSeat precedent):
+///   queued   → firing | missed | canceled
+///   firing   → done | retrying
+///   retrying → firing | canceled
+///   done, missed, canceled are cron-terminal; missed re-arms only via the
+///   owner's reschedule. Outcome truth lives in reportJson, not extra states.
+model ScheduledPost {
+  id            String    @id @default(cuid())
+  userId        String
+  text          String
+  title         String?
+  mediaJson     String    @default("[]")
+  targetsJson   String
+  visibility    String    @default("public")
+  scheduledFor  DateTime
+  tz            String?
+  status        String    @default("queued")
+  attempts      Int       @default(0)
+  nextAttemptAt DateTime?
+  claimedAt     DateTime?
+  firedAt       DateTime?
+  completedAt   DateTime?
+  reportJson    String?
+  notifiedAt    DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([status, scheduledFor])
+  @@index([status, nextAttemptAt])
+  @@index([userId, scheduledFor])
+}
+
+/// One scheduler tick's receipt — the PublicSupplyRun precedent. Makes
+/// "scheduler never ran" vs "ran and failed" a query. Never contains content
+/// or credentials.
+model SchedulerRun {
+  id          String   @id @default(cuid())
+  startedAt   DateTime @default(now())
+  durationMs  Int      @default(0)
+  claimed     Int      @default(0)
+  fired       Int      @default(0)
+  missed      Int      @default(0)
+  retried     Int      @default(0)
+  interrupted Int      @default(0)
+  detail      String?
+
+  @@index([startedAt])
 }
 
 /// A named snapshot of a look — the owner's memory, not an entitlement.

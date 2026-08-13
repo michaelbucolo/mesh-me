@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { LucideIcon } from "lucide-react";
-import { BookOpen, CalendarRange, Crown, FileText, Gift, HandHeart, Landmark, LineChart, Palette, Shirt, SlidersHorizontal, WandSparkles } from "lucide-react";
+import { BookOpen, CalendarClock, CalendarRange, Crown, FileText, Gift, HandHeart, Landmark, LineChart, Palette, Shirt, SlidersHorizontal, WandSparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BillingPortalButton, MeshProCheckoutButton } from "@/components/meshpro/mesh-pro-actions";
 import { getCurrentUser } from "@/lib/auth";
@@ -152,6 +152,17 @@ const unlocks: Array<{
     href: "/settings",
     icon: Shirt,
     enforcedIn: { file: "src/lib/mesh-pro.ts", symbol: "MESHI_RECIPE_CAPS" },
+  },
+  {
+    // Scheduling itself is free and complete (ten posts, a fortnight out — a
+    // week planned in one sitting). The cap is checked when a schedule is
+    // CREATED, never at fire time: a lapse deletes nothing, pauses nothing,
+    // and everything queued always fires.
+    title: "A deeper queue",
+    body: "A hundred scheduled posts, a year out, instead of ten across a fortnight. Scheduling itself is free — depth is what Pro buys, and everything already queued always fires, Pro or not.",
+    href: "/compose/queue",
+    icon: CalendarClock,
+    enforcedIn: { file: "src/lib/mesh-pro.ts", symbol: "SCHEDULE_CAPS" },
   },
 ];
 

@@ -212,7 +212,11 @@ assert.deepEqual(
 // created a Post without it, so the row took the schema defaults (false /
 // "general") and an adult post became visible to everyone, including the
 // accounts the gate exists for. Reposting laundered it.
-const postCreates = [...actions.matchAll(/prisma\.post\.create\(\{[\s\S]*?\n  \}\);/g)].map((m) => m[0]);
+// createPost's body lives in post-core.ts (createPostAsUser) so the scheduled
+// publisher obeys the same laws — the gate moved with it, as this message
+// always said it would.
+const postCreationSources = actions + read("src/lib/post-core.ts");
+const postCreates = [...postCreationSources.matchAll(/prisma\.post\.create\(\{[\s\S]*?\n  \}\);/g)].map((m) => m[0]);
 assert.ok(
   postCreates.length >= 2,
   `expected at least 2 prisma.post.create sites in actions.ts, found ${postCreates.length} —` +
@@ -223,7 +227,7 @@ for (const [i, block] of postCreates.entries()) {
     assert.match(
       block,
       new RegExp(String.raw`\b${field}:`),
-      `a prisma.post.create in src/lib/actions.ts (site ${i + 1} of ${postCreates.length}) does not set` +
+      `a prisma.post.create in actions.ts/post-core.ts (site ${i + 1} of ${postCreates.length}) does not set` +
         ` \`${field}\`:\n\n${block.slice(0, 320)}\n\n` +
         "  The schema defaults are `isNsfw false` / `contentRating \"general\"`, so omitting them\n" +
         "  does not mean 'unknown' — it means 'certified safe for everyone', past every adult\n" +

@@ -21,10 +21,13 @@
 //   Claiming success for a post that did not go is the specific lie this
 //   product cannot afford — it is the reason people keep the other apps.
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import { PlatformLogo } from "@/components/platform/platform-logo";
 import { planPublish, ruleFor, tightestLimit } from "@/lib/compose/plan";
 import { publishEverywhere } from "@/lib/compose/publish-action";
+import { reportLines } from "@/lib/compose/report-lines";
+import { schedulePost } from "@/lib/compose/schedule-actions";
 
 const INK = "#f2f4f8";
 const INK_DIM = "#8b93a7";
@@ -39,7 +42,7 @@ export type ComposerTarget = {
   connected: boolean;
 };
 
-export function ComposerView({ targets }: { targets: ComposerTarget[] }) {
+export function ComposerView({ targets, queueCount = 0 }: { targets: ComposerTarget[]; queueCount?: number }) {
   const [text, setText] = useState("");
   const [title, setTitle] = useState("");
   // mesh.me starts selected: your own mesh is the one place a post always has
@@ -50,10 +53,18 @@ export function ComposerView({ targets }: { targets: ComposerTarget[] }) {
   // boolean, because "which of these actually went" is the question the whole
   // surface exists to answer.
   const [report, setReport] = useState<{ summary: string; lines: string[] } | null>(null);
+  // Schedule-for-later: the panel is inline and quiet; wall→instant conversion
+  // happens HERE, in the browser, with the target date's own zone rules
+  // (DST-correct) — the server receives a UTC instant plus the IANA name and
+  // does no zone arithmetic ever.
+  const [scheduling, setScheduling] = useState(false);
+  const [whenLocal, setWhenLocal] = useState("");
+  const [queued, setQueued] = useState<string | null>(null);
 
   async function post() {
     setSending(true);
     setReport(null);
+    setQueued(null);
     try {
       const res = await publishEverywhere({ text, title, targets: selected });
       if ("error" in res) {
@@ -63,17 +74,48 @@ export function ComposerView({ targets }: { targets: ComposerTarget[] }) {
       // Every outcome is shown, not just the failures: a person who posted to
       // four places wants to see four confirmations, and one who posted to
       // three of four needs to know which one is missing.
-      setReport({
-        summary: res.summary,
-        lines: res.outcomes.map((o) =>
-          o.state === "posted"
-            ? `${labelFor(o.platform)} — posted`
-            : o.state === "skipped"
-              ? `${labelFor(o.platform)} — skipped: ${o.reason}`
-              : `${labelFor(o.platform)} — failed: ${o.message}`,
-        ),
-      });
+      setReport({ summary: res.summary, lines: reportLines(res) });
       if (res.posted.length > 0) setText("");
+    } finally {
+      setSending(false);
+    }
+  }
+
+  function presetLocal(daysAhead: number, hour: number): string {
+    const d = new Date();
+    d.setDate(d.getDate() + daysAhead);
+    d.setHours(hour, 0, 0, 0);
+    if (d.getTime() <= Date.now()) d.setDate(d.getDate() + 1);
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  }
+
+  async function schedule() {
+    if (!whenLocal) return;
+    setSending(true);
+    setReport(null);
+    setQueued(null);
+    try {
+      const instant = new Date(whenLocal);
+      const res = await schedulePost({
+        text,
+        title,
+        targets: selected,
+        scheduledForIso: instant.toISOString(),
+        tz: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      });
+      if (res && "error" in res && res.error) {
+        setReport({ summary: res.error, lines: [] });
+        return;
+      }
+      const spoken = instant.toLocaleString(undefined, {
+        weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit",
+      });
+      const places = selected.map((p) => ruleFor(p)?.label ?? p).join(" and ");
+      setQueued(`Queued for ${spoken} — ${places}.`);
+      setScheduling(false);
+      setWhenLocal("");
+      setText("");
     } finally {
       setSending(false);
     }
@@ -98,9 +140,16 @@ export function ComposerView({ targets }: { targets: ComposerTarget[] }) {
 
   return (
     <div className="mx-auto flex h-full w-full max-w-2xl flex-col px-4 py-6 sm:px-6" data-testid="composer">
-      <h1 className="text-2xl font-semibold" style={{ color: INK }}>
-        Post everywhere
-      </h1>
+      <div className="flex items-baseline justify-between gap-3">
+        <h1 className="text-2xl font-semibold" style={{ color: INK }}>
+          Post everywhere
+        </h1>
+        {/* The queue's door lives on the compose surface — a second segment,
+            not a sixth tab. The count is the affordance the queue exists. */}
+        <Link href="/compose/queue" className="text-sm font-medium underline-offset-4 hover:underline" style={{ color: INK_DIM }}>
+          Queue{queueCount > 0 ? ` (${queueCount})` : ""}
+        </Link>
+      </div>
       <p className="mt-1 text-sm" style={{ color: INK_DIM }}>
         Write once. Each platform tells you now if it will not take it.
       </p>
@@ -212,7 +261,7 @@ export function ComposerView({ targets }: { targets: ComposerTarget[] }) {
         })}
       </ul>
 
-      <div className="mt-6 flex items-center gap-3">
+      <div className="mt-6 flex flex-wrap items-center gap-3">
         <button
           type="button"
           onClick={post}
@@ -224,6 +273,18 @@ export function ComposerView({ targets }: { targets: ComposerTarget[] }) {
           {sending ? "Posting…" : plan.ready.length <= 1 ? "Post" : `Post to ${plan.ready.length}`}
         </button>
 
+        <button
+          type="button"
+          onClick={() => setScheduling((s) => !s)}
+          disabled={!plan.canPublish || sending}
+          data-testid="composer-schedule-toggle"
+          aria-expanded={scheduling}
+          className="rounded-full px-4 py-2.5 font-semibold disabled:cursor-not-allowed disabled:opacity-40"
+          style={{ background: "#ffffff0f", border: "1px solid #ffffff14", color: INK, fontSize: 14 }}
+        >
+          Schedule
+        </button>
+
         {/* Blocked targets are named on the button's doorstep, not discovered
             afterwards in another app. */}
         {plan.blocked.length > 0 && (
@@ -232,6 +293,62 @@ export function ComposerView({ targets }: { targets: ComposerTarget[] }) {
           </span>
         )}
       </div>
+
+      {scheduling && (
+        <div className="mt-3 rounded-xl px-3.5 py-3" data-testid="composer-schedule-panel" style={{ background: "#0e1626", border: "1px solid #ffffff14" }}>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setWhenLocal(presetLocal(0, 19))}
+              className="rounded-full px-3 py-1.5 font-medium"
+              style={{ background: "#ffffff0f", color: INK, fontSize: 12.5 }}
+            >
+              This evening 7:00 PM
+            </button>
+            <button
+              type="button"
+              onClick={() => setWhenLocal(presetLocal(1, 9))}
+              className="rounded-full px-3 py-1.5 font-medium"
+              style={{ background: "#ffffff0f", color: INK, fontSize: 12.5 }}
+            >
+              Tomorrow 9:00 AM
+            </button>
+            <input
+              type="datetime-local"
+              value={whenLocal}
+              onChange={(e) => setWhenLocal(e.target.value)}
+              aria-label="Pick a time"
+              data-testid="composer-schedule-when"
+              className="rounded-lg px-2.5 py-1.5 outline-none"
+              style={{ background: "#070b14", border: "1px solid #ffffff14", color: INK, fontSize: 13, colorScheme: "dark" }}
+            />
+          </div>
+          <div className="mt-2.5 flex items-center gap-3">
+            <button
+              type="button"
+              onClick={schedule}
+              disabled={!whenLocal || sending}
+              data-testid="composer-schedule-confirm"
+              className="rounded-full px-4 py-2 font-semibold disabled:cursor-not-allowed disabled:opacity-40"
+              style={{ background: BRAND, color: "#04060c", fontSize: 13.5 }}
+            >
+              Queue it
+            </button>
+            <span style={{ color: INK_DIM, fontSize: 12 }}>
+              Times are your local time ({Intl.DateTimeFormat().resolvedOptions().timeZone}).
+            </span>
+          </div>
+        </div>
+      )}
+
+      {queued && (
+        <p className="mt-3 text-sm" data-testid="composer-queued" style={{ color: INK }}>
+          {queued}{" "}
+          <Link href="/compose/queue" className="underline underline-offset-4" style={{ color: BRAND }}>
+            See the queue
+          </Link>
+        </p>
+      )}
 
       {report && (
         <div className="mt-5 rounded-xl px-3.5 py-3" data-testid="composer-report" style={{ background: "#0e1626", border: "1px solid #ffffff14" }}>
@@ -251,10 +368,6 @@ export function ComposerView({ targets }: { targets: ComposerTarget[] }) {
       )}
     </div>
   );
-}
-
-function labelFor(platform: string): string {
-  return ruleFor(platform)?.label ?? platform;
 }
 
 function tightestLabel(selected: readonly string[]): string {

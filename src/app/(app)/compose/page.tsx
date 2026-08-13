@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 import { readMyPresence } from "@/lib/mesh/read-my-presence";
 import { PLATFORM_RULES } from "@/lib/compose/plan";
 import { ComposerView, type ComposerTarget } from "@/components/compose/composer-view";
@@ -29,9 +30,14 @@ export default async function ComposePage() {
     connected: connected.has(r.platform),
   }));
 
+  // The queue's door carries its count — how many promises are waiting.
+  const queueCount = await prisma.scheduledPost.count({
+    where: { userId: user.id, status: { in: ["queued", "retrying"] } },
+  });
+
   return (
     <div className="h-full min-h-full w-full" style={{ background: "#070b14" }}>
-      <ComposerView targets={targets} />
+      <ComposerView targets={targets} queueCount={queueCount} />
     </div>
   );
 }
