@@ -41,6 +41,9 @@ export type ContentInventory = {
   readable: { id: string; name: string }[];
   /** Connected platforms that contributed nothing, because they cannot. */
   unreadable: { id: string; name: string }[];
+  /** The earliest post in evidence — "we can see", never "your first ever":
+   *  coverage-honest phrasing is load-bearing on this surface. */
+  firstSeen: { at: Date; platform: string | null } | null;
 };
 
 export async function getContentInventory(userId: string): Promise<ContentInventory> {
@@ -52,6 +55,8 @@ export async function getContentInventory(userId: string): Promise<ContentInvent
     commentCount,
     platformCommentCount,
     accounts,
+    firstNative,
+    firstPlatform,
   ] = await Promise.all([
     prisma.post.count({ where: { authorId: userId } }),
     prisma.platformPost.count({ where: { connectedAccount: { userId } } }),
@@ -68,6 +73,20 @@ export async function getContentInventory(userId: string): Promise<ContentInvent
       where: { userId, isActive: true },
       select: { platform: true },
       distinct: ["platform"],
+    }),
+    // Two indexed MINs: the oldest credible evidence, whichever side holds it.
+    prisma.post.findFirst({
+      where: { authorId: userId },
+      orderBy: { createdAt: "asc" },
+      select: { createdAt: true },
+    }),
+    prisma.platformPost.findFirst({
+      where: {
+        connectedAccount: { userId },
+        publishedAt: { not: null, gte: new Date("2005-01-01T00:00:00Z"), lte: new Date() },
+      },
+      orderBy: { publishedAt: "asc" },
+      select: { publishedAt: true, connectedAccount: { select: { platform: true } } },
     }),
   ]);
 
@@ -87,11 +106,22 @@ export async function getContentInventory(userId: string): Promise<ContentInvent
     (capability?.importContent ? readable : unreadable).push(entry);
   }
 
+  const candidates: Array<{ at: Date; platform: string | null }> = [];
+  if (firstNative) candidates.push({ at: firstNative.createdAt, platform: null });
+  if (firstPlatform?.publishedAt) {
+    candidates.push({
+      at: firstPlatform.publishedAt,
+      platform: getDisplayNameForAnyPlatform(firstPlatform.connectedAccount.platform),
+    });
+  }
+  candidates.sort((a, b) => a.at.getTime() - b.at.getTime());
+
   return {
     postsAndPhotos: postCount + platformPostCount,
     videos: localVideoCount + platformVideoCount,
     commentsAndReplies: commentCount + platformCommentCount,
     readable,
     unreadable,
+    firstSeen: candidates[0] ?? null,
   };
 }

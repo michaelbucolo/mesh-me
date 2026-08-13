@@ -25,11 +25,16 @@ const METRIC_WINDOW_DAYS_PRO = 365;
 
 /** The one decider, so a query window and the series drawn from it can never
  *  disagree — the failure mode where a chart has 365 slots and the query only
- *  filled 14 of them, and the difference reads as "you posted nothing". */
-function analyticsWindow(isPro: boolean) {
+ *  filled 14 of them, and the difference reads as "you posted nothing".
+ *  `lifetime` is the third leg: whether the month-grained long view loads at
+ *  all (analytics-lifetime.ts) — a boolean that routes nothing through the
+ *  daily series, so the slot law above is untouched. Exported because the
+ *  lifetime loader must ask the SAME decider the dashboard asks. */
+export function analyticsWindow(isPro: boolean) {
   return {
     chartDays: isPro ? CHART_DAYS_PRO : CHART_DAYS_FREE,
     metricDays: isPro ? METRIC_WINDOW_DAYS_PRO : METRIC_WINDOW_DAYS_FREE,
+    lifetime: isPro,
   };
 }
 
