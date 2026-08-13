@@ -126,7 +126,7 @@ const unlocks: Array<{
 // it, and scripts/meshpro-claims-check.ts asserts both halves exist.
 const giftCard = {
   title: "Give MeshPro",
-  body: "A month, a season, or a year for someone else. One payment, no subscription — their months just start, and stack on anything they have.",
+  body: "A month, a season, or a year for someone else. One payment, no subscription — their months just start, and stack on anything they have. Or a single wardrobe piece for their Meshi, theirs for good.",
   href: "/meshpro/gift",
   icon: Gift,
   enforcedIn: { file: "src/lib/stripe-billing.ts", symbol: "applyMeshProGiftSession" },
@@ -198,8 +198,9 @@ export default async function MeshProPage({ searchParams }: MeshProPageProps) {
           Real controls, not decorations
         </h1>
         <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-[var(--text-secondary)]">
-          Your algorithm, your year, your world&apos;s look. Pro and one hundred charter seats are
-          the only ways Mesh.me makes money — so there are no ads and your data is never sold.
+          Your algorithm, your year, your world&apos;s look. Pro, small wardrobe gifts, and one
+          hundred charter seats are the only ways Mesh.me makes money — so there are no ads and
+          your data is never sold.
         </p>
         <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
           {isPro ? (

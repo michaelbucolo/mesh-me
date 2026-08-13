@@ -416,7 +416,7 @@ export async function InstagramProfileView({ username, tab, giftSent }: { userna
                     <Button asChild variant="ghost">
                       <Link href={`/meshpro/gift?to=${profile.username}`}>
                         <GiftIcon size={16} aria-hidden="true" />
-                        Gift MeshPro
+                        Gift
                       </Link>
                     </Button>
                   )}

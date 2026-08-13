@@ -681,6 +681,22 @@ CREATE TABLE IF NOT EXISTS "CharterSeat" (
 );
 
 -- CreateTable
+CREATE TABLE IF NOT EXISTS "OwnedMeshiItem" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "ownerId" TEXT NOT NULL,
+    "purchaserId" TEXT,
+    "category" TEXT NOT NULL,
+    "value" TEXT NOT NULL,
+    "message" TEXT,
+    "stripeSessionId" TEXT NOT NULL,
+    "paymentIntentId" TEXT,
+    "revokedAt" DATETIME,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "OwnedMeshiItem_ownerId_fkey" FOREIGN KEY ("ownerId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT "OwnedMeshiItem_purchaserId_fkey" FOREIGN KEY ("purchaserId") REFERENCES "User" ("id") ON DELETE SET NULL ON UPDATE CASCADE
+);
+
+-- CreateTable
 CREATE TABLE IF NOT EXISTS "MeshProGift" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "purchaserId" TEXT,
@@ -1336,6 +1352,14 @@ INSERT OR IGNORE INTO "CharterSeat" ("number", "updatedAt") VALUES
 (98, '2026-08-13 00:00:00'),
 (99, '2026-08-13 00:00:00'),
 (100, '2026-08-13 00:00:00');
+
+CREATE UNIQUE INDEX IF NOT EXISTS "OwnedMeshiItem_stripeSessionId_key" ON "OwnedMeshiItem"("stripeSessionId");
+
+CREATE UNIQUE INDEX IF NOT EXISTS "OwnedMeshiItem_paymentIntentId_key" ON "OwnedMeshiItem"("paymentIntentId");
+
+CREATE INDEX IF NOT EXISTS "OwnedMeshiItem_ownerId_idx" ON "OwnedMeshiItem"("ownerId");
+
+CREATE INDEX IF NOT EXISTS "OwnedMeshiItem_purchaserId_idx" ON "OwnedMeshiItem"("purchaserId");
 
 CREATE UNIQUE INDEX IF NOT EXISTS "MeshProGift_stripeSessionId_key" ON "MeshProGift"("stripeSessionId");
 

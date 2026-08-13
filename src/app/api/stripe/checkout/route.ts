@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { attachCharterSession, CHARTER_PRICE_CENTS, CHARTER_SESSION_TTL_S, releaseCharterHold, reserveCharterSeat } from "@/lib/charter";
 import { isFounderUsername, isMeshProGiftActive, MESH_PRO_GIFT_MESSAGE_MAX, MESH_PRO_GIFT_PRICING } from "@/lib/mesh-pro";
+import { isGiftableMeshiItem, MESHI_ITEM_PRICE_CENTS, meshiItemLabel } from "@/lib/meshi-wardrobe";
 import { prisma } from "@/lib/prisma";
 import { isSameOriginRequest } from "@/lib/request-guard";
 import { getAppBaseUrl, getMeshProGiftPriceId, getMeshProPaymentLink, getMeshProPriceId, getStripeClient, parseMeshProGiftPlan, parseMeshProPlan } from "@/lib/stripe";
@@ -15,7 +16,15 @@ import Stripe from "stripe";
  * "you blocked them" and "they blocked you": a 403 here must not become a way
  * to probe who has blocked whom.
  */
-async function validateGiftRecipient(purchaser: { id: string }, recipientUsername: string) {
+async function validateGiftRecipient(
+  purchaser: { id: string },
+  recipientUsername: string,
+  // Wardrobe pieces may be bought for your own Meshi (refusing that is theater
+  // — two accounts gifting each other defeats it, and the refusal itself is
+  // the obnoxious part). Months of MeshPro keep the self-block: gifting
+  // yourself a subscription is just subscribing with extra steps.
+  { allowSelf = false }: { allowSelf?: boolean } = {},
+) {
   const recipient = await prisma.user.findUnique({
     where: { username: recipientUsername },
     select: { id: true, username: true, isSuspended: true },
@@ -23,7 +32,7 @@ async function validateGiftRecipient(purchaser: { id: string }, recipientUsernam
   if (!recipient || recipient.isSuspended) {
     return { error: "No one on Mesh.me has that username.", status: 404 as const };
   }
-  if (recipient.id === purchaser.id) {
+  if (!allowSelf && recipient.id === purchaser.id) {
     return { error: "MeshPro can't be gifted to yourself — the plans below are the same prices.", status: 400 as const };
   }
   if (isFounderUsername(recipient.username)) {
@@ -135,6 +144,99 @@ export async function POST(req: Request) {
         );
       }
       return NextResponse.json({ url: giftSession.url });
+    }
+
+    // ── Meshi wardrobe piece: $1.99 once, owned forever (gift or self) ──────
+    if (payload?.meshiItem !== undefined) {
+      const item = payload.meshiItem ?? {};
+      const category = String(item?.category || "").trim();
+      const value = String(item?.value || "").trim().toLowerCase();
+      if (!isGiftableMeshiItem(category, value)) {
+        return NextResponse.json({ error: "That isn't a giftable wardrobe piece." }, { status: 400 });
+      }
+
+      const recipientUsername = String(item?.recipientUsername || "").trim().toLowerCase();
+      if (!recipientUsername) {
+        return NextResponse.json({ error: "Choose whose Meshi this is for." }, { status: 400 });
+      }
+      const message = typeof item?.message === "string" ? item.message.trim() : "";
+      if (message.length > MESH_PRO_GIFT_MESSAGE_MAX) {
+        return NextResponse.json(
+          { error: `Keep the gift message under ${MESH_PRO_GIFT_MESSAGE_MAX} characters.` },
+          { status: 400 },
+        );
+      }
+
+      const checked = await validateGiftRecipient(user, recipientUsername, { allowSelf: true });
+      if ("error" in checked) {
+        return NextResponse.json({ error: checked.error }, { status: checked.status });
+      }
+      const recipient = checked.recipient;
+      const isSelf = recipient.id === user.id;
+
+      // Ownership is forever, so a second purchase of the same piece delivers
+      // nothing — refuse before any money moves. (Two sessions racing past
+      // this check are settled at grant time, where the loser is refunded.)
+      const alreadyOwned = await prisma.ownedMeshiItem.findFirst({
+        where: { ownerId: recipient.id, category, value, revokedAt: null },
+        select: { id: true },
+      });
+      if (alreadyOwned) {
+        return NextResponse.json(
+          { error: isSelf ? "Your Meshi already owns that." : "Their Meshi already owns that." },
+          { status: 409 },
+        );
+      }
+
+      const stripe = getStripeClient();
+      if (!stripe) {
+        return NextResponse.json(
+          { error: "Wardrobe gifting isn't configured yet. Please check back soon." },
+          { status: 503 },
+        );
+      }
+
+      const baseUrl = getAppBaseUrl(req);
+      const itemSession = await stripe.checkout.sessions.create({
+        mode: "payment",
+        line_items: [
+          {
+            price_data: {
+              currency: "usd",
+              unit_amount: MESHI_ITEM_PRICE_CENTS,
+              product_data: { name: `Meshi ${meshiItemLabel(category, value)}` },
+            },
+            quantity: 1,
+          },
+        ],
+        // Self-purchase returns to the gift page, which runs the narrow
+        // reconciler — self is exactly the case that needs webhook-latency
+        // insurance ("it's in your wardrobe" must survive a slow webhook).
+        success_url: isSelf
+          ? `${baseUrl}/meshpro/gift?payment=success&session_id={CHECKOUT_SESSION_ID}`
+          : `${baseUrl}/profile/${recipient.username}?gift=sent`,
+        cancel_url: `${baseUrl}/meshpro/gift?mode=piece&to=${recipient.username}&payment=cancelled`,
+        // Deliberately NO client_reference_id and no `userId` metadata key: the
+        // MeshPro reconciler treats those as "this session's owner may claim
+        // MeshPro from it", and a $1.99 hat must never cross-grant Pro.
+        metadata: {
+          product: "meshi-item",
+          purchaserUserId: user.id,
+          recipientUserId: recipient.id,
+          category,
+          value,
+          ...(message ? { message } : {}),
+        },
+        ...(user.stripeCustomerId ? { customer: user.stripeCustomerId } : { customer_email: user.email }),
+      });
+
+      if (!itemSession.url) {
+        return NextResponse.json(
+          { error: "Stripe did not return a checkout URL. Please try again." },
+          { status: 502 },
+        );
+      }
+      return NextResponse.json({ url: itemSession.url });
     }
 
     // ── Charter seat: $79 once, status only ─────────────────────────────────

@@ -149,6 +149,9 @@ const NOTIFICATION_TYPE_CATEGORY: Record<string, NotificationCategory> = {
   meshpro_gift: "messages",
   // Your charter seat confirmation — recipient-only, never social.
   charter: "messages",
+  // A wardrobe piece someone gave your Meshi — same moment-between-two-people
+  // routing as meshpro_gift (self-purchases never notify at all).
+  meshi_gift: "messages",
   security_alert: "security",
 };
 
@@ -179,6 +182,8 @@ function getNotificationHref(notification: Pick<SerializedNotification, "type" |
   if (notification.type === "meshpro_gift") return "/meshpro";
   // A charter confirmation opens the seat's own page — the holder's receipt.
   if (notification.type === "charter") return "/meshpro/charter";
+  // A wardrobe gift opens the wardrobe you can now wear.
+  if (notification.type === "meshi_gift") return "/settings?tab=meshi";
   if (notification.postId) return `/feed/${notification.postId}`;
   if (notification.category === "messages") return "/messages";
   if (notification.category === "security") return "/settings?tab=security";
