@@ -15,6 +15,7 @@ import {
   type NotificationGroup,
 } from "@/lib/notifications";
 import { formatRelativeTime } from "@/lib/utils";
+import { EASE_OUT, SPRING_PANEL } from "@/lib/motion";
 
 type NoticeState = {
   type: "success" | "error" | "info";
@@ -39,7 +40,7 @@ const categoryIcons: Record<NotificationCategory, typeof Bell> = {
 const visibleCategories = notificationCategories;
 
 // Shared sliding-indicator spring, matching Explore's 'explore-tab-pill'.
-const pillSpring: Transition = { type: "spring", stiffness: 380, damping: 30 };
+const pillSpring: Transition = SPRING_PANEL;
 
 export function NotificationsClient({ initialPayload }: { initialPayload: NotificationCenterPayload }) {
   const [payload, setPayload] = useState(initialPayload);
@@ -278,7 +279,7 @@ export function NotificationsClient({ initialPayload }: { initialPayload: Notifi
                   initial={{ opacity: 0, y: 12 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -8 }}
-                  transition={{ duration: 0.28, delay: idx * 0.045, ease: [0.16, 1, 0.3, 1] }}
+                  transition={{ duration: 0.28, delay: idx * 0.045, ease: EASE_OUT }}
                 >
                 <NotificationGroupCard
                   group={group}
@@ -436,7 +437,7 @@ group.priority === "high" ? "bg-[var(--mould-crimson)] text-[var(--mould-crimson
           initial={{ height: 0, opacity: 0 }}
           animate={{ height: "auto", opacity: 1 }}
           exit={{ height: 0, opacity: 0 }}
-          transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+          transition={{ duration: 0.25, ease: EASE_OUT }}
           className="overflow-hidden"
         >
         <div className="mt-4 grid gap-2 border-t border-[var(--border-primary)] pt-3">

@@ -36,6 +36,7 @@ import { AnalyticsControls } from "@/components/analytics/analytics-controls";
 import { CrossPlatformCommand } from "@/components/analytics/cross-platform-command";
 import { PrivacyPermissionsManager } from "@/components/analytics/privacy-permissions-manager";
 import type { AnalyticsDashboardData } from "@/lib/analytics-dashboard";
+import { EASE_OUT } from "@/lib/motion";
 
 type ChartPoint = AnalyticsDashboardData["charts"]["engagement"][number];
 
@@ -144,7 +145,7 @@ function Sparkline({ points, tone = "#2f7cff" }: { points: ChartPoint[]; tone?: 
         pathLength={1}
         initial={reduce ? false : { pathLength: 0, opacity: 0 }}
         animate={show ? { pathLength: 1, opacity: 1 } : { pathLength: 0, opacity: 0 }}
-        transition={{ duration: reduce ? 0 : 0.95, ease: [0.16, 1, 0.3, 1] }}
+        transition={{ duration: reduce ? 0 : 0.95, ease: EASE_OUT }}
       />
     </svg>
   );

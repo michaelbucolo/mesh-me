@@ -6,6 +6,7 @@ import { motion, useInView, useReducedMotion } from "framer-motion";
 import type { LucideIcon } from "lucide-react";
 import { Crown, Fingerprint, Flame, Gauge, Layers, Rocket, Scale, Trophy, Zap } from "lucide-react";
 import type { AnalyticsDashboardData } from "@/lib/analytics-dashboard";
+import { EASE_OUT } from "@/lib/motion";
 
 /**
  * The cross-platform command center: mesh.me is the only place that can see a
@@ -75,7 +76,7 @@ function ShareBar({ row }: { row: MixRow }) {
                 className="h-full first:rounded-l-full last:rounded-r-full"
                 initial={reduce ? false : { width: "0%" }}
                 animate={inView || reduce ? { width: `${w}%` } : { width: "0%" }}
-                transition={{ duration: reduce ? 0 : 0.7, delay: reduce ? 0 : i * 0.08, ease: [0.16, 1, 0.3, 1] }}
+                transition={{ duration: reduce ? 0 : 0.7, delay: reduce ? 0 : i * 0.08, ease: EASE_OUT }}
               />
             );
           })
@@ -138,7 +139,7 @@ function PerPostBar({ platform, epp, maxEpp, index }: { platform: string; epp: n
           style={{ backgroundColor: tone(platform) }}
           initial={reduce ? false : { width: "0%" }}
           animate={inView || reduce ? { width: `${w}%` } : { width: "0%" }}
-          transition={{ duration: reduce ? 0 : 0.75, delay: reduce ? 0 : index * 0.07, ease: [0.16, 1, 0.3, 1] }}
+          transition={{ duration: reduce ? 0 : 0.75, delay: reduce ? 0 : index * 0.07, ease: EASE_OUT }}
         />
       </div>
       <span className="w-14 shrink-0 text-right text-xs font-semibold text-[var(--text-primary)]">{fmt(epp)}</span>

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { motion, type Variants } from "framer-motion";
 import { ArrowRight, BarChart3, Lock, MessageCircle, Rss, ShieldCheck, Sparkles, Waypoints } from "lucide-react";
+import { EASE_OUT, SPRING_PANEL } from "@/lib/motion";
 
 const routes = [
   {
@@ -58,7 +59,7 @@ const gridVariants: Variants = {
 };
 const cardVariants: Variants = {
   hidden: { opacity: 0, y: 18 },
-  show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 320, damping: 26 } },
+  show: { opacity: 1, y: 0, transition: SPRING_PANEL },
 };
 
 function RouteCard({ route }: { route: Route }) {
@@ -103,7 +104,7 @@ export function SiteRouteMap({
         initial={{ opacity: 0, y: 14 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, amount: 0.4 }}
-        transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+        transition={{ duration: 0.5, ease: EASE_OUT }}
       >
         <p className="mesh-kicker mb-3">Route by route</p>
         <h2 className="text-2xl font-semibold text-[var(--text-primary)] md:text-3xl">{title}</h2>
@@ -127,7 +128,7 @@ export function SiteRouteMap({
         initial={{ opacity: 0, y: 14 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, amount: 0.3 }}
-        transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+        transition={{ duration: 0.5, ease: EASE_OUT }}
       >
         <div className="flex items-start gap-3">
           <MessageCircle className="mt-1 h-5 w-5 text-[var(--accent-text)]" />

@@ -30,13 +30,14 @@ import { Badge } from "@/components/ui/badge";
 import { Modal } from "@/components/ui/modal";
 import { openMeshi } from "@/lib/meshi-events";
 import { cn } from "@/lib/utils";
+import { SPRING_POP } from "@/lib/motion";
 
 const COMMAND_PALETTE_EVENT = "mesh:open-command-palette";
 const BUG_REPORT_EVENT = "mesh:open-bug-report";
 const KEYBOARD_SHORTCUTS_EVENT = "mesh:open-keyboard-shortcuts";
 
-const PALETTE_SPRING = { type: "spring" as const, stiffness: 460, damping: 38, mass: 0.7 };
-const ROW_SPRING = { type: "spring" as const, stiffness: 520, damping: 40 };
+const PALETTE_SPRING = SPRING_POP;
+const ROW_SPRING = SPRING_POP;
 
 type CommandCategory = "Go" | "Action" | "Settings" | "Help";
 type CommandAction = "meshi" | "bugReport" | "shortcuts";

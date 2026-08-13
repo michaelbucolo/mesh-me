@@ -9,10 +9,11 @@ import { Button } from "@/components/ui/button";
 import { openCommandPalette } from "@/components/layout/command-palette";
 import { Modal } from "@/components/ui/modal";
 import { openMeshi } from "@/lib/meshi-events";
+import { SPRING_PANEL } from "@/lib/motion";
 
 const SHORTCUTS_EVENT = "mesh:open-keyboard-shortcuts";
 const SEQUENCE_TIMEOUT_MS = 1200;
-const OVERLAY_SPRING = { type: "spring" as const, stiffness: 420, damping: 30 };
+const OVERLAY_SPRING = SPRING_PANEL;
 
 type Shortcut = {
   keys: string[];

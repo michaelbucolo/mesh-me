@@ -3,6 +3,7 @@
 import { motion, useReducedMotion } from "framer-motion";
 import { Avatar } from "@/components/ui/avatar";
 import { PlatformLogo } from "@/components/platform/platform-logo";
+import { EASE_OUT } from "@/lib/motion";
 
 /** One connected account orbiting the identity at the centre. */
 export type HubAccount = {
@@ -199,7 +200,7 @@ export function OneMeshHub({
             transition={
               isNew
                 ? { duration: 0.7, delay: reduce ? 0 : 0.1, ease: [0.34, 1.56, 0.64, 1] }
-                : { duration: 0.6, delay: reduce ? 0 : 0.15 + i * 0.07, ease: [0.16, 1, 0.3, 1] }
+                : { duration: 0.6, delay: reduce ? 0 : 0.15 + i * 0.07, ease: EASE_OUT }
             }
           >
             {/* No name under the node any more. The mark IS the name, and at
@@ -232,7 +233,7 @@ export function OneMeshHub({
         className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center"
         initial={reduce ? false : { scale: 0.85, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+        transition={{ duration: 0.5, ease: EASE_OUT }}
       >
         <div
           className="relative flex size-16 items-center justify-center rounded-full border-2 border-[var(--accent)] bg-[var(--ds-surface)] shadow-[0_0_22px_2px_color-mix(in_srgb,var(--accent)_24%,transparent)] sm:size-20"

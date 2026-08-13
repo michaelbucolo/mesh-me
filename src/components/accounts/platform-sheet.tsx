@@ -24,6 +24,7 @@ import { cn, formatCount } from "@/lib/utils";
 import type { ConnectedAccountView, SupportedPlatformView } from "@/lib/connected-accounts";
 import type { PlatformAdapterCapabilityKey } from "@/lib/platform-adapters";
 import type { SupplyNote } from "@/app/(app)/connected-accounts/public-supply-status";
+import { EASE_OUT } from "@/lib/motion";
 
 // What connecting this platform actually gets you. Read from the adapter's own
 // capability table, which is derived from the messaging/capability registries
@@ -236,7 +237,7 @@ export function PlatformSheet({
             className="flex items-center gap-3"
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+            transition={{ duration: 0.28, ease: EASE_OUT }}
           >
             <PlatformLogo platform={platform.id} size={44} className="shrink-0" />
             <div className="min-w-0">

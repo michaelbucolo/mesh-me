@@ -30,6 +30,7 @@ import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { PlatformLogo } from "@/components/platform/platform-logo";
 import { cn } from "@/lib/utils";
+import { EASE_OUT } from "@/lib/motion";
 
 type RoomVote = { id: string; itemId: string; userId: string; vote: string };
 export type RoomItem = {
@@ -196,7 +197,7 @@ export function CoBrowseRoom({
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.26, ease: [0.22, 1, 0.36, 1] }}
+            transition={{ duration: 0.26, ease: EASE_OUT }}
             className="grid gap-2 rounded-[var(--ds-radius-md)] border border-[var(--accent)]/40 bg-[var(--bg-primary)]/45 p-3.5"
           >
             <div className="flex items-center gap-2">

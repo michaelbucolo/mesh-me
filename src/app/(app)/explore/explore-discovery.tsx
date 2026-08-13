@@ -29,6 +29,7 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition, type FormEvent } from "react";
+import { EASE_OUT, SPRING_PANEL } from "@/lib/motion";
 
 const PLATFORM_CHIP: Record<string, { label: string; color: string }> = {
   instagram: { label: "Instagram", color: "#E4405F" },
@@ -45,10 +46,9 @@ const PLATFORM_CHIP: Record<string, { label: string; color: string }> = {
   meshme: { label: "mesh.me", color: "#2d7ff9" },
 };
 
-const spring = { type: "spring" as const, stiffness: 320, damping: 30, mass: 0.7 };
+const spring = SPRING_PANEL;
 
 // The Mesh "decisive glide" easing as a framer cubic-bezier tuple.
-const MESH_EASE_OUT = [0.16, 1, 0.3, 1] as const;
 
 const VIDEO_TYPES = ["video", "reel", "short", "stream"];
 
@@ -437,8 +437,8 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
             transition={{
-              height: { duration: 0.26, ease: MESH_EASE_OUT },
-              opacity: { duration: 0.2, ease: MESH_EASE_OUT },
+              height: { duration: 0.26, ease: EASE_OUT },
+              opacity: { duration: 0.2, ease: EASE_OUT },
             }}
             className="overflow-hidden"
           >

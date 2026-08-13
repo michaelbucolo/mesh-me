@@ -21,6 +21,7 @@ import { publishMeshiCause } from "@/lib/meshi-bus";
 import { getDisplayNameForAnyPlatform } from "@/lib/platform-capabilities";
 import { Avatar } from "@/components/ui/avatar";
 import { formatCount, formatRelativeTime, safeHref } from "@/lib/utils";
+import { EASE_OUT, SPRING_PANEL } from "@/lib/motion";
 
 type SearchResults = {
   users: Array<{
@@ -147,19 +148,19 @@ const tabs = [
 type TabId = (typeof tabs)[number]["id"];
 
 // Shared sliding-indicator spring, matching Explore's 'explore-tab-pill'.
-const pillSpring: Transition = { type: "spring", stiffness: 380, damping: 30 };
+const pillSpring: Transition = SPRING_PANEL;
 
 // Results reveal: the outer container orchestrates a top-to-bottom section
 // cascade; each ResultSection springs in as a variant child.
 const resultsContainer: Variants = {
   hidden: { opacity: 1 },
   show: { opacity: 1, transition: { staggerChildren: 0.05, delayChildren: 0.03 } },
-  exit: { opacity: 0, transition: { duration: 0.15, ease: [0.16, 1, 0.3, 1] } },
+  exit: { opacity: 0, transition: { duration: 0.15, ease: EASE_OUT } },
 };
 
 const sectionVariant: Variants = {
   hidden: { opacity: 0, y: 10 },
-  show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 320, damping: 28 } },
+  show: { opacity: 1, y: 0, transition: SPRING_PANEL },
 };
 
 // Per-row cascade beat for `.mesh-cascade-soft` (uncapped, data-driven).

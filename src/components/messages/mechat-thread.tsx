@@ -13,6 +13,7 @@ import { attachNormalizer } from "@/lib/audio-normalize";
 import { playSound } from "@/lib/sound";
 import { safeHref } from "@/lib/utils";
 import { MeshiMascot, type MeshiColor, type MeshiHat, type MeshiHair, type MeshiAccessory, type MeshiEyeStyle, type MeshiBadge } from "@/components/meshi/meshi-mascot";
+import { SPRING_PANEL } from "@/lib/motion";
 import {
   buildLinkPreview,
   normalizeAttachments,
@@ -994,7 +995,7 @@ export function MeChatThread({
                   <motion.div
                     initial={reduceMotion || seenIdsRef.current.has(message.id) ? false : { opacity: 0, x: isMine ? 12 : -26, y: 6, scale: 0.965 }}
                     animate={{ opacity: 1, x: 0, y: 0, scale: 1 }}
-                    transition={{ type: "spring", stiffness: 420, damping: 32, mass: 0.7 }}
+                    transition={SPRING_PANEL}
                     className={`relative max-w-[86%] md:max-w-[72%] ${isMine ? "items-end" : "items-start"} flex flex-col gap-1`}
                   >
                     {!isMine && !groupedWithPrev && (

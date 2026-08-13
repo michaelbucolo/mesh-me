@@ -21,6 +21,7 @@ import {
 import { updateMeshiLocalPreferences } from "@/hooks/use-meshi-preferences";
 import { completeOnboarding } from "@/lib/actions";
 import { cn, INTEREST_TAGS } from "@/lib/utils";
+import { EASE_OUT, SPRING_HERO, SPRING_PANEL, SPRING_SNAP } from "@/lib/motion";
 
 type OnboardingFlowProps = {
   user: {
@@ -86,7 +87,6 @@ const interfaceStyles = [
 ];
 
 // Shared Mesh Motion easings (typed as bezier tuples for framer).
-const EASE_OUT: [number, number, number, number] = [0.16, 1, 0.3, 1];
 const SPRING_LUSH: [number, number, number, number] = [0.34, 1.56, 0.64, 1];
 
 // Directional step choreography: forward springs in from the right while the
@@ -97,7 +97,7 @@ const panelVariants: Variants = {
     opacity: 1,
     x: 0,
     scale: 1,
-    transition: { type: "spring", stiffness: 360, damping: 30, mass: 0.8 },
+    transition: SPRING_PANEL,
   },
   exit: (dir: number) => ({
     opacity: 0,
@@ -298,7 +298,7 @@ export function OnboardingFlow({
             <motion.div
               className="relative h-full overflow-hidden rounded-full bg-[var(--accent)]"
               animate={{ width: `${progress}%` }}
-              transition={reduce ? { duration: 0 } : { type: "spring", stiffness: 220, damping: 26, mass: 0.7 }}
+              transition={reduce ? { duration: 0 } : SPRING_HERO}
             >
               {!reduce && (
                 <motion.span
@@ -823,7 +823,7 @@ function Toggle({ label, value, onChange }: { label: string; value: boolean; onC
         <motion.span
           className="h-5 w-5 rounded-full bg-white shadow-md"
           animate={{ x: value ? 20 : 0 }}
-          transition={{ type: "spring", stiffness: 500, damping: 30 }}
+          transition={SPRING_SNAP}
         />
       </motion.span>
     </button>
