@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Send, Sparkles, Search, BarChart3, Shield, HelpCircle, PenLine, UserPlus, MessageSquare } from "lucide-react";
 import { askMeshi, runMeshiAction } from "@/lib/meshi-client";
+import { getMeshiGreeting } from "@/lib/actions";
 import type { MeshiAction, MeshiContext, MeshiHistoryMessage } from "@/lib/meshi-shared";
 import type { MeshGraphEntity } from "@/lib/queries";
 import { UserMeshi } from "@/components/meshi/user-meshi";
@@ -88,6 +89,25 @@ export function MeshiChat({
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  // Personalized opener when a journal exists — replaces the static welcome
+  // only while it is still the ONLY message, so a conversation in progress is
+  // never rewritten under the user.
+  const greetedRef = useRef(false);
+  useEffect(() => {
+    if (!isOpen || greetedRef.current) return;
+    greetedRef.current = true;
+    getMeshiGreeting()
+      .then((greeting) => {
+        if (!greeting) return;
+        setMessages((current) =>
+          current.length === 1 && current[0].id === "welcome"
+            ? [{ ...current[0], content: greeting }]
+            : current,
+        );
+      })
+      .catch(() => {});
+  }, [isOpen]);
 
   useEffect(() => {
     if (isOpen) {

@@ -683,6 +683,26 @@ CREATE TABLE IF NOT EXISTS "CharterSeat" (
 );
 
 -- CreateTable
+CREATE TABLE IF NOT EXISTS "MeshiJournalGrant" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "userId" TEXT NOT NULL,
+    "grantedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "MeshiJournalGrant_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "MeshiJournalEntry" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "grantId" TEXT NOT NULL,
+    "kind" TEXT NOT NULL,
+    "value" TEXT NOT NULL,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL,
+    "expiresAt" DATETIME,
+    CONSTRAINT "MeshiJournalEntry_grantId_fkey" FOREIGN KEY ("grantId") REFERENCES "MeshiJournalGrant" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+-- CreateTable
 CREATE TABLE IF NOT EXISTS "PatronStint" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "userId" TEXT NOT NULL,
@@ -1367,6 +1387,10 @@ INSERT OR IGNORE INTO "CharterSeat" ("number", "updatedAt") VALUES
 (98, '2026-08-13 00:00:00'),
 (99, '2026-08-13 00:00:00'),
 (100, '2026-08-13 00:00:00');
+
+CREATE UNIQUE INDEX IF NOT EXISTS "MeshiJournalGrant_userId_key" ON "MeshiJournalGrant"("userId");
+
+CREATE INDEX IF NOT EXISTS "MeshiJournalEntry_grantId_kind_idx" ON "MeshiJournalEntry"("grantId", "kind");
 
 CREATE UNIQUE INDEX IF NOT EXISTS "PatronStint_stripeSubscriptionId_key" ON "PatronStint"("stripeSubscriptionId");
 

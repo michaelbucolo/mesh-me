@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import { MeshiJournalPanel } from "@/components/privacy/meshi-journal-panel";
 import { PrivacyControlCenter } from "@/components/privacy/privacy-control-center";
 import { getCurrentUser } from "@/lib/auth";
 import { getPrivacyControlCenter } from "@/lib/privacy-control-center";
@@ -17,5 +18,14 @@ export default async function PrivacyControlsPage() {
   const data = await getPrivacyControlCenter();
   if (!data) redirect("/login?next=/privacy-controls");
 
-  return <PrivacyControlCenter data={data} />;
+  return (
+    <>
+      <PrivacyControlCenter data={data} />
+      {/* Beside the Meshi memory READ rule above: what Meshi may KEEP. Two
+          different promises, each with its own honest switch. */}
+      <div className="mx-auto w-full max-w-5xl px-4 pb-8 sm:px-6">
+        <MeshiJournalPanel />
+      </div>
+    </>
+  );
 }

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { LucideIcon } from "lucide-react";
-import { CalendarRange, Crown, FileText, Gift, HandHeart, Landmark, LineChart, Palette, SlidersHorizontal, WandSparkles } from "lucide-react";
+import { BookOpen, CalendarRange, Crown, FileText, Gift, HandHeart, Landmark, LineChart, Palette, SlidersHorizontal, WandSparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BillingPortalButton, MeshProCheckoutButton } from "@/components/meshpro/mesh-pro-actions";
 import { getCurrentUser } from "@/lib/auth";
@@ -120,6 +120,17 @@ const unlocks: Array<{
     href: "/settings#mesh",
     icon: WandSparkles,
     enforcedIn: { file: "src/components/settings/settings-control-center.tsx", symbol: "meshNodeStyles" },
+  },
+  {
+    // Durable, consent-gated, owner-typed: the journal never writes anything
+    // the user didn't dictate, and the off switch deletes by schema cascade.
+    // Free keeps the complete kernel (a name + five keepsakes); Pro buys the
+    // same thing at depth — more history, the shape this page already sells.
+    title: "Meshi's journal",
+    body: "A hundred keepsakes and the open thread, across devices. It never writes down anything you didn't type, and the switch that turns it off truly deletes it.",
+    href: "/privacy-controls",
+    icon: BookOpen,
+    enforcedIn: { file: "src/lib/meshi-memory.ts", symbol: "resolveJournalCaps" },
   },
   {
     title: "Meshi wardrobe",

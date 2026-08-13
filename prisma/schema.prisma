@@ -55,6 +55,7 @@ model User {
   feedPreference             FeedPreference?
   achievements               UserAchievement[]
   meshiPreference            MeshiPreference?
+  meshiJournalGrant          MeshiJournalGrant?
   meshCosmetics              MeshCosmetic[]
   meshPrivacy                MeshPrivacy?
   mapLocation                UserLocation?
@@ -1052,6 +1053,40 @@ model UserAchievement {
 }
 
 // ─── Meshi AI Preferences ───────────────────────────────────
+
+/// MESHI'S JOURNAL — durable, consent-gated memory. The grant row IS the
+/// consent: no row means no journal (fail-closed, the deliberate opposite of
+/// the absent-row-permissive DataVisibilityPolicy table), and withdrawal is
+/// `delete` — the cascade takes every entry with it. Off = deleted, never
+/// hidden.
+model MeshiJournalGrant {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  grantedAt DateTime @default(now())
+
+  user    User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  entries MeshiJournalEntry[]
+}
+
+/// One remembered thing, always OWNER-TYPED (kind: nickname | keepsake |
+/// thread). Deliberately NO userId column — the owner is reached through the
+/// grant relation only, so recall and the withdrawal cascade can never
+/// disagree about whose memory a row is. `expiresAt` is the thread's 30-day
+/// shelf life; nothing here is ever written by the model or from grounded
+/// context.
+model MeshiJournalEntry {
+  id        String    @id @default(cuid())
+  grantId   String
+  kind      String
+  value     String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  expiresAt DateTime?
+
+  grant MeshiJournalGrant @relation(fields: [grantId], references: [id], onDelete: Cascade)
+
+  @@index([grantId, kind])
+}
 
 model MeshiPreference {
   id             String   @id @default(cuid())
