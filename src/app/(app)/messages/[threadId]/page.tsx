@@ -5,6 +5,7 @@ import { ArrowLeft, BadgeCheck, LockKeyhole, Users } from "lucide-react";
 import { ActiveNow } from "@/components/messages/active-now";
 import { Avatar } from "@/components/ui/avatar";
 import { MeChatInfoRail } from "@/components/messages/mechat-info-rail";
+import { MeChatMuteToggle } from "@/components/messages/mechat-mute-toggle";
 import { MeChatThread, type MeChatSerializedMessage } from "@/components/messages/mechat-thread";
 import { getCurrentUser } from "@/lib/auth";
 import { nsfwHiddenWhere } from "@/lib/content-safety";
@@ -499,6 +500,17 @@ export default async function ThreadDetailPage({ params, searchParams }: ThreadP
                 )}
               </div>
 
+              {/* The one control every daily driver reaches for first: mute.
+                  It lives in the header because the header is visible at
+                  every breakpoint — the info rail only exists at xl. */}
+              {activeThreadId && (
+                <MeChatMuteToggle
+                  threadId={activeThreadId}
+                  initialMuted={Boolean(
+                    conversationMembers.find((member) => member.userId === user.id)?.notificationsMuted,
+                  )}
+                />
+              )}
               {/* Calls arrive when the real infrastructure exists — until then
                   no dead buttons pretend the capability is live. */}
             </div>
