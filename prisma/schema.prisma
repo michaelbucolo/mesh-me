@@ -75,6 +75,13 @@ model User {
   signupNumber               Int?
   meshProGiftsSent           MeshProGift[]               @relation("giftPurchaser")
   meshProGiftsReceived       MeshProGift[]               @relation("giftRecipient")
+  /// Charter seat number (1-100), set only by applyCharterSession claiming a
+  /// held CharterSeat row. @unique is the DB-hard one-seat-per-account rule.
+  /// Distinct from the dormant signupNumber and from FOUNDER_USERNAMES — a
+  /// charter seat is bought, never derived, and grants no features.
+  charterNumber              Int?                        @unique
+  showCharterNumber          Boolean                     @default(true)
+  charterSeats               CharterSeat[]
   // Privacy toggles
   showInDiscovery            Boolean                     @default(false)
   hideActivityStatus         Boolean                     @default(false)
@@ -1063,6 +1070,31 @@ model MeshiPreference {
 }
 
 // ─── Mesh Cosmetics (MeshPro) ───────────────────────────────
+
+/// One of the 100 charter seats — the ledger AND the lock. Seeded exactly once
+/// (numbers 1..100, in the migration and ensure-schema.sql); no application
+/// code creates a row, which is what makes the cap a fact rather than a
+/// promise. Transitions, each a single guarded updateMany where count===1 is
+/// the lock: open → held (reserve, BEFORE Stripe is called) → claimed (paid);
+/// held → open only when no session was ever attached or Stripe attests the
+/// session expired; claimed → retired on full refund — a number is never
+/// resold. Rows are never deleted; a deleted account leaves its seat via
+/// SetNull and read paths treat claimed-with-null-user as retired.
+model CharterSeat {
+  number          Int       @id
+  status          String    @default("open")
+  userId          String?
+  stripeSessionId String?   @unique
+  paymentIntentId String?   @unique
+  holdExpiresAt   DateTime?
+  claimedAt       DateTime?
+  retiredAt       DateTime?
+  updatedAt       DateTime  @updatedAt
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([status])
+}
 
 /// One paid Gift of MeshPro — the receipt row, not the entitlement (that is
 /// User.meshProGiftUntil, denormalized so hasMeshPro() costs no join).

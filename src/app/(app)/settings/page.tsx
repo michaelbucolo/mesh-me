@@ -78,6 +78,7 @@ export default async function SettingsPage() {
         adultVerificationProvider: settings.adultVerificationProvider,
         adultVerificationRegion: settings.adultVerificationRegion,
         isMeshPro: settings.isMeshPro,
+        charterHolder: settings.charterHolder,
         interests: settings.interests,
         connectedAccounts: settings.connectedAccounts,
         links: settings.links,

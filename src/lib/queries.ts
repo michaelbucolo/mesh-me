@@ -339,6 +339,10 @@ export async function getUserProfile(username: string) {
       // The one part of the milestone board that is public — and only because
       // wearing it is a deliberate choice the person made.
       activeTitle: true,
+      // Charter chip: bought (not earned), shown only while its own switch is
+      // on — the toggle travels with the number so the render is one check.
+      charterNumber: true,
+      showCharterNumber: true,
       interests: {
         select: { id: true, tag: true },
         orderBy: { tag: "asc" },
@@ -1628,6 +1632,7 @@ export async function getUserSettings() {
     activeTitle: userWithProfile?.activeTitle ?? null,
     achievements: achievements.map((a) => ({ slug: a.achievement.slug })),
     isMeshPro: user.isMeshPro,
+    charterHolder: user.charterNumber != null,
   };
 }
 

@@ -22,6 +22,8 @@ CREATE TABLE IF NOT EXISTS "User" (
     "isMeshPro" BOOLEAN NOT NULL DEFAULT false,
     "meshProSince" DATETIME,
     "meshProGiftUntil" DATETIME,
+    "charterNumber" INTEGER,
+    "showCharterNumber" BOOLEAN NOT NULL DEFAULT true,
     "stripeCustomerId" TEXT,
     "stripeSubscriptionId" TEXT,
     "signupNumber" INTEGER,
@@ -665,6 +667,20 @@ CREATE TABLE IF NOT EXISTS "MeshiPreference" (
 );
 
 -- CreateTable
+CREATE TABLE IF NOT EXISTS "CharterSeat" (
+    "number" INTEGER NOT NULL PRIMARY KEY,
+    "status" TEXT NOT NULL DEFAULT 'open',
+    "userId" TEXT,
+    "stripeSessionId" TEXT,
+    "paymentIntentId" TEXT,
+    "holdExpiresAt" DATETIME,
+    "claimedAt" DATETIME,
+    "retiredAt" DATETIME,
+    "updatedAt" DATETIME NOT NULL,
+    CONSTRAINT "CharterSeat_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE SET NULL ON UPDATE CASCADE
+);
+
+-- CreateTable
 CREATE TABLE IF NOT EXISTS "MeshProGift" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "purchaserId" TEXT,
@@ -1208,6 +1224,119 @@ CREATE UNIQUE INDEX IF NOT EXISTS "UserAchievement_userId_achievementId_key" ON 
 CREATE UNIQUE INDEX IF NOT EXISTS "MeshiPreference_userId_key" ON "MeshiPreference"("userId");
 
 -- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "CharterSeat_stripeSessionId_key" ON "CharterSeat"("stripeSessionId");
+
+CREATE UNIQUE INDEX IF NOT EXISTS "CharterSeat_paymentIntentId_key" ON "CharterSeat"("paymentIntentId");
+
+CREATE INDEX IF NOT EXISTS "CharterSeat_status_idx" ON "CharterSeat"("status");
+
+CREATE UNIQUE INDEX IF NOT EXISTS "User_charterNumber_key" ON "User"("charterNumber");
+
+-- The 100 charter seats. INSERT OR IGNORE on the primary key: replaying is a
+-- no-op, and no application code path creates a CharterSeat row — the cap is
+-- this fixed universe, not a config value.
+INSERT OR IGNORE INTO "CharterSeat" ("number", "updatedAt") VALUES
+(1, '2026-08-13 00:00:00'),
+(2, '2026-08-13 00:00:00'),
+(3, '2026-08-13 00:00:00'),
+(4, '2026-08-13 00:00:00'),
+(5, '2026-08-13 00:00:00'),
+(6, '2026-08-13 00:00:00'),
+(7, '2026-08-13 00:00:00'),
+(8, '2026-08-13 00:00:00'),
+(9, '2026-08-13 00:00:00'),
+(10, '2026-08-13 00:00:00'),
+(11, '2026-08-13 00:00:00'),
+(12, '2026-08-13 00:00:00'),
+(13, '2026-08-13 00:00:00'),
+(14, '2026-08-13 00:00:00'),
+(15, '2026-08-13 00:00:00'),
+(16, '2026-08-13 00:00:00'),
+(17, '2026-08-13 00:00:00'),
+(18, '2026-08-13 00:00:00'),
+(19, '2026-08-13 00:00:00'),
+(20, '2026-08-13 00:00:00'),
+(21, '2026-08-13 00:00:00'),
+(22, '2026-08-13 00:00:00'),
+(23, '2026-08-13 00:00:00'),
+(24, '2026-08-13 00:00:00'),
+(25, '2026-08-13 00:00:00'),
+(26, '2026-08-13 00:00:00'),
+(27, '2026-08-13 00:00:00'),
+(28, '2026-08-13 00:00:00'),
+(29, '2026-08-13 00:00:00'),
+(30, '2026-08-13 00:00:00'),
+(31, '2026-08-13 00:00:00'),
+(32, '2026-08-13 00:00:00'),
+(33, '2026-08-13 00:00:00'),
+(34, '2026-08-13 00:00:00'),
+(35, '2026-08-13 00:00:00'),
+(36, '2026-08-13 00:00:00'),
+(37, '2026-08-13 00:00:00'),
+(38, '2026-08-13 00:00:00'),
+(39, '2026-08-13 00:00:00'),
+(40, '2026-08-13 00:00:00'),
+(41, '2026-08-13 00:00:00'),
+(42, '2026-08-13 00:00:00'),
+(43, '2026-08-13 00:00:00'),
+(44, '2026-08-13 00:00:00'),
+(45, '2026-08-13 00:00:00'),
+(46, '2026-08-13 00:00:00'),
+(47, '2026-08-13 00:00:00'),
+(48, '2026-08-13 00:00:00'),
+(49, '2026-08-13 00:00:00'),
+(50, '2026-08-13 00:00:00'),
+(51, '2026-08-13 00:00:00'),
+(52, '2026-08-13 00:00:00'),
+(53, '2026-08-13 00:00:00'),
+(54, '2026-08-13 00:00:00'),
+(55, '2026-08-13 00:00:00'),
+(56, '2026-08-13 00:00:00'),
+(57, '2026-08-13 00:00:00'),
+(58, '2026-08-13 00:00:00'),
+(59, '2026-08-13 00:00:00'),
+(60, '2026-08-13 00:00:00'),
+(61, '2026-08-13 00:00:00'),
+(62, '2026-08-13 00:00:00'),
+(63, '2026-08-13 00:00:00'),
+(64, '2026-08-13 00:00:00'),
+(65, '2026-08-13 00:00:00'),
+(66, '2026-08-13 00:00:00'),
+(67, '2026-08-13 00:00:00'),
+(68, '2026-08-13 00:00:00'),
+(69, '2026-08-13 00:00:00'),
+(70, '2026-08-13 00:00:00'),
+(71, '2026-08-13 00:00:00'),
+(72, '2026-08-13 00:00:00'),
+(73, '2026-08-13 00:00:00'),
+(74, '2026-08-13 00:00:00'),
+(75, '2026-08-13 00:00:00'),
+(76, '2026-08-13 00:00:00'),
+(77, '2026-08-13 00:00:00'),
+(78, '2026-08-13 00:00:00'),
+(79, '2026-08-13 00:00:00'),
+(80, '2026-08-13 00:00:00'),
+(81, '2026-08-13 00:00:00'),
+(82, '2026-08-13 00:00:00'),
+(83, '2026-08-13 00:00:00'),
+(84, '2026-08-13 00:00:00'),
+(85, '2026-08-13 00:00:00'),
+(86, '2026-08-13 00:00:00'),
+(87, '2026-08-13 00:00:00'),
+(88, '2026-08-13 00:00:00'),
+(89, '2026-08-13 00:00:00'),
+(90, '2026-08-13 00:00:00'),
+(91, '2026-08-13 00:00:00'),
+(92, '2026-08-13 00:00:00'),
+(93, '2026-08-13 00:00:00'),
+(94, '2026-08-13 00:00:00'),
+(95, '2026-08-13 00:00:00'),
+(96, '2026-08-13 00:00:00'),
+(97, '2026-08-13 00:00:00'),
+(98, '2026-08-13 00:00:00'),
+(99, '2026-08-13 00:00:00'),
+(100, '2026-08-13 00:00:00');
+
 CREATE UNIQUE INDEX IF NOT EXISTS "MeshProGift_stripeSessionId_key" ON "MeshProGift"("stripeSessionId");
 
 CREATE INDEX IF NOT EXISTS "MeshProGift_recipientId_idx" ON "MeshProGift"("recipientId");

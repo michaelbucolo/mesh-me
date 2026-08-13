@@ -103,6 +103,8 @@ type SettingsSnapshot = {
   adultVerificationProvider: string | null;
   adultVerificationRegion: string | null;
   isMeshPro: boolean;
+  /** Holds a charter seat — the only audience the charter pin renders for. */
+  charterHolder: boolean;
   interests: Array<{ id?: string; tag: string }>;
   connectedAccounts: Array<{
     id: string;
@@ -667,6 +669,9 @@ export function SettingsControlCenter({
     // gates the cosmetic axes (colours, hats, badges), not where on the face an
     // accessory sits. Locking them silently would be a paywall nobody decided.
     if (group.startsWith("slot:")) return false;
+    // The charter pin is owned outright (only holders ever see the option),
+    // so the Pro wardrobe lock does not apply to it.
+    if (group === "badges" && value === "charter") return false;
     return !settings.isMeshPro && !isFreeMeshiOption(group as Parameters<typeof isFreeMeshiOption>[0], value);
   }
 
@@ -908,6 +913,7 @@ export function SettingsControlCenter({
             )}
             {activeSection === "meshi" && (
               <MeshiSection
+                charterHolder={settings.charterHolder}
                 meshiState={meshiState}
                 setMeshiState={setMeshiState}
                 saveMeshi={saveMeshi}
@@ -1948,6 +1954,7 @@ function MeshSection({
 }
 
 function MeshiSection({
+  charterHolder,
   meshiState,
   setMeshiState,
   saveMeshi,
@@ -1977,6 +1984,7 @@ function MeshiSection({
   saveMeshi: (event: FormEvent) => void;
   meshiLocked: (group: Parameters<typeof isFreeMeshiOption>[0] | `slot:${string}`, value: string) => boolean;
   isPending: boolean;
+  charterHolder: boolean;
 }) {
   return (
     <form onSubmit={saveMeshi} className="settings-section-stack">
@@ -2072,7 +2080,9 @@ function MeshiSection({
               />
             );
           })}
-          <MeshiOptionGroup title="Badges" group="badges" values={badges} current={meshiState.badgeStyle} meshiState={meshiState} locked={meshiLocked} onPick={(value) => setMeshiState((current) => ({ ...current, badgeStyle: value }))} />
+          {/* The charter pin renders ONLY for seat holders — never as a locked
+              tease to anyone else, Pro or free. */}
+          <MeshiOptionGroup title="Badges" group="badges" values={charterHolder ? [...badges, "charter"] : badges} current={meshiState.badgeStyle} meshiState={meshiState} locked={meshiLocked} onPick={(value) => setMeshiState((current) => ({ ...current, badgeStyle: value }))} />
         </div>
         <SaveButton label="Save Meshi" pending={isPending} />
       </SettingsCard>

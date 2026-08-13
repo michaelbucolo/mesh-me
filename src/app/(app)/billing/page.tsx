@@ -6,6 +6,7 @@ import type { LucideIcon } from "lucide-react";
 import { CalendarClock, CheckCircle2, CreditCard, Crown, ExternalLink, ShieldCheck, TriangleAlert } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { CharterChipToggle } from "@/components/meshpro/charter-chip-toggle";
 import { BillingPortalButton } from "@/components/meshpro/mesh-pro-actions";
 import { getCurrentUser } from "@/lib/auth";
 import { getMeshProBillingState } from "@/lib/stripe-billing";
@@ -72,6 +73,16 @@ export default async function BillingPage() {
         <BillingStat icon={CalendarClock} label={billing.cancelAtPeriodEnd ? "Access ends" : "Next renewal"} value={formatDate(billing.currentPeriodEnd)} detail={billing.status} />
         <BillingStat icon={ShieldCheck} label="Payment processor" value={billing.stripeCustomerId ? "Stripe" : "Not linked"} detail={billing.isConfigured ? "Configured" : "Not configured"} />
       </section>
+
+      {user.charterNumber != null && (
+        <section className="mesh-surface flex flex-wrap items-center justify-between gap-3 rounded-lg px-4 py-3">
+          <p className="text-sm text-[var(--text-secondary)]">
+            <span className="font-semibold text-[var(--text-primary)]">Charter Member</span>
+            {" · "}№{user.charterNumber} of 100
+          </p>
+          <CharterChipToggle initialShown={user.showCharterNumber} />
+        </section>
+      )}
 
       <section className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_22rem]">
         <div className="mesh-surface rounded-lg p-4 md:p-5">

@@ -291,6 +291,44 @@ for (const entry of entries) {
   }
 }
 
+// ── 7. The charter card: same contract, plus the vanish rule ─────────────────
+//
+// The card sells a $79 status purchase, so its enforcedIn must resolve like
+// every other claim — and two properties are charter-specific: the card must
+// render CONDITIONALLY on seats remaining (at cap it ceases to exist, no
+// tombstone), and its copy must never grow a scarcity counter ("only 3
+// left!"), which is the countdown mechanic this product was designed without.
+{
+  const card = /const charterCard\s*=\s*\{[\s\S]*?\n\};/.exec(page)?.[0] ?? "";
+  if (!card) {
+    fail("7 charter", `no charterCard const found in ${PAGE} — if charter was removed, remove this section with it`);
+  } else {
+    ok();
+    const file = /enforcedIn:\s*\{\s*file:\s*"([^"]+)"/.exec(card)?.[1];
+    const symbol = /symbol:\s*"([^"]+)"/.exec(card)?.[1];
+    if (!file || !symbol) {
+      fail("7 charter", "the charter card has no enforcedIn — name the code that grants a paid seat, or delete the card");
+    } else if (!existsSync(join(ROOT, file))) {
+      fail("7 charter", `the charter card claims to be enforced in ${file}, which does not exist`);
+    } else if (!new RegExp(`\\b${symbol.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`).test(read(file))) {
+      fail("7 charter", `the charter card claims \`${symbol}\` in ${file}, and that symbol is not there`);
+    } else ok();
+    if (!/charterCard\.href/.test(page) || !/charterCard\.title/.test(page)) {
+      fail("7 charter", "the page no longer renders from the charterCard const");
+    } else ok();
+    if (!/charterRemaining > 0/.test(page)) {
+      fail("7 charter", "the charter card is no longer conditional on seats remaining — at cap it must simply cease to exist");
+    } else ok();
+    if (!/\$79/.test(card)) {
+      fail("7 charter", "the charter card no longer states the price");
+    } else ok();
+    const cardCopy = /body:\s*"([^"]+)"/.exec(card)?.[1] ?? "";
+    if (/\bleft\b|\bremaining\b|only \d+|\d+ of \d+ (?:left|claimed|gone)/i.test(cardCopy)) {
+      fail("7 charter", "the charter card copy grew a scarcity counter — the cap is a static fact, never a countdown");
+    } else ok();
+  }
+}
+
 if (failures.length) {
   console.error(`\nmeshpro-claims: ${failures.length} failure(s) across ${checks + failures.length} assertions\n`);
   for (const f of failures) console.error("  " + f);

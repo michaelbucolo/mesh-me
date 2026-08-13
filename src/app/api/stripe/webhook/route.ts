@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { prisma } from "@/lib/prisma";
+import { applyCharterRefund, applyCharterSession, releaseExpiredCharterSession } from "@/lib/charter";
 import { applyMeshProGiftSession, syncMeshProSubscription } from "@/lib/stripe-billing";
 import { getStripeClient, stripeObjectId } from "@/lib/stripe";
 
@@ -51,6 +52,15 @@ export async function POST(req: Request) {
           break;
         }
 
+        // Charter seats branch here for the same reason gifts do: a one-time
+        // payment that falls through to the `else if (userId)` arm below would
+        // mark somebody Pro for life. Charter sessions also carry no userId
+        // key at all, as a second wall.
+        if (session.metadata?.product === "charter-seat") {
+          await applyCharterSession(session, { revalidate: true });
+          break;
+        }
+
         const userId = session.metadata?.userId;
         const subscriptionId = stripeObjectId(session.subscription);
 
@@ -79,6 +89,22 @@ export async function POST(req: Request) {
       case "customer.subscription.deleted": {
         const subscription = event.data.object as Stripe.Subscription;
         await syncMeshProSubscription(subscription, undefined, { revalidate: true });
+        break;
+      }
+      case "checkout.session.expired": {
+        const session = event.data.object as Stripe.Checkout.Session;
+        // Stripe attests an expired session can never subsequently pay, which
+        // is the ONLY evidence (besides never-attached) that releases a held
+        // charter seat back to open.
+        if (session.metadata?.product === "charter-seat") {
+          await releaseExpiredCharterSession(session);
+        }
+        break;
+      }
+      case "charge.refunded": {
+        const charge = event.data.object as Stripe.Charge;
+        // Full refund of a charter seat retires its number forever.
+        await applyCharterRefund(charge);
         break;
       }
       case "invoice.payment_failed": {
