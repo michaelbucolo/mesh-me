@@ -638,16 +638,15 @@ select:focus-visible {
   z-index: -1;
 }
 
-/* ─── Gentle float + breathing glow — for mascots, empty-state icons, chips ─── */
-@keyframes meshFloatBob {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-7px); }
-}
-.mesh-float { animation: meshFloatBob 3.4s ease-in-out infinite; }
-@keyframes meshGlowPulse {
-  0%, 100% { opacity: 0.35; transform: translate(-50%, -50%) scale(0.9); }
-  50% { opacity: 0.7; transform: translate(-50%, -50%) scale(1.08); }
-}
+/* ─── Still glow — behind empty-state icons ──────────────────────────────────
+   These used to run two INFINITE animations (a 3.4s icon bob and a 4.5s glow
+   pulse) behind every blank screen. A blank screen is where the eye rests; a
+   thing that moves forever on it is a thing that nags forever. The calm
+   north-star keeps the ambient glow — a lit, inviting blank — and simply stops
+   the perpetual motion. `.mesh-float` is retained as a plain hook (trail +
+   empty states still attach it) so markup doesn't churn, but it animates
+   nothing. */
+.mesh-float { animation: none; }
 .mesh-soft-glow {
   position: absolute;
   left: 50%;
@@ -658,11 +657,7 @@ select:focus-visible {
   border-radius: 999px;
   pointer-events: none;
   background: radial-gradient(circle, var(--accent-glow), transparent 68%);
-  animation: meshGlowPulse 4.5s ease-in-out infinite;
-}
-@media (prefers-reduced-motion: reduce) {
-  .mesh-float { animation: none; }
-  .mesh-soft-glow { animation: none; opacity: 0.4; }
+  opacity: 0.45;
 }
 
 /* ─── Mesh Shell ─── */
@@ -2037,7 +2032,10 @@ body[data-meshi-panel="open"] .bug-report-widget {
 }
 
 .simple-input {
-  border-radius: var(--r-sm);
+  /* Same corner as <Input> (--ds-radius-md): the same concept — a text field —
+     was rendering 8px in the legacy path and 14px in the component path, so
+     Settings and Communities read boxier than the rest of the product. */
+  border-radius: var(--ds-radius-md);
   border: 1px solid var(--border-primary);
   background: var(--bg-input);
   color: var(--text-primary);

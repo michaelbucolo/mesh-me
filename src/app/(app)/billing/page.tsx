@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { LucideIcon } from "lucide-react";
-import { CalendarClock, CheckCircle2, CreditCard, Crown, ExternalLink, ShieldCheck, Sparkles, TriangleAlert } from "lucide-react";
+import { CalendarClock, CheckCircle2, CreditCard, Crown, ExternalLink, ShieldCheck, TriangleAlert } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { BillingPortalButton } from "@/components/meshpro/mesh-pro-actions";
@@ -88,7 +88,7 @@ export default async function BillingPage() {
 
         <aside className="mesh-surface rounded-lg p-4 md:p-5">
           <h2 className="flex items-center gap-2 text-lg font-semibold">
-            <Sparkles className="h-5 w-5 text-[var(--accent-text)]" aria-hidden="true" />
+            <ShieldCheck className="h-5 w-5 text-[var(--accent-text)]" aria-hidden="true" />
             Billing safety
           </h2>
           <ul className="mt-4 grid gap-3 text-sm leading-6 text-[var(--text-secondary)]">

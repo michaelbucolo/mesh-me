@@ -891,7 +891,7 @@ export function MeshiFloat() {
             )}
             {/* Speech bubbles above Meshi — this IS its opened panel. */}
             {view === "speech" && (
-              <div className="absolute bottom-full right-0 mb-2 flex flex-col items-end gap-2 w-[280px]">
+              <div className="absolute bottom-full right-0 mb-2 flex flex-col items-end gap-2 w-[min(280px,calc(100vw-2rem))]">
                 <AnimatePresence>
                   {speechBubbles.slice(-3).map((bubble) => (
                     <motion.div key={bubble.id}
@@ -901,7 +901,7 @@ export function MeshiFloat() {
                       transition={{ type: "spring", damping: 20, stiffness: 300 }}
                       className={`max-w-[260px] px-3 py-2 rounded-[var(--r-lg)] text-xs shadow-lg ${
                         bubble.role === "user"
-                          ? "brand-button text-white rounded-br-[var(--r-xs)] self-end"
+                          ? "brand-button rounded-br-[var(--r-xs)] self-end"
                           : "bg-[var(--bg-elevated)] text-[var(--text-primary)] border border-[var(--border-primary)] rounded-bl-[var(--r-xs)]"
                       }`}>
                       {bubble.role === "meshi" && (
@@ -936,7 +936,7 @@ export function MeshiFloat() {
                     <div className="flex gap-1.5">
                       <button
                         onClick={confirmPendingSpeechAction}
-                        className="rounded-[var(--r-sm)] brand-button px-2.5 py-1 text-micro font-medium text-white shadow">
+                        className="rounded-[var(--r-sm)] brand-button px-2.5 py-1 text-micro font-medium shadow">
                         Post it
                       </button>
                       <button
@@ -954,7 +954,7 @@ export function MeshiFloat() {
                     placeholder="Ask Meshi"
                     className="flex-1 bg-[var(--bg-elevated)] border border-[var(--border-primary)] rounded-[var(--r-sm)] px-3 py-2 text-xs text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/30 focus:border-[var(--accent)] shadow-lg" />
                   <button onClick={handleSpeechSend} disabled={!speechInput.trim()}
-                    className="p-2 rounded-[var(--r-sm)] brand-button text-white disabled:opacity-40 shadow-lg">
+                    className="p-2 rounded-[var(--r-sm)] brand-button disabled:opacity-40 shadow-lg">
                     <Send className="h-3.5 w-3.5" />
                   </button>
                 </motion.div>

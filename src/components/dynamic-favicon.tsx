@@ -48,21 +48,40 @@ function drawMeshiFavicon(color: string, mood: string): string {
   ctx.fillStyle = theme.primary;
   const eyeY = cy - 1;
 
+  // Star and heart eyes are DRAWN, not typeset. fillText with system-ui pulls
+  // whatever glyph the OS font supplies — a different star on every platform,
+  // and on some, an emoji-font colour glyph that ignores theme.primary
+  // entirely. Every other mood's eyes are canvas paths; these are now too.
+  const starEye = (x: number, y: number, radius: number) => {
+    ctx.beginPath();
+    for (let i = 0; i < 10; i += 1) {
+      const angle = -Math.PI / 2 + (i * Math.PI) / 5;
+      const rr = i % 2 === 0 ? radius : radius * 0.45;
+      const px = x + rr * Math.cos(angle);
+      const py = y + rr * Math.sin(angle);
+      if (i === 0) ctx.moveTo(px, py);
+      else ctx.lineTo(px, py);
+    }
+    ctx.closePath();
+    ctx.fill();
+  };
+  const heartEye = (x: number, y: number, s: number) => {
+    ctx.beginPath();
+    ctx.moveTo(x, y + s * 0.9);
+    ctx.bezierCurveTo(x - s * 1.1, y + s * 0.1, x - s * 0.7, y - s * 0.9, x, y - s * 0.25);
+    ctx.bezierCurveTo(x + s * 0.7, y - s * 0.9, x + s * 1.1, y + s * 0.1, x, y + s * 0.9);
+    ctx.closePath();
+    ctx.fill();
+  };
+
   switch (mood) {
     case "excited":
-      // Star eyes
-      ctx.font = "bold 14px system-ui";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText("★", cx - 8, eyeY);
-      ctx.fillText("★", cx + 8, eyeY);
+      starEye(cx - 8, eyeY, 6);
+      starEye(cx + 8, eyeY, 6);
       break;
     case "love":
-      ctx.font = "14px system-ui";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText("♥", cx - 8, eyeY);
-      ctx.fillText("♥", cx + 8, eyeY);
+      heartEye(cx - 8, eyeY, 5.5);
+      heartEye(cx + 8, eyeY, 5.5);
       break;
     case "sleepy":
       // Closed eyes (arcs)

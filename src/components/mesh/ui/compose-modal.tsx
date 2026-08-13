@@ -3,7 +3,7 @@
 
 "use client";
 
-import { Sparkles, X } from "lucide-react";
+import { PenLine, X } from "lucide-react";
 import { PostComposer } from "@/components/feed/post-composer";
 
 export function MeshComposeModal({
@@ -26,7 +26,7 @@ export function MeshComposeModal({
       <div role="dialog" aria-modal="true" aria-label="Create on your mesh" className="w-full max-w-xl animate-[bubbleIn_.36s_cubic-bezier(0.22,1,0.36,1)] rounded-2xl mesh-panel p-3 shadow-2xl">
         <div className="mb-2 flex items-start justify-between px-1">
           <div className="flex items-center gap-2">
-            <Sparkles size={15} className="text-[var(--accent)]" />
+            <PenLine size={15} className="text-[var(--accent)]" />
             <div>
               <p className="text-sm font-semibold text-[var(--text-primary)]">Create on your mesh</p>
               <p className="text-micro text-[var(--text-tertiary)]">Watch it weave itself into your web.</p>
@@ -36,7 +36,7 @@ export function MeshComposeModal({
             type="button"
             aria-label="Close"
             onClick={onClose}
-            className="rounded-md p-1 text-[var(--text-tertiary)] transition-colors hover:bg-[var(--paper-hover)] hover:text-[var(--text-primary)]"
+            className="flex h-11 w-11 items-center justify-center rounded-md text-[var(--text-tertiary)] transition-colors hover:bg-[var(--paper-hover)] hover:text-[var(--text-primary)]"
           >
             <X size={16} />
           </button>

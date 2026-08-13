@@ -53,7 +53,7 @@ function StateMark({ state }: { state: TileState }) {
   }
   if (state === "attention") {
     return (
-      <span className="absolute right-1.5 top-1.5 flex size-4 items-center justify-center rounded-full bg-[var(--ds-warning,#d97706)] text-white">
+      <span className="absolute right-1.5 top-1.5 flex size-4 items-center justify-center rounded-full bg-[var(--ds-warning)] text-[var(--paper-0)]">
         <AlertTriangle className="size-2.5" strokeWidth={3} aria-hidden="true" />
       </span>
     );
@@ -132,7 +132,7 @@ function TileInner({ tile, isNew, reduce }: { tile: PlatformTile; isNew: boolean
         className={cn(
           "relative w-full truncate px-1 text-center text-[0.6875rem] leading-4",
           merged ? "text-[var(--accent-text)]" : "text-[var(--text-muted)]",
-          tile.state === "attention" && "text-[var(--ds-warning,#d97706)]",
+          tile.state === "attention" && "text-[var(--ds-warning)]",
         )}
       >
         {tile.caption}

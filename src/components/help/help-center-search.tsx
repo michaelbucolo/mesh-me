@@ -182,7 +182,7 @@ export function HelpCenterSearch({ articles }: HelpCenterSearchProps) {
             <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[var(--text-secondary)]">
               Try a different word like password, billing, data, Meshi, platform, or error.
             </p>
-            <button type="button" onClick={resetSearch} className="brand-button mt-4 inline-flex min-h-11 items-center justify-center rounded-xl px-4 text-sm font-semibold text-white">
+            <button type="button" onClick={resetSearch} className="brand-button mt-4 inline-flex min-h-11 items-center justify-center rounded-xl px-4 text-sm font-semibold">
               Clear search
             </button>
           </div>

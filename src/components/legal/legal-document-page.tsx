@@ -80,7 +80,7 @@ export function LegalDocumentPage({
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Link href="/trust" className="brand-button inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-white">
+          <Link href="/trust" className="brand-button inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold">
             Trust Center <ArrowRight className="h-4 w-4" />
           </Link>
           <Link href="/" className="mesh-command inline-flex rounded-xl px-4 py-2 text-sm">

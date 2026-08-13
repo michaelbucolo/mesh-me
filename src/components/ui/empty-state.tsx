@@ -19,8 +19,9 @@ export function EmptyState({ icon: Icon, title, description, children, className
         className
       )}
     >
-      {/* A soft aurora glow breathes behind the icon so blank screens feel
-          inviting rather than dead. */}
+      {/* A still aurora glow behind the icon keeps a blank screen lit and
+          inviting. Deliberately NOT animated: this surface is where the eye
+          rests, and the old breathing/bobbing pair nagged at it forever. */}
       <span className="mesh-soft-glow" aria-hidden="true" style={{ top: compact ? "2.5rem" : "3.75rem" }} />
       <div
         className="mesh-float relative mb-4 rounded-[var(--ds-radius-md)] border border-[var(--ds-border)] bg-[var(--ds-surface-muted)] p-3"
