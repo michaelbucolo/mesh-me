@@ -11,7 +11,7 @@ import {
   type MeshiFace,
   type MeshiLash,
 } from "./meshi-face";
-import { HAT_BRIM_Y, renderMeshiHair, resolveHair, type MeshiHair } from "./meshi-hair";
+import { HAIR_COLOR_TABLE, HAT_BRIM_Y, renderMeshiHair, resolveHair, resolveHairColor, type MeshiHair } from "./meshi-hair";
 import { parseAccessories, SLOTS, STACKING_SLOTS } from "./meshi-slots";
 
 const FLOWER_POSITIONS = [0, 60, 120, 180, 240, 300].map((deg) => ({
@@ -660,6 +660,8 @@ interface MeshiMascotProps {
   hat?: MeshiHat;
   color?: MeshiColor;
   hair?: MeshiHair;
+  /** "inherit" (default) derives the tone from the body color, as ever. */
+  hairColor?: string;
   accessory?: MeshiAccessory;
   eyeStyle?: MeshiEyeStyle;
   /** The persistent face identity. Survives every mood. */
@@ -682,6 +684,7 @@ export function MeshiMascot({
   hat = "none",
   color = "blue",
   hair = "none",
+  hairColor = "inherit",
   accessory = "none",
   eyeStyle = "regular",
   face = "bean",
@@ -704,7 +707,11 @@ export function MeshiMascot({
   // third of the way to black, though: most of a hair silhouette sits OUTSIDE
   // the r=16 body, against whatever the page is, so a very dark tone
   // disappeared into the mesh's dark background instead of reading as hair.
-  const hairTone = lightenHex(theme.primary, -0.32);
+  // A chosen hair color replaces the derivation entirely; "inherit" (and any
+  // unknown value, via resolveHairColor) keeps it byte-identical to before
+  // the hairColor axis existed.
+  const chosenHairHex = HAIR_COLOR_TABLE[resolveHairColor(hairColor)].hex;
+  const hairTone = chosenHairHex ?? lightenHex(theme.primary, -0.32);
   const resolvedHair = resolveHair(hair);
   const hatElement = HATS[hat] || null;
   const scale = size / 48;

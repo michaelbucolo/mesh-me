@@ -49,6 +49,7 @@ const DEFAULT_MESHI = {
   hatStyle: "none",
   faceStyle: "happy",
   hairStyle: "none",
+  hairColor: "inherit",
   accessoryStyle: "none",
   eyeStyle: "regular",
   badgeStyle: "none",
@@ -344,6 +345,7 @@ export async function InstagramProfileView({ username, tab, giftSent }: { userna
                     hat={meshi.hatStyle as MeshiHat}
                     face={meshi.faceStyle}
                     hair={meshi.hairStyle as MeshiHair}
+                    hairColor={meshi.hairColor || "inherit"}
                     accessory={meshi.accessoryStyle as MeshiAccessory}
                     eyeStyle={meshi.eyeStyle as MeshiEyeStyle}
                     badge={meshi.badgeStyle as MeshiBadge}

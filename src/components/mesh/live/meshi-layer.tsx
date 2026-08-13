@@ -106,6 +106,7 @@ const RemoteMeshi = memo(function RemoteMeshi({
           color={p.meshiColor as MeshiColor}
           hat={p.meshiHat as MeshiHat}
           hair={(p.meshiHair || "none") as MeshiHair}
+          hairColor={p.meshiHairColor || "inherit"}
           accessory={(p.meshiAccessory || "none") as MeshiAccessory}
           eyeStyle={(p.meshiEyeStyle || "regular") as MeshiEyeStyle}
           badge={(p.meshiBadge || "none") as MeshiBadge}
@@ -251,6 +252,7 @@ export function MeshiLayer({
                 face={prefs.face}
                 mood={showCompose ? "thinking" : hoverNode ? "excited" : behaviorMood ?? "happy"}
                 hair={prefs.hair}
+                hairColor={prefs.hairColor}
                 accessory={prefs.accessory}
                 eyeStyle={prefs.eye}
                 badge={prefs.badge}
@@ -304,6 +306,7 @@ export function MeshiLayer({
                     color={(m.colorTheme || "blue") as MeshiColor}
                     hat={(m.hatStyle || "none") as MeshiHat}
                     hair={(m.hairStyle || "none") as MeshiHair}
+                    hairColor={m.hairColor || "inherit"}
                     accessory={(m.accessoryStyle || "none") as MeshiAccessory}
                     eyeStyle={(m.eyeStyle || "regular") as MeshiEyeStyle}
                     badge={(m.badgeStyle || "none") as MeshiBadge}
@@ -361,6 +364,7 @@ export function MeshiLayer({
               color={l.p.meshiColor as MeshiColor}
               hat={l.p.meshiHat as MeshiHat}
               hair={(l.p.meshiHair || "none") as MeshiHair}
+              hairColor={l.p.meshiHairColor || "inherit"}
               accessory={(l.p.meshiAccessory || "none") as MeshiAccessory}
               eyeStyle={(l.p.meshiEyeStyle || "regular") as MeshiEyeStyle}
               badge={(l.p.meshiBadge || "none") as MeshiBadge}

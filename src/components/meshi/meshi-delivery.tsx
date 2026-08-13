@@ -31,6 +31,8 @@ interface Delivery {
   meshiColor: string;
   meshiHat: string;
   meshiHair: string;
+  /* Optional: payloads from before the field existed render with inherit. */
+  meshiHairColor?: string;
   meshiAccessory: string;
   meshiEyeStyle: string;
   meshiBadge: string;
@@ -128,6 +130,7 @@ export function MeshiDelivery() {
               color={current.meshiColor as MeshiColor}
               hat={current.meshiHat as MeshiHat}
               hair={current.meshiHair as MeshiHair}
+              hairColor={current.meshiHairColor || "inherit"}
               accessory={current.meshiAccessory as MeshiAccessory}
               eyeStyle={current.meshiEyeStyle as MeshiEyeStyle}
               badge={current.meshiBadge as MeshiBadge}

@@ -43,6 +43,7 @@ export async function getCachedMeshiFor(userId: string): Promise<TypingMeshi | n
         color: pref.colorTheme,
         hat: pref.hatStyle,
         hair: pref.hairStyle,
+        hairColor: pref.hairColor,
         accessory: pref.accessoryStyle,
         eyeStyle: pref.eyeStyle,
         badge: pref.badgeStyle,

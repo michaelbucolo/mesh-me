@@ -38,6 +38,7 @@ export function UserMeshi({
       color={prefs.color}
       hat={prefs.hat}
       hair={prefs.hair}
+      hairColor={prefs.hairColor}
       accessory={prefs.accessory}
       eyeStyle={prefs.eye}
       badge={prefs.badge}

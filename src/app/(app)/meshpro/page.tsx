@@ -112,7 +112,7 @@ const unlocks: Array<{
     // "gold aura" became "gold rim": the mesh's Meshis have weight and do not
     // glow (globals.css, .mesh-owner-meshi), so the mark is a hairline on the
     // silhouette. It is now drawn, which it was not before.
-    body: "Premium hats, hair, faces, and badges — plus a fine gold rim, live.",
+    body: "Premium hats, hair and hair colors, faces, and badges — plus a fine gold rim, live.",
     href: "/settings",
     icon: Crown,
     enforcedIn: { file: "src/lib/mesh-pro.ts", symbol: "FREE_MESHI_OPTIONS" },

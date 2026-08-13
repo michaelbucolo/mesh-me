@@ -1044,6 +1044,10 @@ model MeshiPreference {
   faceStyle      String   @default("happy")
   colorTheme     String   @default("blue")
   hairStyle      String   @default("none")
+  /// "inherit" = hair keeps deriving its tone from the body color, exactly as
+  /// before this column existed — which is what keeps every free account
+  /// byte-identical. Non-inherit values are MeshPro wardrobe options.
+  hairColor      String   @default("inherit")
   accessoryStyle String   @default("none")
   eyeStyle       String   @default("regular")
   badgeStyle     String   @default("none")
@@ -1423,6 +1427,7 @@ model MeshPresence {
   meshiColor     String   @default("blue")
   meshiHat       String   @default("none")
   meshiHair      String   @default("none")
+  meshiHairColor String   @default("inherit")
   meshiAccessory String   @default("none")
   meshiEyeStyle  String   @default("regular")
   meshiBadge     String   @default("none")

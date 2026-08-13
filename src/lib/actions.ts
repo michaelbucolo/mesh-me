@@ -4,7 +4,7 @@ import { prisma } from "./prisma";
 // Ids only — the module's single dependency on the mascot is `import type`, so
 // nothing from the client component reaches this server bundle.
 import { MESHI_FACE_IDS, MESHI_LASH_IDS } from "@/components/meshi/meshi-face";
-import { MESHI_HAIR_IDS } from "@/components/meshi/meshi-hair";
+import { MESHI_HAIR_COLOR_IDS, MESHI_HAIR_IDS } from "@/components/meshi/meshi-hair";
 import { ALL_ACCESSORY_ITEMS, parseAccessories, serializeAccessories } from "@/components/meshi/meshi-slots";
 import { getCurrentUser, hashPassword, createSession, destroySession, verifyPassword, invalidateAllUserSessions } from "./auth";
 import { GLOBAL_MESH_BRANCHES } from "./global-mesh";
@@ -833,6 +833,10 @@ export async function completeOnboarding(formData: FormData) {
     hatStyle: cleanMeshiOption(String(formData.get("meshiHat") || ""), MESHI_OPTION_VALUES.hats, "none") ?? "none",
     faceStyle: cleanMeshiOption(String(formData.get("meshiFace") || ""), MESHI_OPTION_VALUES.faces, "happy") ?? "happy",
     hairStyle: cleanMeshiOption(String(formData.get("meshiHair") || ""), MESHI_OPTION_VALUES.hairs, "none") ?? "none",
+    // Onboarding doesn't offer hair colors (every non-inherit value is Pro),
+    // but the server path still parses the field so the clamp table stays
+    // total — an absent form value lands on "inherit", the free default.
+    hairColor: cleanMeshiOption(String(formData.get("meshiHairColor") || ""), MESHI_OPTION_VALUES.hairColors, "inherit") ?? "inherit",
     accessoryStyle: cleanMeshiAccessories(formData.get("meshiAccessory")),
     eyeStyle: cleanMeshiOption(String(formData.get("meshiEyes") || ""), MESHI_OPTION_VALUES.eyes, "regular") ?? "regular",
     badgeStyle: cleanMeshiOption(String(formData.get("meshiBadge") || ""), MESHI_OPTION_VALUES.badges, "none") ?? "none",
@@ -900,6 +904,7 @@ export async function completeOnboarding(formData: FormData) {
       hatStyle: meshiUpdate.hatStyle,
       faceStyle: meshiUpdate.faceStyle,
       hairStyle: meshiUpdate.hairStyle,
+      hairColor: meshiUpdate.hairColor,
       accessoryStyle: meshiUpdate.accessoryStyle,
       eyeStyle: meshiUpdate.eyeStyle,
       badgeStyle: meshiUpdate.badgeStyle,
@@ -910,6 +915,7 @@ export async function completeOnboarding(formData: FormData) {
       hatStyle: meshiUpdate.hatStyle,
       faceStyle: meshiUpdate.faceStyle,
       hairStyle: meshiUpdate.hairStyle,
+      hairColor: meshiUpdate.hairColor,
       accessoryStyle: meshiUpdate.accessoryStyle,
       eyeStyle: meshiUpdate.eyeStyle,
       badgeStyle: meshiUpdate.badgeStyle,
@@ -3033,6 +3039,7 @@ const MESHI_OPTION_VALUES = {
   faces: new Set<string>(MESHI_FACE_IDS),
   colors: new Set(["blue", "purple", "pink", "green", "orange", "cyan", "gold", "rainbow", "crimson", "midnight", "rose", "emerald", "arctic", "obsidian"]),
   hairs: new Set<string>(MESHI_HAIR_IDS),
+  hairColors: new Set<string>(MESHI_HAIR_COLOR_IDS),
   accessories: new Set<string>(ALL_ACCESSORY_ITEMS),
   // eyeStyle now stores a LASH style. "regular" is the legacy value for "no
   // lashes" and keeps working via resolveLash(), so nobody's Meshi changes
@@ -3052,6 +3059,7 @@ type MeshiPreferenceUpdate = {
   faceStyle?: string;
   colorTheme?: string;
   hairStyle?: string;
+  hairColor?: string;
   accessoryStyle?: string;
   eyeStyle?: string;
   badgeStyle?: string;
@@ -3062,6 +3070,7 @@ const DEFAULT_MESHI_PREFERENCE = {
   faceStyle: "happy",
   colorTheme: "blue",
   hairStyle: "none",
+  hairColor: "inherit",
   accessoryStyle: "none",
   eyeStyle: "regular",
   badgeStyle: "none",
@@ -3072,6 +3081,7 @@ const MESHI_LOCK_CHECKS: Array<[keyof MeshiPreferenceUpdate, keyof typeof FREE_M
   ["faceStyle", "faces", "expression"],
   ["colorTheme", "colors", "color"],
   ["hairStyle", "hairs", "hair"],
+  ["hairColor", "hairColors", "hair color"],
   ["accessoryStyle", "accessories", "accessory"],
   ["eyeStyle", "eyes", "eyes"],
   ["badgeStyle", "badges", "badge"],
@@ -3127,6 +3137,7 @@ export async function updateMeshiPreference(data: MeshiPreferenceUpdate) {
     faceStyle: cleanMeshiOption(data.faceStyle, MESHI_OPTION_VALUES.faces),
     colorTheme: cleanMeshiOption(data.colorTheme, MESHI_OPTION_VALUES.colors),
     hairStyle: cleanMeshiOption(data.hairStyle, MESHI_OPTION_VALUES.hairs),
+    hairColor: cleanMeshiOption(data.hairColor, MESHI_OPTION_VALUES.hairColors),
     accessoryStyle: cleanMeshiAccessories(data.accessoryStyle),
     eyeStyle: cleanMeshiOption(data.eyeStyle, MESHI_OPTION_VALUES.eyes),
     badgeStyle: cleanMeshiOption(data.badgeStyle, MESHI_OPTION_VALUES.badges),
@@ -3137,7 +3148,7 @@ export async function updateMeshiPreference(data: MeshiPreferenceUpdate) {
       where: { userId: user.id },
       select: {
         hatStyle: true, faceStyle: true, colorTheme: true, hairStyle: true,
-        accessoryStyle: true, eyeStyle: true, badgeStyle: true,
+        hairColor: true, accessoryStyle: true, eyeStyle: true, badgeStyle: true,
       },
     });
     const lockedOption = findLockedMeshiOptionForFreeUser(next, current ?? {});
@@ -3153,6 +3164,7 @@ export async function updateMeshiPreference(data: MeshiPreferenceUpdate) {
       faceStyle: next.faceStyle,
       colorTheme: next.colorTheme,
       hairStyle: next.hairStyle,
+      hairColor: next.hairColor,
       accessoryStyle: next.accessoryStyle,
       eyeStyle: next.eyeStyle,
       badgeStyle: next.badgeStyle,
@@ -3163,6 +3175,7 @@ export async function updateMeshiPreference(data: MeshiPreferenceUpdate) {
       faceStyle: next.faceStyle ?? DEFAULT_MESHI_PREFERENCE.faceStyle,
       colorTheme: next.colorTheme ?? DEFAULT_MESHI_PREFERENCE.colorTheme,
       hairStyle: next.hairStyle ?? DEFAULT_MESHI_PREFERENCE.hairStyle,
+      hairColor: next.hairColor ?? DEFAULT_MESHI_PREFERENCE.hairColor,
       accessoryStyle: next.accessoryStyle ?? DEFAULT_MESHI_PREFERENCE.accessoryStyle,
       eyeStyle: next.eyeStyle ?? DEFAULT_MESHI_PREFERENCE.eyeStyle,
       badgeStyle: next.badgeStyle ?? DEFAULT_MESHI_PREFERENCE.badgeStyle,
@@ -3200,6 +3213,7 @@ export async function getUserMeshiPreference(userId: string) {
         faceStyle: pref.faceStyle,
         colorTheme: pref.colorTheme,
         hairStyle: pref.hairStyle,
+        hairColor: pref.hairColor,
         accessoryStyle: pref.accessoryStyle,
         eyeStyle: pref.eyeStyle,
         badgeStyle: pref.badgeStyle,

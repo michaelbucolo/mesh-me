@@ -60,6 +60,9 @@ type TypingMeshi = {
   color: string;
   hat: string;
   hair: string;
+  /* Optional client-side, like isPro below: older in-flight payloads render
+     with the inherit fallback. */
+  hairColor?: string;
   accessory: string;
   eyeStyle: string;
   badge: string;
@@ -1262,6 +1265,7 @@ export function MeChatThread({
                               color={reader.meshi.color as MeshiColor}
                               hat={reader.meshi.hat as MeshiHat}
                               hair={reader.meshi.hair as MeshiHair}
+                              hairColor={reader.meshi.hairColor || "inherit"}
                               accessory={reader.meshi.accessory as MeshiAccessory}
                               eyeStyle={reader.meshi.eyeStyle as MeshiEyeStyle}
                               badge={reader.meshi.badge as MeshiBadge}
@@ -1313,6 +1317,7 @@ export function MeChatThread({
                       color={user.meshi.color as MeshiColor}
                       hat={user.meshi.hat as MeshiHat}
                       hair={user.meshi.hair as MeshiHair}
+                      hairColor={user.meshi.hairColor || "inherit"}
                       accessory={user.meshi.accessory as MeshiAccessory}
                       eyeStyle={user.meshi.eyeStyle as MeshiEyeStyle}
                       badge={user.meshi.badge as MeshiBadge}
@@ -1356,6 +1361,7 @@ export function MeChatThread({
                       color={user.meshi.color as MeshiColor}
                       hat={user.meshi.hat as MeshiHat}
                       hair={user.meshi.hair as MeshiHair}
+                      hairColor={user.meshi.hairColor || "inherit"}
                       accessory={user.meshi.accessory as MeshiAccessory}
                       eyeStyle={user.meshi.eyeStyle as MeshiEyeStyle}
                       badge={user.meshi.badge as MeshiBadge}
