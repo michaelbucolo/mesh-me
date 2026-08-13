@@ -47,7 +47,7 @@ export default async function VerifyEmailPage({ searchParams }: VerifyEmailPageP
             ? `${result.email} is now verified on your Mesh.me account.`
             : result.error}
         </p>
-        <Link href={success ? "/mesh" : "/login"} className="brand-button mt-6 inline-flex items-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold text-white">
+        <Link href={success ? "/mesh" : "/login"} className="brand-button mt-6 inline-flex items-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold">
           {success ? "Enter Mesh.me" : "Back to sign in"}
           <ArrowRight className="h-4 w-4" aria-hidden="true" />
         </Link>

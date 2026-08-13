@@ -1745,7 +1745,7 @@ export function FlowClient({
             role="dialog"
             aria-label="Flow ranking modes"
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-md rounded-t-3xl border border-white/12 bg-[#0b0c14] p-5 pb-8 sm:rounded-3xl sm:pb-5"
+            className="w-full max-w-md rounded-t-3xl border border-[var(--border-primary)] bg-[var(--paper-1)] p-5 pb-8 sm:rounded-3xl sm:pb-5"
             initial={{ y: 48, opacity: 0, scale: 0.98 }}
             animate={{ y: 0, opacity: 1, scale: 1 }}
             exit={{ y: 30, opacity: 0, scale: 0.98 }}

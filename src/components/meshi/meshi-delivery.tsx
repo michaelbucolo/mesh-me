@@ -159,7 +159,7 @@ export function MeshiDelivery() {
               <Link
                 href="/messages"
                 onClick={dismissCurrent}
-                className="flex items-center gap-1 rounded-lg brand-button px-2.5 py-1 text-micro font-semibold text-white shadow transition-all hover:shadow-md"
+                className="flex items-center gap-1 rounded-lg brand-button px-2.5 py-1 text-micro font-semibold shadow transition-all hover:shadow-md"
               >
                 <MessageCircle className="h-3 w-3" />
                 Reply in MeChat

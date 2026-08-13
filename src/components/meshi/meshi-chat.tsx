@@ -261,7 +261,7 @@ export function MeshiChat({
                 <div
                   className={`max-w-[85%] whitespace-pre-line rounded-2xl px-3.5 py-2.5 text-[0.78125rem] leading-relaxed ${
                     msg.role === "user"
-                      ? "brand-button rounded-br-md text-white"
+                      ? "brand-button rounded-br-md"
                       : "rounded-bl-md border border-[var(--border-primary)] bg-[var(--bg-card)] text-[var(--text-primary)]"
                   }`}
                 >
@@ -272,7 +272,7 @@ export function MeshiChat({
                         <>
                           <button
                             onClick={() => confirmPostAction(msg.id, msg.action!)}
-                            className="flex items-center gap-1 rounded-lg brand-button px-2.5 py-1 text-micro font-semibold text-white transition-all hover:shadow"
+                            className="flex items-center gap-1 rounded-lg brand-button px-2.5 py-1 text-micro font-semibold transition-all hover:shadow"
                           >
                             <PenLine className="h-3 w-3" />
                             Post it
@@ -377,7 +377,7 @@ export function MeshiChat({
               onClick={() => handleSend()}
               disabled={!input.trim() || isTyping}
               aria-label="Send message to Meshi"
-              className="rounded-xl brand-button p-2 text-white transition-all hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-40"
+              className="rounded-xl brand-button p-2 transition-all hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-40"
             >
               <Send className="h-4 w-4" />
             </button>

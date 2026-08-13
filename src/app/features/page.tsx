@@ -239,7 +239,7 @@ export default function FeaturesPage() {
             Mesh.me is trying to become the cleanest, safest place to manage your whole online identity.
           </h2>
         </div>
-        <Link href="/signup" className="brand-button inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold text-white">
+        <Link href="/signup" className="brand-button inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold">
           Start with Meshi <ArrowRight className="h-4 w-4" />
         </Link>
       </section>

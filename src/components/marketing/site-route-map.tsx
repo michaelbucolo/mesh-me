@@ -1,8 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
-import { motion, useMotionTemplate, useReducedMotion, useSpring, type Variants } from "framer-motion";
+import { motion, type Variants } from "framer-motion";
 import { ArrowRight, BarChart3, Lock, MessageCircle, Rss, ShieldCheck, Sparkles, Waypoints } from "lucide-react";
 
 const routes = [
@@ -62,71 +61,26 @@ const cardVariants: Variants = {
   show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 320, damping: 26 } },
 };
 
-// Springy overshoot easing shared by the icon-tile pop and the arrow slide.
-const POP_EASE = "cubic-bezier(0.34,1.56,0.64,1)";
-
-function RouteCard({ route, reduce }: { route: Route; reduce: boolean }) {
+function RouteCard({ route }: { route: Route }) {
   const Icon = route.icon;
-  const [hovered, setHovered] = useState(false);
 
-  // Pointer-driven 3D tilt (±4deg) with a periwinkle cursor glow. Springs keep
-  // it physical; reduced motion skips every update so the card stays flat.
-  const rotateX = useSpring(0, { stiffness: 300, damping: 22, mass: 0.6 });
-  const rotateY = useSpring(0, { stiffness: 300, damping: 22, mass: 0.6 });
-  const glowX = useSpring(50, { stiffness: 220, damping: 26 });
-  const glowY = useSpring(50, { stiffness: 220, damping: 26 });
-  const glow = useMotionTemplate`radial-gradient(220px circle at ${glowX}% ${glowY}%, rgba(110,139,255,0.20), transparent 62%)`;
-
-  const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (reduce) return;
-    const rect = event.currentTarget.getBoundingClientRect();
-    const px = (event.clientX - rect.left) / rect.width;
-    const py = (event.clientY - rect.top) / rect.height;
-    rotateY.set((px - 0.5) * 8); // horizontal → yaw, capped ±4deg
-    rotateX.set((0.5 - py) * 8); // vertical → pitch, capped ±4deg
-    glowX.set(px * 100);
-    glowY.set(py * 100);
-  };
-
-  const resetTilt = () => {
-    rotateX.set(0);
-    rotateY.set(0);
-    glowX.set(50);
-    glowY.set(50);
-    setHovered(false);
-  };
-
+  // Calm on purpose. This card used to stack a pointer-driven 3D tilt, a
+  // cursor-following glow, and an overshoot pop on both the icon tile and the
+  // arrow — three flourishes announcing one link, on a public page whose job is
+  // to feel like the sign-in screen. The entrance stagger stays (it reads as
+  // the page composing itself); the hover is now what the rest of the product
+  // does: a border and background shift, and the arrow stepping forward.
   return (
-    <motion.div
-      variants={cardVariants}
-      onPointerMove={handlePointerMove}
-      onPointerEnter={() => setHovered(true)}
-      onPointerLeave={resetTilt}
-      style={{ rotateX, rotateY, transformPerspective: 900 }}
-      className="min-w-0"
-    >
+    <motion.div variants={cardVariants} className="min-w-0">
       <Link
         href={route.href}
         className="group relative flex h-full flex-col overflow-hidden rounded-2xl border border-[var(--glass-card-border)] bg-[var(--glass-card-bg)] p-5 transition-colors hover:border-[var(--border-hover)] hover:bg-[var(--bg-hover)]"
       >
-        <motion.span
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-0 rounded-2xl"
-          style={{ background: glow }}
-          animate={{ opacity: hovered ? 1 : 0 }}
-          transition={{ duration: 0.25 }}
-        />
         <div className="relative mb-4 flex items-center justify-between gap-3">
-          <div
-            className="flex h-11 w-11 items-center justify-center rounded-xl border border-[var(--accent-muted)] bg-[var(--accent-subtle)] transition-transform duration-300 motion-safe:group-hover:scale-110"
-            style={{ transitionTimingFunction: POP_EASE }}
-          >
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-[var(--accent-muted)] bg-[var(--accent-subtle)]">
             <Icon className={`h-5 w-5 ${route.accent}`} />
           </div>
-          <ArrowRight
-            className="h-4 w-4 text-[var(--text-muted)] transition duration-300 group-hover:text-[var(--text-primary)] motion-safe:group-hover:translate-x-1"
-            style={{ transitionTimingFunction: POP_EASE }}
-          />
+          <ArrowRight className="h-4 w-4 text-[var(--text-muted)] transition duration-200 group-hover:text-[var(--text-primary)] motion-safe:group-hover:translate-x-1" />
         </div>
         <h3 className="relative text-base font-semibold text-[var(--text-primary)]">{route.title}</h3>
         <p className="relative mt-2 text-sm leading-6 text-[var(--text-secondary)]">{route.description}</p>
@@ -142,8 +96,6 @@ export function SiteRouteMap({
   title?: string;
   description?: string;
 }) {
-  const reduce = useReducedMotion() ?? false;
-
   return (
     <section className="grid gap-5">
       <motion.div
@@ -166,7 +118,7 @@ export function SiteRouteMap({
         viewport={{ once: true, amount: 0.15 }}
       >
         {routes.map((route) => (
-          <RouteCard key={route.href} route={route} reduce={reduce} />
+          <RouteCard key={route.href} route={route} />
         ))}
       </motion.div>
 

@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { motion, useReducedMotion } from "framer-motion";
-import { ArrowDown, CheckCheck, Image as ImageIcon, Link2, MessageCircleReply, Paperclip, Pencil, Search, Send, SmilePlus, Undo2, Users, X } from "lucide-react";
+import { ArrowDown, CheckCheck, Flame, Heart, Image as ImageIcon, Laugh, Link2, MessageCircleReply, Paperclip, Pencil, Search, Send, SmilePlus, ThumbsUp, Undo2, Users, X, type LucideIcon } from "lucide-react";
 import { CoBrowseRoom } from "@/components/mechat/co-browse-room";
 import { PaperWait } from "@/components/loading/paper-wait";
 import { Avatar } from "@/components/ui/avatar";
@@ -99,6 +99,33 @@ type MeChatThreadProps = {
 };
 
 const QUICK_REACTIONS = ["\u2764\uFE0F", "\uD83D\uDE02", "\uD83D\uDD25", "\uD83D\uDC4D"];
+
+// The reaction VALUES stay emoji strings — they are the wire and storage
+// format (metadata.reactions[].emoji), shared with every message already sent.
+// What changed is the RENDERING: the repo's glyph rule is that UI chrome never
+// draws a literal emoji (platform emoji fonts clash with the hand-drawn Meshi
+// world and differ per OS), so the four known values render as lucide strokes
+// via ReactionGlyph below, and only an unknown legacy value falls back to its
+// raw text. The map is keyed off QUICK_REACTIONS itself so the escaped code
+// points are stated exactly once.
+const [R_HEART, R_LAUGH, R_FIRE, R_THUMBS] = QUICK_REACTIONS;
+const REACTION_GLYPHS: Record<string, { Icon: LucideIcon; name: string }> = {
+  [R_HEART]: { Icon: Heart, name: "heart" },
+  [R_LAUGH]: { Icon: Laugh, name: "laugh" },
+  [R_FIRE]: { Icon: Flame, name: "fire" },
+  [R_THUMBS]: { Icon: ThumbsUp, name: "thumbs up" },
+};
+
+function ReactionGlyph({ value, size = 14 }: { value: string; size?: number }) {
+  const glyph = REACTION_GLYPHS[value];
+  if (!glyph) return <>{value}</>;
+  const { Icon } = glyph;
+  return <Icon size={size} aria-hidden="true" />;
+}
+
+function reactionName(value: string) {
+  return REACTION_GLYPHS[value]?.name ?? value;
+}
 
 function platformDisplayName(platform: string) {
   const p = platform.toLowerCase();
@@ -990,9 +1017,9 @@ export function MeChatThread({
                               setActionsFor(null);
                             }}
                             className="mechat-key mechat-key-chip key flex h-8 w-8 items-center justify-center text-sm"
-                            aria-label={`React ${emoji}`}
+                            aria-label={`React ${reactionName(emoji)}`}
                           >
-                            {emoji}
+                            <ReactionGlyph value={emoji} />
                           </button>
                         ))}
                         <button
@@ -1065,8 +1092,9 @@ export function MeChatThread({
                               }}
                               className={`mechat-key mechat-tapback ${reaction.mine ? "is-mine" : ""}`}
                               aria-pressed={reaction.mine}
+                              aria-label={`${reaction.mine ? "Remove your" : "Add a"} ${reactionName(reaction.emoji)} reaction`}
                             >
-                              {reaction.emoji}
+                              <ReactionGlyph value={reaction.emoji} />
                               {reaction.count > 1 ? (
                                 <span key={reaction.count} className="mesh-roll-in text-micro font-semibold">
                                   {reaction.count}

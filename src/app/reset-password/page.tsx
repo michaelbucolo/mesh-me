@@ -65,7 +65,7 @@ function ResetPasswordForm() {
         <MeshiMascot size={64} mood="thinking" animate />
         <h1 className="mt-4 text-2xl font-semibold text-[var(--text-primary)]">Invalid reset link</h1>
         <p className="mt-2 text-sm text-[var(--text-tertiary)]">This reset link is missing or expired.</p>
-        <Link href="/login" className="brand-button mt-6 inline-flex items-center gap-2 rounded-xl px-6 py-3 text-sm font-semibold text-white">
+        <Link href="/login" className="brand-button mt-6 inline-flex items-center gap-2 rounded-xl px-6 py-3 text-sm font-semibold">
           Back to login <ArrowRight className="h-4 w-4" />
         </Link>
       </div>
@@ -137,7 +137,7 @@ function ResetPasswordForm() {
         </div>
         <h1 className="mt-4 text-2xl font-semibold text-[var(--text-primary)]">Password updated</h1>
         <p className="mt-2 text-sm text-[var(--text-tertiary)]">Your password has been reset. Sign in with the new one.</p>
-        <Link href="/login" className="brand-button mt-6 inline-flex items-center gap-2 rounded-xl px-6 py-3 text-sm font-semibold text-white">
+        <Link href="/login" className="brand-button mt-6 inline-flex items-center gap-2 rounded-xl px-6 py-3 text-sm font-semibold">
           Sign in <ArrowRight className="h-4 w-4" />
         </Link>
       </motion.div>
@@ -194,7 +194,7 @@ function ResetPasswordForm() {
             whileTap={{ scale: 0.98 }}
             type="submit"
             disabled={isPending}
-            className="brand-button w-full text-white px-6 py-3.5 rounded-xl text-sm font-semibold shadow-lg disabled:opacity-50 flex items-center justify-center gap-2"
+            className="brand-button w-full px-6 py-3.5 rounded-xl text-sm font-semibold shadow-lg disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {isPending ? <PaperWait size="sm" /> : <><span>Reset password</span><ArrowRight className="h-4 w-4" /></>}
           </motion.button>

@@ -3,7 +3,7 @@
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { ArrowRight, Lock, Sparkles, Users } from "lucide-react";
+import { ArrowRight, Lock, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { COMMUNITY_SPACE_TYPES } from "@/lib/community-constants";
@@ -187,7 +187,6 @@ export function CommunityCreateForm() {
             type="submit"
             size="lg"
             loading={isPending}
-            leftIcon={<Sparkles className="h-4 w-4" />}
             rightIcon={<ArrowRight className="h-4 w-4" />}
             className="w-full"
           >

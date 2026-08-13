@@ -23,6 +23,8 @@ import {
   Pause,
   Play,
   Share2,
+  Activity,
+  FileText,
   Sparkles,
   X,
 } from "lucide-react";
@@ -311,7 +313,7 @@ export function ContentLens({
               {node.sublabel && <p className="truncate text-xs text-[var(--text-tertiary)]">{node.sublabel}</p>}
             </div>
             <span className="inline-flex items-center gap-1 rounded-full bg-[var(--paper-2)] px-2.5 py-1 text-micro font-medium mesh-eyebrow text-[var(--text-tertiary)]">
-              <Sparkles size={11} />
+              {node.kind === "activity" ? <Activity size={11} /> : <FileText size={11} />}
               {node.kind === "activity" ? "Activity" : "Post"}
             </span>
             <button
