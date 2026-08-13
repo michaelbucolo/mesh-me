@@ -39,7 +39,7 @@ function listNames(entries: { name: string }[]): string {
 }
 
 export function ContentInventoryCard({ inventory }: { inventory: ContentInventory }) {
-  const { postsAndPhotos, videos, commentsAndReplies, readable, unreadable } = inventory;
+  const { postsAndPhotos, videos, commentsAndReplies, readable, unreadable, firstSeen } = inventory;
   const total = postsAndPhotos + videos + commentsAndReplies;
 
   const rows = [
@@ -75,6 +75,15 @@ export function ContentInventoryCard({ inventory }: { inventory: ContentInventor
       {/* WHERE THE NUMBER CAME FROM, AND WHERE IT COULD NOT. Never collapsed,
           never abbreviated to "some platforms" — the names are the point. */}
       <div className="mt-4 space-y-1.5 border-t border-[var(--mesh-border)] pt-4 text-xs text-[var(--mesh-text-secondary)]">
+        {/* "we can see", deliberately — the first post IN EVIDENCE, which is a
+            different (and honest) sentence from "your first post ever". */}
+        {firstSeen && (
+          <p>
+            The first post we can see:{" "}
+            {new Date(firstSeen.at).toLocaleDateString("en-US", { month: "long", year: "numeric" })}
+            {firstSeen.platform ? `, on ${firstSeen.platform}` : ", on Mesh.me"}.
+          </p>
+        )}
         {readable.length > 0 ? (
           <p>
             Counted from Mesh.me and {listNames(readable)}.

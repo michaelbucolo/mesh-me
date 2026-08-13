@@ -98,7 +98,7 @@ const unlocks: Array<{
     // already have to make a sentence true is worse than the sentence. What
     // Pro buys is the one thing that was genuinely missing: more history.
     title: "A longer memory",
-    body: "A year of your analytics instead of a fortnight — the trend, not the week.",
+    body: "Your analytics back to day one — a year of charts instead of a fortnight, and the whole life in months: eras, your firsts, and all-time bests.",
     href: "/analytics",
     icon: LineChart,
     enforcedIn: { file: "src/lib/analytics-dashboard.ts", symbol: "analyticsWindow" },

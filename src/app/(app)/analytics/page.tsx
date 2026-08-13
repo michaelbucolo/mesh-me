@@ -6,7 +6,9 @@ import { ContentInventoryCard } from "@/components/analytics/content-inventory-c
 import { ProInsights } from "@/components/analytics/pro-insights";
 import { ReportShelf } from "@/components/analytics/report-shelf";
 import { getCurrentUser } from "@/lib/auth";
+import { LifetimeShelf } from "@/components/analytics/lifetime-shelf";
 import { getAnalyticsDashboardData } from "@/lib/analytics-dashboard";
+import { getLifetimeAnalytics } from "@/lib/analytics-lifetime";
 import { getContentInventory } from "@/lib/content-inventory";
 import { getProAnalytics } from "@/lib/pro-analytics";
 import { hasAnalyticsConsent } from "@/lib/consent";
@@ -33,7 +35,12 @@ export default async function AnalyticsPage() {
   // same permission and is not fetched when that permission is withdrawn.
   const [data, pro] = await Promise.all([getAnalyticsDashboardData(), getProAnalytics()]);
   if (data) {
-    const inventory = await getContentInventory(user.id);
+    // The long view is fetched only for Pro accounts (the loader also refuses
+    // free ones itself — both doors are pinned by analytics-lifetime-check).
+    const [inventory, lifetime] = await Promise.all([
+      getContentInventory(user.id),
+      user.isMeshPro ? getLifetimeAnalytics() : Promise.resolve(null),
+    ]);
     return (
       <>
         <AnalyticsDashboard data={data} />
@@ -43,6 +50,15 @@ export default async function AnalyticsPage() {
         {pro && (
           <div className="mx-auto w-full max-w-7xl px-4 pb-6 sm:px-6">
             <ProInsights data={pro} />
+          </div>
+        )}
+        {/* The long view: mounted ONLY inside the explicit plan condition —
+            free accounts get no locked version of it at all. The loader
+            refuses free accounts regardless (defense in depth), so this
+            condition is about never even asking. */}
+        {user.isMeshPro && lifetime && (
+          <div className="mx-auto w-full max-w-7xl px-4 pb-6 sm:px-6">
+            <LifetimeShelf lifetime={lifetime} />
           </div>
         )}
         {/* An EXPLICIT plan condition, not a null guard: `pro` above is
