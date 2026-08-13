@@ -4,7 +4,8 @@ import { redirect } from "next/navigation";
 import { AnalyticsDashboard } from "@/components/analytics/analytics-dashboard";
 import { ContentInventoryCard } from "@/components/analytics/content-inventory-card";
 import { ProInsights } from "@/components/analytics/pro-insights";
-import { getCurrentUserRedirectState } from "@/lib/auth";
+import { ReportShelf } from "@/components/analytics/report-shelf";
+import { getCurrentUser } from "@/lib/auth";
 import { getAnalyticsDashboardData } from "@/lib/analytics-dashboard";
 import { getContentInventory } from "@/lib/content-inventory";
 import { getProAnalytics } from "@/lib/pro-analytics";
@@ -16,7 +17,10 @@ export const metadata: Metadata = { title: "Analytics" };
 // a tab buried inside Profile. The dashboard component already knows how to be
 // a whole page (no `embedded`); the proxy gates the route for guests.
 export default async function AnalyticsPage() {
-  const user = await getCurrentUserRedirectState();
+  // The full cached session user (one round trip, shared with the layout):
+  // the report shelf needs the chokepoint-resolved isMeshPro and createdAt,
+  // which the slim redirect-state shape deliberately omits.
+  const user = await getCurrentUser();
   if (!user) redirect("/login");
   if (!user.onboarded) redirect("/onboarding");
 
@@ -39,6 +43,14 @@ export default async function AnalyticsPage() {
         {pro && (
           <div className="mx-auto w-full max-w-7xl px-4 pb-6 sm:px-6">
             <ProInsights data={pro} />
+          </div>
+        )}
+        {/* An EXPLICIT plan condition, not a null guard: `pro` above is
+            populated for free accounts too (that is how their quiet card
+            renders). Free users get no locked version of this shelf at all. */}
+        {user.isMeshPro && (
+          <div className="mx-auto w-full max-w-7xl px-4 pb-6 sm:px-6">
+            <ReportShelf accountCreatedAt={user.createdAt} />
           </div>
         )}
       </>

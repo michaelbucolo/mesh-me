@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { LucideIcon } from "lucide-react";
-import { CalendarRange, Crown, Gift, Landmark, LineChart, Palette, SlidersHorizontal, WandSparkles } from "lucide-react";
+import { CalendarRange, Crown, FileText, Gift, Landmark, LineChart, Palette, SlidersHorizontal, WandSparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BillingPortalButton, MeshProCheckoutButton } from "@/components/meshpro/mesh-pro-actions";
 import { getCurrentUser } from "@/lib/auth";
@@ -101,6 +101,17 @@ const unlocks: Array<{
     href: "/analytics",
     icon: LineChart,
     enforcedIn: { file: "src/lib/analytics-dashboard.ts", symbol: "analyticsWindow" },
+  },
+  {
+    // A document, not a dashboard: a fully ended month or year, differenced
+    // against the period before it — labor that exists nowhere else in the
+    // product. The raw numbers stay free (the dashboard, the CSV, the GDPR
+    // dump); what Pro sells is the closing, the comparison, the typesetting.
+    title: "The Mesh Report",
+    body: "A month or a year of your analytics, closed and set on one page — what changed against the period before, ready to print or hand over.",
+    href: "/analytics",
+    icon: FileText,
+    enforcedIn: { file: "src/lib/analytics-report-loader.ts", symbol: "getAnalyticsReport" },
   },
   {
     title: "World styling",
