@@ -306,7 +306,7 @@ export function MeChatConversationList({
       : "flex h-[calc(100dvh-3.5rem)] min-h-0 w-full flex-col overflow-hidden bg-[var(--mesh-bg)] pb-[env(safe-area-inset-bottom)]";
 
   return (
-    <div className={`${rootClassName} ${className || ""} animate-page-enter`}>
+    <div className={`${rootClassName} ${className || ""}`}>
       {/* One calm row: find a conversation or start one. The top bar already
           names the surface — no need to say "MeChat" twice. */}
       <div className="flex items-center gap-2 px-3 pb-2 pt-3">

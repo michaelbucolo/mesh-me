@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { ArrowDown, CheckCheck, Flame, Heart, Image as ImageIcon, Laugh, Link2, MessageCircleReply, Paperclip, Pencil, Search, Send, SmilePlus, ThumbsUp, Undo2, Users, X, type LucideIcon } from "lucide-react";
+import { publishMeshiCause } from "@/lib/meshi-bus";
 import { CoBrowseRoom } from "@/components/mechat/co-browse-room";
 import { PaperWait } from "@/components/loading/paper-wait";
 import { Avatar } from "@/components/ui/avatar";
@@ -717,6 +718,10 @@ export function MeChatThread({
         });
         const data = await safeFetchJson<{ message?: MeChatSerializedMessage; error?: string }>(response);
         if (!response.ok || !data.message) throw new Error(data.error || "Message failed");
+        // Server-confirmed — the bus doctrine (meshi-bus.ts) forbids celebrating
+        // anything the server hasn't said yes to, which is why this sits AFTER
+        // the throw rather than beside the optimistic bubble.
+        publishMeshiCause({ kind: "message:sent" });
         setDraft("");
         // Drop the stored draft under the pre-send key too (creating a thread
         // moves the key from recipient to thread mid-flight).
@@ -736,6 +741,7 @@ export function MeChatThread({
         await loadThread(threadId);
         if (!initialThreadId) router.replace(`/messages/${threadId}`);
       } catch (sendError) {
+        publishMeshiCause({ kind: "action:failed" });
         if (optimisticId) {
           setMessages((current) => current.filter((message) => message.id !== optimisticId));
         }

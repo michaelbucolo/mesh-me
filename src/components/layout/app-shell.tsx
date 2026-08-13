@@ -139,7 +139,7 @@ function SidebarNavItem({ item, href, active }: { item: NavItem; href: string; a
   return (
     <Link
       href={href}
-      className={`mesh-nav-item group relative flex items-center gap-3.5 rounded-xl px-3.5 py-2.5 text-[0.9375rem] font-medium transition-all duration-150 ${
+      className={`mesh-nav-item group relative flex items-center gap-3.5 rounded-xl px-3.5 py-2.5 text-[0.9375rem] font-medium transition-[color,background-color,border-color,box-shadow,transform,opacity] duration-150 ${
         active
           ? "mesh-nav-item-active bg-[var(--mesh-panel-hover)] font-semibold text-[var(--mesh-text)]"
           : "text-[var(--mesh-text-secondary)] hover:bg-[var(--mesh-panel-hover)] hover:text-[var(--mesh-text)]"

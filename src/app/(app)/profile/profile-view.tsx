@@ -119,7 +119,7 @@ export async function InstagramProfileView({ username, tab }: { username: string
   const achievements = isOwnProfile && activeTab === "milestones" ? await getAchievementBoard(profile.id) : null;
 
   return (
-    <div className="profile-layout mx-auto grid w-full max-w-6xl gap-6 px-4 py-6 lg:grid-cols-[minmax(0,1fr)_340px] animate-page-enter">
+    <div className="profile-layout mx-auto grid w-full max-w-6xl gap-6 px-4 py-6 lg:grid-cols-[minmax(0,1fr)_340px]">
       {/* Main column */}
       <div className="min-w-0 space-y-6">
         {/* Profile header */}

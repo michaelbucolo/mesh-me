@@ -167,7 +167,7 @@ export function PostDetailClient({ post, currentUserId }: PostDetailClientProps)
   };
 
   return (
-    <div data-meshi-zone="post-detail" className="max-w-2xl mx-auto px-4 py-6 animate-page-enter">
+    <div data-meshi-zone="post-detail" className="max-w-2xl mx-auto px-4 py-6">
       {/* Back button */}
       <button
         onClick={() => router.back()}
@@ -303,7 +303,7 @@ export function PostDetailClient({ post, currentUserId }: PostDetailClientProps)
               onClick={handleLike}
               disabled={isPending}
               className={cn(
-                "flex items-center gap-1.5 px-2 py-2 rounded-lg text-sm transition-all sm:px-3",
+                "flex items-center gap-1.5 px-2 py-2 rounded-lg text-sm transition-[color,background-color,border-color,box-shadow,transform,opacity] sm:px-3",
                 liked ? "text-rose-400" : "text-[var(--text-muted)] hover:text-rose-400"
               )}
             >

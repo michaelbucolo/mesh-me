@@ -88,7 +88,7 @@ export function MobileNav({ unreadNotifications = 0, unreadMessages = 0, usernam
   const navClass = useMemo(
     () =>
       cn(
-        "safe-area-bottom mobile-bottom-nav fixed bottom-0 left-0 right-0 z-50 w-full border-t border-[var(--mesh-border)] transition-all duration-200 md:hidden",
+        "safe-area-bottom mobile-bottom-nav fixed bottom-0 left-0 right-0 z-50 w-full border-t border-[var(--mesh-border)] transition-[color,background-color,border-color,box-shadow,transform,opacity] duration-200 md:hidden",
         isKeyboardVisible && "pointer-events-none translate-y-24 opacity-0"
       ),
     [isKeyboardVisible],
@@ -97,7 +97,7 @@ export function MobileNav({ unreadNotifications = 0, unreadMessages = 0, usernam
   // The FAB keeps its class rather than gaining `.key` — `.mobile-compose-fab`
   // is pinned by `!important` blocks in globals.css that `.key` cannot outrank.
   const composeClass = cn(
-    "mobile-compose-fab mesh-fab-enter fixed bottom-[calc(5.45rem+env(safe-area-inset-bottom))] right-4 z-50 flex h-14 w-14 items-center justify-center rounded-full transition-all duration-200 md:hidden",
+    "mobile-compose-fab mesh-fab-enter fixed bottom-[calc(5.45rem+env(safe-area-inset-bottom))] right-4 z-50 flex h-14 w-14 items-center justify-center rounded-full transition-[color,background-color,border-color,box-shadow,transform,opacity] duration-200 md:hidden",
     isKeyboardVisible && "pointer-events-none translate-y-24 opacity-0",
   );
 

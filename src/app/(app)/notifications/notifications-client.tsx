@@ -156,7 +156,7 @@ export function NotificationsClient({ initialPayload }: { initialPayload: Notifi
   }, []);
 
   return (
-    <main data-testid="notification-center" data-meshi-zone="notifications" className="simple-page grid gap-5 animate-page-enter">
+    <main data-testid="notification-center" data-meshi-zone="notifications" className="simple-page grid gap-5">
       <style>{`
         .mesh-priority-ring { position: relative; }
         .mesh-priority-ring::after {

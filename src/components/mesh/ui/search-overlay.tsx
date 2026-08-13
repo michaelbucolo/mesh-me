@@ -13,6 +13,7 @@ import type { SceneModel, SceneNode } from "../scene/scene-model";
 type DiscoverUser = { id: string; username: string; displayName: string | null; avatarUrl: string | null };
 
 export function MeshSearchOverlay({
+  closing = false,
   rtRef,
   model,
   placeholder,
@@ -27,6 +28,8 @@ export function MeshSearchOverlay({
   onJump: (node: SceneNode) => void;
   onVisitUser: (userId: string) => void;
   onClose: () => void;
+  /** Chrome is playing the 170ms graceful exit — render leaving, swallow input. */
+  closing?: boolean;
 }) {
   const [searchQuery, setSearchQuery] = useState("");
   // Cross-site results are keyed by the query they answered, so a stale
@@ -85,13 +88,13 @@ export function MeshSearchOverlay({
 
   return (
     <div
-      className="absolute inset-0 z-50 flex animate-[fadeIn_.18s_ease] items-start justify-center bg-black/50 p-4 pt-24 backdrop-blur-sm"
+      className={`absolute inset-0 z-50 flex ${closing ? "pointer-events-none animate-[fadeOut_.16s_var(--mesh-ease-press)_both]" : "animate-[fadeIn_.18s_var(--mesh-ease-out)]"} items-start justify-center bg-black/50 p-4 pt-24 backdrop-blur-sm`}
       onPointerDown={(e) => {
         e.stopPropagation();
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div role="dialog" aria-modal="true" aria-label="Search your Mesh" className="w-full max-w-md animate-[bubbleIn_.36s_cubic-bezier(0.22,1,0.36,1)] rounded-2xl mesh-panel p-2 shadow-2xl">
+      <div role="dialog" aria-modal="true" aria-label="Search your Mesh" className={`w-full max-w-md ${closing ? "animate-[bubbleOut_.16s_var(--mesh-ease-press)_both]" : "animate-[bubbleIn_.36s_var(--mesh-ease-out)]"} rounded-2xl mesh-panel p-2 shadow-2xl`}>
         <div className="flex items-center gap-2 px-2">
           <Search size={15} className="shrink-0 text-[var(--text-tertiary)]" />
           <input
