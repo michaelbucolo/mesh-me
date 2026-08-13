@@ -25,13 +25,14 @@ import { revalidatePath } from "next/cache";
 import { normalizeProfileLinks } from "@/lib/profile-links";
 import { slugify } from "./utils";
 import { getBaseUrl, isSupportedPlatform } from "./oauth";
-import { hasMeshPro, isFreeMeshiOption } from "./mesh-pro";
+import { hasMeshPro, isFreeMeshiOption, resolveMeshiRecipeCap } from "./mesh-pro";
 import { clearMeshCache } from "./mesh-cache";
 import { rateLimit, sanitizeForDisplay, validatePasswordStrength, validatePostContent, validateUrl } from "./security";
 import { canViewNsfw, classifyContentSafety, getNsfwPolicyForRegion, isAdultVerificationActive, normalizeUsState } from "./content-safety";
 import { findOrCreateDirectThread } from "./direct-thread";
 import { claimEmailAddress } from "./email-claim";
-import { canUserInteractWithPost } from "./privacy-policy";
+import { canUserInteractWithPost, canViewProfile, normalizeMeshVisibility } from "./privacy-policy";
+import { resolveWornGiftLabels, type WornGiftLabel } from "./meshi-provenance";
 import {
   durableRateLimit,
   checkDurableLockout,
@@ -3276,6 +3277,254 @@ export async function getGiftPreviewMeshi(username: string) {
     // "already theirs" instead of selling a second copy.
     owned: ownedRows.map((row) => `${row.category}:${row.value}`),
   };
+}
+
+// ─── Meshi provenance (the stitched-in garment label) ───────────
+
+/**
+ * What gift marks does this Meshi wear, as far as THIS viewer may know?
+ * THE FENCE COMES FIRST: the same profile-visibility and block adjudication
+ * the profile page runs, before any wardrobe row is read — provenance must
+ * never see further than the profile does. The answer is label + month
+ * strings only; purchaser fields are never selected on this path (the
+ * gifter's name is the owner's own history, not a public fact).
+ */
+export async function getMeshiProvenance(subjectUserId: string) {
+  const empty = { labels: [] as WornGiftLabel[] };
+  const viewer = await getCurrentUser();
+  if (!viewer) return empty;
+  if (!subjectUserId || typeof subjectUserId !== "string") return empty;
+
+  const rl = rateLimit(`meshi-provenance:${viewer.id}`, 60, 60 * 1000);
+  if (!rl.allowed) return empty;
+
+  const subject = await prisma.user.findUnique({
+    where: { id: subjectUserId },
+    select: {
+      id: true,
+      isPublic: true,
+      isSuspended: true,
+      meshPrivacy: { select: { meshVisibility: true } },
+    },
+  });
+  if (!subject) return empty;
+
+  if (viewer.id !== subject.id) {
+    const blocked = await prisma.block.findFirst({
+      where: {
+        OR: [
+          { blockerId: viewer.id, blockedId: subject.id },
+          { blockerId: subject.id, blockedId: viewer.id },
+        ],
+      },
+      select: { id: true },
+    });
+    if (blocked) return empty;
+  }
+
+  const visibility = normalizeMeshVisibility(
+    subject.meshPrivacy?.meshVisibility,
+    subject.isPublic ? "public" : "private",
+  );
+  let isFriend = false;
+  if (visibility === "friends" && viewer.id !== subject.id) {
+    const [toSubject, fromSubject] = await Promise.all([
+      prisma.follow.findUnique({
+        where: { followerId_followingId: { followerId: viewer.id, followingId: subject.id } },
+        select: { followerId: true },
+      }),
+      prisma.follow.findUnique({
+        where: { followerId_followingId: { followerId: subject.id, followingId: viewer.id } },
+        select: { followerId: true },
+      }),
+    ]);
+    isFriend = Boolean(toSubject && fromSubject);
+  }
+  if (!canViewProfile(viewer, subject, visibility, isFriend)) return empty;
+
+  const [pref, rows] = await Promise.all([
+    prisma.meshiPreference.findUnique({
+      where: { userId: subject.id },
+      select: {
+        hatStyle: true, faceStyle: true, colorTheme: true, hairStyle: true,
+        hairColor: true, accessoryStyle: true, eyeStyle: true, badgeStyle: true,
+      },
+    }),
+    prisma.ownedMeshiItem.findMany({
+      // Gates live / gift / not-quieted in the WHERE, so purchaser fields are
+      // never selected toward a viewer. The resolver re-checks what it's
+      // handed and intersects with what is actually WORN.
+      where: {
+        ownerId: subject.id,
+        revokedAt: null,
+        labelQuietedAt: null,
+        OR: [{ purchaserId: null }, { purchaserId: { not: subject.id } }],
+      },
+      select: { category: true, value: true, createdAt: true },
+    }),
+  ]);
+  return { labels: resolveWornGiftLabels(pref, rows) };
+}
+
+/**
+ * The per-piece switch on the PUBLIC mark — wearing a gift must never compel
+ * disclosure. Owner-authenticated, gift rows only (a self-purchase has no
+ * mark to quiet), and the owner's own settings history is untouched either
+ * way. Sole writer of labelQuietedAt.
+ */
+export async function setMeshiGiftLabelQuiet(itemId: string, quiet: boolean) {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Not authenticated" };
+  if (!itemId || typeof itemId !== "string") return { error: "That piece is not in your wardrobe." };
+
+  const updated = await prisma.ownedMeshiItem.updateMany({
+    where: {
+      id: itemId,
+      ownerId: user.id,
+      revokedAt: null,
+      purchaserId: { not: user.id },
+    },
+    data: { labelQuietedAt: quiet === true ? new Date() : null },
+  });
+  if (updated.count === 0) return { error: "That piece is not in your wardrobe." };
+
+  revalidatePath("/settings");
+  revalidatePath(`/profile/${user.username}`);
+  clearMeshCache(user.id);
+  return { success: true };
+}
+
+/**
+ * A delivered letter belongs to its recipient — including the right to burn
+ * it. Permanently removes a gift's note (message → null); the receipt row
+ * itself is untouched. Data minimization for the owner, not receipt
+ * destruction: a harasser's note must not squat in the victim's settings.
+ * Sole post-grant writer of OwnedMeshiItem.message.
+ */
+export async function removeMeshiGiftNote(itemId: string) {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Not authenticated" };
+  if (!itemId || typeof itemId !== "string") return { error: "That note is already gone." };
+
+  const updated = await prisma.ownedMeshiItem.updateMany({
+    where: { id: itemId, ownerId: user.id, message: { not: null } },
+    data: { message: null },
+  });
+  if (updated.count === 0) return { error: "That note is already gone." };
+
+  revalidatePath("/settings");
+  return { success: true };
+}
+
+// ─── Saved looks (Meshi recipes) ────────────────────────────────
+
+const MESHI_RECIPE_NAME_MAX = 40;
+
+function cleanMeshiRecipeName(name: unknown) {
+  return sanitizeForDisplay(String(name ?? "").trim().replace(/\s+/g, " "))
+    .slice(0, MESHI_RECIPE_NAME_MAX)
+    .trim();
+}
+
+/**
+ * Bottle the CURRENT look under a name. The snapshot is taken SERVER-SIDE
+ * from the persisted MeshiPreference row — the client sends only a name — so
+ * a recipe can only hold a look the wardrobe gate already admitted. The cap
+ * is checked here and ONLY here: rename, delete, and apply are never gated,
+ * and a lapsed Pro keeps every saved look (lapse deletes nothing).
+ */
+export async function saveMeshiRecipe(name: string) {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const rl = rateLimit(`meshi-recipe:${user.id}`, 20, 60 * 1000);
+  if (!rl.allowed) return { error: "Slow down a moment." };
+
+  const clean = cleanMeshiRecipeName(name);
+  if (!clean) return { error: "Name this look first." };
+
+  const cap = resolveMeshiRecipeCap(hasMeshPro(user));
+  try {
+    const created = await prisma.$transaction(async (tx) => {
+      const held = await tx.meshiRecipe.count({ where: { userId: user.id } });
+      if (held >= cap) return null;
+      const pref = await tx.meshiPreference.findUnique({
+        where: { userId: user.id },
+        select: {
+          hatStyle: true, faceStyle: true, colorTheme: true, hairStyle: true,
+          hairColor: true, accessoryStyle: true, eyeStyle: true, badgeStyle: true,
+        },
+      });
+      const look = pref ?? DEFAULT_MESHI_PREFERENCE;
+      return tx.meshiRecipe.create({
+        data: {
+          userId: user.id,
+          name: clean,
+          hatStyle: look.hatStyle,
+          faceStyle: look.faceStyle,
+          colorTheme: look.colorTheme,
+          hairStyle: look.hairStyle,
+          hairColor: look.hairColor,
+          accessoryStyle: look.accessoryStyle,
+          eyeStyle: look.eyeStyle,
+          badgeStyle: look.badgeStyle,
+        },
+        select: { id: true, name: true },
+      });
+    });
+    if (!created) {
+      // The studio may name MeshPro plainly (it is settings, not a social
+      // surface) — but never link, price, tease, or count down.
+      return {
+        error: hasMeshPro(user)
+          ? "Your shelf holds twelve looks — let one go to save another."
+          : "Your shelf holds three looks on the free plan; MeshPro holds twelve.",
+      };
+    }
+    revalidatePath("/settings");
+    return { success: true };
+  } catch (error) {
+    if (error && typeof error === "object" && "code" in error && (error as { code: string }).code === "P2002") {
+      return { error: "You already have a look with that name." };
+    }
+    throw error;
+  }
+}
+
+export async function renameMeshiRecipe(recipeId: string, name: string) {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Not authenticated" };
+  if (!recipeId || typeof recipeId !== "string") return { error: "That look is gone." };
+
+  const clean = cleanMeshiRecipeName(name);
+  if (!clean) return { error: "Name this look first." };
+
+  try {
+    const updated = await prisma.meshiRecipe.updateMany({
+      where: { id: recipeId, userId: user.id },
+      data: { name: clean },
+    });
+    if (updated.count === 0) return { error: "That look is gone." };
+  } catch (error) {
+    if (error && typeof error === "object" && "code" in error && (error as { code: string }).code === "P2002") {
+      return { error: "You already have a look with that name." };
+    }
+    throw error;
+  }
+
+  revalidatePath("/settings");
+  return { success: true };
+}
+
+/** Idempotent — a look already gone is already let go. Never cap-gated. */
+export async function deleteMeshiRecipe(recipeId: string) {
+  const user = await getCurrentUser();
+  if (!user) return { error: "Not authenticated" };
+  if (!recipeId || typeof recipeId !== "string") return { success: true };
+
+  await prisma.meshiRecipe.deleteMany({ where: { id: recipeId, userId: user.id } });
+  revalidatePath("/settings");
+  return { success: true };
 }
 
 /**

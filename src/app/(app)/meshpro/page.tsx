@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { LucideIcon } from "lucide-react";
-import { BookOpen, CalendarRange, Crown, FileText, Gift, HandHeart, Landmark, LineChart, Palette, SlidersHorizontal, WandSparkles } from "lucide-react";
+import { BookOpen, CalendarRange, Crown, FileText, Gift, HandHeart, Landmark, LineChart, Palette, Shirt, SlidersHorizontal, WandSparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BillingPortalButton, MeshProCheckoutButton } from "@/components/meshpro/mesh-pro-actions";
 import { getCurrentUser } from "@/lib/auth";
@@ -141,6 +141,17 @@ const unlocks: Array<{
     href: "/settings",
     icon: Crown,
     enforcedIn: { file: "src/lib/mesh-pro.ts", symbol: "FREE_MESHI_OPTIONS" },
+  },
+  {
+    // Depth, not necessity: free keeps a complete shelf (three looks covers
+    // weekday, weekend, occasion); Pro is the collector's rail. The cap is
+    // checked on SAVE only — a lapsed Pro keeps all twelve, applies any of
+    // them, and only new saves beyond three wait.
+    title: "Saved looks",
+    body: "Twelve named looks for your Meshi instead of three — save a look once, wear it again in two taps.",
+    href: "/settings",
+    icon: Shirt,
+    enforcedIn: { file: "src/lib/mesh-pro.ts", symbol: "MESHI_RECIPE_CAPS" },
   },
 ];
 

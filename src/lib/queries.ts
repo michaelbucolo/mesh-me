@@ -3,6 +3,8 @@
 import { unstable_cache } from "next/cache";
 import { safeLinkHref } from "@/lib/profile-links";
 import { hasMeshPro } from "@/lib/mesh-pro";
+import { meshiItemLabel } from "@/lib/meshi-wardrobe";
+import { resolveWornGiftLabels, type WornGiftLabel } from "@/lib/meshi-provenance";
 import { prisma } from "./prisma";
 import { getCurrentUser } from "./auth";
 import { parseMeChatMetadata } from "./mechat-metadata";
@@ -548,6 +550,25 @@ export async function getUserProfile(username: string) {
   // `aboutEditable` uses above.
   const linksEditable = isOwnProfile ? safeLinks.map(({ label, url }) => ({ label, url })) : null;
 
+  // The stitched-in garment label: which WORN pieces were gifts, as label +
+  // month-year strings only. Behind the same profileVisible fence as the bio —
+  // provenance never sees further than the profile — and the query never
+  // selects purchaser fields: the gifter's name is the owner's own history
+  // (settings), not a fact this payload carries.
+  let wornGiftLabels: WornGiftLabel[] = [];
+  if (profileVisible && user.meshiPreference) {
+    const giftRows = await prisma.ownedMeshiItem.findMany({
+      where: {
+        ownerId: user.id,
+        revokedAt: null,
+        labelQuietedAt: null,
+        OR: [{ purchaserId: null }, { purchaserId: { not: user.id } }],
+      },
+      select: { category: true, value: true, createdAt: true },
+    });
+    wornGiftLabels = resolveWornGiftLabels(user.meshiPreference, giftRows);
+  }
+
   return {
     linksEditable,
     ...user,
@@ -583,6 +604,7 @@ export async function getUserProfile(username: string) {
     privacyLevel: profileVisible ? meshVisibility : "private",
     sectionVisibility,
     mutualFollowers: sectionVisibility.people ? mutualFollowers.map((f) => f.follower) : [],
+    wornGiftLabels,
   };
 }
 
@@ -1550,7 +1572,7 @@ export async function getUserSettings() {
   const user = await getCurrentUser();
   if (!user) return null;
 
-  const [userWithProfile, achievements, ownedMeshiRows] = await Promise.all([
+  const [userWithProfile, achievements, ownedMeshiRows, meshiRecipeRows] = await Promise.all([
     prisma.user.findUnique({
       where: { id: user.id },
       select: {
@@ -1594,9 +1616,32 @@ export async function getUserSettings() {
       include: { achievement: { select: { slug: true } } },
     }),
     // Live wardrobe receipts only — a revoked (refunded) row unlocks nothing.
+    // THE one display query allowed to select purchaser fields: this payload
+    // is self-scoped by construction (the session user's own settings), and
+    // the gifter's name + note are the owner's history — labels are computed
+    // HERE so the settings component never imports meshiItemLabel.
     prisma.ownedMeshiItem.findMany({
       where: { ownerId: user.id, revokedAt: null },
-      select: { category: true, value: true },
+      select: {
+        id: true,
+        category: true,
+        value: true,
+        message: true,
+        createdAt: true,
+        labelQuietedAt: true,
+        purchaserId: true,
+        purchaser: { select: { displayName: true } },
+      },
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.meshiRecipe.findMany({
+      where: { userId: user.id },
+      select: {
+        id: true, name: true, hatStyle: true, faceStyle: true, colorTheme: true,
+        hairStyle: true, hairColor: true, accessoryStyle: true, eyeStyle: true,
+        badgeStyle: true,
+      },
+      orderBy: { createdAt: "asc" },
     }),
   ]);
 
@@ -1644,6 +1689,20 @@ export async function getUserSettings() {
     // The RECORD, not standing — a lapsed patron keeps the pin.
     patronRecord: user.patronSince != null,
     ownedMeshiItems: ownedMeshiRows.map((row) => `${row.category}:${row.value}`),
+    // The owner's own wardrobe history — the ONLY surface that ever names a
+    // gifter or shows a note. Self-purchases read as isGift: false; a deleted
+    // purchaser degrades to a gift with no name (never a tombstone).
+    meshiWardrobe: ownedMeshiRows.map((row) => ({
+      id: row.id,
+      label: meshiItemLabel(row.category, row.value),
+      option: `${row.category}:${row.value}`,
+      isGift: row.purchaserId !== user.id,
+      purchaserDisplayName: row.purchaserId && row.purchaserId !== user.id ? row.purchaser?.displayName ?? null : null,
+      receivedAt: row.createdAt,
+      message: row.purchaserId !== user.id ? row.message : null,
+      quieted: row.labelQuietedAt != null,
+    })),
+    meshiRecipes: meshiRecipeRows,
   };
 }
 

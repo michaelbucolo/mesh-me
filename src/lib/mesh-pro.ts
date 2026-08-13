@@ -103,3 +103,13 @@ export const FREE_MESHI_OPTIONS = {
 export function isFreeMeshiOption(group: keyof typeof FREE_MESHI_OPTIONS, value: string | null | undefined) {
   return FREE_MESHI_OPTIONS[group].has((value || "none").trim().toLowerCase());
 }
+
+/** Saved-look shelf depth. Free is a complete daily driver (weekday, weekend,
+ *  occasion); Pro is a collector's rail, not a necessity. Defined once, here —
+ *  the /meshpro card's enforcedIn points at this symbol. Lapse deletes
+ *  nothing: the cap is checked on SAVE only, never on apply/rename/delete. */
+const MESHI_RECIPE_CAPS = { free: 3, pro: 12 } as const;
+
+export function resolveMeshiRecipeCap(hasPro: boolean) {
+  return hasPro ? MESHI_RECIPE_CAPS.pro : MESHI_RECIPE_CAPS.free;
+}
