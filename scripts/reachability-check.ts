@@ -224,6 +224,7 @@ checks += 1;
     "/api/health": "Uptime monitoring. Called by things outside this repo, by design.",
     "/api/status": "Public status surface, polled externally.",
     "/api/stripe/webhook": "Stripe posts here. Verified by signature, never called by us.",
+    "/api/compose/scheduler": "Vercel's cron ticks this (vercel.json). Bearer-secret only; no session path.",
     "/api/auth/[platform]/callback": "The OAuth redirect target. The platform sends the browser here.",
     "/api/auth/identity/[provider]": "Sign-in with a third-party identity provider; entered by navigation.",
     "/api/auth/identity/[provider]/callback": "The identity provider's redirect target.",

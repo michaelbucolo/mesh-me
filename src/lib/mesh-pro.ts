@@ -113,3 +113,16 @@ const MESHI_RECIPE_CAPS = { free: 3, pro: 12 } as const;
 export function resolveMeshiRecipeCap(hasPro: boolean) {
   return hasPro ? MESHI_RECIPE_CAPS.pro : MESHI_RECIPE_CAPS.free;
 }
+
+/** Publish Studio queue depth. Free is a complete daily driver: ten posts, a
+ *  fortnight out — a full week planned in one sitting, free. Pro sells DEPTH:
+ *  a hundred slots, a year of runway. Checked at SCHEDULE time only — a lapse
+ *  deletes nothing, pauses nothing; everything queued always fires. */
+const SCHEDULE_CAPS = {
+  free: { slots: 10, horizonDays: 14 },
+  pro: { slots: 100, horizonDays: 365 },
+} as const;
+
+export function resolveScheduleCaps(hasPro: boolean) {
+  return hasPro ? SCHEDULE_CAPS.pro : SCHEDULE_CAPS.free;
+}

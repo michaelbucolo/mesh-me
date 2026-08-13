@@ -4,6 +4,10 @@
     {
       "path": "/api/public-supply/refresh",
       "schedule": "17 * * * *"
+    },
+    {
+      "path": "/api/compose/scheduler",
+      "schedule": "* * * * *"
     }
   ]
 }
