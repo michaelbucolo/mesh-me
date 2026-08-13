@@ -776,6 +776,20 @@ CREATE TABLE IF NOT EXISTS "ScheduledPost" (
 );
 
 -- CreateTable
+CREATE TABLE IF NOT EXISTS "PersonalAccessToken" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "userId" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "selector" TEXT NOT NULL,
+    "verifierHash" TEXT NOT NULL,
+    "scopes" TEXT NOT NULL,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "expiresAt" DATETIME NOT NULL,
+    "lastUsedAt" DATETIME,
+    CONSTRAINT "PersonalAccessToken_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+-- CreateTable
 CREATE TABLE IF NOT EXISTS "SchedulerRun" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "startedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -1472,6 +1486,12 @@ CREATE INDEX IF NOT EXISTS "ScheduledPost_status_nextAttemptAt_idx" ON "Schedule
 CREATE INDEX IF NOT EXISTS "ScheduledPost_userId_scheduledFor_idx" ON "ScheduledPost"("userId", "scheduledFor");
 
 CREATE INDEX IF NOT EXISTS "SchedulerRun_startedAt_idx" ON "SchedulerRun"("startedAt");
+
+CREATE UNIQUE INDEX IF NOT EXISTS "PersonalAccessToken_selector_key" ON "PersonalAccessToken"("selector");
+
+CREATE INDEX IF NOT EXISTS "PersonalAccessToken_userId_idx" ON "PersonalAccessToken"("userId");
+
+CREATE INDEX IF NOT EXISTS "PersonalAccessToken_expiresAt_idx" ON "PersonalAccessToken"("expiresAt");
 
 CREATE UNIQUE INDEX IF NOT EXISTS "MeshProGift_stripeSessionId_key" ON "MeshProGift"("stripeSessionId");
 
