@@ -21,7 +21,11 @@ export function AuthShell({
       <div className="auth-shell-grid relative z-10 mx-auto grid h-full min-h-0 w-full max-w-6xl grid-cols-1 content-center gap-4 overflow-hidden px-4 py-3 sm:gap-5 md:grid-cols-[0.68fr_1fr] md:items-center md:px-6 lg:grid-cols-[0.78fr_1fr] lg:gap-10 xl:px-8">
         <section className="mesh-pop-in min-w-0">
           <MeshiBrandLockup href="/" size={32} label={meshBrand.name} subtitle={`${meshBrand.meshi.name} is your identity`} className="text-base sm:text-lg" />
-          <p className="mt-3 inline-flex items-center gap-2 rounded-full border border-[var(--accent)]/25 bg-[var(--accent)]/10 px-3 py-1.5 text-xs font-semibold text-[var(--accent-text)] sm:py-2 sm:text-sm">
+          {/* `inline-flex` let the pill flow on the SAME line as the lockup's
+              inline content — its border sat flush against "Meshi is your
+              identity" (0px gap; journey audit). Block-level flex + w-fit
+              keeps the pill shape and gives it its own row. */}
+          <p className="mt-3 flex w-fit items-center gap-2 rounded-full border border-[var(--accent)]/25 bg-[var(--accent)]/10 px-3 py-1.5 text-xs font-semibold text-[var(--accent-text)] sm:py-2 sm:text-sm">
             <ShieldCheck size={15} aria-hidden="true" />
             Privacy first
           </p>

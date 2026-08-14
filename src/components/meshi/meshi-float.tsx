@@ -254,6 +254,13 @@ export function MeshiFloat() {
 
   const pathname = usePathname();
   const onMeshRoute = isMeshSurfacePath(pathname);
+  // On phone-width Flow the action rail owns the right edge, and the shell's
+  // corner slot lands exactly on the rail's bottom key — the audit measured the
+  // mascot covering "Why this?" dead-center at 390px. Chrome yields to content
+  // (the same law that moves this shell above the FAB). JS only NAMES the route
+  // via data-on-flow; the dock CSS in globals.css stays the one authority for
+  // where — and whether — Meshi stands.
+  const onFlowRoute = pathname === "/flow" || pathname.startsWith("/flow/");
   // The canvas reports when it is actually drawing you. Until it does, the float
   // stays — so the walk into your mesh, the wait while it weaves, and the arrival
   // are one continuous character rather than three that replace each other.
@@ -869,6 +876,7 @@ export function MeshiFloat() {
           data-meshi-singleton="true"
           data-meshi-instance-id={instanceId}
           data-meshi-owned="true"
+          data-on-flow={onFlowRoute ? "true" : undefined}
           className="meshi-float-shell fixed z-40"
           initial={{ opacity: 0, scale: 0.5 }}
           animate={{

@@ -232,13 +232,17 @@ export function SearchClient({ initialQuery }: { initialQuery: string }) {
     return () => controller.abort();
   }, [submittedQuery]);
 
+  // sourceIndex is deliberately COUNTED NOWHERE: those tiles are doors to
+  // other platforms' search, not results. Counting them made a nonsense query
+  // read "Top 4" and made the honest "No results yet" state unreachable
+  // (journey audit).
   const totals = useMemo(() => ({
     posts: results.posts.length + results.platformPosts.length,
     people: results.users.length + results.platformPeople.length,
-    connected: results.platformPosts.length + results.platformPeople.length + results.sourceIndex.length,
+    connected: results.platformPosts.length + results.platformPeople.length,
     messages: results.messages.length,
     web: results.wikipedia.length,
-    top: results.users.length + results.posts.length + results.communities.length + results.platformPosts.length + results.platformPeople.length + results.messages.length + results.wikipedia.length + results.sourceIndex.length,
+    top: results.users.length + results.posts.length + results.communities.length + results.platformPosts.length + results.platformPeople.length + results.messages.length + results.wikipedia.length,
   }), [results]);
 
   function submit(event: FormEvent<HTMLFormElement>) {
@@ -363,53 +367,6 @@ export function SearchClient({ initialQuery }: { initialQuery: string }) {
         exit="exit"
         className="grid gap-3"
       >
-        {showConnected && results.sourceIndex.length > 0 && (
-          <ResultSection title="Social index sources" icon={Globe2}>
-            <div className="mesh-cascade-soft grid gap-0 md:grid-cols-2">
-              {results.sourceIndex.map((source, index) => (
-                <div key={source.id} style={rowStyle(index)} className="leaf search-result-row search-row-magnetic">
-                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md border border-[var(--border-primary)] bg-[var(--accent-subtle)] text-sm font-semibold text-[var(--accent-text)]">
-                    {source.name.slice(0, 2)}
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="flex flex-wrap items-center gap-2 text-sm font-semibold text-[var(--text-primary)]">
-                      {source.name}
-                      {source.connected ? (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/12 px-2 py-0.5 text-micro text-[var(--success)]">
-                          <CheckCircle2 size={12} aria-hidden="true" />
-                          Synced
-                        </span>
-                      ) : (
-                        <span className="rounded-full border border-[var(--border-primary)] px-2 py-0.5 text-micro text-[var(--text-muted)]">
-                          Connectable
-                        </span>
-                      )}
-                    </span>
-                    <span className="mt-1 block text-xs text-[var(--text-muted)]">
-                      {source.connected
-                        ? `@${source.accountLabel || "connected"} - ${formatCount(source.syncedPosts)} posts - ${formatCount(source.syncedPeople)} people`
-                        : "Use the official source search now, then connect it to bring results into Mesh.me."}
-                    </span>
-                    <span className="mt-1 block line-clamp-2 text-sm text-[var(--text-secondary)]">{source.description}</span>
-                    <span className="mt-3 flex flex-wrap gap-2">
-                      <a href={source.searchUrl} target="_blank" rel="noreferrer" className="mesh-action mesh-action-secondary min-h-9 px-3 text-xs">
-                        Search {source.name}
-                        <ExternalLink size={13} aria-hidden="true" />
-                      </a>
-                      {!source.connected && (
-                        <Link href={source.connectHref} className="mesh-action mesh-action-primary min-h-9 px-3 text-xs">
-                          Connect
-                          <Link2 size={13} aria-hidden="true" />
-                        </Link>
-                      )}
-                    </span>
-                  </span>
-                </div>
-              ))}
-            </div>
-          </ResultSection>
-        )}
-
         {showPeople && results.users.length > 0 && (
           <ResultSection title="People on Mesh.me" icon={UserRound}>
             {results.users.map((user, index) => (
@@ -558,6 +515,66 @@ export function SearchClient({ initialQuery }: { initialQuery: string }) {
             ))}
           </ResultSection>
         )}
+        {activeTab !== "top" && totals[activeTab] === 0 && totals.top > 0 && !isPending && submittedQuery.length > 1 && (
+          <div className="mesh-surface rounded-lg p-6 text-center">
+            <p className="text-sm font-semibold text-[var(--text-primary)]">
+              Nothing in {tabs.find((tab) => tab.id === activeTab)?.label ?? "this lane"} matched &ldquo;{submittedQuery}&rdquo;
+            </p>
+            <p className="mt-1 text-xs text-[var(--text-muted)]">
+              The other tabs still hold {totals.top} {totals.top === 1 ? "result" : "results"} — or try a different search.
+            </p>
+          </div>
+        )}
+
+        {/* Doors to other platforms' search render BELOW real results — they
+            used to rank above them on every query (journey audit). */}
+        {showConnected && results.sourceIndex.length > 0 && (
+          <ResultSection title="Social index sources" icon={Globe2}>
+            <div className="mesh-cascade-soft grid gap-0 md:grid-cols-2">
+              {results.sourceIndex.map((source, index) => (
+                <div key={source.id} style={rowStyle(index)} className="leaf search-result-row search-row-magnetic">
+                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md border border-[var(--border-primary)] bg-[var(--accent-subtle)] text-sm font-semibold text-[var(--accent-text)]">
+                    {source.name.slice(0, 2)}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="flex flex-wrap items-center gap-2 text-sm font-semibold text-[var(--text-primary)]">
+                      {source.name}
+                      {source.connected ? (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/12 px-2 py-0.5 text-micro text-[var(--success)]">
+                          <CheckCircle2 size={12} aria-hidden="true" />
+                          Synced
+                        </span>
+                      ) : (
+                        <span className="rounded-full border border-[var(--border-primary)] px-2 py-0.5 text-micro text-[var(--text-muted)]">
+                          Connectable
+                        </span>
+                      )}
+                    </span>
+                    <span className="mt-1 block text-xs text-[var(--text-muted)]">
+                      {source.connected
+                        ? `@${source.accountLabel || "connected"} - ${formatCount(source.syncedPosts)} posts - ${formatCount(source.syncedPeople)} people`
+                        : "Use the official source search now, then connect it to bring results into Mesh.me."}
+                    </span>
+                    <span className="mt-1 block line-clamp-2 text-sm text-[var(--text-secondary)]">{source.description}</span>
+                    <span className="mt-3 flex flex-wrap gap-2">
+                      <a href={source.searchUrl} target="_blank" rel="noreferrer" className="mesh-action mesh-action-secondary min-h-9 px-3 text-xs">
+                        Search {source.name}
+                        <ExternalLink size={13} aria-hidden="true" />
+                      </a>
+                      {!source.connected && (
+                        <Link href={source.connectHref} className="mesh-action mesh-action-primary min-h-9 px-3 text-xs">
+                          Connect
+                          <Link2 size={13} aria-hidden="true" />
+                        </Link>
+                      )}
+                    </span>
+                  </span>
+                </div>
+              ))}
+            </div>
+          </ResultSection>
+        )}
+
       </motion.section>
       </AnimatePresence>
     </main>

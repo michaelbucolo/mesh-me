@@ -102,8 +102,17 @@ export function PostDetailClient({ post, currentUserId }: PostDetailClientProps)
   const visualMedia = post.media.filter((item) => isVisualMedia(item.type));
   const linkMedia = post.media.filter((item) => !isVisualMedia(item.type));
 
+  // A guest's tap on Like/Comment/Repost/Save was a silent no-op — the buttons
+  // kept their hover tints and did nothing (journey audit). An action that
+  // needs an account is a door to signing in, and the door remembers the post.
+  const requireSignIn = () => {
+    if (currentUserId) return false;
+    router.push(`/login?next=${encodeURIComponent(`/feed/${post.id}`)}`);
+    return true;
+  };
+
   const handleLike = () => {
-    if (!currentUserId) return;
+    if (requireSignIn()) return;
     const prevLiked = liked;
     const prevCount = likeCount;
     setLiked(!prevLiked);
@@ -119,7 +128,7 @@ export function PostDetailClient({ post, currentUserId }: PostDetailClientProps)
   };
 
   const handleSave = () => {
-    if (!currentUserId) return;
+    if (requireSignIn()) return;
     const prevSaved = saved;
     setSaved(!prevSaved);
     startTransition(async () => {
@@ -129,7 +138,7 @@ export function PostDetailClient({ post, currentUserId }: PostDetailClientProps)
   };
 
   const handleRepost = () => {
-    if (!currentUserId) return;
+    if (requireSignIn()) return;
     startTransition(async () => {
       const result = await repost(post.id);
       if (result && "reposted" in result) {
@@ -312,6 +321,9 @@ export function PostDetailClient({ post, currentUserId }: PostDetailClientProps)
             </button>
             <button
               onClick={() => {
+                // The composer only renders for members, so a guest's Comment
+                // tap focused nothing at all.
+                if (requireSignIn()) return;
                 setReplyingTo(null);
                 commentInputRef.current?.focus();
               }}
@@ -335,6 +347,8 @@ export function PostDetailClient({ post, currentUserId }: PostDetailClientProps)
             </button>
             <button
               onClick={handleSave}
+              aria-label={saved ? "Remove from saved" : "Save post"}
+              title={saved ? "Remove from saved" : "Save post"}
               className={cn("p-2 rounded-lg transition-colors", saved ? "text-[var(--accent-text)]" : "text-[var(--text-muted)] hover:text-[var(--accent-text)]")}
             >
               <Bookmark className={cn("h-5 w-5", saved && "fill-current")} />

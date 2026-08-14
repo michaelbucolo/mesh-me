@@ -170,8 +170,10 @@ export function MeshiDelivery() {
               {current.message}
             </p>
             <div className="mt-2 flex items-center gap-1.5">
+              {/* The reply door opens the sender's conversation, not the
+                  conversation list — /messages?with= resolves server-side. */}
               <Link
-                href="/messages"
+                href={`/messages?with=${encodeURIComponent(current.fromUsername)}`}
                 onClick={dismissCurrent}
                 className="flex items-center gap-1 rounded-lg brand-button px-2.5 py-1 text-micro font-semibold shadow transition-[color,background-color,border-color,box-shadow,transform,opacity] hover:shadow-md"
               >

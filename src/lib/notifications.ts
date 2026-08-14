@@ -185,7 +185,16 @@ function getNotificationHref(notification: Pick<SerializedNotification, "type" |
   // A wardrobe gift opens the wardrobe you can now wear.
   if (notification.type === "meshi_gift") return "/settings?tab=meshi";
   if (notification.postId) return `/feed/${notification.postId}`;
-  if (notification.category === "messages") return "/messages";
+  // A message door opens the CONVERSATION, not the conversation list — the
+  // notification row doesn't store a threadId, but it knows who spoke, and
+  // /messages?with=<username> resolves that to the direct thread server-side
+  // (journey audit: every message door outside the inbox dead-ended at the
+  // index while /messages/<threadId> existed and worked).
+  if (notification.category === "messages") {
+    return notification.actor?.username
+      ? `/messages?with=${encodeURIComponent(notification.actor.username)}`
+      : "/messages";
+  }
   if (notification.category === "security") return "/settings?tab=security";
   if (notification.category === "privacy") return "/settings?tab=privacy";
   if (notification.category === "communities" && notification.post?.community?.slug) {

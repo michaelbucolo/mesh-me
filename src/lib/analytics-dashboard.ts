@@ -796,7 +796,11 @@ async function loadAnalyticsDashboardUncached(user: AnalyticsUser) {
       totalShares: platformTotals._sum.shareCount || 0,
       totalFollowers: totalFollowersFromPlatforms,
       watchTimeSeconds: totalWatchSeconds,
-      averageEngagementRate: engagementRate(totalNativeEngagement + totalPlatformEngagement, totalPlatformViews, totalFollowersFromPlatforms),
+      // Same inputs as overview.engagementRate above — the page once showed
+      // "100.0%" and "0.0%" for near-identically-labelled rates because this
+      // one dropped native followers from the fallback (journey audit). One
+      // definition, two surfaces.
+      averageEngagementRate: engagementRate(totalNativeEngagement + totalPlatformEngagement, totalPlatformViews, totalFollowersFromPlatforms + nativeFollowerTotal),
       bestPlatform: platformComparison
         .slice()
         .sort((a, b) => b.totalViews + b.totalLikes * 8 + b.totalComments * 12 - (a.totalViews + a.totalLikes * 8 + a.totalComments * 12))[0] || null,

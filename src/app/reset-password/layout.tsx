@@ -1,11 +1,9 @@
-import type { Metadata } from "next";
-import type { ReactNode } from "react";
+// The page itself is a client component, so the route segment config lives
+// here: prerendered HTML froze build-time markup while the proxy stamps a
+// fresh CSP nonce per request — every script on the cached page was refused.
+// Per-request rendering lets Next stamp the live nonce onto its scripts.
+export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  title: "Reset password",
-  description: "Choose a new password to get back into your Mesh.",
-};
-
-export default function ResetPasswordLayout({ children }: { children: ReactNode }) {
+export default function ResetPasswordLayout({ children }: { children: React.ReactNode }) {
   return children;
 }

@@ -936,6 +936,12 @@ export function MeChatThread({
             data-testid="mechat-search-input"
             value={searchQuery}
             onChange={(event) => setSearchQuery(event.target.value)}
+            onKeyDown={(event) => {
+              // A filtered thread had no exit: Escape did nothing and no
+              // clear control existed — the only way out was backspacing the
+              // text (journey audit).
+              if (event.key === "Escape" && searchQuery) setSearchQuery("");
+            }}
             className="mesh-search-input min-w-0 flex-1 bg-transparent outline-none placeholder:text-[var(--text-muted)]"
             placeholder="Search this conversation"
             suppressHydrationWarning
@@ -944,6 +950,16 @@ export function MeChatThread({
             <span role="status" className="text-xs font-semibold text-[var(--text-muted)]">
               {searchCount} {searchCount === 1 ? "match" : "matches"}
             </span>
+          )}
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery("")}
+              aria-label="Clear conversation search"
+              className="-m-2 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[var(--text-muted)] transition-colors hover:text-[var(--text-primary)]"
+            >
+              <X size={14} aria-hidden="true" />
+            </button>
           )}
         </label>
 
@@ -1025,7 +1041,12 @@ export function MeChatThread({
           // Near the top: pull the previous page of history into view.
           if (el.scrollTop < 80) void fetchOlder();
         }}
-        className="min-h-0 overflow-y-auto px-3 py-4 md:px-4"
+        // overflow-x-clip: the pinned action bars are absolutely positioned
+        // children — nothing they do may make the CONVERSATION h-scrollable
+        // (the side-floating bars once did, even idle; journey audit). The
+        // phone-width bottom padding scrolls the newest message's meta line
+        // clear of the floating Meshi assistant that parks bottom-right.
+        className="min-h-0 overflow-y-auto overflow-x-clip px-3 pt-4 pb-20 md:px-4 md:pb-4"
       >
         {visibleMessages.length > 0 ? (
           <div className="grid">
@@ -1125,16 +1146,19 @@ export function MeChatThread({
                           if (event.key === "Escape") setActionsFor(null);
                         }}
                         className={`absolute z-10 items-center gap-0.5 rounded-[var(--radius-lg)] border border-[var(--rule)] bg-[var(--paper-1)] px-1.5 py-1 shadow-[var(--shadow-float)] ${
-                          /* Below md the bar pins ABOVE the bubble, growing
-                             inward from the bubble's edge and wrapping within
-                             the viewport — at left-full/right-full it rendered
-                             almost entirely off a 390px screen (own-message
-                             keys unreachable by ANY scroll; journey audit).
-                             At md+ it floats beside the bubble as before. */
+                          /* The bar pins ABOVE the bubble at EVERY width,
+                             growing inward from the bubble's edge and wrapping
+                             within its pane. Side-floating (left-full/
+                             right-full) put it off a 390px screen AND clipped
+                             it past the desktop 3-column thread pane's edges —
+                             the pane was even idly h-scrollable from the
+                             hidden bars (journey audit). Overlapping the
+                             message above transiently is the Slack/Discord
+                             answer, and it never leaves the pane. */
                           isMine
-                            ? "bottom-full right-0 mb-1.5 md:bottom-auto md:right-full md:mb-0 md:mr-2 md:top-1/2 md:-translate-y-1/2"
-                            : "bottom-full left-0 mb-1.5 md:bottom-auto md:left-full md:mb-0 md:ml-2 md:top-1/2 md:-translate-y-1/2"
-                        } flex-wrap max-w-[min(20rem,88vw)] md:flex-nowrap md:max-w-none ${
+                            ? "bottom-full right-0 mb-1.5"
+                            : "bottom-full left-0 mb-1.5"
+                        } flex-wrap max-w-[min(20rem,88vw)] ${
                           pinnedActions
                             ? "flex"
                             // Below md: display-gated (an always-in-tree bar at

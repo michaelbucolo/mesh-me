@@ -166,15 +166,20 @@ function isFlowEligible(post: FeedCardPost): boolean {
  * instead of just rendering one. Silent truncation reads as "there is nothing
  * to show" when the truth is "we could not tell what these were".
  */
-export function flowFormStats(posts: FeedCardPost[]): { kept: number; long: number; unknown: number } {
-  let kept = 0, long = 0, unknown = 0;
+export function flowFormStats(posts: FeedCardPost[]): { kept: number; long: number; unknown: number; notVideo: number } {
+  let kept = 0, long = 0, unknown = 0, notVideo = 0;
   for (const post of posts) {
     const cls = flowFormClass(post);
     if (cls === "short") kept += 1;
     else if (cls === "long") long += 1;
+    // "unknown" used to lump native text posts in with videos missing
+    // metadata, so the empty-Flow copy claimed they "did not report a
+    // length" — a text post never had one to report (journey audit). Count
+    // them as what they are: not videos at all.
+    else if (!post.externalUrl && !post.media?.some((m) => (m.type || "").toLowerCase().includes("video"))) notVideo += 1;
     else unknown += 1;
   }
-  return { kept, long, unknown };
+  return { kept, long, unknown, notVideo };
 }
 
 /**

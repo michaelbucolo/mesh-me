@@ -232,7 +232,10 @@ function MeshEmptyHint({
   onCompose: () => void;
 }) {
   return (
-    <div className="pointer-events-none absolute inset-x-0 bottom-8 z-30 flex justify-center px-6">
+    // bottom-8 alone sat the pill's lower half behind the mobile tab bar
+    // (audit: 24px of the pill clipped at 390x844); below md the anchor
+    // clears the nav plus the same breathing room.
+    <div className="pointer-events-none absolute inset-x-0 bottom-[calc(var(--mobile-nav-h)+2rem)] z-30 flex justify-center px-6 md:bottom-8">
       <div className="mesh-glass pointer-events-auto flex max-w-sm flex-col items-center gap-2.5 rounded-2xl px-5 py-4 text-center">
         <p className="text-sm text-[var(--text-secondary)]">
           {viewedUser

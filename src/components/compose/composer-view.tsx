@@ -146,7 +146,7 @@ export function ComposerView({ targets, queueCount = 0 }: { targets: ComposerTar
         </h1>
         {/* The queue's door lives on the compose surface — a second segment,
             not a sixth tab. The count is the affordance the queue exists. */}
-        <Link href="/compose/queue" className="text-sm font-medium underline-offset-4 hover:underline" style={{ color: INK_DIM }}>
+        <Link href="/compose/queue" className="flex min-h-11 items-center text-sm font-medium underline-offset-4 hover:underline" style={{ color: INK_DIM }}>
           Queue{queueCount > 0 ? ` (${queueCount})` : ""}
         </Link>
       </div>

@@ -79,3 +79,9 @@ export default function AboutPage() {
     </PublicSiteShell>
   );
 }
+
+// Prerendered HTML freezes build-time markup while the proxy stamps a fresh CSP
+// nonce per request — every script on the cached page was refused (~25 console
+// errors, zero hydration; journey audit). Per-request rendering lets Next stamp
+// the live nonce onto its scripts, the same way every dynamic page already works.
+export const dynamic = "force-dynamic";

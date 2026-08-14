@@ -85,22 +85,26 @@ const postCard = strip(read("src/components/feed/post-card.tsx"));
   } else ok();
 }
 
-// ── 3. Message keys stay on screen ───────────────────────────────────────────
+// ── 3. Message keys stay on screen — at EVERY width ──────────────────────────
+// The bar's second life: side-floating clipped it off a 390px screen AND past
+// the desktop 3-column thread pane (365px wide at 1440 — narrower than a
+// phone), leaving the pane idly h-scrollable. The bar now pins above the
+// bubble everywhere and never side-floats, and the scroll pane clips x.
 {
   // The div opens with its testid; className (and the placement ternary)
   // follow it, so the scan window extends FORWARD from the anchor.
   const barAt = mechatThread.indexOf('data-testid="mechat-message-actions"');
   const bar = mechatThread.slice(barAt, barAt + 2400);
   if (!/bottom-full/.test(bar)) {
-    fail("3 mechat", "the pinned bar lost its above-the-bubble mobile placement");
+    fail("3 mechat", "the pinned bar lost its above-the-bubble placement");
   } else ok();
-  // The original defect verbatim: unprefixed side placement applying at all
-  // widths. Side placement must be md:-scoped.
-  if (/"right-full mr-2"|"left-full ml-2"/.test(bar)) {
-    fail("3 mechat", "the action bar's side placement lost its md: scope — keys render off a 390px screen again");
+  // The original defect verbatim: side placement (any scope) puts the bar
+  // outside a pane that can be as narrow as 365px on a full desktop.
+  if (/right-full|left-full/.test(bar)) {
+    fail("3 mechat", "the action bar side-floats again — keys clip off the pane edge (390px screens AND the desktop 3-column thread pane)");
   } else ok();
-  if (!/md:right-full/.test(bar) || !/md:left-full/.test(bar)) {
-    fail("3 mechat", "the desktop side placement is gone from the pinned bar");
+  if (!/overflow-x-clip/.test(mechatThread)) {
+    fail("3 mechat", "the conversation pane lost overflow-x-clip — absolutely-positioned children can make it h-scrollable again");
   } else ok();
 }
 
