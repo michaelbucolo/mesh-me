@@ -224,6 +224,10 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
       if (result?.mode === "sign-up") {
         setPreview(null);
         setSignupDraft(result.prefill ?? { email: "", username: "", phone: "" });
+        // The stage used to swap silently — a member who mistyped their real
+        // email was steered into creating a duplicate account with no "not
+        // found" anywhere (journey audit). Say why the form changed.
+        setMessage(`No account matches "${value.trim()}" — create one below, or go back if you mistyped.`);
         setStage("signup");
         return;
       }
@@ -261,7 +265,7 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
       if (nextPath) form.set("next", nextPath);
       const result = await signInForEntry(form);
       if (result && "error" in result && result.error) {
-        setMessage(result.error === "Invalid email or password" ? "That password didn't work. Try again." : result.error);
+        setMessage(result.error === "Invalid email or password" ? "That password didn't work — try again, or reset it below." : result.error);
         shake();
         window.setTimeout(() => passwordRef.current?.focus(), 80);
         return;
@@ -505,11 +509,16 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
                 bouncy
               />
             </div>
-            <p className="mesh-gate-bubble">
+            {/* ONE voice for a wrong password: Meshi's bubble carries the
+                actual message. It used to say "Incorrect password…" while a
+                red line below simultaneously said "That password didn't
+                work…" — two phrasings of one fact on the calmest screen in
+                the product (journey audit). */}
+            <p className="mesh-gate-bubble" role={message && !success ? "alert" : undefined}>
               {success
                 ? "Signing you in…"
                 : message
-                  ? "Incorrect password. Try again or reset it."
+                  ? message
                   : greetingName
                     ? `Welcome back, @${greetingName}.`
                     : "Enter your password."}
@@ -551,7 +560,6 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
                 {isPending || success ? <PaperWait size="sm" /> : <ArrowRight className="h-4 w-4" />}
               </button>
             </div>
-            {message && <p className="mesh-gate-msg" role="alert">{message}</p>}
             <div className="mesh-gate-inline">
               <button type="button" onClick={backToIdentity} className="mesh-gate-textlink">Not you?</button>
               <button

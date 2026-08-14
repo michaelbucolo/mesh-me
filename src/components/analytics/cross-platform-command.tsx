@@ -264,8 +264,15 @@ export function CrossPlatformCommand({ data }: { data: AnalyticsDashboardData })
     mkRow("content", "Content — where you publish", contentParts),
   ];
 
-  const byReach = platforms.slice().sort((a, b) => b.followerCount - a.followerCount)[0] || null;
-  const byViews = platforms.slice().sort((a, b) => b.totalViews - a.totalViews)[0] || null;
+  // Crowns follow the same rules as the share bars beside them: mesh.me is a
+  // candidate, and nobody wins a crown with zero. A never-synced platform once
+  // took "Biggest audience — 0 followers" while the Audience bar showed
+  // mesh.me at 100% (journey audit).
+  const byReach = [
+    { platform: "mesh.me", followerCount: nativeAudience },
+    ...platforms.map((p) => ({ platform: p.platform, followerCount: p.followerCount })),
+  ].filter((p) => p.followerCount > 0).sort((a, b) => b.followerCount - a.followerCount)[0] || null;
+  const byViews = platforms.filter((p) => p.totalViews > 0).sort((a, b) => b.totalViews - a.totalViews)[0] || null;
   const byRate = platforms
     .filter((p) => p.followerCount > 0 || p.totalViews > 0)
     .slice()
@@ -294,7 +301,7 @@ export function CrossPlatformCommand({ data }: { data: AnalyticsDashboardData })
         </div>
         <Link
           href="/connected-accounts"
-          className="rounded-full border border-[var(--border-primary)] bg-[var(--bg-primary)]/60 px-3.5 py-1.5 text-xs font-semibold text-[var(--text-secondary)] transition hover:text-[var(--text-primary)]"
+          className="flex min-h-11 items-center rounded-full border border-[var(--border-primary)] bg-[var(--bg-primary)]/60 px-3.5 py-1.5 text-xs font-semibold text-[var(--text-secondary)] transition hover:text-[var(--text-primary)]"
         >
           Connect more platforms
         </Link>

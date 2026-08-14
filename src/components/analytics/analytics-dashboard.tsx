@@ -533,7 +533,7 @@ export function AnalyticsDashboard({ data, embedded = false }: { data: Analytics
         <Stat index={0} icon={Users} label="Audience" value={compact(data.overview.totalFollowers)} rawValue={data.overview.totalFollowers} format={compact} sub={`${data.overview.connectedAccounts} ${data.overview.connectedAccounts === 1 ? "platform" : "platforms"} connected`} points={data.charts.followerGrowth} tone="#34d399" />
         <Stat index={1} icon={Eye} label="Views" value={compact(data.overview.totalViews)} rawValue={data.overview.totalViews} format={compact} sub="across synced content" />
         <Stat index={2} icon={Heart} label="Engagement" value={compact(data.overview.totalEngagement)} rawValue={data.overview.totalEngagement} format={compact} sub="likes · comments · shares" points={data.charts.engagement} tone="#2f7cff" />
-        <Stat index={3} icon={Gauge} label="Eng. rate" value={pct(data.overview.engagementRate)} rawValue={data.overview.engagementRate} format={pct} sub="of your audience responds" />
+        <Stat index={3} icon={Gauge} label="Eng. rate" value={pct(data.overview.engagementRate)} rawValue={data.overview.engagementRate} format={pct} sub="engagements vs. audience size" />
         <Stat index={4} icon={Clock3} label="Watch time" value={duration(data.overview.watchTimeSeconds)} rawValue={data.overview.watchTimeSeconds} format={duration} sub="synced video content" />
         <Stat index={5} icon={FileText} label="Content" value={compact(data.overview.totalContent)} rawValue={data.overview.totalContent} format={compact} sub={`${fmt(data.overview.nativePosts)} on mesh.me`} points={data.charts.content} tone="#a78bfa" />
       </section>

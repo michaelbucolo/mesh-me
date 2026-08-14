@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, Bookmark, Check, ChevronLeft, ChevronRight, Heart, Info, Link2, Maximize2, MessageCircle, Minimize2, Music2, Play, Send, SlidersHorizontal, Sparkles, VolumeX, Volume2, X } from "lucide-react";
 import { toggleFollow, toggleReaction, setFlowLike, toggleSavePost } from "@/lib/actions";
 import { getVideoEmbedUrl } from "@/lib/video-embed";
+import { safeHref } from "@/lib/utils";
 import { attachNormalizer } from "@/lib/audio-normalize";
 import { playSound } from "@/lib/sound";
 import { useToast } from "@/components/ui/toast";
@@ -30,6 +31,10 @@ export type FlowPost = {
   platform?: string;
   url?: string | null;
   externalUrl?: string | null;
+  /** External items only: the real author identity on the source platform.
+   * A public/external item is never given a mesh profile link — its truth
+   * lives here (see public-supply/normalize.ts). */
+  externalAuthor?: { name: string; username?: string | null; avatarUrl?: string | null; profileUrl?: string | null } | null;
   // Honest recommendation reason, computed by the ranker server-side.
   whyThis?: string;
   // Source visibility, preserved verbatim from the platform of origin.
@@ -510,6 +515,7 @@ function Reel({
   laneIndex,
   laneTotal,
   laneLoading,
+  laneTried,
   slideDir,
   onLaneSwipe,
   signedOut = false,
@@ -529,6 +535,7 @@ function Reel({
   laneIndex: number;
   laneTotal: number;
   laneLoading: boolean;
+  laneTried: boolean;
   slideDir: 1 | -1 | 0;
   onLaneSwipe: (dir: 1 | -1) => void;
   signedOut?: boolean;
@@ -605,6 +612,7 @@ function Reel({
             laneIndex={laneIndex}
             laneTotal={laneTotal}
             laneLoading={laneLoading}
+            laneTried={laneTried}
             dir={slideDir}
             onLaneSwipe={onLaneSwipe}
             signedOut={signedOut}
@@ -631,6 +639,7 @@ function ReelContent({
   laneIndex,
   laneTotal,
   laneLoading,
+  laneTried,
   dir,
   onLaneSwipe,
   signedOut,
@@ -648,6 +657,7 @@ function ReelContent({
   laneIndex: number;
   laneTotal: number;
   laneLoading: boolean;
+  laneTried: boolean;
   dir: 1 | -1 | 0;
   onLaneSwipe: (dir: 1 | -1) => void;
   signedOut: boolean;
@@ -917,6 +927,13 @@ function ReelContent({
               <OrbitSparkle size={12} /> Finding similar…
             </span>
           )}
+          {/* A dry lane says so instead of silently un-rendering its chevron —
+              "Finding similar…" flashing into nothing read as breakage. */}
+          {!laneLoading && laneTried && laneTotal === 0 && (
+            <span className="absolute left-1/2 top-16 z-10 flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-black/60 px-3 py-1 text-micro font-semibold text-white/80 backdrop-blur">
+              <Sparkles size={12} /> Nothing similar right now
+            </span>
+          )}
           {!laneLoading && laneIndex > 0 && (
             <span className="absolute left-1/2 top-16 z-10 flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-black/60 px-3 py-1 text-micro font-semibold text-white backdrop-blur">
               <Sparkles size={12} /> Similar {laneIndex}/{laneTotal}
@@ -936,7 +953,7 @@ function ReelContent({
                   <ChevronLeft size={20} />
                 </button>
               )}
-              {(laneTotal === 0 || laneIndex < laneTotal) && (
+              {((laneTotal === 0 && !laneTried) || laneIndex < laneTotal) && (
                 <button
                   type="button"
                   aria-label="More like this"
@@ -968,17 +985,44 @@ function ReelContent({
           <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent pb-4 pt-16" />
           <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-3 p-4 pr-16" onClick={(e) => e.stopPropagation()}>
             <div className="pointer-events-auto min-w-0 flex-1 text-white">
-              <Link href={`/profile/${post.author.username}`} className="flex items-center gap-2">
-                {post.author.avatarUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={post.author.avatarUrl} alt="" loading="lazy" decoding="async" className="h-8 w-8 rounded-full object-cover ring-1 ring-white/40" />
-                ) : (
-                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20 text-xs font-semibold">
-                    {(post.author.displayName || post.author.username).slice(0, 1).toUpperCase()}
-                  </span>
-                )}
-                <span className="truncate text-sm font-semibold">@{post.author.username}</span>
-              </Link>
+              {(() => {
+                // The author row is a door, and a door must open: for external
+                // reels the synthesized author has NO mesh profile —
+                // /profile/<channel name> was a guaranteed 404 (journey
+                // audit). The truth lives in externalAuthor.profileUrl; with
+                // neither a native author nor a source URL, the row is a
+                // label, not a link.
+                const nativeAuthor = !post.platform || ["mesh", "meshme"].includes(post.platform.toLowerCase());
+                const authorRow = (
+                  <>
+                    {post.author.avatarUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={post.author.avatarUrl} alt="" loading="lazy" decoding="async" className="h-8 w-8 rounded-full object-cover ring-1 ring-white/40" />
+                    ) : (
+                      <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20 text-xs font-semibold">
+                        {(post.author.displayName || post.author.username).slice(0, 1).toUpperCase()}
+                      </span>
+                    )}
+                    <span className="truncate text-sm font-semibold">@{post.author.username}</span>
+                  </>
+                );
+                if (nativeAuthor) {
+                  return (
+                    <Link href={`/profile/${post.author.username}`} className="flex items-center gap-2">
+                      {authorRow}
+                    </Link>
+                  );
+                }
+                const externalProfile = safeHref(post.externalAuthor?.profileUrl ?? null);
+                if (externalProfile) {
+                  return (
+                    <a href={externalProfile} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
+                      {authorRow}
+                    </a>
+                  );
+                }
+                return <span className="flex items-center gap-2">{authorRow}</span>;
+              })()}
               {post.content && post.media.length > 0 && (
                 <div className="mt-2 max-w-full text-[0.78125rem] leading-snug text-white/90">
                   {/* Captions default to 2 lines; a `<p>` (not a `block` button)
@@ -1058,7 +1102,10 @@ function ReelContent({
   );
 }
 
-type LaneState = { posts: FlowPost[]; index: number; loading: boolean };
+// `tried` separates "never asked for similar" from "asked and got nothing" —
+// without it a failed/empty lane looked identical to an untried one, so the
+// right chevron stayed visible but permanently inert (journey audit).
+type LaneState = { posts: FlowPost[]; index: number; loading: boolean; tried?: boolean };
 
 // Algorithm Studio: the viewer steers the ranking. Persisted locally, sent
 // with every ranked fetch, reflected in "Why this?".
@@ -1138,6 +1185,22 @@ const SEEN_CAP = 500;
 
 // Cold start: instead of a dead end, an empty Flow offers real people to
 // follow — one tap each — and then pulls the feed those follows unlock.
+// The empty screen names what the shorts-only rule removed — and names it
+// truthfully. Text posts used to be counted as videos that "did not report a
+// length"; they never had one to report (journey audit).
+function describeFiltered(stats?: { long?: number; unknown?: number; notVideo?: number }) {
+  const long = stats?.long ?? 0;
+  const unknown = stats?.unknown ?? 0;
+  const notVideo = stats?.notVideo ?? 0;
+  const parts: string[] = [];
+  if (long) parts.push(`${long} long-form ${long === 1 ? "video" : "videos"}`);
+  if (unknown) parts.push(`${unknown} ${unknown === 1 ? "video" : "videos"} with no length data`);
+  if (notVideo) parts.push(`${notVideo} ${notVideo === 1 ? "post that isn't a video" : "posts that aren't videos"}`);
+  return parts.length > 0
+    ? `Your sources' recent items didn't qualify: ${parts.join(", ")}`
+    : "Nothing from your sources qualifies right now";
+}
+
 function FlowColdStart({
   people,
   refreshing,
@@ -1148,14 +1211,14 @@ function FlowColdStart({
   people: FlowSuggestedPerson[];
   refreshing: boolean;
   onLoadFlow: () => void;
-  formStats?: { kept: number; long: number; unknown: number };
+  formStats?: { kept: number; long: number; unknown: number; notVideo?: number };
   /** The server claimed a public-supply refresh for this empty read. */
   supplyRefreshing?: boolean;
 }) {
   // The Flow is shorts and reels only. When the pool was NOT empty but nothing
   // in it was short-form, saying "follow a few people" is simply wrong advice —
   // the viewer already has sources. Say what actually happened.
-  const filtered = (formStats?.long ?? 0) + (formStats?.unknown ?? 0);
+  const filtered = (formStats?.long ?? 0) + (formStats?.unknown ?? 0) + (formStats?.notVideo ?? 0);
   const filteredOnly = filtered > 0 && (formStats?.kept ?? 0) === 0;
   const [followed, setFollowed] = useState<Set<string>>(new Set());
   const [, startFollow] = useTransition();
@@ -1187,7 +1250,7 @@ function FlowColdStart({
         </p>
         <p className="mx-auto mt-1 max-w-sm text-sm text-white/55">
           {filteredOnly
-            ? `Flow plays shorts and reels only. ${filtered} recent ${filtered === 1 ? "item" : "items"} from your sources ${filtered === 1 ? "was" : "were"} long-form or did not report a length, so ${filtered === 1 ? "it is" : "they are"} not shown here — you will still find ${filtered === 1 ? "it" : "them"} in your feed.`
+            ? `Flow plays shorts and reels only. ${describeFiltered(formStats)} — everything is still in your feed.`
             : "Follow a few people and their posts, videos, and platform content stream here."}
         </p>
         {supplyRefreshing && (
@@ -1269,7 +1332,7 @@ export function FlowClient({
   initialHasMore: boolean;
   /** What the shorts-only rule removed from the candidate pool. Lets an empty
    *  Flow say WHY instead of implying the viewer has no content at all. */
-  formStats?: { kept: number; long: number; unknown: number };
+  formStats?: { kept: number; long: number; unknown: number; notVideo?: number };
   suggestedPeople?: FlowSuggestedPerson[];
   signedOut?: boolean;
   isPro?: boolean;
@@ -1679,11 +1742,11 @@ export function FlowClient({
         const related: FlowPost[] = data && Array.isArray(data.posts) ? data.posts : [];
         setLanes((prev) => ({
           ...prev,
-          [slotId]: { posts: related, index: related.length > 0 ? 1 : 0, loading: false },
+          [slotId]: { posts: related, index: related.length > 0 ? 1 : 0, loading: false, tried: true },
         }));
         if (related.length > 0) setSlideDirs((prev) => ({ ...prev, [slotId]: 1 }));
       } catch {
-        setLanes((prev) => ({ ...prev, [slotId]: { posts: [], index: 0, loading: false } }));
+        setLanes((prev) => ({ ...prev, [slotId]: { posts: [], index: 0, loading: false, tried: true } }));
       }
       return;
     }
@@ -1942,6 +2005,7 @@ export function FlowClient({
               laneIndex={lane?.index ?? 0}
               laneTotal={lane?.posts.length ?? 0}
               laneLoading={lane?.loading ?? false}
+              laneTried={lane?.tried ?? false}
               slideDir={slideDirs[post.id] ?? 0}
               onLaneSwipe={(dir) => void swipeLane(post.id, dir)}
               signedOut={signedOut}

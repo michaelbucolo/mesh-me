@@ -2251,6 +2251,15 @@ body[data-meshi-panel="open"] .bug-report-widget {
   }
 }
 
+/* Phone-width Flow: the reel's action rail owns the right edge and the corner
+   slot lands exactly on its bottom key ("Why this?" was untappable — the
+   mascot intercepted every tap; journey audit). Chrome yields to content. */
+@media (max-width: 767px) {
+  .meshi-float-shell[data-on-flow="true"] {
+    display: none;
+  }
+}
+
 .mesh-pressable {
   transform: translateZ(0);
   transition:
@@ -6978,8 +6987,6 @@ body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  height: 2.2rem;
-  width: 2.2rem;
   border-radius: var(--r-md);
   /* Was `color: #fff` on `var(--brand-gradient)`. A MULTI-STOP GRADIENT HAS NO
      SINGLE CORRECT INK — white measured 3.26:1 on the default fill and 1.04:1
@@ -6994,6 +7001,14 @@ body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
   pointer-events: none;
   box-shadow: var(--shadow-raised);
   transition: opacity 200ms ease, transform 200ms ease, filter 150ms ease;
+  /* 2.2rem visible, but the HIT AREA meets the 44px touch floor: the visual
+     square stays calm while a transparent border catches the thumb. The audit
+     measured 30x30 effective (scale 0.85) on the flagship mobile login. */
+  background-clip: padding-box;
+  border: 5px solid transparent;
+  height: calc(2.2rem + 10px);
+  width: calc(2.2rem + 10px);
+  margin-right: -5px;
 }
 .mesh-gate-go.is-ready { opacity: 1; pointer-events: auto; transform: translateY(-50%) scale(1); }
 .mesh-gate-go:hover { filter: brightness(1.08); }
@@ -7005,7 +7020,10 @@ body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
   top: 50%;
   transform: translateY(-50%);
   color: rgba(154, 163, 188, 0.65);
-  padding: 0.3rem;
+  /* The eye is a 16px icon; the padding is what makes it a 44px key. The
+     audit measured 26x26 — a squint target on the password stage. */
+  padding: 0.875rem;
+  margin-left: -0.575rem;
 }
 .mesh-gate-peek:hover { color: var(--text-primary); }
 
@@ -7027,6 +7045,11 @@ body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
   font-weight: 500;
   color: var(--text-secondary);
   transition: color 150ms ease;
+  /* The caption line was the whole target (~19px; audit). Padding grows the
+     hit area to the 44px floor; the negative margin gives the space back so
+     the calm layout doesn't move. */
+  padding: 0.8rem 0.35rem;
+  margin: -0.8rem -0.35rem;
 }
 .mesh-gate-textlink:hover { color: var(--text-primary); }
 .mesh-gate-inline { display: flex; gap: 1.4rem; }
@@ -7168,10 +7191,12 @@ body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
 .mesh-gate-links > * {
   /* The coarse-pointer 44px min touch target stretches these items. Buttons
      centre their label but links render theirs at the top, so the four
-     essentials sat on two different baselines on phones. */
+     essentials sat on two different baselines on phones. The min-height was
+     described here but never declared — the audit measured 19px talls. */
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  min-height: 44px;
   transition: color 150ms ease;
 }
 .mesh-gate-links > *:hover { color: #ffffff; }

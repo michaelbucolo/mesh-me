@@ -110,7 +110,7 @@ export function ProInsights({ data }: { data: ProAnalytics }) {
           of it on one page you can keep. It also opens the long view: your whole posting life in months, back
           to day one.
         </p>
-        <Link href="/meshpro" className="text-sm font-semibold text-[var(--accent-text)] underline underline-offset-4">
+        <Link href="/meshpro" className="inline-flex min-h-11 items-center text-sm font-semibold text-[var(--accent-text)] underline underline-offset-4">
           See MeshPro
         </Link>
       </section>
