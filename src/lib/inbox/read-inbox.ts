@@ -103,7 +103,14 @@ export async function readInboxSignals(userId: string) {
       },
     }),
     prisma.notification.findMany({
-      where: { recipientId: userId },
+      // THE THREAD IS THE LEDGER FOR MESSAGES. A "message" notification is
+      // the push-fanout twin of a thread that this read already lists, so
+      // counting both made 3 conversations read as 7 and gave "Reply" rows an
+      // href of /notifications — a door that dead-ends where replying is
+      // impossible. The thread row carries the obligation, the unread state,
+      // and the real /messages/<id> door; the notification stays in the
+      // notification center, where it belongs.
+      where: { recipientId: userId, type: { not: "message" } },
       take: MAX_NOTIFICATIONS,
       orderBy: { createdAt: "desc" },
       select: {

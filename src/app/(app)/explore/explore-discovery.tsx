@@ -654,7 +654,17 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
             </span>
           </div>
           {filteredUsers.length === 0 ? (
-            <EmptyState message="No meshes match your search." />
+            // Blame the search only when there IS one — with no query this
+            // section is simply out of suggestions, and an empty state that
+            // accuses a search nobody made reads as a bug (journey audit,
+            // observed by two independent journeys).
+            <EmptyState
+              message={
+                trimmedQuery
+                  ? "No meshes match your search."
+                  : "No suggestions right now — follow people from posts you like and more appear here."
+              }
+            />
           ) : (
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
               {filteredUsers.map((user, index) => (

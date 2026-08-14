@@ -1189,7 +1189,10 @@ export async function setFlowLike(feedItemId: string, liked: boolean) {
     !(
       feedItemId.startsWith("platform-") ||
       feedItemId.startsWith("feeditem-") ||
-      feedItemId.startsWith("friend-platform-")
+      feedItemId.startsWith("friend-platform-") ||
+      // Open-supply discover reels. An audit found the heart on every one of
+      // these silently rolling back because this list predates the lane.
+      feedItemId.startsWith("public-")
     )
   ) {
     return { error: "Not a platform item" };

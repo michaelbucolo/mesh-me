@@ -542,6 +542,15 @@ export async function getMergedForYouFeedPosts(user: FeedCurrentUser, limit = 40
 }
 
 export async function getFeedPostById(user: FeedCurrentUser, id: string): Promise<FeedCardPost | null> {
+  // Open-supply items (the public discover lane). These are in the Flow
+  // candidate pool, so they must resolve here too — an audit found their
+  // Comments/Share doors 404ing and likes rejected because this resolver
+  // knew every id prefix except theirs.
+  if (id.startsWith("public-")) {
+    const { getPublicPostById } = await import("./public-supply/feed");
+    return getPublicPostById(user, id.slice("public-".length));
+  }
+
   if (id.startsWith("feeditem-")) {
     try {
       const item = await prisma.platformFeedItem.findFirst({

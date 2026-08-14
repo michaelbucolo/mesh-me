@@ -1,4 +1,6 @@
 import type { FeedCardPost } from "@/lib/feed-data";
+import { nsfwHiddenWhere } from "@/lib/content-safety";
+import { prisma } from "@/lib/prisma";
 import { toFeedCardPosts } from "./normalize";
 import { readPublicSupply } from "./store";
 
@@ -32,4 +34,30 @@ export async function getPublicSupplyFeedPosts(
 ): Promise<FeedCardPost[]> {
   const rows = await readPublicSupply({ viewer, limit });
   return toFeedCardPosts(rows);
+}
+
+/**
+ * One public-supply item by its raw row id — the resolver behind
+ * /feed/public-<id> permalinks and likes on public discover reels. Every
+ * viewer gate readPublicSupply applies holds here too, INCLUDING expiry:
+ * retention is a terms clause, so a permalink honestly 404s once the row's
+ * time is up rather than serving what may no longer be kept.
+ */
+export async function getPublicPostById(
+  viewer: Parameters<typeof readPublicSupply>[0]["viewer"],
+  rawId: string,
+): Promise<FeedCardPost | null> {
+  try {
+    const row = await prisma.publicPost.findFirst({
+      where: {
+        id: rawId,
+        ...nsfwHiddenWhere(viewer),
+        expiresAt: { gt: new Date() },
+      },
+    });
+    if (!row) return null;
+    return toFeedCardPosts([row])[0] ?? null;
+  } catch {
+    return null;
+  }
 }

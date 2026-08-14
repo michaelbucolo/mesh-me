@@ -50,14 +50,23 @@ export function MeshiDelivery() {
   const [queue, setQueue] = useState<Delivery[]>([]);
   const seenIdsRef = useRef<Set<string>>(new Set());
   const fetchingRef = useRef(false);
+  // Deliveries are for signed-in members; a guest gets 401 on every poll,
+  // forever. One 401 stops the asking (journey audit: recurring first-party
+  // 401 console noise on every guest page). Signing in is a full navigation,
+  // which remounts this component and resumes the poll.
+  const unauthorizedRef = useRef(false);
 
   const hidden = !prefs.enabled || shouldHideGlobalMeshi(pathname);
 
   const fetchDeliveries = useCallback(async () => {
-    if (fetchingRef.current || typeof document === "undefined" || document.hidden) return;
+    if (fetchingRef.current || unauthorizedRef.current || typeof document === "undefined" || document.hidden) return;
     fetchingRef.current = true;
     try {
       const res = await fetch("/api/meshi/deliveries");
+      if (res.status === 401) {
+        unauthorizedRef.current = true;
+        return;
+      }
       if (!res.ok) return;
       const data = (await res.json().catch(() => null)) as { deliveries?: Delivery[] } | null;
       const incoming = (data?.deliveries || []).filter(

@@ -1143,11 +1143,14 @@ function FlowColdStart({
   refreshing,
   onLoadFlow,
   formStats,
+  supplyRefreshing,
 }: {
   people: FlowSuggestedPerson[];
   refreshing: boolean;
   onLoadFlow: () => void;
   formStats?: { kept: number; long: number; unknown: number };
+  /** The server claimed a public-supply refresh for this empty read. */
+  supplyRefreshing?: boolean;
 }) {
   // The Flow is shorts and reels only. When the pool was NOT empty but nothing
   // in it was short-form, saying "follow a few people" is simply wrong advice —
@@ -1187,6 +1190,13 @@ function FlowColdStart({
             ? `Flow plays shorts and reels only. ${filtered} recent ${filtered === 1 ? "item" : "items"} from your sources ${filtered === 1 ? "was" : "were"} long-form or did not report a length, so ${filtered === 1 ? "it is" : "they are"} not shown here — you will still find ${filtered === 1 ? "it" : "them"} in your feed.`
             : "Follow a few people and their posts, videos, and platform content stream here."}
         </p>
+        {supplyRefreshing && (
+          // The honest state, not a spinner ritual: the server just claimed a
+          // supply refresh because its shelf was empty (flow/route.ts).
+          <p className="mx-auto mt-2 max-w-sm text-sm text-white/70">
+            Fresh public videos are being fetched right now — try again in a minute.
+          </p>
+        )}
       </div>
 
       {people.length > 0 && (
@@ -1273,6 +1283,7 @@ export function FlowClient({
   const [activeIndex, setActiveIndex] = useState(0);
   const [muted, setMuted] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [supplyRefreshing, setSupplyRefreshing] = useState(false);
   const [mode, setMode] = useState<FlowMode>(readStoredMode);
   const [showModes, setShowModes] = useState(false);
   const modeRef = useRef<FlowMode>(mode);
@@ -1545,6 +1556,10 @@ export function FlowClient({
         setSlideDirs({});
         setActiveIndex(0);
         containerRef.current?.scrollTo({ top: 0 });
+      } else if (data) {
+        // Empty payload: the server may have claimed a supply self-refresh
+        // (flow/route.ts) — let the cold start say so instead of shrugging.
+        setSupplyRefreshing(Boolean(data.refreshingSupply));
       }
     } finally {
       loadingRef.current = false;
@@ -1707,7 +1722,7 @@ export function FlowClient({
   }, [showModes]);
 
   if (posts.length === 0) {
-    return <FlowColdStart people={suggestedPeople} refreshing={refreshing} onLoadFlow={() => void refresh()} formStats={formStats} />;
+    return <FlowColdStart people={suggestedPeople} refreshing={refreshing} onLoadFlow={() => void refresh()} formStats={formStats} supplyRefreshing={supplyRefreshing} />;
   }
 
   return (
