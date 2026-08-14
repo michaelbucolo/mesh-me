@@ -115,7 +115,7 @@ export function ApiTokensPanel({ initialTokens }: { initialTokens: TokenRow[] })
         Read your own data from scripts and servers — the same data for everyone, no paywall. Tokens are
         read-only, scoped, and they all expire. We keep a fingerprint, not the token: nobody at mesh.me can
         read one back.{" "}
-        <a href="/developers" className="font-semibold text-[var(--accent-text)] underline underline-offset-4">
+        <a href="/developers" className="inline-flex min-h-11 items-center font-semibold text-[var(--accent-text)] underline underline-offset-4">
           Read the docs
         </a>
       </p>
@@ -227,7 +227,7 @@ export function ApiTokensPanel({ initialTokens }: { initialTokens: TokenRow[] })
           </div>
           <div className="mt-1.5 grid gap-1.5 sm:grid-cols-2">
             {SCOPE_CHOICES.map((choice) => (
-              <label key={choice.scope} className="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
+              <label key={choice.scope} className="flex min-h-11 items-center gap-2 text-sm text-[var(--text-secondary)]">
                 <input
                   type="checkbox"
                   checked={scopes.includes(choice.scope)}

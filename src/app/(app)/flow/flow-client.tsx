@@ -1089,7 +1089,7 @@ function ReelContent({
             <RailButton label="Share" onClick={handleShare}>
               <Send size={26} />
             </RailButton>
-            <RailButton label={saved ? "Saved" : "Save"} onClick={handleSave} active={saved}>
+            <RailButton label={saved ? "Remove from saved" : "Save post"} onClick={handleSave} active={saved}>
               <Bookmark size={26} fill={saved ? "currentColor" : "none"} />
             </RailButton>
             {(post.whyThis || laneIndex > 0) && (

@@ -924,7 +924,9 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
               type="button"
               onClick={handleSave}
               disabled={isOptimistic}
-              aria-label={saved ? "Unsave post" : "Save post"}
+              // One vocabulary for one action: card, detail, and rail all say
+              // "Save post" / "Remove from saved" (audit 2 heard three names).
+              aria-label={saved ? "Remove from saved" : "Save post"}
               className={cn(
                 "insta-post-action",
                 saved && "text-[var(--accent-text)]",
