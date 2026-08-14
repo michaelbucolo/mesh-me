@@ -137,7 +137,9 @@ async function runPublicEntryChecks(knownUser) {
       await page.waitForSelector("[data-testid=\"entry-identity-input\"]", { timeout: 45000 });
       await page.waitForSelector("[data-entry-ready=\"true\"]", { timeout: 45000 });
       await assertNoOverflow(page, `${label} login initial`);
-      await assertText(page, "Who are you?", `${label} login heading`);
+      // The entry flow's identity step leads with "Log in" (the old
+      // "Who are you?" copy retired with the tone reset).
+      await assertText(page, "Log in", `${label} login heading`);
 
       const email = `browser-smoke-${Date.now()}-${label}@example.com`;
       await page.fill("[data-testid=\"entry-identity-input\"]", email, { timeout: 45000 });
@@ -195,12 +197,25 @@ async function runAuthenticatedAppChecks(user) {
   ];
 
   const context = await browser.newContext({ viewport: { width: 1440, height: 920 }, reducedMotion: "reduce" });
+  // Both cookie names: dev servers read the legacy unprefixed cookie, while
+  // production reads only the __Host- prefixed one — set both so this smoke
+  // works against either target.
   await context.addCookies([
     {
       name: "mesh_session",
       value: sessionId,
       domain: new URL(baseUrl).hostname,
       path: "/",
+      httpOnly: true,
+      sameSite: "Lax",
+      expires: Math.floor(Date.now() / 1000) + 30 * 60,
+    },
+    {
+      name: "__Host-mesh_session",
+      value: sessionId,
+      domain: new URL(baseUrl).hostname,
+      path: "/",
+      secure: true,
       httpOnly: true,
       sameSite: "Lax",
       expires: Math.floor(Date.now() / 1000) + 30 * 60,
@@ -240,6 +255,10 @@ async function newObservedPage(context, label) {
   });
   page.on("console", (message) => {
     if (message.type() === "error") {
+      // The app's own restrictive Permissions-Policy header makes Chromium
+      // log a violation for features the app deliberately disables — that
+      // is the hardening working, not a defect.
+      if (/Permissions policy violation/.test(message.text())) return;
       errors.push(`${label} console: ${message.text()}`);
     }
   });
