@@ -251,6 +251,12 @@ checks += 1;
     "/api/me/v1/imported/media": "The owner's own scripts, Bearer PAT only.",
     "/api/me/v1/analytics": "The owner's own scripts, Bearer PAT only.",
     "/api/me/v1/journal": "The owner's own scripts, Bearer PAT only.",
+    // The native SwiftUI app (apple/MeshMe) is the client for these two —
+    // its call sites live in MeshAPI.swift, which this scan of ts/js sources
+    // cannot see. scripts/swift-app-check.ts holds the inverse direction:
+    // every path the Swift client names must exist as a real route here.
+    "/api/auth/native-session": "The native app's session door (apple/MeshMe/MeshMe/Core/MeshAPI.swift).",
+    "/api/inbox": "The native app's Mesh tab (apple/MeshMe/MeshMe/Features/Mesh/MeshView.swift).",
   };
 
   // A DIFFERENT THING FROM AN EXEMPTION, AND KEPT SEPARATE SO IT CANNOT ROT

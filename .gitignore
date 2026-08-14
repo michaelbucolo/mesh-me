@@ -64,3 +64,8 @@ scratchpad/
 # distilled into docs/ — see docs/SURFACE_AUDIT.md, which exists because the
 # first copy of that audit was lost to a /tmp sweep.
 .research/
+
+# Native SwiftUI app — the Xcode project is GENERATED from project.yml
+# (apple/MeshMe/README.md); only the manifest is source.
+apple/MeshMe/MeshMe.xcodeproj/
+apple/MeshMe/DerivedData/

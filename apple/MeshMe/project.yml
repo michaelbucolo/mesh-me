@@ -1,0 +1,42 @@
+# XcodeGen manifest for the NATIVE SwiftUI mesh.me app.
+#
+# This is not the Capacitor shell (ios/App wraps the website in a WKWebView).
+# This target is mesh.me rebuilt in Swift/SwiftUI, talking to the production
+# backend at https://meshs.me. Generate the Xcode project with:
+#
+#   brew install xcodegen   (once)
+#   cd apple/MeshMe && xcodegen generate
+#   open MeshMe.xcodeproj
+#
+# The project file is generated, never committed — project.yml is the source
+# of truth, reviewable in diffs the way a pbxproj never is.
+name: MeshMe
+options:
+  bundleIdPrefix: me.meshs
+  deploymentTarget:
+    iOS: "17.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    SWIFT_VERSION: "5.10"
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    GENERATE_INFOPLIST_FILE: YES
+    INFOPLIST_KEY_UILaunchScreen_Generation: YES
+    INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+    INFOPLIST_KEY_CFBundleDisplayName: mesh.me
+    # iPhone + iPad; Mac via "Designed for iPad" runs as-is.
+    TARGETED_DEVICE_FAMILY: "1,2"
+    INFOPLIST_KEY_UISupportedInterfaceOrientations: "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
+targets:
+  MeshMe:
+    type: application
+    platform: iOS
+    sources:
+      - path: MeshMe
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: me.meshs.app
+        # Signing is the owner's: Xcode → Signing & Capabilities →
+        # "Automatically manage signing" + personal team, same as IOS_APP.md.
+        CODE_SIGN_STYLE: Automatic
