@@ -40,6 +40,19 @@ export async function GET(request: Request) {
       limit: windowSize,
       studio: resolveStudioWeights(user),
     });
+    // A ranked feed that ranks NOTHING is not an empty account — it is a cold
+    // taste profile. feed/page.tsx has carried this exact fallback since the
+    // seeded-account bug; this route never got it, so clicking back to the
+    // "All" chip (or loading page 2) wiped a feed the SSR paint had just
+    // shown. Two surfaces must not disagree about the same feed.
+    if (mergedPosts.length === 0) {
+      mergedPosts = await getCombinedFeedPosts({
+        user,
+        source,
+        contentFilter,
+        limit: windowSize,
+      });
+    }
   } else {
     mergedPosts = await getCombinedFeedPosts({
       user,

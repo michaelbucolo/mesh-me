@@ -936,7 +936,7 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
         </div>
 
         <p className="feed-like-count mt-1.5 text-[0.78125rem] font-semibold text-[var(--text-primary)]">
-          <span key={likeCount} className="mesh-roll-in tabular-nums">{formatCount(likeCount)}</span> likes
+          <span key={likeCount} className="mesh-roll-in tabular-nums">{formatCount(likeCount)}</span> {likeCount === 1 ? "like" : "likes"}
         </p>
 
         {requiresSourceAccount && !hasSourceAccount && (
@@ -970,7 +970,7 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
             }}
             className="inline-flex min-h-11 items-center hover:text-[var(--text-primary)]"
           >
-            View {formatCount(post._count.comments)} comments
+            View {formatCount(post._count.comments)} {post._count.comments === 1 ? "comment" : "comments"}
           </Link>
           {repostCount > 0 && (
             <button type="button" onClick={handleRepost} disabled={isPending || isOptimistic} className="inline-flex min-h-11 items-center hover:text-[var(--text-primary)]">

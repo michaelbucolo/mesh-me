@@ -387,8 +387,10 @@ export function PostDetailClient({ post, currentUserId }: PostDetailClientProps)
           <p className="min-w-0 text-sm text-[var(--text-secondary)]">
             Sign in to join the conversation — comment, react, and follow.
           </p>
+          {/* Carry the return path: signing in from a post must land back on
+              THAT post, not on the default surface (journey audit). */}
           <Link
-            href="/login"
+            href={`/login?next=${encodeURIComponent(`/feed/${post.id}`)}`}
             className="shrink-0 rounded-full bg-[var(--accent)] px-4 py-2 text-xs font-semibold text-[var(--accent-contrast)] transition hover:opacity-90"
           >
             Sign in

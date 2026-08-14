@@ -3890,8 +3890,15 @@ body {
     padding: 0.42rem 0.65rem;
   }
 
+  /* The row that owns the feed's whole view vocabulary SCROLLS on a phone —
+     it does not vanish. It was display:none here, which left 7 of the 8 feed
+     views unreachable on mobile and the control strip rendering as an empty
+     14px bar of dead chrome (journey audit). The base rule already scrolls
+     with an edge fade; this block only tightens it for touch. */
   .feed-mode-strip {
-    display: none;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
   .feed-mode-button {

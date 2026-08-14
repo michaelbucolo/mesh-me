@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { PublicSupplyHttpError, publicGet } from "./fetch";
+import { durableRateLimit } from "@/lib/durable-rate-limit";
 import { recordRun, storeItems, sweepExpired, sweepOldRuns } from "./store";
 import type { LaneContext, LaneRunResult, PublicSupplyLane } from "./types";
 
@@ -170,4 +171,34 @@ export async function runAllLanes(lanes: PublicSupplyLane[], opts?: { force?: bo
     console.log(`[public-supply] swept ${expired} expired item(s), ${oldRuns} old run row(s)`);
   }
   return results;
+}
+
+/**
+ * SELF-HEALING SUPPLY — the claim half.
+ *
+ * An audit found the Flow completely empty for every user: all supply rows
+ * had passed their terms-mandated expiry and nothing but the hourly cron
+ * would ever refill them — a missed or failing cron meant an empty product
+ * until a human noticed. Retention cannot be stretched (it is a compliance
+ * clause, store.ts), but FETCHING fresh content is always allowed, so the
+ * Flow heals itself: when a read comes up empty, the route claims one
+ * refresh attempt here and runs the lanes after the response
+ * (next/server `after`).
+ *
+ * The claim is durable and global — one attempt per 15 minutes across every
+ * instance — so a burst of visitors to an empty Flow cannot stampede the
+ * platform APIs. Rows existing means no claim: emptiness is the only
+ * trigger, never freshness preferences.
+ */
+export async function claimSupplyAutoRefresh(): Promise<boolean> {
+  try {
+    const unexpired = await prisma.publicPost.count({
+      where: { expiresAt: { gt: new Date() } },
+    });
+    if (unexpired > 0) return false;
+    const claim = await durableRateLimit("public-supply:auto-refresh", 1, 15 * 60 * 1000);
+    return claim.allowed;
+  } catch {
+    return false;
+  }
 }

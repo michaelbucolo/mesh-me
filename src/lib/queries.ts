@@ -1032,17 +1032,56 @@ export async function searchAll(query: string) {
   const blocked = await getBlockedUserIdSet(user.id);
   const blockedIds = Array.from(blocked);
 
+  // CONSENT GATES STRANGER DISCOVERY, NOT FINDING YOUR OWN GRAPH.
+  // An audit found search returning zero People for a name the searcher
+  // FOLLOWS: the discovery-consent gate below was applied to everyone, so a
+  // friend who opted out of being discovered by strangers also became
+  // unfindable to the people already connected to them. Someone you follow or
+  // share a thread with is already visible to you (your following list, your
+  // MeChat) — search exposes nothing new by finding them.
+  const [followedRows, threadPartnerRows] = await Promise.all([
+    prisma.follow.findMany({
+      where: { followerId: user.id },
+      select: { followingId: true },
+    }),
+    prisma.threadMember.findMany({
+      where: {
+        userId: { not: user.id },
+        thread: { members: { some: { userId: user.id } } },
+      },
+      select: { userId: true },
+      take: 300,
+    }),
+  ]);
+  const knownIds = Array.from(
+    new Set([
+      ...followedRows.map((row) => row.followingId),
+      ...threadPartnerRows.map((row) => row.userId),
+    ]),
+  ).filter((id) => !blocked.has(id));
+
   const [users, posts, communities, platformPosts, platformPeople, connectedSocialSources, messages] = await Promise.all([
     prisma.user.findMany({
       where: {
-        OR: [
-          { username: { contains: q } },
-          { displayName: { contains: q } },
+        AND: [
+          {
+            OR: [
+              { username: { contains: q } },
+              { displayName: { contains: q } },
+            ],
+          },
+          {
+            OR: [
+              // The searcher's own graph — no consent gate to see what they
+              // can already see.
+              ...(knownIds.length ? [{ id: { in: knownIds } }] : []),
+              // Strangers still require discovery opt-in, exactly as before.
+              { showInDiscovery: true, ...profileDiscoveryConsentWhere() },
+            ],
+          },
         ],
         id: { notIn: [user.id, ...blocked] },
         isSuspended: false,
-        showInDiscovery: true,
-        ...profileDiscoveryConsentWhere(),
       },
       select: {
         id: true,

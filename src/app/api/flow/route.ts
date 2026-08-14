@@ -1,7 +1,9 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { ANONYMOUS_VIEWER } from "@/lib/feed-data";
+import { PUBLIC_SUPPLY_LANES } from "@/lib/public-supply/registry";
+import { claimSupplyAutoRefresh, runAllLanes } from "@/lib/public-supply/runner";
 import { applyWatchSignal, authorKey, explainFlowPost, getFlowCandidates, getViewerTasteProfile, normalizeFlowRankMode, resolveStudioWeights, rankFlowPosts, type WatchStats } from "@/lib/flow-ranking";
 import { parseAcceptLanguage } from "@/lib/language";
 import { rateLimit } from "@/lib/security";
@@ -156,6 +158,23 @@ export async function GET(request: Request) {
     recycled = ranked.some((post) => exclude.has(post.id));
   }
 
+  // An empty Flow self-heals: fetching fresh public supply is always allowed
+  // (retention is the compliance-bounded part, not fetching), so when there is
+  // nothing to serve, claim the one global refresh attempt and run the lanes
+  // AFTER this response — a user never waits on YouTube being slow, and the
+  // durable claim (1 per 15 min) means a crowd on an empty Flow cannot
+  // stampede the platform APIs. The flag lets the client say so honestly.
+  const refreshingSupply = ranked.length === 0 ? await claimSupplyAutoRefresh() : false;
+  if (refreshingSupply) {
+    after(async () => {
+      try {
+        await runAllLanes(PUBLIC_SUPPLY_LANES);
+      } catch (error) {
+        console.error("[flow] supply auto-refresh failed", error);
+      }
+    });
+  }
+
   return NextResponse.json({
     posts: ranked.map((post) => ({
       ...post,
@@ -166,5 +185,6 @@ export async function GET(request: Request) {
     })),
     hasMore: candidates.length > 0,
     recycled,
+    refreshingSupply,
   });
 }

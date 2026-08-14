@@ -200,7 +200,7 @@ function Chip({
       role="tab"
       aria-selected={active}
       onClick={onClick}
-      className="rounded-full px-3 py-1.5 text-sm font-medium transition-colors"
+      className="min-h-11 rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors"
       style={{
         background: active ? OWED : "#ffffff0d",
         color: active ? "#04060c" : INK,

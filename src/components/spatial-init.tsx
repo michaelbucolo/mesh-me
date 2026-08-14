@@ -57,6 +57,16 @@ function detectSpatialDevice(): SpatialDevice {
  * inside the sync detector. It resolves here and stamps the classes on the
  * devices that actually answer yes. */
 async function detectGenericXr(): Promise<boolean> {
+  // Ask the POLICY before asking the API. The app's own Permissions-Policy
+  // header denies xr-spatial-tracking everywhere (next.config.ts, proxy.ts),
+  // so probing isSessionSupported under it is guaranteed to log a
+  // policy-violation console error AND answer no — which a journey audit
+  // found firing on every wide-viewport pageview across all eight journeys.
+  // If the header ever re-allows XR, this guard steps aside on its own.
+  const policy = (document as Document & {
+    featurePolicy?: { allowsFeature?: (feature: string) => boolean };
+  }).featurePolicy;
+  if (policy?.allowsFeature && !policy.allowsFeature("xr-spatial-tracking")) return false;
   const xr = (navigator as Navigator & { xr?: { isSessionSupported?: (mode: string) => Promise<boolean> } }).xr;
   if (!xr?.isSessionSupported) return false;
   try {

@@ -530,7 +530,7 @@ export function AnalyticsDashboard({ data, embedded = false }: { data: Analytics
 
       {/* The numbers that matter, with their 14-day pulse */}
       <section className="mesh-cascade mt-5 grid grid-cols-1 gap-3 @sm:grid-cols-2 @2xl:grid-cols-3 @5xl:grid-cols-6" aria-label="Overview">
-        <Stat index={0} icon={Users} label="Audience" value={compact(data.overview.totalFollowers)} rawValue={data.overview.totalFollowers} format={compact} sub={`${data.overview.connectedAccounts} platforms connected`} points={data.charts.followerGrowth} tone="#34d399" />
+        <Stat index={0} icon={Users} label="Audience" value={compact(data.overview.totalFollowers)} rawValue={data.overview.totalFollowers} format={compact} sub={`${data.overview.connectedAccounts} ${data.overview.connectedAccounts === 1 ? "platform" : "platforms"} connected`} points={data.charts.followerGrowth} tone="#34d399" />
         <Stat index={1} icon={Eye} label="Views" value={compact(data.overview.totalViews)} rawValue={data.overview.totalViews} format={compact} sub="across synced content" />
         <Stat index={2} icon={Heart} label="Engagement" value={compact(data.overview.totalEngagement)} rawValue={data.overview.totalEngagement} format={compact} sub="likes · comments · shares" points={data.charts.engagement} tone="#2f7cff" />
         <Stat index={3} icon={Gauge} label="Eng. rate" value={pct(data.overview.engagementRate)} rawValue={data.overview.engagementRate} format={pct} sub="of your audience responds" />

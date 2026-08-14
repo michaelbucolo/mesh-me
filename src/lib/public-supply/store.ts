@@ -155,6 +155,11 @@ export async function readPublicSupply(opts: {
 }) {
   const now = opts.now ?? new Date();
   try {
+    // The expiry filter is a COMPLIANCE clause, not a freshness preference:
+    // retentionHours comes from each platform's terms (types.ts), so an
+    // expired row may not be served even when the alternative is an empty
+    // Flow. Emptiness is handled by refreshing (always allowed) — see
+    // ensureSupplyFresh in runner.ts — never by stretching retention.
     return await prisma.publicPost.findMany({
       where: {
         ...nsfwHiddenWhere(opts.viewer),

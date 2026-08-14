@@ -58,7 +58,7 @@ export async function ReturnBrief({ user }: { user: { id: string; caughtUpAt: Da
         <form action={markCaughtUp}>
           <button
             type="submit"
-            className="flex min-h-8 items-center gap-1.5 rounded-md px-2.5 text-xs font-semibold text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
+            className="flex min-h-11 items-center gap-1.5 rounded-md px-2.5 text-xs font-semibold text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
           >
             <Check size={13} aria-hidden="true" />
             Caught up
@@ -72,7 +72,7 @@ export async function ReturnBrief({ user }: { user: { id: string; caughtUpAt: Da
             <li key={row.key}>
               <Link
                 href={row.href}
-                className="flex min-h-9 items-center gap-2.5 rounded-lg px-2 text-sm text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]"
+                className="flex min-h-11 items-center gap-2.5 rounded-lg px-2 text-sm text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]"
               >
                 <Icon size={15} aria-hidden="true" className="shrink-0 text-[var(--accent-text)]" />
                 {row.label}

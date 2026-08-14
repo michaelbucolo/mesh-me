@@ -1124,9 +1124,17 @@ export function MeChatThread({
                           // not only from the composer.
                           if (event.key === "Escape") setActionsFor(null);
                         }}
-                        className={`absolute top-1/2 z-10 -translate-y-1/2 items-center gap-0.5 rounded-[var(--radius-lg)] border border-[var(--rule)] bg-[var(--paper-1)] px-1.5 py-1 shadow-[var(--shadow-float)] ${
-                          isMine ? "right-full mr-2" : "left-full ml-2"
-                        } ${
+                        className={`absolute z-10 items-center gap-0.5 rounded-[var(--radius-lg)] border border-[var(--rule)] bg-[var(--paper-1)] px-1.5 py-1 shadow-[var(--shadow-float)] ${
+                          /* Below md the bar pins ABOVE the bubble, growing
+                             inward from the bubble's edge and wrapping within
+                             the viewport — at left-full/right-full it rendered
+                             almost entirely off a 390px screen (own-message
+                             keys unreachable by ANY scroll; journey audit).
+                             At md+ it floats beside the bubble as before. */
+                          isMine
+                            ? "bottom-full right-0 mb-1.5 md:bottom-auto md:right-full md:mb-0 md:mr-2 md:top-1/2 md:-translate-y-1/2"
+                            : "bottom-full left-0 mb-1.5 md:bottom-auto md:left-full md:mb-0 md:ml-2 md:top-1/2 md:-translate-y-1/2"
+                        } flex-wrap max-w-[min(20rem,88vw)] md:flex-nowrap md:max-w-none ${
                           pinnedActions
                             ? "flex"
                             // Below md: display-gated (an always-in-tree bar at

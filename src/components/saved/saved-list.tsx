@@ -148,7 +148,7 @@ export function SavedList({ initial }: { initial: SavedRow[] }) {
                   <button
                     type="button"
                     onClick={() => remove(row)}
-                    className="ml-auto flex min-h-8 items-center gap-1 rounded-md px-2 font-semibold text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
+                    className="ml-auto flex min-h-11 items-center gap-1 rounded-md px-2 font-semibold text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
                   >
                     <X size={13} aria-hidden="true" /> Remove
                   </button>

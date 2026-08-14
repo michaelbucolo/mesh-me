@@ -44,7 +44,15 @@ export default async function PostDetailPage({ params }: PostDetailPageProps) {
   if (!post) {
     // Connected-platform and external-feed posts get an in-app home too —
     // the Flow, shares, and saves all link here, and nothing should 404.
-    if (postId.startsWith("platform-") || postId.startsWith("feeditem-")) {
+    // public- (open discover supply) and friend-platform- (a mutual's shared
+    // reel) were missing from this rescue: their Comments doors 404ed and
+    // Share copied a dead link while toasting "Link copied".
+    if (
+      postId.startsWith("platform-") ||
+      postId.startsWith("feeditem-") ||
+      postId.startsWith("friend-platform-") ||
+      postId.startsWith("public-")
+    ) {
       const external = await getFeedPostById(currentUser ?? ANONYMOUS_VIEWER, postId);
       if (external) {
         return <ExternalPostDetail post={{ ...external, createdAt: String(external.createdAt) }} />;
