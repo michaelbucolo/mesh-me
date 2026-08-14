@@ -648,7 +648,11 @@ export function FeedTimelineClient({
                 Load more
               </button>
             ) : posts.length > 0 ? (
-              <span className="text-xs font-semibold text-[var(--text-muted)]">You are caught up.</span>
+              /* "Caught up" is the VISIT-BOUNDARY concept (the divider, the
+                 brief's action). The end of the list is a different fact and
+                 gets different words — two phrasings of "caught up" on one
+                 screen read as a bug. */
+              <span className="text-xs font-semibold text-[var(--text-muted)]">That&rsquo;s everything.</span>
             ) : null}
           </div>
         </div>

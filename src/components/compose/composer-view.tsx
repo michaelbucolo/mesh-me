@@ -198,6 +198,12 @@ export function ComposerView({ targets, queueCount = 0 }: { targets: ComposerTar
           const verdict = plan.targets.find((p) => p.platform === t.platform);
           const selectable = t.connected && !!rule?.publishable;
 
+          // AN EMPTY BOX IS NOT A BLOCKED POST. Before a word is typed the
+          // verdict is technically "not ok", but painting the pre-selected row
+          // with the same red border + "Blocked" pill used for real refusals
+          // made first paint read as an error to diagnose (audit 2). The WARN
+          // treatment is reserved for drafts a platform would actually refuse.
+          const draftEmpty = !text.trim() && !title.trim();
           return (
             <li key={t.platform}>
               <button
@@ -212,7 +218,7 @@ export function ComposerView({ targets, queueCount = 0 }: { targets: ComposerTar
                 className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors disabled:cursor-not-allowed"
                 style={{
                   background: on ? "#ffffff0f" : "transparent",
-                  border: `1px solid ${on ? (verdict?.ok ? `${BRAND}66` : `${WARN}66`) : "#ffffff12"}`,
+                  border: `1px solid ${on ? (verdict?.ok ? `${BRAND}66` : draftEmpty ? "#ffffff1f" : `${WARN}66`) : "#ffffff12"}`,
                   opacity: selectable ? 1 : 0.5,
                 }}
               >
@@ -237,13 +243,19 @@ export function ComposerView({ targets, queueCount = 0 }: { targets: ComposerTar
                       Nothing to post to here
                     </span>
                   ) : on && verdict && !verdict.ok ? (
-                    <span className="block truncate" style={{ color: WARN, fontSize: 12 }}>
-                      {verdict.problems[0]?.message}
-                    </span>
+                    draftEmpty ? (
+                      <span className="block truncate" style={{ color: INK_DIM, fontSize: 12 }}>
+                        Waiting for words
+                      </span>
+                    ) : (
+                      <span className="block truncate" style={{ color: WARN, fontSize: 12 }}>
+                        {verdict.problems[0]?.message}
+                      </span>
+                    )
                   ) : null}
                 </span>
 
-                {on && (
+                {on && !(draftEmpty && !verdict?.ok) && (
                   <span
                     className="shrink-0 rounded-full px-2 py-0.5 font-semibold"
                     style={{
@@ -320,7 +332,7 @@ export function ComposerView({ targets, queueCount = 0 }: { targets: ComposerTar
               aria-label="Pick a time"
               data-testid="composer-schedule-when"
               className="rounded-lg px-2.5 py-1.5 outline-none"
-              style={{ background: "#070b14", border: "1px solid #ffffff14", color: INK, fontSize: 13, colorScheme: "dark" }}
+              style={{ background: "#070b14", border: "1px solid #ffffff14", color: INK, fontSize: 13, colorScheme: "dark", minHeight: 44 }}
             />
           </div>
           <div className="mt-2.5 flex items-center gap-3">

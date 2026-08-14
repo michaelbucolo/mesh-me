@@ -21,6 +21,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { wantsYou, type NotificationRow, type ThreadRow } from "@/lib/mesh/wants-you";
+import { parseDeliveryNotificationMessage } from "@/lib/notifications";
 
 type InboxKind = "message" | "mention" | "reply" | "comment" | "follow" | "activity";
 
@@ -198,7 +199,10 @@ export async function readInbox(
       kind: kindOfNotification(n.type),
       platform: "mesh",
       who: n.actorName ? { name: n.actorName, avatarUrl: n.actorAvatarUrl ?? null } : null,
-      title: n.message?.trim() || describe(n.type, n.actorName),
+      // The [mid:] machine prefix rides meshi_delivery messages and must be
+      // stripped at every edge that renders them (notifications.ts) — this
+      // edge forgot, and phones burned the whole preview line on the token.
+      title: parseDeliveryNotificationMessage(n.message?.trim()).text || describe(n.type, n.actorName),
       preview: null,
       atMs: n.createdAtMs,
       unread: !n.read,

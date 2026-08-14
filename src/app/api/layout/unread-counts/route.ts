@@ -26,11 +26,24 @@ export async function GET() {
       // MUTED MEANS MUTED (wants-you.ts): the muted thread stays fully readable
       // in MeChat, but a nav badge that counts it has overridden an explicit
       // "do not bother me about this" to make itself look busier.
+      //
+      // THE LAST WORD IS THEIRS, OR THE THREAD IS READ: this counts THREADS
+      // whose newest message is another sender's and newer than lastRead —
+      // the exact judgement the inbox rows ride (read-inbox.ts). Counting any
+      // other-sender message newer than the watermark left a permanent
+      // phantom badge whenever the viewer's own reply landed without opening
+      // the thread: every surface said read, the badge said 1 (audit 2).
       prisma
         .$queryRaw<Array<{ count: bigint | number }>>`
         SELECT COUNT(*) as count
-        FROM "Message" m
-        INNER JOIN "ThreadMember" tm ON tm."threadId" = m."threadId"
+        FROM "ThreadMember" tm
+        INNER JOIN "Message" m ON m."id" = (
+          SELECT m2."id"
+          FROM "Message" m2
+          WHERE m2."threadId" = tm."threadId"
+          ORDER BY m2."createdAt" DESC
+          LIMIT 1
+        )
         WHERE tm."userId" = ${user.id}
           AND tm."notificationsMuted" = false
           AND m."senderId" != ${user.id}

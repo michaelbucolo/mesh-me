@@ -98,8 +98,29 @@ export function SavedList({ initial }: { initial: SavedRow[] }) {
             <div className="flex items-start gap-3">
               {row.kind === "external" ? (
                 row.thumbnailUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element -- snapshot thumbnails are remote platform URLs; next/image adds a loader round-trip for a 64px preview.
-                  <img src={row.thumbnailUrl} alt="" className="h-16 w-16 shrink-0 rounded-xl object-cover" />
+                  <>
+                    {/* A bookmark must outlive the cache that fed it — and its
+                        thumbnail URL. A rotted host rendered the browser's
+                        broken-image glyph (audit 2); onError degrades to the
+                        same calm logo tile as a missing thumbnail. */}
+                    {/* eslint-disable-next-line @next/next/no-img-element -- snapshot thumbnails are remote platform URLs; next/image adds a loader round-trip for a 64px preview. */}
+                    <img
+                      src={row.thumbnailUrl}
+                      alt=""
+                      className="h-16 w-16 shrink-0 rounded-xl object-cover"
+                      onError={(event) => {
+                        const img = event.currentTarget;
+                        img.style.display = "none";
+                        const fallback = img.nextElementSibling as HTMLElement | null;
+                        if (fallback) fallback.style.display = "flex";
+                      }}
+                    />
+                    {/* display controlled inline: the `hidden` attribute loses
+                        to the flex class's display. */}
+                    <span style={{ display: "none" }} className="h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-[var(--bg-tertiary)]">
+                      <PlatformLogo platform={row.platform || "meshme"} size={28} className="rounded-full" />
+                    </span>
+                  </>
                 ) : (
                   <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-[var(--bg-tertiary)]">
                     <PlatformLogo platform={row.platform || "meshme"} size={28} className="rounded-full" />

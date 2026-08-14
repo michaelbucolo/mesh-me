@@ -9,7 +9,7 @@
 // is disclosed, never hidden: "Went out 9:07 (scheduled 9:00)."
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { PlatformLogo } from "@/components/platform/platform-logo";
 import { ruleFor } from "@/lib/compose/plan";
 import type { PublishReport } from "@/lib/compose/publish";
@@ -54,6 +54,10 @@ export function QueueView({ rows, reachable }: { rows: QueueRow[]; reachable: st
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [notice, setNotice] = useState<string | null>(null);
+  // The lateness judgement needs "now", and SSR's now differs from the
+  // client's — so it renders only after mount (null on the server).
+  const [now, setNow] = useState<number | null>(null);
+  useEffect(() => setNow(Date.now()), []);
   const [reschedulingId, setReschedulingId] = useState<string | null>(null);
   const [whenLocal, setWhenLocal] = useState("");
   const [openReportId, setOpenReportId] = useState<string | null>(null);
@@ -130,6 +134,15 @@ export function QueueView({ rows, reachable }: { rows: QueueRow[]; reachable: st
                   {willSkip.length > 0 && (
                     <p className="mt-1.5" style={{ color: WARN, fontSize: 12.5 }}>
                       {willSkip.map((t) => ruleFor(t)?.label ?? t).join(", ")} disconnected — this will be skipped there unless you reconnect.
+                    </p>
+                  )}
+                  {/* OBSERVABLY STUCK, NEVER SILENT: a queued row whose time
+                      has passed with no scheduler pickup says so — before this
+                      it sat under "Waiting" forever with nothing anywhere
+                      admitting the send time went by (audit 2). */}
+                  {row.status === "queued" && now !== null && now - new Date(row.scheduledForIso).getTime() > 90_000 && (
+                    <p className="mt-1.5" data-testid="queue-overdue" style={{ color: WARN, fontSize: 12.5 }}>
+                      Should have gone out {spokenClock(row.scheduledForIso)} — nothing has picked it up yet. Send it now, or check that the scheduler is running.
                     </p>
                   )}
 
@@ -230,7 +243,7 @@ export function QueueView({ rows, reachable }: { rows: QueueRow[]; reachable: st
                         onChange={(e) => setWhenLocal(e.target.value)}
                         aria-label="New time for this post"
                         className="rounded-lg px-2.5 py-1.5 outline-none"
-                        style={{ background: "#070b14", border: "1px solid #ffffff14", color: INK, fontSize: 13, colorScheme: "dark" }}
+                        style={{ background: "#070b14", border: "1px solid #ffffff14", color: INK, fontSize: 13, colorScheme: "dark", minHeight: 44 }}
                       />
                       <button
                         type="button"
@@ -344,7 +357,7 @@ export function QueueView({ rows, reachable }: { rows: QueueRow[]; reachable: st
                         onChange={(e) => setWhenLocal(e.target.value)}
                         aria-label="New time for this post"
                         className="rounded-lg px-2.5 py-1.5 outline-none"
-                        style={{ background: "#070b14", border: "1px solid #ffffff14", color: INK, fontSize: 13, colorScheme: "dark" }}
+                        style={{ background: "#070b14", border: "1px solid #ffffff14", color: INK, fontSize: 13, colorScheme: "dark", minHeight: 44 }}
                       />
                       <button
                         type="button"
