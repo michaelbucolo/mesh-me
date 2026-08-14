@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 type Person = {
   id: string;
@@ -56,7 +56,22 @@ export function MessagesDataProvider({
   // The server renders the initial inbox; from there the thread list stays
   // live by polling while the tab is visible, so new conversations, latest
   // messages, and unread counts appear without a reload.
-  const [threads, setThreads] = useState(value.initialThreads);
+  //
+  // The poll snapshot is KEYED to the server payload it was polled on top
+  // of. When a navigation brings a fresh server payload, the stale snapshot
+  // is ignored by derivation — no remount required. (The provider used to be
+  // <MessagesDataProvider key={thread-list fingerprint}>, which threw away
+  // the entire subtree — list scroll, focus, entrance state — every time a
+  // message arrived anywhere.)
+  const [polled, setPolled] = useState<{ baseline: MeChatThread[]; threads: MeChatThread[] } | null>(null);
+  const baselineRef = useRef(value.initialThreads);
+  const threads = polled && polled.baseline === value.initialThreads ? polled.threads : value.initialThreads;
+
+  useEffect(() => {
+    // A poll that raced this sync stamps the OLD baseline and is ignored by
+    // the derivation above — self-healing on the next 10s tick.
+    baselineRef.current = value.initialThreads;
+  }, [value.initialThreads]);
 
   useEffect(() => {
     let stopped = false;
@@ -66,7 +81,9 @@ export function MessagesDataProvider({
         const res = await fetch("/api/messages", { cache: "no-store", credentials: "same-origin" });
         if (!res.ok) return;
         const data = await res.json().catch(() => null);
-        if (!stopped && data && Array.isArray(data.threads)) setThreads(data.threads);
+        if (!stopped && data && Array.isArray(data.threads)) {
+          setPolled({ baseline: baselineRef.current, threads: data.threads });
+        }
       } catch {
         // Best-effort — the next tick retries.
       }
