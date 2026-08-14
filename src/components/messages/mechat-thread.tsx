@@ -13,6 +13,7 @@ import { attachNormalizer } from "@/lib/audio-normalize";
 import { playSound } from "@/lib/sound";
 import { safeHref } from "@/lib/utils";
 import { MeshiMascot, type MeshiColor, type MeshiHat, type MeshiHair, type MeshiAccessory, type MeshiEyeStyle, type MeshiBadge } from "@/components/meshi/meshi-mascot";
+import { mechatDraftKey } from "@/lib/mechat-drafts";
 import { SPRING_PANEL } from "@/lib/motion";
 import {
   buildLinkPreview,
@@ -625,8 +626,10 @@ export function MeChatThread({
   }, [messages, currentUser.id]);
 
   // A half-typed draft survives hopping between conversations — kept per
-  // thread in sessionStorage so nothing lingers after the tab closes.
-  const draftStorageKey = `mechat-draft:${activeThreadId || recipientId || "new"}`;
+  // thread in sessionStorage so nothing lingers after the tab closes. The
+  // key comes from the shared builder the conversation list's Draft badge
+  // reads with, so writer and reader can never drift.
+  const draftStorageKey = mechatDraftKey(activeThreadId || recipientId || "new");
 
   useEffect(() => {
     if (initialSource?.content) return; // a shared source already fills the composer

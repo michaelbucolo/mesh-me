@@ -8,6 +8,7 @@ import { PaperWait } from "@/components/loading/paper-wait";
 import { Avatar } from "@/components/ui/avatar";
 import { Modal } from "@/components/ui/modal";
 import { useContactPresence } from "./use-contact-presence";
+import { useMeChatDraftIds } from "@/lib/mechat-drafts";
 import { getDisplayNameForAnyPlatform } from "@/lib/platform-capabilities";
 import { formatRelativeTime } from "@/lib/utils";
 
@@ -141,6 +142,10 @@ export function MeChatConversationList({
   // froze the list at mount so new conversations, latest-message previews, and
   // unread counts never updated without a full reload.
   const threads = initialThreads;
+  // Which listed threads hold a half-typed draft — read post-hydration from
+  // the same sessionStorage keys the composer writes, so a started message
+  // is findable from the list instead of silently parked.
+  const draftIds = useMeChatDraftIds(useMemo(() => threads.map((thread) => thread.id), [threads]));
   // Same live presence that animates Meshi on the mesh — here it's the
   // "active now" dot on conversations.
   const onlineContacts = useContactPresence();
@@ -530,6 +535,9 @@ export function MeChatConversationList({
                         )}
                       </div>
                       <div className="mt-0.5 flex items-center gap-2">
+                        {draftIds.has(thread.id) && (
+                          <span className="shrink-0 text-micro font-semibold text-[var(--accent-text)]">Draft</span>
+                        )}
                         <p className={`truncate text-xs ${unread ? "font-semibold text-[var(--mesh-text)]" : "text-[var(--mesh-text-secondary)]"}`}>
                           {thread.lastMessage ? `${mineLast ? "You: " : ""}${thread.lastMessage.content}` : "No messages yet"}
                         </p>

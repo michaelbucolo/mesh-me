@@ -2,8 +2,8 @@ import type { ReactNode } from "react";
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { RouteWait } from "@/components/loading/route-wait";
-import { MeChatConversationList } from "@/components/messages/mechat-conversation-list";
 import { MessagesDataProvider } from "@/components/messages/messages-data-context";
+import { MessagesRailList } from "@/components/messages/messages-rail";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getBlockedUserIdSet } from "@/lib/privacy-policy";
@@ -160,20 +160,16 @@ async function MessagesShell({ children }: MessagesLayoutProps) {
   };
 
   return (
-    <MessagesDataProvider
-      key={sidebarData.initialThreads
-        .map((thread) => `${thread.id}:${thread.lastMessage?.createdAt ?? ""}:${thread.unread}`)
-        .join("|")}
-      value={sidebarData}
-    >
+    // Deliberately NOT keyed: a key derived from thread-list state remounted
+    // the entire subtree (list scroll, focus, entrance state) every time any
+    // message arrived. The provider adopts fresh server payloads by baseline
+    // comparison instead.
+    <MessagesDataProvider value={sidebarData}>
       <div className="grid h-full min-h-0 lg:grid-cols-[360px_minmax(0,1fr)]">
         <aside className={RAIL_ASIDE}>
-          <MeChatConversationList
-            variant="rail"
-            currentUser={currentUser}
-            initialThreads={sidebarData.initialThreads}
-            initialNotes={initialNotes}
-          />
+          {/* Reads the provider's LIVE context (like the index pane does) —
+              handing it the raw server prop froze it between navigations. */}
+          <MessagesRailList />
         </aside>
 
         <main className="min-w-0 min-h-0">{children}</main>

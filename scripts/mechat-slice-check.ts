@@ -25,6 +25,7 @@
  * This is source text, held against regression.
  */
 
+import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
@@ -44,6 +45,15 @@ const thread = strip(read("src/components/messages/mechat-thread.tsx"));
 const list = strip(read("src/components/messages/mechat-conversation-list.tsx"));
 const rail = strip(read("src/components/messages/mechat-info-rail.tsx"));
 const globals = read("src/app/globals.css");
+
+function grepAllTs(pattern: string): string[] {
+  try {
+    return execFileSync("grep", ["-rlF", pattern, "src", "--include=*.ts", "--include=*.tsx"], { encoding: "utf8" })
+      .split("\n").filter(Boolean).filter((f) => !f.startsWith("src/generated/"));
+  } catch {
+    return [];
+  }
+}
 
 function body(source: string, marker: string): string {
   const at = source.indexOf(marker);
@@ -208,6 +218,46 @@ function body(source: string, marker: string): string {
   } else ok();
   if (!/Shared Sources/.test(rail) || !/formatRelativeTime/.test(list)) {
     fail("6 chrome", "sanity: a scanned surface lost its landmark — the scanner is blind");
+  } else ok();
+}
+
+// ── 7. The follow-through: no remount key, drafts through one chokepoint ─────
+{
+  const layout = strip(read("src/app/(app)/messages/layout.tsx"));
+  const providerAt = layout.indexOf("<MessagesDataProvider");
+  if (providerAt < 0) {
+    fail("7 follow", "sanity: MessagesDataProvider left the messages layout — the scanner is blind");
+  } else ok();
+  const providerTag = layout.slice(providerAt, layout.indexOf(">", providerAt));
+  if (/\skey=/.test(providerTag)) {
+    fail("7 follow", "MessagesDataProvider is keyed again — every arriving message remounts the whole subtree");
+  } else ok();
+  if (!/polled\.baseline === value\.initialThreads/.test(strip(read("src/components/messages/messages-data-context.tsx")))) {
+    fail("7 follow", "the provider lost its baseline comparison — stale poll snapshots would outlive fresh server payloads");
+  } else ok();
+  const drafts = strip(read("src/lib/mechat-drafts.ts"));
+  if (!/useSyncExternalStore/.test(drafts) || !/=> ""/.test(drafts)) {
+    fail("7 follow", "the draft reader left useSyncExternalStore or its empty server snapshot — hydration mismatch territory");
+  } else ok();
+  if (/localStorage/.test(drafts)) {
+    fail("7 follow", "drafts moved to localStorage — they must die with the tab");
+  } else ok();
+  const keyBuilders = grepAllTs("mechat-draft:");
+  if (keyBuilders.length !== 1 || !keyBuilders[0].startsWith("src/lib/mechat-drafts.ts")) {
+    fail("7 follow", `the mechat-draft: key template exists outside its one builder: ${keyBuilders.join(", ")}`);
+  } else ok();
+  for (const file of ["src/components/messages/mechat-thread.tsx", "src/components/messages/mechat-conversation-list.tsx"]) {
+    if (!/@\/lib\/mechat-drafts/.test(strip(read(file)))) {
+      fail("7 follow", `${file} no longer rides the shared draft module — writer and reader can drift`);
+    } else ok();
+  }
+  // The rail must read the LIVE context, not the raw server prop — handing
+  // it sidebarData froze it between navigations (polls never reached it).
+  if (!/<MessagesRailList \/>/.test(layout) || /variant="rail"[\s\S]{0,200}initialThreads=\{sidebarData/.test(layout)) {
+    fail("7 follow", "the rail stopped riding the provider's live context — it freezes between navigations again");
+  } else ok();
+  if (!/useMessagesData\(\)/.test(strip(read("src/components/messages/messages-rail.tsx")))) {
+    fail("7 follow", "MessagesRailList no longer reads useMessagesData — a static pass-through");
   } else ok();
 }
 
