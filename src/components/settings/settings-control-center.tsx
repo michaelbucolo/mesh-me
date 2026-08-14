@@ -21,10 +21,10 @@ import {
 
 import Link from "next/link";
 import { effectiveProfileVisibility } from "@/lib/profile-visibility";
-import { type Dispatch, type FormEvent, type ReactNode, type SetStateAction, useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { type Dispatch, type FormEvent, type ReactNode, type SetStateAction, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, useTransition } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
-import { Activity, AlignLeft, AtSign, AudioLines, BadgeCheck, Ban, BarChart3, BellRing, CheckCheck, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, Compass, CreditCard, Crown, Database, Droplets, EyeOff, Fingerprint, Flame, Ghost, Globe, Hash, IdCard, Info, KeyRound, LayoutGrid, Link as LinkIcon, Lock, LockKeyhole, LogOut, Mail, MailCheck, MapPin, Megaphone, MessageCircle, MessageSquare, Monitor, MonitorSmartphone, Moon, Palette, Phone, PlugZap, RefreshCw, Search, Settings2, ShieldAlert, ShieldCheck, ShieldOff, Sparkles, Smartphone, Sun, Trash2, UserPlus, UserRound, UsersRound, Volume2, WandSparkles, Waypoints, type LucideIcon } from "lucide-react";
+import { Activity, AlignLeft, AtSign, AudioLines, BadgeCheck, Ban, BarChart3, BellOff, BellRing, CalendarDays, CalendarRange, CheckCheck, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, Compass, CreditCard, Crown, Database, Droplets, EyeOff, Fingerprint, Flame, Ghost, Globe, Hash, IdCard, Info, KeyRound, LayoutGrid, Link as LinkIcon, Lock, LockKeyhole, LogOut, Mail, MailCheck, MapPin, Megaphone, MessageCircle, MessageSquare, Monitor, MonitorSmartphone, Moon, Palette, Phone, PlugZap, RefreshCw, Search, Settings2, ShieldAlert, ShieldCheck, ShieldOff, Sparkles, Smartphone, Sun, Trash2, UserPlus, UserRound, UsersRound, Volume2, WandSparkles, Waypoints, type LucideIcon } from "lucide-react";
 import { PaperWait } from "@/components/loading/paper-wait";
 import { isSoundEnabled, playSound, setSoundEnabled } from "@/lib/sound";
 import { GLASS_LEVEL_LABELS, useGlassLevel, writeGlassLevel, type GlassLevel } from "@/lib/glass-level";
@@ -265,6 +265,17 @@ const themeColorLabels: Record<string, string> = {
   borderPrimary: "Border",
 };
 const meshNodeStyles = ["clean", "soft", "glass", "bold"] as const;
+// A tiny rendered specimen per node style — the icon that cannot mislead,
+// because it is drawn from the same tokens the mesh nodes use.
+const nodeStyleSpecimens: Record<(typeof meshNodeStyles)[number], string> = {
+  clean: "border border-[var(--border-primary)] bg-[var(--bg-primary)]",
+  soft: "border border-transparent bg-[var(--accent)]/30",
+  glass: "border border-[var(--border-primary)] bg-[var(--accent)]/15",
+  bold: "border-2 border-[var(--accent)] bg-[var(--accent)]/45",
+};
+// One no-op subscription for snapshot reads that only need re-render-time
+// freshness (mode changes already re-render through useTheme).
+const subscribeToNothing = () => () => {};
 const meshMotionStyles = ["calm", "lively", "minimal"] as const;
 // The papers a mesh can be laid out on. This USED to be a second copy of the
 // renderer's table — "ids must match ATMOSPHERES in the scene renderer" was
@@ -273,7 +284,6 @@ const meshMotionStyles = ["calm", "lively", "minimal"] as const;
 // still said Midnight / Aurora / Ember / Ocean / Dawn and previewed them with
 // outer-space swatches. Picking "Midnight" gave you cream. It reads the one
 // list now, and each swatch is derived from the paper it previews.
-const visibilityOptions = ["private", "friends", "public", "partial"];
 const branchKeys = ["people", "communities", "interests", "platforms", "content"] as const;
 const usStates = [
   "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA", "HI", "ID", "IL", "IN", "IA", "KS",
@@ -910,7 +920,6 @@ export function SettingsControlCenter({
             {activeSection === "security" && (
               <SecuritySection
                 settings={settings}
-                privacySummary={privacySummary}
                 runSave={runSave}
                 isPending={isPending}
               />
@@ -1197,9 +1206,7 @@ function PrivacySection({
       <SettingsCard title="Visibility" icon={LockKeyhole}>
         <div className="grid gap-2">
           <PickerGroup label="Who can see your profile">
-            <ChoiceButton icon={Globe} active={profileVisibilityLevel === "public"} onClick={() => applyProfileVisibility("public")}>Public</ChoiceButton>
-            <ChoiceButton icon={UsersRound} active={profileVisibilityLevel === "friends"} onClick={() => applyProfileVisibility("friends")}>Friends</ChoiceButton>
-            <ChoiceButton icon={Lock} active={profileVisibilityLevel === "private"} onClick={() => applyProfileVisibility("private")}>Private</ChoiceButton>
+            <VisibilityChoice value={profileVisibilityLevel} onChange={(value) => applyProfileVisibility(value)} />
           </PickerGroup>
           <p className="text-xs text-[var(--text-muted)]">
             {profileVisibilityLevel === "public"
@@ -1385,17 +1392,13 @@ function NotificationsSection({
             value={notifications.pushEnabled}
             onChange={(value) => applyNotifications({ ...notifications, pushEnabled: value })}
           />
-          <Field icon={Mail} label="Email digest">
-            <select
-              value={notifications.emailDigest}
-              onChange={(event) => applyNotifications({ ...notifications, emailDigest: event.target.value })}
-              className="simple-input h-11 px-3 text-sm capitalize"
-            >
-              <option value="off">Off</option>
-              <option value="daily">Daily</option>
-              <option value="weekly">Weekly</option>
-            </select>
-          </Field>
+          {/* Three known values read faster flat than behind a closed
+              dropdown — glyph-led, words kept, aria-pressed for free. */}
+          <PickerGroup label="Email digest">
+            <ChoiceButton icon={BellOff} active={notifications.emailDigest === "off"} onClick={() => applyNotifications({ ...notifications, emailDigest: "off" })}>Off</ChoiceButton>
+            <ChoiceButton icon={CalendarDays} active={notifications.emailDigest === "daily"} onClick={() => applyNotifications({ ...notifications, emailDigest: "daily" })}>Daily</ChoiceButton>
+            <ChoiceButton icon={CalendarRange} active={notifications.emailDigest === "weekly"} onClick={() => applyNotifications({ ...notifications, emailDigest: "weekly" })}>Weekly</ChoiceButton>
+          </PickerGroup>
         </div>
         <p className="settings-mini-label mt-4">What reaches you</p>
         <div className="settings-toggle-grid mt-2">
@@ -1416,12 +1419,10 @@ function NotificationsSection({
 
 function SecuritySection({
   settings,
-  privacySummary,
   runSave,
   isPending,
 }: {
   settings: SettingsSnapshot;
-  privacySummary: PrivacySummary;
   runSave: (label: string, task: () => Promise<unknown>) => void;
   isPending: boolean;
 }) {
@@ -1448,24 +1449,16 @@ function SecuritySection({
 
   return (
     <div className="settings-section-stack">
-      <SettingsCard title="Security status" icon={ShieldCheck}>
-        <div className="settings-list">
-          <SettingsRow icon={MailCheck} label="Email verification" value={settings.emailVerified ? "Verified" : "Not verified"} />
-          <SettingsRow icon={Smartphone} label="Active sessions" value={privacySummary.sessions.toLocaleString()} />
-          <SettingsRow icon={Activity} label="Activity status" value={settings.hideActivityStatus ? "Hidden" : "Visible"} />
-          <SettingsRow icon={Flame} label="Sensitive content" value={settings.nsfwEnabled ? "Allowed after verification" : "Off"} />
-        </div>
-        {!settings.emailVerified && (
-          <p className="mt-2 text-xs text-[var(--text-muted)]">
-            Not verified yet — send a verification email from Account settings.
-          </p>
-        )}
-      </SettingsCard>
-
+      {/* The "Security status" card was deleted: all four of its rows
+          restated facts already owned elsewhere on this surface (email
+          verification = Account + header pill; sessions = the Devices card
+          below; activity status and sensitive content = Privacy). Simplify
+          means fewer restatements, never fewer controls — the card had no
+          controls to lose. */}
       <form onSubmit={savePassword}>
         <SettingsCard title="Change password" icon={KeyRound}>
           <div className="grid gap-3 md:grid-cols-3">
-            <Field label="Current password">
+            <Field icon={KeyRound} label="Current password">
               <input
                 type="password"
                 value={passwords.currentPassword}
@@ -1474,7 +1467,7 @@ function SecuritySection({
                 autoComplete="current-password"
               />
             </Field>
-            <Field label="New password">
+            <Field icon={Lock} label="New password">
               <input
                 type="password"
                 value={passwords.newPassword}
@@ -1483,7 +1476,7 @@ function SecuritySection({
                 autoComplete="new-password"
               />
             </Field>
-            <Field label="Confirm password">
+            <Field icon={CheckCheck} label="Confirm password">
               <input
                 type="password"
                 value={passwords.confirmPassword}
@@ -1494,6 +1487,11 @@ function SecuritySection({
             </Field>
           </div>
           <SaveButton label="Update password" pending={isPending} />
+          {!settings.emailVerified && (
+            <p className="mt-2 text-xs text-[var(--text-muted)]">
+              Not verified yet — send a verification email from Account settings.
+            </p>
+          )}
         </SettingsCard>
       </form>
 
@@ -1690,7 +1688,7 @@ function RecoveryMethods() {
     <SettingsCard title="Recovery methods" icon={Mail}>
       <div className="grid gap-4 lg:grid-cols-2">
         <form onSubmit={(event) => void addMethod("email", event)} className="settings-muted-box">
-          <Field label="Add recovery email">
+          <Field icon={Mail} label="Add recovery email">
             <input value={email} onChange={(event) => setEmail(event.target.value)} className="simple-input h-11 px-3 text-sm" placeholder="you@example.com" type="email" />
           </Field>
           <button type="submit" disabled={busy === "email" || !email.trim()} className={`key ${KEY_COBALT} mt-3 inline-flex min-h-11 items-center justify-center gap-2 px-3 text-sm font-semibold disabled:opacity-50`}>
@@ -1699,7 +1697,7 @@ function RecoveryMethods() {
           </button>
         </form>
         <form onSubmit={(event) => void addMethod("phone", event)} className="settings-muted-box">
-          <Field label="Add recovery phone">
+          <Field icon={Phone} label="Add recovery phone">
             <input value={phone} onChange={(event) => setPhone(event.target.value)} className="simple-input h-11 px-3 text-sm" placeholder="+15551234567" type="tel" />
           </Field>
           <button type="submit" disabled={busy === "phone" || !phone.trim()} className={`key ${KEY_COBALT} mt-3 inline-flex min-h-11 items-center justify-center gap-2 px-3 text-sm font-semibold disabled:opacity-50`}>
@@ -1881,22 +1879,22 @@ function MeshSection({
           {branchKeys.map((key) => {
             const BranchIcon = branchIcons[key];
             return (
-              <label key={key} className="settings-muted-box grid gap-1.5 text-xs font-semibold capitalize">
+              // A div, not a label: with buttons inside, a label's implicit
+              // activation would make its text a hidden "Public" trigger.
+              <div key={key} className="settings-muted-box grid gap-1.5 text-xs font-semibold capitalize">
                 <span className="inline-flex items-center gap-1.5">
                   <BranchIcon size={13} className="text-[var(--accent-text)]" aria-hidden="true" />
                   {key}
                 </span>
-                <select
+                <VisibilityChoice
+                  compact
                   value={mesh.branches[key] ?? branchInherit}
-                  onChange={(event) => applyMeshPrivacy({
+                  onChange={(value) => applyMeshPrivacy({
                     ...mesh,
-                    branches: { ...mesh.branches, [key]: event.target.value },
+                    branches: { ...mesh.branches, [key]: value },
                   })}
-                  className="simple-input h-10 px-2 text-sm capitalize"
-                >
-                  {visibilityOptions.slice(0, 3).map((option) => <option key={option} value={option}>{option}</option>)}
-                </select>
-              </label>
+                />
+              </div>
             );
           })}
         </div>
@@ -1954,6 +1952,7 @@ function MeshSection({
           <PickerGroup label="Node style">
             {meshNodeStyles.map((style) => (
               <ChoiceButton key={style} active={meshVisuals.nodeStyle === style} disabled={!isMeshPro} onClick={() => applyMeshVisuals({ ...meshVisuals, nodeStyle: style })}>
+                <span className={`inline-block h-3.5 w-3.5 rounded-full ${nodeStyleSpecimens[style]}`} aria-hidden="true" />
                 {style}
               </ChoiceButton>
             ))}
@@ -2215,6 +2214,15 @@ function AppearanceSection({
   const [soundsOn, setSoundsOn] = useState(() => isSoundEnabled());
   const [normalizeOn, setNormalizeOn] = useState(() => isVolumeNormalizationEnabled());
   const modeIcons: Record<"system" | "light" | "dark", LucideIcon> = { system: MonitorSmartphone, light: Sun, dark: Moon };
+  // The preset swatches scope each preset's OWN tokens: globals.css's theme
+  // blocks are compound selectors (.dark[data-theme="ocean"]), so the mode
+  // class and the data-theme attribute must sit on the same element. Mode
+  // changes re-render through useTheme, which re-reads this snapshot.
+  const resolvedThemeMode = useSyncExternalStore(
+    subscribeToNothing,
+    () => (document.documentElement.classList.contains("dark") ? "dark" : "light"),
+    () => "light",
+  );
   return (
     <div className="settings-section-stack">
       <SettingsCard title="Theme and sound" icon={Palette}>
@@ -2229,6 +2237,14 @@ function AppearanceSection({
           <PickerGroup label="Preset">
             {themePresets.map((themePreset) => (
               <ChoiceButton key={themePreset.id} active={preset === themePreset.id} onClick={() => setPreset(themePreset.id)}>
+                {/* Derived, never restated: the dot resolves THIS preset's
+                    tokens via data-theme scoping — no second color table. */}
+                <span
+                  data-theme={themePreset.id}
+                  className={`${resolvedThemeMode} inline-block h-3.5 w-3.5 rounded-full border border-[var(--border-primary)]`}
+                  style={{ background: "linear-gradient(135deg, var(--accent) 0 50%, var(--bg-primary) 50% 100%)" }}
+                  aria-hidden="true"
+                />
                 {themePreset.label}
               </ChoiceButton>
             ))}
@@ -2284,9 +2300,11 @@ function AppearanceSection({
           </div>
           <div className="mt-3 flex flex-wrap gap-2">
             <button type="submit" disabled={!isMeshPro} className={`key ${KEY_COBALT} inline-flex min-h-11 items-center justify-center gap-2 px-4 text-sm font-semibold disabled:opacity-50`}>
+              <Palette size={15} aria-hidden="true" />
               Apply custom theme
             </button>
             <button type="button" disabled={!isMeshPro || !hasCustomTheme} onClick={clearCustomTheme} className="key inline-flex min-h-11 items-center justify-center gap-2 px-4 text-sm font-semibold text-[var(--text-primary)] disabled:opacity-50">
+              <RefreshCw size={15} aria-hidden="true" />
               Reset custom colors
             </button>
           </div>
@@ -2487,11 +2505,14 @@ function SettingsRow({ label, value, icon }: { label: string; value: string; ico
   );
 }
 
-function Field({ label, icon: Icon, children, wide = false }: { label: string; icon?: LucideIcon; children: ReactNode; wide?: boolean }) {
+// icon is REQUIRED: every field row leads with a glyph, and tsc holds the
+// ratchet for every future call site (the icon-led law, not icon-only —
+// the label always stays).
+function Field({ label, icon: Icon, children, wide = false }: { label: string; icon: LucideIcon; children: ReactNode; wide?: boolean }) {
   return (
     <label className={`grid gap-1.5 text-sm font-semibold ${wide ? "md:col-span-2" : ""}`}>
       <span className="inline-flex items-center gap-1.5">
-        {Icon && <Icon size={13} className="text-[var(--accent-text)]" aria-hidden="true" />}
+        <Icon size={13} className="text-[var(--accent-text)]" aria-hidden="true" />
         {label}
       </span>
       {children}
@@ -2549,7 +2570,7 @@ function Toggle({
   disabled = false,
   locked = false,
 }: {
-  icon?: LucideIcon;
+  icon: LucideIcon;
   label: string;
   description?: string;
   value: boolean;
@@ -2557,6 +2578,7 @@ function Toggle({
   disabled?: boolean;
   locked?: boolean;
 }) {
+  /* icon is REQUIRED on switches too — same ratchet as Field. */
   /* Fourteen real switches, and the row they sit in had no material: a
      `.settings-toggle` (globals.css:4514) is display, height and padding. It is a
      key now — face, --edge ring, and a wall that bottoms out when you flip it.
@@ -2574,7 +2596,7 @@ function Toggle({
       className={`key settings-toggle ${disabled ? "cursor-not-allowed opacity-65" : ""}`}
       aria-checked={value}
     >
-      {icon && <IconTile icon={icon} />}
+      <IconTile icon={icon} />
       <span className="min-w-0 flex-1">
         <span className="flex items-center gap-1.5">
           <span className="truncate text-sm font-semibold">{label}</span>
@@ -2594,6 +2616,49 @@ function PickerGroup({ label, children, className }: { label: string; children: 
     <div className={className ? `grid gap-1.5 ${className}` : "grid gap-1.5"}>
       <p className="text-xs font-semibold text-[var(--text-secondary)]">{label}</p>
       <div className="flex flex-wrap gap-1.5">{children}</div>
+    </div>
+  );
+}
+
+// ONE visibility vocabulary. The same three values used to render as icon
+// chips on the profile card and as text dropdowns on the branches — one
+// fact, two idioms. This is the single control for both. Deliberately a
+// 3-tuple: `partial` is assignable overall state on /privacy-controls, so
+// this component does NOT migrate there unchanged.
+const visibilityChoices = [
+  { value: "public", label: "Public", icon: Globe },
+  { value: "friends", label: "Friends", icon: UsersRound },
+  { value: "private", label: "Private", icon: Lock },
+] as const;
+
+function VisibilityChoice({
+  value,
+  onChange,
+  compact = false,
+  disabled = false,
+}: {
+  value: string;
+  onChange: (value: "public" | "friends" | "private") => void;
+  compact?: boolean;
+  disabled?: boolean;
+}) {
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {visibilityChoices.map((choice) => (
+        <button
+          key={choice.value}
+          type="button"
+          disabled={disabled}
+          onClick={() => onChange(choice.value)}
+          aria-pressed={value === choice.value}
+          className={`key inline-flex items-center gap-1 font-semibold capitalize ${
+            compact ? "min-h-8 rounded-md px-2 py-1 text-xs" : "min-h-10 rounded-md px-3 py-1.5 text-sm"
+          } ${value === choice.value ? KEY_COBALT : "text-[var(--text-primary)]"} ${disabled ? "opacity-55" : ""}`}
+        >
+          <choice.icon size={compact ? 12 : 14} aria-hidden="true" />
+          {choice.label}
+        </button>
+      ))}
     </div>
   );
 }
