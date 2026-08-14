@@ -9,7 +9,9 @@ import { getPublicSupplyFeedPosts } from "./public-supply/feed";
 // The viewer's follow/community graph is stable within a request, but the feed
 // builds several candidate passes (all + discover + per-platform) that each
 // need it. Request-level cache() collapses those into one 4-query batch.
-const getViewerSocialGraph = cache(async (userId: string) => {
+// Exported for the Return Brief, which counts new posts from the same graph —
+// the cache() means the feed page still pays for the batch exactly once.
+export const getViewerSocialGraph = cache(async (userId: string) => {
   const [following, communityMemberships, followers, blocks] = await Promise.all([
     prisma.follow.findMany({
       where: { followerId: userId },
@@ -116,6 +118,10 @@ export type FeedCardPost = {
   isNsfw?: boolean;
   contentRating?: string;
   visibility?: string;
+  /** Newer than the viewer's caughtUpAt cursor (return-brief.ts). Derived
+   * SERVER-side, only for the finite following feed — the client renders the
+   * "You're caught up" divider but never decides the boundary. */
+  isNew?: boolean;
 };
 
 type NativeFeedPost = Awaited<ReturnType<typeof getNativeFeedPostsForSource>>[number];
@@ -827,11 +833,14 @@ export async function getCombinedFeedPosts({
   source,
   contentFilter,
   limit,
+  newSince,
 }: {
   user: FeedCurrentUser;
   source: FeedSource;
   contentFilter: FeedContentFilter;
   limit: number;
+  /** When set (following feed only), stamp isNew on every returned post. */
+  newSince?: Date | null;
 }) {
   const providerLimit = Math.min(Math.max(limit * 2, 48), 240);
   const [nativePosts, ownPlatformPosts, friendPlatformPosts, mergedForYouPosts, discoverPlatformPosts, publicSupplyPosts] = await Promise.all([
@@ -874,5 +883,11 @@ export async function getCombinedFeedPosts({
     if (!byId.has(key)) byId.set(key, post);
   }
 
-  return filterFeedPostsByContent(sortFeedPosts([...byId.values()]), contentFilter).slice(0, limit);
+  const posts = filterFeedPostsByContent(sortFeedPosts([...byId.values()]), contentFilter).slice(0, limit);
+  if (!newSince) return posts;
+  const sinceMs = newSince.getTime();
+  return posts.map((post) => ({
+    ...post,
+    isNew: new Date(post.createdAt).getTime() > sinceMs,
+  }));
 }

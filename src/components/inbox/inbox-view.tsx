@@ -23,8 +23,8 @@ const OWED = "#60a5fa";
 
 type Tab = "needs-you" | "all" | "messages";
 
-export function InboxView({ initial }: { initial: InboxRead }) {
-  const [tab, setTab] = useState<Tab>("needs-you");
+export function InboxView({ initial, initialTab = "needs-you" }: { initial: InboxRead; initialTab?: Tab }) {
+  const [tab, setTab] = useState<Tab>(initialTab);
   const [platform, setPlatform] = useState<string | null>(null);
 
   // Filtering happens here rather than by refetching: the read already returned

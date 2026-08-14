@@ -47,6 +47,7 @@ CREATE TABLE IF NOT EXISTS "User" (
     "resetTokenExpiry" DATETIME,
     "status" TEXT NOT NULL DEFAULT 'offline',
     "lastSeenAt" DATETIME,
+    "caughtUpAt" DATETIME,
     "mergedIntoUserId" TEXT
 );
 

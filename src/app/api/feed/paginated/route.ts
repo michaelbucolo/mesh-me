@@ -6,6 +6,7 @@ import {
   normalizeFeedSource,
 } from "@/lib/feed-data";
 import { getFlowCandidates, getViewerTasteProfile, rankFlowPosts, resolveStudioWeights } from "@/lib/flow-ranking";
+import { returnBriefCursor } from "@/lib/return-brief";
 
 export async function GET(request: Request) {
   const user = await getCurrentUser();
@@ -45,6 +46,9 @@ export async function GET(request: Request) {
       source,
       contentFilter,
       limit: windowSize,
+      // Same newness stamp as the page's first paint, so a loaded page can't
+      // move the "You're caught up" line.
+      newSince: source === "following" ? returnBriefCursor(user.caughtUpAt) : undefined,
     });
   }
 

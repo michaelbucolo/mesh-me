@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import {
   Bell,
   BookOpen,
+  Bookmark,
   Bug,
   Command,
   CreditCard,
@@ -18,6 +19,7 @@ import {
   PenSquare,
   PlugZap,
   Search,
+  Send,
   Settings,
   ShieldCheck,
   Sparkles,
@@ -163,6 +165,15 @@ function createCommands(username: string): CommandItem[] {
       keywords: ["security", "data", "privacy", "visibility", "activity", "delete", "export"],
     },
     {
+      id: "go-saved",
+      title: "Open Saved",
+      description: "Everything you bookmarked, from every platform, in one list.",
+      category: "Go",
+      href: "/saved",
+      icon: Bookmark,
+      keywords: ["bookmarks", "saved", "collection", "later", "watch later", "read later"],
+    },
+    {
       id: "create-post",
       title: "Create Post",
       description: "Open the composer and publish to Mesh.me.",
@@ -170,6 +181,15 @@ function createCommands(username: string): CommandItem[] {
       href: "/feed?compose=true",
       icon: PenSquare,
       keywords: ["compose", "new", "write", "share"],
+    },
+    {
+      id: "post-everywhere",
+      title: "Post everywhere",
+      description: "Open the Publish Studio — one post to every platform, now or scheduled.",
+      category: "Action",
+      href: "/compose",
+      icon: Send,
+      keywords: ["publish", "schedule", "queue", "everywhere", "studio", "cross-post", "broadcast"],
     },
     {
       id: "ask-meshi",

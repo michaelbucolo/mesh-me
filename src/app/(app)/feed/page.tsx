@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { FeedTimelineClient } from "./feed-timeline-client";
+import { ReturnBrief } from "@/components/feed/return-brief";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import {
@@ -9,6 +10,7 @@ import {
   normalizeFeedContentFilter,
   normalizeFeedSource,
 } from "@/lib/feed-data";
+import { returnBriefCursor } from "@/lib/return-brief";
 import { getFlowCandidates, getViewerTasteProfile, rankFlowPosts, resolveStudioWeights } from "@/lib/flow-ranking";
 
 export const metadata: Metadata = {
@@ -30,6 +32,9 @@ export default async function FeedPage({ searchParams }: FeedPageProps) {
   const { source: rawSource, content: rawContent, flow } = await searchParams;
   const source = normalizeFeedSource(rawSource);
   const contentFilter = normalizeFeedContentFilter(rawContent);
+  // Newness is only stamped for the finite following feed — a "caught up"
+  // boundary inside the reshuffling ranked order would lie.
+  const newSince = source === "following" ? returnBriefCursor(user.caughtUpAt) : undefined;
 
   // The default view ranks with the same For You algorithm as the Flow; the
   // paginated API mirrors this, so client loads continue the same ordering.
@@ -52,6 +57,7 @@ export default async function FeedPage({ searchParams }: FeedPageProps) {
           source,
           contentFilter,
           limit: INITIAL_FEED_LIMIT + 1,
+          newSince,
         }),
     prisma.connectedAccount
       .findMany({
@@ -89,6 +95,9 @@ export default async function FeedPage({ searchParams }: FeedPageProps) {
       source={source}
       initialContentFilter={contentFilter}
       connectedPlatforms={connectedPlatforms}
+      // Server-rendered slot: the brief's read happens here, where the page
+      // already reads, and the client shell just places it in the column.
+      returnBrief={<ReturnBrief user={{ id: user.id, caughtUpAt: user.caughtUpAt }} />}
     />
   );
 }

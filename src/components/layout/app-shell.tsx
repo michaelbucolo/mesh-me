@@ -55,6 +55,11 @@ interface AppShellProps {
 type UnreadCounts = {
   unreadNotifications: number;
   unreadMessages: number;
+  /** The gated wants-you judgement (lib/mesh/wants-you.ts) — obligations only,
+   * never likes/follows. This is the ONLY number the installed app's icon may
+   * show: an icon badge that is always worth tapping is the reason to keep
+   * mesh.me on the home screen; a manufactured one is the competitors' disease. */
+  needsYou: number;
 };
 
 type RouteInfo = {
@@ -326,14 +331,15 @@ function ShellTopBar({
               onClick={() => accountMenuRef.current?.removeAttribute("open")}
             >
               <Link href={`/profile/${user.username}`} className="mesh-dropdown-item mesh-account-item" style={{ ["--acc-i" as string]: 0 }}>Profile</Link>
-              <Link href="/connected-accounts" className="mesh-dropdown-item mesh-account-item" style={{ ["--acc-i" as string]: 1 }}>One Account</Link>
-              <Link href="/settings" className="mesh-dropdown-item mesh-account-item" style={{ ["--acc-i" as string]: 2 }}>Settings</Link>
-              <Link href="/search" className="mesh-dropdown-item mesh-account-item lg:hidden" style={{ ["--acc-i" as string]: 3 }}>Search</Link>
-              <Link href="/meshpro" className="mesh-dropdown-item mesh-account-item" style={{ ["--acc-i" as string]: 4 }}>MeshPro</Link>
+              <Link href="/saved" className="mesh-dropdown-item mesh-account-item" style={{ ["--acc-i" as string]: 1 }}>Saved</Link>
+              <Link href="/connected-accounts" className="mesh-dropdown-item mesh-account-item" style={{ ["--acc-i" as string]: 2 }}>One Account</Link>
+              <Link href="/settings" className="mesh-dropdown-item mesh-account-item" style={{ ["--acc-i" as string]: 3 }}>Settings</Link>
+              <Link href="/search" className="mesh-dropdown-item mesh-account-item lg:hidden" style={{ ["--acc-i" as string]: 4 }}>Search</Link>
+              <Link href="/meshpro" className="mesh-dropdown-item mesh-account-item" style={{ ["--acc-i" as string]: 5 }}>MeshPro</Link>
               <button
                 type="button"
                 className="mesh-dropdown-item mesh-account-item w-full text-left"
-                style={{ ["--acc-i" as string]: 5 }}
+                style={{ ["--acc-i" as string]: 6 }}
                 onClick={(e) => {
                   (e.currentTarget.closest("details") as HTMLDetailsElement | null)?.removeAttribute("open");
                   window.dispatchEvent(new CustomEvent("mesh:open-bug-report"));
@@ -341,8 +347,8 @@ function ShellTopBar({
               >
                 Report a bug
               </button>
-              <hr className="mesh-account-item my-1 border-[var(--mesh-border)]" style={{ ["--acc-i" as string]: 6 }} />
-              <form action={signOut} className="mesh-account-item" style={{ ["--acc-i" as string]: 7 }}>
+              <hr className="mesh-account-item my-1 border-[var(--mesh-border)]" style={{ ["--acc-i" as string]: 7 }} />
+              <form action={signOut} className="mesh-account-item" style={{ ["--acc-i" as string]: 8 }}>
                 <button type="submit" className="mesh-dropdown-item mesh-dropdown-danger w-full text-left">
                   Sign out
                 </button>
@@ -415,6 +421,7 @@ export function AppShell({ children, user }: AppShellProps) {
   const [unreadCounts, setUnreadCounts] = useState<UnreadCounts>({
     unreadNotifications: 0,
     unreadMessages: 0,
+    needsYou: 0,
   });
 
   useEffect(() => {
@@ -431,10 +438,24 @@ export function AppShell({ children, user }: AppShellProps) {
       const payload = await response.json().catch(() => null);
       if (!payload || cancelled) return;
 
+      const needsYou = Number(payload.needsYou ?? 0);
       setUnreadCounts({
         unreadNotifications: Number(payload.unreadNotifications ?? 0),
         unreadMessages: Number(payload.unreadMessages ?? 0),
+        needsYou,
       });
+
+      // Badging API, feature-detected: the installed PWA's icon numbers
+      // OBLIGATIONS only (see UnreadCounts.needsYou). Never fed arithmetic
+      // over the other counts — a like is not an obligation.
+      if ("setAppBadge" in navigator) {
+        const badging = navigator as Navigator & {
+          setAppBadge?: (contents?: number) => Promise<void>;
+          clearAppBadge?: () => Promise<void>;
+        };
+        if (needsYou > 0) void badging.setAppBadge?.(needsYou).catch(() => {});
+        else void badging.clearAppBadge?.().catch(() => {});
+      }
     }
 
     void loadUnreadCounts();

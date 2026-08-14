@@ -31,6 +31,7 @@ type ShortcutAction =
   | "profile"
   | "settings"
   | "compose"
+  | "studio"
   | "contentHub"
   | "meshi"
   | "commandPalette";
@@ -92,6 +93,10 @@ const shortcutGroups: ShortcutGroup[] = [
     icon: PenSquare,
     shortcuts: [
       { keys: ["C"], label: "New post", description: "Open the feed composer.", action: "compose" },
+      // Quick capture and deliberate publishing are different intents; both
+      // get one keystroke. G,C rides the navigation prefix because the Studio
+      // is a PLACE (composer + schedule + queue), not a popover.
+      { keys: ["G", "C"], label: "Post everywhere", description: "Open the Publish Studio — every platform, now or scheduled.", action: "studio" },
       { keys: ["Shift", "C"], label: "One Account", description: "Manage every platform threading into your mesh.me account.", action: "contentHub" },
       { keys: ["A"], label: "Ask Meshi", description: "Open the single Meshi companion.", action: "meshi" },
     ],
@@ -238,6 +243,7 @@ export function KeyboardShortcutsOverlay({ username }: { username: string }) {
       profile: `/profile/${username}`,
       settings: "/settings",
       compose: "/feed?compose=true",
+      studio: "/compose",
       contentHub: "/connected-accounts",
     };
 
@@ -253,6 +259,7 @@ export function KeyboardShortcutsOverlay({ username }: { username: string }) {
         i: "messages",
         n: "notifications",
         p: "profile",
+        c: "studio",
         ",": "settings",
       }),
     [],

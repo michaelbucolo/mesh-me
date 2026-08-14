@@ -63,10 +63,14 @@ export type InboxRead = {
 const MAX_THREADS = 120;
 const MAX_NOTIFICATIONS = 120;
 
-export async function readInbox(
-  userId: string,
-  filter: InboxFilter = "needs-you",
-): Promise<InboxRead> {
+/**
+ * The bounded row-read plus the ONE owed judgement, extracted so every surface
+ * that states a "needs you" number rides the same rows and the same rule: the
+ * inbox list, the nav/PWA badge (api/layout/unread-counts), and the Return
+ * Brief. A second read with its own `senderId !== me` test is exactly the
+ * drift the header comment forbids.
+ */
+export async function readInboxSignals(userId: string) {
   const nowMs = Date.now();
 
   const [memberships, notifications] = await Promise.all([
@@ -141,12 +145,22 @@ export async function readInbox(
   }));
 
   // The single source of truth for "is this owed". Keyed by the ids the
-  // judgement itself assigns, so the join cannot silently miss.
-  const owed = new Set(
-    wantsYou({ threads: threadRows, notifications: notificationRows, nowMs })
-      .filter((i) => i.awaitingViewer)
-      .map((i) => i.id),
-  );
+  // judgement itself assigns, so the join cannot silently miss. atMs rides
+  // along so the Return Brief can show the DIFF (what arose since the visit
+  // cursor) while the inbox and the badge stay the timeless ledger.
+  const owedItems = wantsYou({ threads: threadRows, notifications: notificationRows, nowMs })
+    .filter((i) => i.awaitingViewer)
+    .map((i) => ({ id: i.id, atMs: i.atMs }));
+  const owed = new Set(owedItems.map((i) => i.id));
+
+  return { memberships, notificationRows, owed, owedItems, needsYou: owed.size, nowMs };
+}
+
+export async function readInbox(
+  userId: string,
+  filter: InboxFilter = "needs-you",
+): Promise<InboxRead> {
+  const { memberships, notificationRows, owed, nowMs } = await readInboxSignals(userId);
 
   const entries: InboxEntry[] = [];
 

@@ -74,6 +74,10 @@ interface PostCardProps {
   connectedPlatforms?: string[];
   compact?: boolean;
   eager?: boolean;
+  /** refIds of the viewer's saved EXTERNAL items (SavedFlowItem), fetched once
+   * by the surface that renders the cards — the same contract the Flow uses.
+   * Native posts learn their saved state from `savedBy` instead. */
+  savedRefs?: Set<string>;
 }
 
 function normalizePlatform(platform?: string | null) {
@@ -168,11 +172,15 @@ function ExpandablePostText({
   );
 }
 
-export const PostCard = memo(function PostCard({ post, currentUserId, connectedPlatforms = [], compact, eager }: PostCardProps) {
+export const PostCard = memo(function PostCard({ post, currentUserId, connectedPlatforms = [], compact, eager, savedRefs }: PostCardProps) {
   const [liked, setLiked] = useState(post.reactions && post.reactions.length > 0);
   const [likeCount, setLikeCount] = useState(post._count.reactions);
   const [playingEmbed, setPlayingEmbed] = useState(false);
-  const [saved, setSaved] = useState(post.savedBy && post.savedBy.length > 0);
+  // Saved state is DERIVED until the viewer presses the button, then their
+  // choice wins outright: native posts carry `savedBy` from the server, and
+  // external/platform posts learn theirs from the surface's one savedRefs
+  // fetch — no effect resync, so a late fetch can never overwrite a press.
+  const [savedOverride, setSavedOverride] = useState<boolean | null>(null);
   const [repostCount, setRepostCount] = useState(post._count.reposts);
   const [showMenu, setShowMenu] = useState(false);
   const [showShareMenu, setShowShareMenu] = useState(false);
@@ -243,6 +251,13 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
     // mutation and refuses to compile the component.
     window.location.assign(`/connected-accounts?${params.toString()}`);
   };
+
+  const saved =
+    savedOverride ??
+    Boolean(
+      (post.savedBy && post.savedBy.length > 0) ||
+        ((requiresSourceAccount || isExternalFeedItem) && savedRefs?.has(post.id)),
+    );
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -344,24 +359,44 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
 
   const handleSave = () => {
     if (!currentUserId) return;
-    if (requiresSourceAccount) {
-      if (!requireSourceAccount("save")) return;
-      setSaved(true);
-      setSaveAnimating(true);
-      setTimeout(() => setSaveAnimating(false), 300);
-      return;
-    }
     const newSaved = !saved;
     const previousSaved = saved;
-    setSaved(newSaved);
+    setSavedOverride(newSaved);
     if (newSaved) {
       setSaveAnimating(true);
       setTimeout(() => setSaveAnimating(false), 300);
     }
     startTransition(async () => {
-      const result = await toggleSavePost(post.id);
-      if (result && "error" in result) {
-        setSaved(previousSaved);
+      if (requiresSourceAccount || isExternalFeedItem) {
+        // A save is a PRIVATE mesh-side bookmark, never an action on the source
+        // platform — no connect gate, no "open it on X" refusal. The snapshot
+        // rides /api/saves (SavedFlowItem, the Flow's exact contract) because
+        // supply rows are pruned on retention schedules and a bookmark must
+        // outlive the cache that fed it. This used to flip cosmetic state and
+        // return: the button lied, and a reload erased the save.
+        const image =
+          post.media.find((item) => item.type.toLowerCase() === "image")?.url ||
+          post.media[0]?.posterUrl;
+        const response = await fetch("/api/saves", {
+          method: "POST",
+          credentials: "same-origin",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            refId: post.id,
+            platform: originPlatform || undefined,
+            title: post.content.trim().slice(0, 280) || undefined,
+            url: safeHref(post.externalUrl) || undefined,
+            thumbnailUrl: image && /^https?:\/\//i.test(image) ? image : undefined,
+            authorName: externalAuthor?.name || post.author.displayName || undefined,
+            postType: post.media.some((item) => item.type.toLowerCase() === "video") ? "video" : "post",
+          }),
+        }).catch(() => null);
+        if (!response?.ok) setSavedOverride(previousSaved);
+      } else {
+        const result = await toggleSavePost(post.id);
+        if (result && "error" in result) {
+          setSavedOverride(previousSaved);
+        }
       }
     });
   };

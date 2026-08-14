@@ -10,9 +10,19 @@ export const metadata: Metadata = { title: "Inbox" };
 // trip instead of two, and the list is in the HTML rather than arriving after
 // the bundle. The filters are then client-side over rows already in hand, so
 // switching tabs never spins.
-export default async function InboxPage() {
+//
+// ?filter= picks the initial tab so deep links (the Return Brief's
+// "waiting on you" row) land on the right list — filtering stays client-side.
+export default async function InboxPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ filter?: string }>;
+}) {
   const user = await getCurrentUser();
   if (!user) redirect("/login?next=%2Finbox");
+
+  const { filter } = await searchParams;
+  const initialTab = filter === "needs-you" || filter === "messages" || filter === "all" ? filter : "needs-you";
 
   const inbox = await readInbox(user.id, "all");
 
@@ -21,7 +31,7 @@ export default async function InboxPage() {
     // so h-full collapsed to the height of the list and left a slab of the
     // shell's own background showing underneath.
     <div className="h-full min-h-full w-full" style={{ background: "#070b14" }}>
-      <InboxView initial={inbox} />
+      <InboxView initial={inbox} initialTab={initialTab} />
     </div>
   );
 }

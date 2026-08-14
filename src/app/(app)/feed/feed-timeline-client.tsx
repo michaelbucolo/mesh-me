@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { ArrowRight, Camera, Grid3X3, Image as ImageIcon, LayoutList, Link2, MessageCircle, Play, PlusSquare, Rows3, Search, Sparkles, Type, Video } from "lucide-react";
 import { FlowReels } from "./flow-reels";
 import { PaperWait } from "@/components/loading/paper-wait";
@@ -41,6 +41,9 @@ type FeedPost = {
   isNsfw?: boolean;
   contentRating?: string;
   visibility?: string;
+  /** Server-derived from the viewer's caughtUpAt cursor (following feed only).
+   * This component renders the divider; it never computes newness itself. */
+  isNew?: boolean;
 };
 
 type FeedUser = {
@@ -144,6 +147,7 @@ export function FeedTimelineClient({
   source,
   initialContentFilter,
   connectedPlatforms,
+  returnBrief,
 }: {
   user: FeedUser;
   initialPosts: FeedPost[];
@@ -151,6 +155,8 @@ export function FeedTimelineClient({
   source: FeedSource;
   initialContentFilter: FeedContentFilter;
   connectedPlatforms: string[];
+  /** The server-rendered "Since you left" strip (return-brief.tsx). */
+  returnBrief?: ReactNode;
 }) {
   const searchParams = useSearchParams();
   const [posts, setPosts] = useState(initialPosts);
@@ -164,6 +170,10 @@ export function FeedTimelineClient({
   const [activeFeedItemId, setActiveFeedItemId] = useState<string | null>(initialPosts[0]?.id ?? null);
   const [reelsOpen, setReelsOpen] = useState(false);
   const [samePostPresences, setSamePostPresences] = useState<FeedPresence[]>([]);
+  // refIds of the viewer's saved EXTERNAL items — one fetch for the whole
+  // timeline (the Flow's exact pattern), so platform/external cards show their
+  // real saved state across reloads instead of the cosmetic lie they used to.
+  const [savedRefs, setSavedRefs] = useState<Set<string>>(() => new Set());
   const timelineRef = useRef<HTMLDivElement | null>(null);
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
   const lastLoadTime = useRef(0);
@@ -171,6 +181,14 @@ export function FeedTimelineClient({
     () => posts.find((post) => post.id === activeFeedItemId) || null,
     [activeFeedItemId, posts],
   );
+  // Where the "You're caught up" line sits: before the first not-new post,
+  // only when at least one new post stands above it. The newness itself is
+  // decided on the server against caughtUpAt; this is placement, not judgement.
+  const caughtUpDividerIndex = useMemo(() => {
+    if (source !== "following") return -1;
+    const firstOld = posts.findIndex((post) => !post.isNew);
+    return firstOld > 0 ? firstOld : -1;
+  }, [posts, source]);
   const isComposing = searchParams.get("compose") === "true";
   const flowPostId = searchParams.get("flow");
   useEffect(() => {
@@ -204,6 +222,19 @@ export function FeedTimelineClient({
     setFeedError("");
     setActiveFeedItemId(flowPostId ?? initialPosts[0]?.id ?? null);
   }, [initialContentFilter, initialHasMore, initialPosts, flowPostId]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void fetch("/api/saves", { credentials: "same-origin" })
+      .then((res) => (res.ok ? (res.json().catch(() => null) as Promise<{ items?: Array<{ refId: string }> } | null>) : null))
+      .then((data) => {
+        if (!cancelled && data?.items) setSavedRefs(new Set(data.items.map((item) => item.refId)));
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     try {
@@ -522,6 +553,8 @@ export function FeedTimelineClient({
         </div>
 
         <div className="feed-consumption-stack">
+          {/* "Since you left" — server-rendered; null when nothing happened. */}
+          {returnBrief}
           {/* The "All feed / Balanced social feed" explainer banner is gone
               (tone reset #24): the chip row already states the mode via its
               pressed chip, and a banner restating it in marketing copy was a
@@ -546,6 +579,22 @@ export function FeedTimelineClient({
             <div ref={timelineRef} className={`feed-post-list feed-post-list-${layoutMode} feed-posts-stagger`}>
               {posts.map((post, index) => (
                 <div key={post.id} data-feed-post-id={post.id} className="feed-card-shell relative">
+                  {/* The finite feed's honest boundary: everything above is
+                      newer than your last "Caught up", everything below you
+                      have already had the chance to see. Following only — the
+                      ranked order reshuffles, so a line there would lie. The
+                      boundary itself is server-derived (post.isNew). */}
+                  {source === "following" && index === caughtUpDividerIndex && (
+                    <div
+                      data-testid="caught-up-divider"
+                      role="separator"
+                      className="mb-4 flex items-center gap-3 text-xs font-semibold text-[var(--text-muted)]"
+                    >
+                      <span className="h-px flex-1 bg-[var(--border-primary)]" />
+                      You&apos;re caught up
+                      <span className="h-px flex-1 bg-[var(--border-primary)]" />
+                    </div>
+                  )}
                   <FeedPostPresence presences={presenceByPost.get(getFeedPresenceKey(post) || post.id) || []} />
                   <PostCard
                     post={post}
@@ -553,6 +602,7 @@ export function FeedTimelineClient({
                     connectedPlatforms={connectedPlatforms}
                     compact={layoutMode === "compact"}
                     eager={index < 2}
+                    savedRefs={savedRefs}
                   />
                 </div>
               ))}
