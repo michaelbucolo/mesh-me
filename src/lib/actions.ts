@@ -3623,3 +3623,22 @@ export async function leaveGlobalMesh() {
 
 
 // Check if user has unlocked a specific cosmetic
+
+// ─── The Return Brief ────────────────────────────────────────
+
+/**
+ * The brief's "Caught up" dismiss — the ONLY writer of User.caughtUpAt.
+ * Presence and status heartbeats churn lastSeenAt every ≤60s, which is exactly
+ * why they must never touch this column: it marks a deliberate visit boundary,
+ * not liveness. The return-slice gate holds that separation.
+ */
+export async function markCaughtUp() {
+  // Void return: this is a <form action> — a signed-out submit just no-ops.
+  const user = await getCurrentUser();
+  if (!user) return;
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { caughtUpAt: new Date() },
+  });
+  revalidatePath("/feed");
+}

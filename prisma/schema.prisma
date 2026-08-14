@@ -124,6 +124,10 @@ model User {
   // Online status: "online" | "dnd" | "busy" | "offline"
   status                     String                      @default("offline")
   lastSeenAt                 DateTime?
+  // When the user last pressed "Caught up" on the Return Brief. NOT lastSeenAt:
+  // presence churns that every ≤60s, so it can never mark a deliberate visit
+  // boundary. Only the brief's dismiss action writes this column.
+  caughtUpAt                 DateTime?
   // Account-merge tombstone: set when this account was merged into another
   // mesh.me account. The account stays suspended (never hard-deleted) and this
   // points at the surviving account.

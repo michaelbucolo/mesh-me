@@ -80,6 +80,21 @@ export default function manifest(): MetadataRoute.Manifest {
       },
     },
     shortcuts: [
+      // "New post" leads: long-press the installed icon → composing, one
+      // gesture. The url's compose=true is the literal param the feed
+      // composer reads (post-composer.tsx) — it opens focused on arrival.
+      {
+        name: "New post",
+        short_name: "Post",
+        url: "/feed?compose=true",
+        description: "Open the composer",
+      },
+      {
+        name: "Post everywhere",
+        short_name: "Publish",
+        url: "/compose",
+        description: "Publish to every platform, now or scheduled",
+      },
       {
         name: "The Mesh",
         short_name: "Mesh",
