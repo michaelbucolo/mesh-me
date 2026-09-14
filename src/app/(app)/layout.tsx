@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { GuestHeader } from "@/components/layout/guest-header";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
@@ -58,34 +58,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <ToastProvider>
           <NativeInit />
           <div className="flex h-dvh min-h-0 flex-col bg-[var(--paper-0)]">
-            <header className="flex shrink-0 flex-wrap items-center justify-between gap-x-4 gap-y-1 border-b border-[var(--border-primary)] bg-[var(--bg-primary)] px-4 pb-2 pt-[max(.75rem,env(safe-area-inset-top))] sm:flex-nowrap sm:px-6">
-              <Link href="/" className="brand-wordmark text-lg text-[var(--text-primary)]">
-                mesh.me
-              </Link>
-              <nav aria-label="Browse Mesh.me" className="order-last flex w-full items-center justify-center gap-5 sm:order-none sm:w-auto">
-                {[{ href: "/explore", label: "Explore" }, { href: "/flow", label: "Flow" }].map((item) => (
-                  <Link key={item.href} href={item.href}
-                    aria-current={nextPath.split("?")[0] === item.href ? "page" : undefined}
-                    className="inline-flex min-h-11 items-center border-b-2 border-transparent text-sm font-semibold text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)] aria-[current=page]:border-[var(--accent)] aria-[current=page]:text-[var(--text-primary)]">
-                    {item.label}
-                  </Link>
-                ))}
-              </nav>
-              <div className="flex items-center gap-2">
-                <Link
-                  href={`/login?next=${encodeURIComponent(nextPath)}`}
-                  className="inline-flex min-h-11 items-center px-3.5 text-sm font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-                >
-                  Sign in
-                </Link>
-                <Link
-                  href="/signup"
-                  className="mesh-action mesh-action-primary px-4 text-sm"
-                >
-                  Create account
-                </Link>
-              </div>
-            </header>
+            <GuestHeader />
             <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">{children}</div>
           </div>
         </ToastProvider>

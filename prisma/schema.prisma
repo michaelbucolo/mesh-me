@@ -223,6 +223,7 @@ model PostMedia {
   type   String @default("image")
   width  Int?
   height Int?
+  durationSeconds Float?
   post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
   file   PostMediaFile?
 }

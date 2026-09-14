@@ -10,6 +10,8 @@ import { normalizeLegacyCommunityAudience } from "./lib/community-audience-migra
 import { MAX_POST_MEDIA_TOTAL_BYTES, detectPostMediaType, parseMediaRange, postMediaSelectionError } from "../src/lib/post-media";
 import { readPostDraft } from "../src/lib/post-draft";
 import { scoreRelatedContent } from "../src/lib/related-content";
+import { nativeVideoDuration, readVideoDuration } from "../src/lib/video-duration";
+import videoFixture from "./fixtures/native-video.json";
 
 // Always use an isolated database, even if invoked with production env loaded.
 async function main() {
@@ -25,7 +27,7 @@ async function main() {
   execFileSync(process.execPath, ["scripts/ensure-schema.mjs"], { env: process.env, stdio: "pipe" });
   const { prisma } = await import("../src/lib/prisma");
   try {
-    const { ANONYMOUS_VIEWER, getFeedPostById, getViewerSocialGraph } = await import("../src/lib/feed-data");
+    const { ANONYMOUS_VIEWER, getCombinedFeedPosts, getFeedPostById, getViewerSocialGraph } = await import("../src/lib/feed-data");
     const { nativePostAudienceWhere } = await import("../src/lib/post-audience");
     const { canUserInteractWithPost } = await import("../src/lib/privacy-policy");
     const { rankRelatedPosts } = await import("../src/lib/flow-ranking");
@@ -140,6 +142,43 @@ async function main() {
     ], { exclude: new Set(), limit: 8 });
     check(lane.map((p) => p.id), ["related"], "Sideways lane excludes the anchor, duplicates, long videos and unrelated posts");
 
+    for (const format of ["mp4", "webm"] as const) {
+      const bytes = Buffer.from(videoFixture[format], "base64");
+      check(readVideoDuration(bytes, `video/${format}`), videoFixture.durationSeconds, `Real ${format} container duration`);
+      check(readVideoDuration(bytes.subarray(0, 20), `video/${format}`), null, `Truncated ${format} metadata remains unknown`);
+    }
+    const mp4Header = (seconds: number, version = 0) => {
+      const payload = version === 1 ? 32 : 20;
+      const bytes = Buffer.alloc(16 + payload);
+      bytes.writeUInt32BE(bytes.length, 0); bytes.write("moov", 4);
+      bytes.writeUInt32BE(payload + 8, 8); bytes.write("mvhd", 12);
+      bytes[16] = version;
+      bytes.writeUInt32BE(1000, 16 + (version === 1 ? 20 : 12));
+      if (version === 1) bytes.writeBigUInt64BE(BigInt(seconds * 1000), 40);
+      else bytes.writeUInt32BE(seconds * 1000, 32);
+      return bytes;
+    };
+    for (const version of [0, 1]) {
+      for (const seconds of [0, 1.2, 180, 180.001, 3600]) {
+        check(readVideoDuration(mp4Header(seconds, version), "video/quicktime"), seconds || null, `MOV version ${version}, ${seconds} seconds`);
+      }
+    }
+    const malformedMp4 = mp4Header(20);
+    malformedMp4.writeUInt32BE(0xffffffff, 0);
+    check(readVideoDuration(malformedMp4, "video/mp4"), null, "Oversized container cannot escape the upload bounds");
+    const zeroScale = mp4Header(20);
+    zeroScale.writeUInt32BE(0, 28);
+    check(readVideoDuration(zeroScale, "video/mp4"), null, "Zero time scale stays unknown");
+    check(readVideoDuration(Buffer.alloc(32), "video/webm"), null, "Invalid EBML is handled without throwing");
+    const webmScale = Buffer.from(videoFixture.webm, "base64");
+    const scaleAt = webmScale.indexOf(Buffer.from([0x2a, 0xd7, 0xb1, 0x83]));
+    assert.ok(scaleAt >= 0);
+    webmScale.writeUIntBE(100_000, scaleAt + 4, 3);
+    check(readVideoDuration(webmScale, "video/webm"), 0.12, "WebM honors a non-default timestamp scale");
+    check(nativeVideoDuration([{ type: "image" }, { type: "video", durationSeconds: 20 }]), 20, "Photos do not hide a native clip's duration");
+    check(nativeVideoDuration([{ type: "video", durationSeconds: 20 }, { type: "video", durationSeconds: 400 }]), 400, "A short attachment cannot hide a long attachment");
+    check(nativeVideoDuration([{ type: "video", durationSeconds: 20 }, { type: "video" }]), null, "Every video must be classified before a mixed post reaches Flow");
+
     if (process.argv.includes("--http")) {
       const port = 23000 + Math.floor(Math.random() * 10000);
       const baseUrl = `http://127.0.0.1:${port}`;
@@ -194,6 +233,22 @@ async function main() {
       check(stored.tags.length, 1, "Post and deduplicated tags commit together");
       check(uploaded.text.includes(imageBytes.toString("base64").slice(0, 256)), false, "Publishing returns media metadata without the encoded image");
       check((await fetch(`${baseUrl}${stored.media[0].url}`)).status, 404, "Only me media cannot be fetched by a guest");
+      for (const format of ["mp4", "webm"] as const) {
+        const bytes = Buffer.from(videoFixture[format], "base64");
+        const content = `Artemis lunar mission native ${format} fixture`;
+        const result = await publish({ content, visibility: "public", tags: "space", durationSeconds: "9999" }, [new File([bytes], `clip.${format}`, { type: `video/${format}` })]);
+        check(result.status, 200, `Native ${format} upload succeeds`);
+        const clip = await prisma.post.findFirstOrThrow({ where: { content }, include: { media: true } });
+        check(clip.media[0].durationSeconds, 1.2, "Stored duration comes from the container, not a forged form field");
+        const card = (await getFeedPostById(viewers[0], clip.id))!;
+        check(card.durationSeconds, 1.2, "The native permalink carries duration to Flow");
+        const feed = await getCombinedFeedPosts({ user: viewers[0], source: "all", contentFilter: "all", limit: 50 });
+        check(feed.find((post) => post.id === clip.id)?.durationSeconds, 1.2, "Native feed candidates carry duration to Flow");
+        check(rankRelatedPosts(reel, [card], { exclude: new Set(), limit: 8 }).map((post) => post.id), [clip.id], "A published native short enters the related Flow lane");
+        const media = await fetch(`${baseUrl}${clip.media[0].url}`);
+        check(media.headers.get("content-type"), `video/${format}`, "Native videos are served with their container MIME type");
+        check(Buffer.from(await media.arrayBuffer()), bytes, "The playable video bytes survive upload and delivery unchanged");
+      }
       const forged = await publish({ content: "Forged media fixture" }, [new File(["<script>alert(1)</script>"], "fake.png", { type: "image/png" })]);
       check(forged.text.includes("not supported media"), true, "Forged image bytes produce a useful error");
       check(await prisma.post.count({ where: { content: "Forged media fixture" } }), 0, "Invalid media cannot leave a partial post");
