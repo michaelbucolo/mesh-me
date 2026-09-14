@@ -4,6 +4,7 @@ import { nsfwHiddenWhere } from "./content-safety";
 import { buildExternalMedia } from "./external-media";
 import { getFriendPlatformFeedPosts, type FriendPlatformFeedPost } from "./friend-mesh";
 import { prisma } from "./prisma";
+import { nativePostAudienceWhere } from "./post-audience";
 import { getPublicSupplyFeedPosts } from "./public-supply/feed";
 
 // The viewer's follow/community graph is stable within a request, but the feed
@@ -80,6 +81,7 @@ export const ANONYMOUS_VIEWER: FeedCurrentUser = {
 };
 
 export type FeedCardPost = {
+  relatedContext?: string;
   id: string;
   content: string;
   createdAt: Date | string;
@@ -202,21 +204,7 @@ async function getNativeFeedPostsForSource(user: FeedCurrentUser, source: FeedSo
   const safetyWhere = nsfwHiddenWhere(user);
   const audienceWhere = {
     AND: [
-      {
-        OR: [
-          { authorId: user.id },
-          { communityId: { in: communityIds } },
-          {
-            visibility: "public",
-            OR: [{ communityId: null }, { community: { isPublic: true } }],
-          },
-          {
-            visibility: "friends",
-            authorId: { in: friendIds },
-            OR: [{ communityId: null }, { community: { isPublic: true } }],
-          },
-        ],
-      },
+      nativePostAudienceWhere(user.id, communityIds, friendIds),
       // Suspended authors are locked to owner + admin: their posts stop
       // circulating to followers and community co-members. The owner still sees
       // their own posts via the first clause. (The discover branch already
@@ -794,21 +782,7 @@ export async function getFeedPostById(user: FeedCurrentUser, id: string): Promis
       id,
       ...nsfwHiddenWhere(user),
       AND: [
-        {
-          OR: [
-            { authorId: user.id },
-            { communityId: { in: communityIds } },
-            {
-              visibility: "public",
-              OR: [{ communityId: null }, { community: { isPublic: true } }],
-            },
-            {
-              visibility: "friends",
-              authorId: { in: friendIds },
-              OR: [{ communityId: null }, { community: { isPublic: true } }],
-            },
-          ],
-        },
+        nativePostAudienceWhere(user.id, communityIds, friendIds),
         // A suspended author's post is locked to owner + admin.
         { OR: [{ authorId: user.id }, { author: { isSuspended: false } }] },
         // Permalinks are the back door around a filtered feed: a blocked

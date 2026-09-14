@@ -124,7 +124,7 @@ export async function isBlockedBetween(userId: string, otherUserId: string): Pro
  * Can this user see — and therefore interact with (react/comment) — the given
  * post? Mirrors the feed's read-side audience clause so a user who only knows
  * a post's id cannot react to or comment on a private/friends-only post they
- * were never allowed to see. Community posts require membership.
+ * were never allowed to see. Private communities require membership too.
  */
 export async function canUserInteractWithPost(
   userId: string,
@@ -137,16 +137,20 @@ export async function canUserInteractWithPost(
   // your public posts, and you get the same protection from them. This is the
   // write-side twin of the feed's block filter — without it, knowing a post id
   // is enough to keep interacting straight through a block.
-  if (await isBlockedBetween(userId, post.authorId)) return false;
+  const [blocked, author] = await Promise.all([
+    isBlockedBetween(userId, post.authorId),
+    prisma.user.findUnique({ where: { id: post.authorId }, select: { isSuspended: true } }),
+  ]);
+  if (blocked || !author || author.isSuspended) return false;
 
   if (post.communityId) {
-    const membership = await prisma.communityMember.findUnique({
-      where: { userId_communityId: { userId, communityId: post.communityId } },
-      select: { userId: true },
+    const community = await prisma.community.findUnique({
+      where: { id: post.communityId },
+      select: { isPublic: true, members: { where: { userId }, select: { userId: true } } },
     });
-    if (membership) return true;
-    // Not a member: fall through to the post's own visibility (a public post
-    // in a public community is still publicly readable).
+    const isMember = Boolean(community?.members.length);
+    if (!community || (!community.isPublic && !isMember)) return false;
+    if (post.visibility === "community") return isMember;
   }
 
   if (post.visibility === "public") return true;

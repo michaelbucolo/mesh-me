@@ -4,7 +4,8 @@ import { getCurrentUser } from "@/lib/auth";
 import { COMMUNITY_SPACE_TYPES, communityThreadTitle } from "@/lib/community-constants";
 import { canViewNsfw, nsfwHiddenWhere } from "@/lib/content-safety";
 import { prisma } from "@/lib/prisma";
-import { getBlockedUserIdSet } from "@/lib/privacy-policy";
+import { getViewerSocialGraph } from "@/lib/feed-data";
+import { nativePostAudienceWhere } from "@/lib/post-audience";
 
 function communityVisibilityWhere(userId: string) {
   return {
@@ -144,7 +145,7 @@ export async function getCommunitySpaceData(slug: string) {
   // complete with byline, avatar and a member-list row. The feed already holds
   // the line ("a block outranks every audience clause — including shared
   // community membership"); these are the same posts on their other page.
-  const blockedIds = Array.from(await getBlockedUserIdSet(user.id));
+  const { blockedIds, communityIds, friendIds } = await getViewerSocialGraph(user.id);
   const notBlockedAuthor = blockedIds.length ? { authorId: { notIn: blockedIds } } : {};
 
   const [members, posts, reports, thread] = await Promise.all([
@@ -171,11 +172,10 @@ export async function getCommunitySpaceData(slug: string) {
       where: {
         communityId: community.id,
         ...nsfwHiddenWhere(user),
-        // Posts written inside a private community are stamped visibility
-        // "private". If the community is later flipped to public, those posts
-        // must not retroactively leak to non-members — so a non-member only
-        // ever sees posts explicitly published as public. Members see all.
-        ...(membership ? {} : { visibility: "public" }),
+        AND: [
+          nativePostAudienceWhere(user.id, communityIds, friendIds),
+          { OR: [{ authorId: user.id }, { author: { isSuspended: false } }] },
+        ],
         ...notBlockedAuthor,
       },
       include: {
@@ -247,6 +247,8 @@ export async function getCommunitySpaceData(slug: string) {
     user: {
       id: user.id,
       username: user.username,
+      displayName: user.displayName,
+      avatarUrl: user.avatarUrl,
       canViewNsfw: canViewNsfw(user),
     },
     community,

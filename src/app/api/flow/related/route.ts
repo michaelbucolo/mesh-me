@@ -7,8 +7,8 @@ import { getTrustedClientIp } from "@/lib/client-ip";
 
 /**
  * The sideways lane: content similar/related to the reel the viewer just
- * watched. Anchored on a post id; returns the closest matches by author,
- * tags, platform, and format. Open to guests (public supply only).
+ * watched. Matches shared subjects and tags within the viewer's permitted
+ * supply. Author and format are tie-breakers. Open to guests.
  */
 export async function GET(request: Request) {
   const user = (await getCurrentUser()) ?? ANONYMOUS_VIEWER;
@@ -26,6 +26,9 @@ export async function GET(request: Request) {
   const anchorId = searchParams.get("anchor");
   if (!anchorId) {
     return NextResponse.json({ error: "anchor is required" }, { status: 400 });
+  }
+  if (anchorId.length > 200) {
+    return NextResponse.json({ error: "Invalid post" }, { status: 400 });
   }
   const exclude = new Set(
     (searchParams.get("exclude") || "")

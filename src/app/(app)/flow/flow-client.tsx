@@ -17,6 +17,7 @@ import { setFlowStudioWeights } from "@/lib/actions";
 import { EASE_OUT, SPRING_PANEL } from "@/lib/motion";
 
 export type FlowPost = {
+  relatedContext?: string;
   id: string;
   content: string;
   createdAt: string;
@@ -975,7 +976,7 @@ function ReelContent({
             >
               <p className="text-xs font-semibold mesh-eyebrow text-white/50">Why this?</p>
               <p className="mt-1 text-sm font-medium text-white">
-                {laneIndex > 0 ? "Similar to what you just watched" : post.whyThis}
+                {laneIndex > 0 ? post.relatedContext || "Related to what you just watched" : post.whyThis}
               </p>
               <p className="mt-1.5 text-micro text-white/45">Nothing on mesh.me is paid placement or an ad.</p>
             </button>

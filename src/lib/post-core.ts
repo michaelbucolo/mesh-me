@@ -14,21 +14,21 @@ import "server-only";
 // ScheduledPost row's owner).
 
 import { revalidatePath } from "next/cache";
+import { randomUUID } from "node:crypto";
 import { prisma } from "./prisma";
 import { clearMeshCache } from "./mesh-cache";
 import { classifyContentSafety } from "./content-safety";
 import { rateLimit, sanitizeForDisplay, validatePostContent, validateUrl } from "./security";
+import { MAX_POST_MEDIA_FILES, detectPostMediaType, postMediaSelectionError } from "./post-media";
 
 export type PostAuthor = { id: string; username: string };
 
-const POST_VISIBILITIES = new Set(["public", "friends", "private"]);
-const MAX_POST_MEDIA_FILES = 4;
-const MAX_POST_MEDIA_FILE_SIZE = 4 * 1024 * 1024;
-const MAX_POST_MEDIA_TOTAL_SIZE = 10 * 1024 * 1024;
+const POST_VISIBILITIES = new Set(["public", "friends", "private", "community"]);
 
 type NativePostMediaInput = {
   url: string;
   type: "image" | "video" | "link";
+  upload?: { data: string; mimeType: string; size: number };
 };
 
 function normalizePostVisibility(value: FormDataEntryValue | null) {
@@ -52,16 +52,6 @@ function inferMediaTypeFromUrl(url: string): NativePostMediaInput["type"] {
   return "link";
 }
 
-function detectUploadedPostMediaType(bytes: Uint8Array, fileType: string): { type: "image" | "video"; mime: string } | null {
-  if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return { type: "image", mime: "image/jpeg" };
-  if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) return { type: "image", mime: "image/png" };
-  if (bytes.length >= 12 && bytes[8] === 0x57 && bytes[9] === 0x45 && bytes[10] === 0x42 && bytes[11] === 0x50) return { type: "image", mime: "image/webp" };
-  if (bytes[0] === 0x47 && bytes[1] === 0x49 && bytes[2] === 0x46) return { type: "image", mime: "image/gif" };
-  if (bytes.length >= 12 && bytes[4] === 0x66 && bytes[5] === 0x74 && bytes[6] === 0x79 && bytes[7] === 0x70) return { type: "video", mime: fileType === "video/quicktime" ? "video/quicktime" : "video/mp4" };
-  if (bytes[0] === 0x1a && bytes[1] === 0x45 && bytes[2] === 0xdf && bytes[3] === 0xa3) return { type: "video", mime: "video/webm" };
-  return null;
-}
-
 function readStringArrayField(formData: FormData, key: string, maxItems: number) {
   const values = formData.getAll(key).flatMap((entry) => {
     if (typeof entry !== "string") return [];
@@ -81,39 +71,31 @@ function readStringArrayField(formData: FormData, key: string, maxItems: number)
 
 async function collectNativePostMedia(formData: FormData) {
   const mediaItems: NativePostMediaInput[] = [];
-  let totalBytes = 0;
 
   const files = formData
     .getAll("mediaFiles")
-    .filter((entry): entry is File => typeof File !== "undefined" && entry instanceof File && entry.size > 0)
-    .slice(0, MAX_POST_MEDIA_FILES);
+    .filter((entry): entry is File => typeof File !== "undefined" && entry instanceof File);
+  const selectionError = postMediaSelectionError(files);
+  if (selectionError) return { error: selectionError };
 
   for (const file of files) {
-    if (file.size > MAX_POST_MEDIA_FILE_SIZE) {
-      return { error: "Each image or video must be 4MB or smaller." };
-    }
-    totalBytes += file.size;
-    if (totalBytes > MAX_POST_MEDIA_TOTAL_SIZE) {
-      return { error: "Post media is too large. Keep uploads under 10MB total." };
-    }
-
     const arrayBuffer = await file.arrayBuffer();
     const bytes = new Uint8Array(arrayBuffer);
-    const detected = detectUploadedPostMediaType(bytes, file.type);
+    const detected = detectPostMediaType(bytes);
     if (!detected) {
-      return { error: "Use JPEG, PNG, WebP, GIF, MP4, MOV, or WebM media." };
+      return { error: "That file is not supported media. Use JPEG, PNG, WebP, GIF, AVIF, MP4, MOV, or WebM." };
     }
 
     const base64 = Buffer.from(arrayBuffer).toString("base64");
     mediaItems.push({
       type: detected.type,
       url: `data:${detected.mime};base64,${base64}`,
+      upload: { data: base64, mimeType: detected.mime, size: bytes.byteLength },
     });
   }
 
-  const remoteUrls = readStringArrayField(formData, "mediaUrls", MAX_POST_MEDIA_FILES);
+  const remoteUrls = readStringArrayField(formData, "mediaUrls", MAX_POST_MEDIA_FILES + 1);
   for (const rawUrl of remoteUrls) {
-    if (mediaItems.length >= MAX_POST_MEDIA_FILES) break;
     if (!validateUrl(rawUrl)) return { error: "Media URLs must start with http:// or https://." };
     mediaItems.push({ url: rawUrl, type: inferMediaTypeFromUrl(rawUrl) });
   }
@@ -126,7 +108,8 @@ async function collectNativePostMedia(formData: FormData) {
     }
   }
 
-  return { mediaItems: mediaItems.slice(0, MAX_POST_MEDIA_FILES) };
+  if (mediaItems.length > MAX_POST_MEDIA_FILES) return { error: "Attach up to 4 files or links in total." };
+  return { mediaItems };
 }
 
 export async function createPostAsUser(user: PostAuthor, formData: FormData) {
@@ -139,7 +122,8 @@ export async function createPostAsUser(user: PostAuthor, formData: FormData) {
   const content = formData.get("content") as string;
   const communityId = formData.get("communityId") as string | null;
   const tags = formData.get("tags") as string;
-  const visibility = normalizePostVisibility(formData.get("visibility"));
+  let visibility = normalizePostVisibility(formData.get("visibility"));
+  if (visibility === "community" && !communityId) return { error: "Choose a community for a members-only post." };
   const crossPostTo = formData.get("crossPostTo") as string | null;
   const crossPostAccountIds = formData.get("crossPostAccountIds") as string | null;
   const mediaResult = await collectNativePostMedia(formData);
@@ -158,16 +142,20 @@ export async function createPostAsUser(user: PostAuthor, formData: FormData) {
   }
 
   const sanitizedContent = sanitizeForDisplay(contentText.trim());
-  const safety = classifyContentSafety(sanitizedContent, tags, mediaItems.map((item) => item.url).join(" "));
+  // Encoded file bytes are not words: scanning base64 for terms such as
+  // "xxx" randomly labels ordinary photos as adult content.
+  const safety = classifyContentSafety(sanitizedContent, tags, mediaItems.filter((item) => !item.upload).map((item) => item.url).join(" "));
 
   // Verify community membership if posting to a community
   if (communityId) {
     const membership = await prisma.communityMember.findUnique({
       where: { userId_communityId: { userId: user.id, communityId } },
+      include: { community: { select: { isPublic: true } } },
     });
     if (!membership) {
       return { error: "You must be a member of this community to post" };
     }
+    if (!membership.community.isPublic && visibility === "public") visibility = "community";
   }
 
   const post = await prisma.post.create({
@@ -178,27 +166,20 @@ export async function createPostAsUser(user: PostAuthor, formData: FormData) {
       visibility,
       isNsfw: safety.isNsfw,
       contentRating: safety.contentRating,
+      tags: tags ? { create: Array.from(new Set(tags.split(",").map(normalizePostTag).filter(Boolean))).slice(0, 12).map((tag) => ({ tag })) } : undefined,
+      media: {
+        create: mediaItems.map((item) => {
+          const id = randomUUID();
+          return {
+            id,
+            type: item.type,
+            url: item.upload ? `/api/post-media/${id}` : item.url,
+            ...(item.upload ? { file: { create: item.upload } } : {}),
+          };
+        }),
+      },
     },
   });
-
-  if (tags) {
-    const tagList = Array.from(new Set(tags.split(",").map(normalizePostTag).filter(Boolean))).slice(0, 12);
-    if (tagList.length > 0) {
-      await prisma.postTag.createMany({
-        data: tagList.map((tag) => ({ postId: post.id, tag })),
-      });
-    }
-  }
-
-  if (mediaItems.length > 0) {
-    await prisma.postMedia.createMany({
-      data: mediaItems.map((item) => ({
-        postId: post.id,
-        url: item.url,
-        type: item.type,
-      })),
-    });
-  }
 
   let crossPostResults: Record<string, { success: boolean; error?: string; url?: string; note?: string }> | undefined;
   const parseStringArray = (value: string | null) => {
@@ -221,7 +202,7 @@ export async function createPostAsUser(user: PostAuthor, formData: FormData) {
     if (visibility !== "public") {
       // A cross-post is public EVERYWHERE it lands — a Friends or Only-me
       // post must never leak to X/Reddit because a checkbox was left on.
-      const audience = visibility === "friends" ? "Friends" : "Only me";
+      const audience = visibility === "friends" ? "Friends" : visibility === "community" ? "Community members" : "Only me";
       const gated = {
         success: false,
         error: `Not sent: this post's audience is ${audience} on mesh.me, and a cross-post is public everywhere. Make the post Public to send it.`,

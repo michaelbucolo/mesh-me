@@ -1059,10 +1059,6 @@ export async function createPost(formData: FormData) {
   return createPostAsUser(user, formData);
 }
 
-export async function createCommunityPostFromForm(formData: FormData): Promise<void> {
-  await createPost(formData);
-}
-
 export async function deletePost(postId: string) {
   const user = await getCurrentUser();
   if (!user) return { error: "Not authenticated" };

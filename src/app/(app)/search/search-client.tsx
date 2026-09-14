@@ -184,7 +184,7 @@ function ResultEmpty({ query }: { query: string }) {
       <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[var(--text-secondary)]">
         {query.length > 1
           ? "Try a person, platform username, post title, message, community, creator, hashtag, or topic."
-          : "Mesh.me searches native posts, public users, MeChat, synced X, Instagram, YouTube, Snapchat content, and Wikipedia."}
+          : "Find posts, people, communities, your synced content, MeChat conversations, and Wikipedia articles."}
       </p>
       <Link href="/connected-accounts" className="mesh-action mesh-action-primary mt-5 inline-flex px-4 text-sm">
         Connect platforms
@@ -201,6 +201,7 @@ export function SearchClient({ initialQuery }: { initialQuery: string }) {
   const [activeTab, setActiveTab] = useState<TabId>("top");
   const [results, setResults] = useState<SearchResults>(emptyResults);
   const [error, setError] = useState("");
+  const [retry, setRetry] = useState(0);
   const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
@@ -214,6 +215,7 @@ export function SearchClient({ initialQuery }: { initialQuery: string }) {
     const controller = new AbortController();
     startTransition(async () => {
       setError("");
+      setResults(emptyResults);
       try {
         const response = await fetch(`/api/search?q=${encodeURIComponent(q)}`, {
           signal: controller.signal,
@@ -222,15 +224,15 @@ export function SearchClient({ initialQuery }: { initialQuery: string }) {
         });
         const payload = await response.json().catch(() => emptyResults);
         if (!response.ok) throw new Error(payload.error || "Search failed");
-        setResults({ ...emptyResults, ...payload });
+        if (!controller.signal.aborted) setResults({ ...emptyResults, ...payload });
       } catch (searchError) {
-        if ((searchError as Error).name === "AbortError") return;
+        if (controller.signal.aborted || (searchError as Error).name === "AbortError") return;
         setError(searchError instanceof Error ? searchError.message : "Search failed");
       }
     });
 
     return () => controller.abort();
-  }, [submittedQuery]);
+  }, [submittedQuery, retry]);
 
   // sourceIndex is deliberately COUNTED NOWHERE: those tiles are doors to
   // other platforms' search, not results. Counting them made a nonsense query
@@ -248,7 +250,8 @@ export function SearchClient({ initialQuery }: { initialQuery: string }) {
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const nextQuery = query.trim();
-    setSubmittedQuery(nextQuery);
+    if (nextQuery === submittedQuery) setRetry((value) => value + 1);
+    else setSubmittedQuery(nextQuery);
     if (nextQuery) publishMeshiCause({ kind: "search:started" });
     router.replace(nextQuery ? `/search?q=${encodeURIComponent(nextQuery)}` : "/search", { scroll: false });
   }
@@ -300,6 +303,7 @@ export function SearchClient({ initialQuery }: { initialQuery: string }) {
             placeholder="Search Mesh.me"
             type="search"
             autoComplete="off"
+            maxLength={200}
             suppressHydrationWarning
           />
           <button type="submit" className="mesh-action mesh-action-primary h-9 px-4 text-sm">
@@ -307,8 +311,8 @@ export function SearchClient({ initialQuery }: { initialQuery: string }) {
           </button>
         </form>
         <div className="mt-2 flex flex-wrap items-center gap-2 px-1 text-xs font-medium text-[var(--text-muted)]">
-          <span>Indexing</span>
-          {["X", "Instagram", "YouTube", "Snapchat", "Wikipedia"].map((source) => (
+          <span>Search across</span>
+          {["Posts", "People", "Your connected accounts", "MeChat", "Wikipedia"].map((source) => (
             <span key={source} className="rounded-full border border-[var(--border-primary)] bg-[var(--bg-secondary)] px-2 py-1">
               {source}
             </span>
@@ -345,18 +349,19 @@ export function SearchClient({ initialQuery }: { initialQuery: string }) {
       </header>
 
       {isPending && submittedQuery.length > 1 ? (
-        <div className="mesh-surface rounded-lg p-4 text-sm font-semibold text-[var(--text-secondary)]">
+        <div role="status" className="mesh-surface rounded-lg p-4 text-sm font-semibold text-[var(--text-secondary)]">
           Searching Mesh.me, synced social sources, MeChat, and Wikipedia...
         </div>
       ) : null}
 
       {error ? (
-        <div className="rounded-lg border border-red-400/25 bg-red-500/10 p-4 text-sm font-semibold text-[var(--danger)]">
+        <div role="alert" className="flex items-center justify-between gap-4 rounded-lg border border-[var(--border-primary)] p-4 text-sm font-semibold text-[var(--danger)]">
           {error}
+          <button type="button" className="mesh-action px-3 text-sm" onClick={() => setRetry((value) => value + 1)}>Try again</button>
         </div>
       ) : null}
 
-      {totals.top === 0 && !isPending ? <ResultEmpty query={submittedQuery} /> : null}
+      {totals.top === 0 && !isPending && !error ? <ResultEmpty query={submittedQuery} /> : null}
 
       <AnimatePresence mode="wait">
       <motion.section
