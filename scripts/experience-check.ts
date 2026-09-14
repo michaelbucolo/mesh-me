@@ -231,7 +231,7 @@ async function main() {
       const sent = await fetch(`${baseUrl}/api/messages/${thread.id}`, {
         method: "POST", headers: { ...headersFor(2), "Content-Type": "application/json", Origin: baseUrl }, body: JSON.stringify({ content: "Fixture private message" }),
       });
-      check(sent.status, 200, "A thread member can send a message");
+      check(sent.status, 201, "A thread member can send a message");
       await sent.text();
       check(await prisma.message.count({ where: { threadId: thread.id, senderId: member.id } }), 1, "Messages persist under the sender's identity");
       check((await fetch(`${baseUrl}/api/messages/${thread.id}`, { headers: headersFor(4) })).status, 404, "Non-members cannot read the conversation");

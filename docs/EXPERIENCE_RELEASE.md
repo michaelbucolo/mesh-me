@@ -48,6 +48,10 @@ normalization and marker in one transaction; rerunning it cannot reinterpret new
 Only me posts. The equivalent Prisma migration supports migration-managed
 databases. Local bootstrap remains structural only.
 
+After members create Only me posts inside a community, a rollback must retain
+the new audience checks. Older readers grant every member access regardless of
+post audience, so a fix forward or a backport of these checks is required.
+
 ## Verification commands
 
 ```sh
