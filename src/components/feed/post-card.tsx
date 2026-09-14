@@ -7,6 +7,7 @@ import { useToast } from "@/components/ui/toast";
 import { cn, formatRelativeTime, formatCount, safeHref } from "@/lib/utils";
 import { Heart, MessageCircle, Bookmark, MoreHorizontal, Share2, Flag, Trash2, Pin, Copy, ExternalLink, Link2, Globe, Lock, Users, BadgeCheck, Ban, FileText, ShieldCheck, ScanSearch } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { AutoplayVideo } from "@/components/feed/autoplay-video";
 import { NativeAspectMedia } from "@/components/ui/native-aspect-media";
@@ -106,6 +107,7 @@ function getLinkHost(url: string) {
 
 function VisibilityIcon({ visibility }: { visibility?: string }) {
   if (visibility === "private") return <Lock className="h-3 w-3" aria-label="Only me" />;
+  if (visibility === "community") return <Users className="h-3 w-3" aria-label="Community members" />;
   if (visibility === "friends") return <Users className="h-3 w-3" aria-label="Friends only" />;
   return <Globe className="h-3 w-3" aria-label="Public" />;
 }
@@ -173,6 +175,7 @@ function ExpandablePostText({
 }
 
 export const PostCard = memo(function PostCard({ post, currentUserId, connectedPlatforms = [], compact, eager, savedRefs }: PostCardProps) {
+  const router = useRouter();
   const [liked, setLiked] = useState(post.reactions && post.reactions.length > 0);
   const [likeCount, setLikeCount] = useState(post._count.reactions);
   const [playingEmbed, setPlayingEmbed] = useState(false);
@@ -246,10 +249,7 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
       next: "/feed",
       reason: action,
     });
-    // assign() rather than an href assignment: same navigation, but the React
-    // Compiler's immutability rule treats the property write as a global
-    // mutation and refuses to compile the component.
-    window.location.assign(`/connected-accounts?${params.toString()}`);
+    router.push(`/connected-accounts?${params.toString()}`);
   };
 
   const saved =
@@ -626,6 +626,8 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
                       <VisibilityIcon visibility={post.visibility} />
                       {post.visibility === "private"
                         ? "Only me"
+                        : post.visibility === "community"
+                          ? "Community members"
                         : post.visibility === "friends"
                           ? "Friends"
                           : post.visibility === "unlisted"

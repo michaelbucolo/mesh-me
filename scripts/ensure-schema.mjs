@@ -53,6 +53,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createClient } from "@libsql/client";
+import { normalizeLegacyCommunityAudience } from "./lib/community-audience-migration.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.join(here, "..");
@@ -279,6 +280,10 @@ try {
     await client.execute({ sql: "INSERT INTO _MeshDataMigration (id, appliedAt) VALUES (?, ?)", args: [id, new Date().toISOString()] });
     console.log(`[ensure-schema] Applied one-time data migration: ${id}`);
   };
+
+  // Atomic marker + update: a retried build must never reinterpret a new
+  // Only me post. The legacy audience was all community members; retain it.
+  await normalizeLegacyCommunityAudience(client);
 
   // Early accounts were created under an over-conservative default that left the
   // whole network undiscoverable (nobody could be found or followed). Bring

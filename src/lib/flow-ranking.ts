@@ -14,6 +14,7 @@ import { ANONYMOUS_VIEWER, canonicalFeedKey, getCombinedFeedPosts, type FeedCard
 import { guessLanguage } from "./language";
 import { parseMutedSources } from "./muted-sources";
 import { hasMeshPro } from "@/lib/mesh-pro";
+import { scoreRelatedContent } from "./related-content";
 
 export type TasteProfile = {
   // authorKey (user id or external author handle) -> interaction weight
@@ -762,9 +763,8 @@ export function explainFlowPost(
 }
 
 /**
- * Score candidates by similarity to an anchor post — the "swipe sideways for
- * more like this" lane. Same author dominates, then shared tags, same
- * platform, same format, with engagement as a tiebreaker.
+ * Match the anchor's subject first. Author and format only break close ties;
+ * neither can turn an unrelated post into context.
  */
 export function rankRelatedPosts(
   anchor: FeedCardPost,
@@ -772,30 +772,32 @@ export function rankRelatedPosts(
   opts: { exclude?: Set<string>; limit?: number } = {},
 ): FeedCardPost[] {
   const anchorAuthor = authorKey(anchor);
-  const anchorPlatform = (anchor.platform || "meshme").toLowerCase();
   const anchorFormat = dominantFormat(anchor);
-  const anchorTags = new Set(anchor.tags.map(({ tag }) => tag.toLowerCase()));
-
-  return candidates
+  const seen = new Set([canonicalFeedKey(anchor)]);
+  const pool = candidates
     // The sideways "more like this" lane had no form-class term at all, so
     // long-form could enter the Flow through it even from a short anchor.
     .filter(isFlowEligible)
-    .filter((post) => post.id !== anchor.id && !opts.exclude?.has(post.id))
-    .map((post) => {
-      let score = 0;
-      if (authorKey(post) === anchorAuthor) score += 3;
-      if ((post.platform || "meshme").toLowerCase() === anchorPlatform) score += 1.2;
-      if (dominantFormat(post) === anchorFormat) score += 1.5;
-      let sharedTags = 0;
-      for (const { tag } of post.tags) {
-        if (anchorTags.has(tag.toLowerCase())) sharedTags += 1;
-      }
-      score += Math.min(sharedTags * 0.8, 2.4);
+    .filter((post) => {
+      const key = canonicalFeedKey(post);
+      if (seen.has(key) || opts.exclude?.has(post.id) || opts.exclude?.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  const subjectScores = scoreRelatedContent(anchor, pool);
+  return pool
+    .map((post, index) => {
+      const match = subjectScores[index];
+      if (match.score === 0) return { post, score: 0 };
+      let score = match.score;
+      if (authorKey(post) === anchorAuthor) score += 0.2;
+      if (dominantFormat(post) === anchorFormat) score += 0.1;
       const engagement =
         post._count.reactions + 2 * post._count.comments + 1.5 * post._count.reposts;
-      score += Math.min(Math.log1p(engagement) * 0.25, 1);
-      return { post, score };
+      score += Math.min(Math.log1p(engagement) * 0.02, 0.1);
+      return { post: { ...post, relatedContext: match.reason }, score };
     })
+    .filter(({ score }) => score > 0)
     .sort((a, b) => b.score - a.score)
     .slice(0, opts.limit ?? 8)
     .map(({ post }) => post);

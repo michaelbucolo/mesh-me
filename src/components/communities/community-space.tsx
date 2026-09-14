@@ -5,10 +5,10 @@ import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { PostCard } from "@/components/feed/post-card";
+import { PostComposer } from "@/components/feed/post-composer";
 import { CommunityJoinButton } from "@/components/communities/community-join-button";
 import type { getCommunitySpaceData } from "@/lib/community-hub";
 import {
-  createCommunityPostFromForm,
   moderateCommunityPostFromForm,
   removeCommunityMemberFromForm,
   sendCommunityMessageFromForm,
@@ -86,7 +86,8 @@ function CommunityHero({ data }: { data: CommunityReadyData }) {
   );
 }
 
-function CommunityComposer({ community, canPost }: { community: CommunityReadyData["community"]; canPost: boolean }) {
+function CommunityComposer({ data }: { data: CommunityReadyData }) {
+  const { community, canPost, user } = data;
   if (!canPost) {
     return (
       <section className="mesh-surface rounded-[24px] border border-[var(--ds-border)] p-5 text-sm text-[var(--text-secondary)]">
@@ -96,24 +97,9 @@ function CommunityComposer({ community, canPost }: { community: CommunityReadyDa
   }
 
   return (
-    <form action={createCommunityPostFromForm} className="mesh-surface rounded-[24px] border border-[var(--ds-border)] p-4">
-      <input type="hidden" name="communityId" value={community.id} />
-      <input type="hidden" name="visibility" value={community.isPublic ? "public" : "private"} />
-      <textarea
-        name="content"
-        required
-        maxLength={500}
-        rows={3}
-        placeholder={`Post to ${community.name}`}
-        className="simple-input min-h-24 resize-y border-transparent bg-[var(--ds-surface)]"
-      />
-      <div className="mt-3 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
-        <input name="mediaUrls" type="url" placeholder="Optional image, video, or link URL" className="simple-input" />
-        <Button type="submit" leftIcon={<Send className="h-4 w-4" />}>
-          Post
-        </Button>
-      </div>
-    </form>
+    <section aria-label={`Post to ${community.name}`}>
+      <PostComposer key={`${user.id}:${community.id}`} user={user} communityId={community.id} communityIsPublic={community.isPublic} />
+    </section>
   );
 }
 
@@ -300,7 +286,7 @@ export function CommunitySpace({ data }: { data: CommunityReadyData }) {
     <main className="mx-auto grid w-full max-w-6xl gap-5 px-3 py-4 sm:px-6 lg:grid-cols-[minmax(0,1fr)_340px]">
       <section className="min-w-0 space-y-4">
         <CommunityHero data={data} />
-        <CommunityComposer community={data.community} canPost={data.canPost} />
+        <CommunityComposer data={data} />
 
         <section className="space-y-3">
           <h2 className="text-xl font-semibold text-[var(--text-primary)]">Posts</h2>

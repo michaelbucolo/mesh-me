@@ -177,6 +177,8 @@ export function FeedTimelineClient({
   const timelineRef = useRef<HTMLDivElement | null>(null);
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
   const lastLoadTime = useRef(0);
+  const feedRequest = useRef<AbortController | null>(null);
+  const [failedFilter, setFailedFilter] = useState(false);
   const activePost = useMemo(
     () => posts.find((post) => post.id === activeFeedItemId) || null,
     [activeFeedItemId, posts],
@@ -215,6 +217,10 @@ export function FeedTimelineClient({
   const activePresencePostId = getFeedPresenceKey(activePost);
 
   useEffect(() => {
+    feedRequest.current?.abort();
+    setLoadingMore(false);
+    setLoadingFilter(false);
+    setFailedFilter(false);
     setPosts(initialPosts);
     setPage(1);
     setHasMore(initialHasMore);
@@ -222,6 +228,8 @@ export function FeedTimelineClient({
     setFeedError("");
     setActiveFeedItemId(flowPostId ?? initialPosts[0]?.id ?? null);
   }, [initialContentFilter, initialHasMore, initialPosts, flowPostId]);
+
+  useEffect(() => () => feedRequest.current?.abort(), []);
 
   useEffect(() => {
     let cancelled = false;
@@ -255,7 +263,7 @@ export function FeedTimelineClient({
     }
   }, [layoutMode]);
 
-  const fetchFeedPage = useCallback(async (nextPage: number, nextContentFilter: FeedContentFilter) => {
+  const fetchFeedPage = useCallback(async (nextPage: number, nextContentFilter: FeedContentFilter, signal: AbortSignal) => {
     const params = new URLSearchParams({
       page: String(nextPage),
       limit: String(PAGE_SIZE),
@@ -265,6 +273,7 @@ export function FeedTimelineClient({
     const response = await fetch(`/api/feed/paginated?${params.toString()}`, {
       cache: "no-store",
       credentials: "same-origin",
+      signal,
     });
 
     if (!response.ok) {
@@ -281,22 +290,32 @@ export function FeedTimelineClient({
     lastLoadTime.current = now;
     setLoadingMore(true);
     setFeedError("");
+    const controller = new AbortController();
+    feedRequest.current?.abort();
+    feedRequest.current = controller;
 
     try {
       const nextPage = page + 1;
-      const data = await fetchFeedPage(nextPage, contentFilter);
+      const data = await fetchFeedPage(nextPage, contentFilter, controller.signal);
+      if (controller.signal.aborted) return;
       setPosts((current) => mergeUniquePosts(current, data.posts || []));
       setPage(nextPage);
       setHasMore(Boolean(data.hasMore));
     } catch {
-      setFeedError("Feed could not load more posts. Try again.");
+      if (!controller.signal.aborted) setFeedError("Feed could not load more posts. Try again.");
     } finally {
-      setLoadingMore(false);
+      if (!controller.signal.aborted) setLoadingMore(false);
     }
   }, [contentFilter, fetchFeedPage, hasMore, loadingFilter, loadingMore, page]);
 
-  const applyContentFilter = useCallback(async (nextContentFilter: FeedContentFilter) => {
-    if (nextContentFilter === contentFilter || loadingFilter) return;
+  const applyContentFilter = useCallback(async (nextContentFilter: FeedContentFilter, retry = false) => {
+    if ((!retry && nextContentFilter === contentFilter) || loadingFilter) return;
+    const controller = new AbortController();
+    feedRequest.current?.abort();
+    feedRequest.current = controller;
+    setLoadingMore(false);
+    setFailedFilter(false);
+    setPosts([]);
     setContentFilter(nextContentFilter);
     setLoadingFilter(true);
     setFeedError("");
@@ -304,7 +323,8 @@ export function FeedTimelineClient({
     lastLoadTime.current = 0;
 
     try {
-      const data = await fetchFeedPage(1, nextContentFilter);
+      const data = await fetchFeedPage(1, nextContentFilter, controller.signal);
+      if (controller.signal.aborted) return;
       setPosts(data.posts || []);
       setHasMore(Boolean(data.hasMore));
       setActiveFeedItemId(data.posts?.[0]?.id ?? null);
@@ -312,11 +332,13 @@ export function FeedTimelineClient({
         timelineRef.current?.scrollIntoView({ block: "start", behavior: "smooth" });
       });
     } catch {
+      if (controller.signal.aborted) return;
       setPosts([]);
       setHasMore(false);
-      setFeedError("That feed filter could not load. Try another filter.");
+      setFailedFilter(true);
+      setFeedError("That feed filter could not load. Try again.");
     } finally {
-      setLoadingFilter(false);
+      if (!controller.signal.aborted) setLoadingFilter(false);
     }
   }, [contentFilter, fetchFeedPage, loadingFilter]);
 
@@ -561,7 +583,8 @@ export function FeedTimelineClient({
               row of chrome between the user and the first post. */}
           <div className={`feed-inline-composer ${isComposing ? "feed-inline-composer-active" : ""}`}>
             <PostComposer
-              user={{ displayName: user.displayName, avatarUrl: user.avatarUrl }}
+              key={user.id}
+              user={{ id: user.id, displayName: user.displayName, avatarUrl: user.avatarUrl }}
               onPostPending={addOptimisticPost}
               onPostCreated={replaceOptimisticPost}
               onPostFailed={removeOptimisticPost}
@@ -635,7 +658,7 @@ export function FeedTimelineClient({
 
           <div ref={loadMoreRef} className="feed-load-sentinel" aria-live="polite">
             {feedError ? (
-              <button type="button" onClick={() => void loadMore()} className="feed-load-button">
+              <button type="button" onClick={() => void (failedFilter ? applyContentFilter(contentFilter, true) : loadMore())} className="feed-load-button">
                 {feedError}
               </button>
             ) : loadingMore ? (

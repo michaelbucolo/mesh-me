@@ -92,6 +92,12 @@ async function canCurrentUserViewNativePost(
   if (post.visibility === "public") return true;
   if (!currentUser) return false;
   if (post.authorId === currentUser.id) return true;
+  if (post.visibility === "community" && post.community) {
+    return Boolean(await prisma.communityMember.findUnique({
+      where: { userId_communityId: { userId: currentUser.id, communityId: post.community.id } },
+      select: { userId: true },
+    }));
+  }
   if (post.visibility !== "friends") return false;
   return areMutualFollowers(currentUser.id, post.authorId);
 }
@@ -1020,7 +1026,7 @@ export async function searchAll(query: string) {
   const user = await getCurrentUser();
   if (!user) return { users: [], posts: [], communities: [], platformPosts: [], platformPeople: [], messages: [], wikipedia: [], sourceIndex: [] };
 
-  if (!query?.trim()) return { users: [], posts: [], communities: [], platformPosts: [], platformPeople: [], messages: [], wikipedia: [], sourceIndex: [] };
+  if (typeof query !== "string" || query.trim().length < 2 || query.length > 200) return { users: [], posts: [], communities: [], platformPosts: [], platformPeople: [], messages: [], wikipedia: [], sourceIndex: [] };
 
   const q = query.trim();
   const wikipediaPromise = searchWikipedia(q);
@@ -1464,9 +1470,8 @@ export async function getSavedPosts(page = 1, limit = 20) {
   if (!user) return [];
 
   const saved = await prisma.savedPost.findMany({
-    // Exclude suspended authors' content — canUserInteractWithPost (used below)
-    // has no suspension check, so the saved collection is otherwise the one
-    // surface that still surfaces a moderated author's posts.
+    // Filter moderated content before paging; the interaction gate below also
+    // rechecks current suspension, audience and community membership.
     where: { userId: user.id, post: { ...nsfwHiddenWhere(user), author: { isSuspended: false } } },
     include: {
       post: {

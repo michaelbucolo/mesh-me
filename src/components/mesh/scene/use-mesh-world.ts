@@ -105,7 +105,7 @@ export interface MeshWorld {
    * chrome (list view, lens stream) renders from state, never from the ref. */
   model: SceneModel | null;
   meshData: MeshApiResponse | null;
-  meshUser: { displayName: string; avatarUrl: string | null } | null;
+  meshUser: { id: string; displayName: string; avatarUrl: string | null } | null;
   viewedUser: { username: string; displayName: string | null } | null;
   meshIsEmpty: boolean;
   newCount: number;
@@ -146,7 +146,7 @@ export function useMeshWorld(
   const [status, setStatus] = useState<MeshStatus>("loading");
   const [model, setModel] = useState<SceneModel | null>(null);
   const [meshIsEmpty, setMeshIsEmpty] = useState(false);
-  const [meshUser, setMeshUser] = useState<{ displayName: string; avatarUrl: string | null } | null>(null);
+  const [meshUser, setMeshUser] = useState<{ id: string; displayName: string; avatarUrl: string | null } | null>(null);
   const [meshData, setMeshData] = useState<MeshApiResponse | null>(null);
   const [viewedUser, setViewedUser] = useState<{ username: string; displayName: string | null } | null>(null);
   const [newCount, setNewCount] = useState(0);
@@ -338,7 +338,7 @@ export function useMeshWorld(
           viewUserId ? { username: payload.user.username, displayName: payload.user.displayName } : null,
         );
         if (isOwnMesh) {
-          setMeshUser({ displayName: payload.user.displayName || payload.user.username, avatarUrl: payload.user.avatarUrl });
+          setMeshUser({ id: payload.user.id, displayName: payload.user.displayName || payload.user.username, avatarUrl: payload.user.avatarUrl });
         }
         if (!quiet) {
           onWorldReplaced();

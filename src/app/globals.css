@@ -6917,7 +6917,30 @@ body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
   text-align: center;
   padding: clamp(1.5rem, 5vh, 4rem) clamp(1rem, 5vw, 2.5rem);
   gap: clamp(1rem, 3.2vh, 1.9rem);
+  overflow-y: auto;
 }
+
+.mesh-gate-brandbar {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: max(1rem, env(safe-area-inset-top)) clamp(1.2rem, 4vw, 3rem) 0;
+}
+.mesh-gate-browse {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+}
+.mesh-gate-browse:hover { color: var(--accent-text); }
+.mesh-gate-welcome { color: var(--text-secondary); font-size: var(--text-base); }
+.mesh-gate-core > form { flex-shrink: 0; margin-block: auto; }
 
 .mesh-gate-focus {
   display: flex;
@@ -7186,7 +7209,7 @@ body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
   gap: clamp(0.9rem, 4vw, 1.6rem);
   font-size: clamp(0.76rem, 2.6vw, 0.84rem);
   font-weight: 500;
-  color: rgba(179, 190, 220, 0.72);
+  color: var(--text-muted);
 }
 .mesh-gate-links > * {
   /* The coarse-pointer 44px min touch target stretches these items. Buttons
@@ -7199,7 +7222,7 @@ body > *:not(:where(.fixed)) { position: relative; z-index: 1; }
   min-height: 44px;
   transition: color 150ms ease;
 }
-.mesh-gate-links > *:hover { color: #ffffff; }
+.mesh-gate-links > *:hover { color: var(--text-primary); }
 
 /* Success: fade the focal element as Meshi becomes the mesh and we hand off. */
 .mesh-gate-done .mesh-gate-core { transition: opacity 0.5s ease; }

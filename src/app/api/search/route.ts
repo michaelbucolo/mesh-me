@@ -21,6 +21,9 @@ export async function GET(request: NextRequest) {
     }
 
     const query = request.nextUrl.searchParams.get("q")?.trim() || "";
+    if (query.length > 200) {
+      return NextResponse.json({ error: "Keep searches under 200 characters." }, { status: 400 });
+    }
 
     if (query.length < 2) {
       return NextResponse.json({ users: [], posts: [], communities: [], platformPosts: [], platformPeople: [], messages: [], wikipedia: [] });

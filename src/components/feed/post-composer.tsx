@@ -10,6 +10,8 @@ import { createPost } from "@/lib/actions";
 import { SHARED_INTAKE_KEY } from "@/app/(app)/share/share-intake";
 import { publishMeshiCause } from "@/lib/meshi-bus";
 import { playSound } from "@/lib/sound";
+import { MAX_POST_MEDIA_FILES, POST_MEDIA_ACCEPT, postMediaSelectionError } from "@/lib/post-media";
+import { readPostDraft, type PostAudience } from "@/lib/post-draft";
 import { Image as ImageIcon, Hash, Globe, X, Share2, ChevronDown, Info, CheckCircle2, AlertTriangle, Link as LinkIcon, Lock, Users, Video, Eye } from "lucide-react";
 
 // THERE IS NO HARDCODED PLATFORM LIST HERE ANY MORE.
@@ -38,10 +40,12 @@ type ComposerPlatform = { id: string; name: string };
 
 interface PostComposerProps {
   user: {
+    id: string;
     displayName: string;
     avatarUrl: string | null;
   };
   communityId?: string;
+  communityIsPublic?: boolean;
   startExpanded?: boolean;
   onPostPending?: (draft: PostDraft) => string | void;
   onPostCreated?: (post: CreatedFeedPost, optimisticId?: string) => void;
@@ -53,7 +57,7 @@ type PostDraft = {
   tags: string;
   communityId?: string;
   crossPostTo: string[];
-  visibility: "public" | "friends" | "private";
+  visibility: PostAudience;
   media: { id: string; url: string; type: string }[];
 };
 
@@ -102,17 +106,24 @@ function inferComposerMediaType(url: string) {
   return "link";
 }
 
-export function PostComposer({ user, communityId, startExpanded = false, onPostPending, onPostCreated, onPostFailed }: PostComposerProps) {
+export function PostComposer({ user, communityId, communityIsPublic = true, startExpanded = false, onPostPending, onPostCreated, onPostFailed }: PostComposerProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const mediaFilesRef = useRef<LocalMediaPreview[]>([]);
+  const submittingRef = useRef(false);
+  const draftKey = `mesh.post-draft.v1:${user.id}:${communityId || "home"}`;
+  const [loadedDraftKey, setLoadedDraftKey] = useState<string | null>(null);
+  const [draftSaved, setDraftSaved] = useState(false);
+  const audienceOptions = communityId
+    ? [...visibilityOptions.filter((option) => communityIsPublic || option.id !== "public"), { id: "community" as const, label: "Members", icon: Users, copy: "This community only" }]
+    : visibilityOptions;
   const shouldFocusComposer = searchParams.get("compose") === "true" || startExpanded;
   const [content, setContent] = useState("");
   const [tags, setTags] = useState("");
-  const [visibility, setVisibility] = useState<(typeof visibilityOptions)[number]["id"]>("public");
+  const [visibility, setVisibility] = useState<PostAudience>(communityId && !communityIsPublic ? "community" : "public");
   const [mediaFiles, setMediaFiles] = useState<LocalMediaPreview[]>([]);
   const [mediaUrl, setMediaUrl] = useState("");
   const [linkUrl, setLinkUrl] = useState("");
@@ -160,6 +171,32 @@ export function PostComposer({ user, communityId, startExpanded = false, onPostP
   const [isPending, startTransition] = useTransition();
   const hasAttachment = mediaFiles.length > 0 || mediaUrl.trim().length > 0 || linkUrl.trim().length > 0;
   const isExpanded = expanded || shouldFocusComposer || content.length > 0 || hasAttachment || showTags || showLinkTools || showVisibility || showCrossPost || selectedPlatforms.size > 0 || Boolean(errorMessage);
+
+  useEffect(() => {
+    try {
+      const draft = readPostDraft(sessionStorage.getItem(draftKey), Boolean(communityId));
+      if (draft) {
+        setContent((current) => current || draft.content);
+        setTags(draft.tags);
+        setMediaUrl(draft.mediaUrl);
+        setLinkUrl(draft.linkUrl);
+        setVisibility(draft.visibility === "public" && communityId && !communityIsPublic ? "community" : draft.visibility);
+        setShowTags(Boolean(draft.tags));
+        setShowLinkTools(Boolean(draft.mediaUrl || draft.linkUrl));
+      }
+    } catch { /* The composer works without storage. */ }
+    setLoadedDraftKey(draftKey);
+  }, [draftKey, communityId, communityIsPublic]);
+
+  useEffect(() => {
+    if (loadedDraftKey !== draftKey) return;
+    const hasText = Boolean(content || tags || mediaUrl || linkUrl);
+    try {
+      if (hasText) sessionStorage.setItem(draftKey, JSON.stringify({ version: 1, savedAt: Date.now(), content, tags, mediaUrl, linkUrl, visibility }));
+      else sessionStorage.removeItem(draftKey);
+      setDraftSaved(hasText);
+    } catch { setDraftSaved(false); }
+  }, [loadedDraftKey, draftKey, content, tags, mediaUrl, linkUrl, visibility]);
 
   useEffect(() => {
     if (!showCrossPost || accountsLoaded) return;
@@ -224,16 +261,15 @@ export function PostComposer({ user, communityId, startExpanded = false, onPostP
   }, [shouldFocusComposer]);
 
   useEffect(() => {
-    if (!successMessage && !errorMessage) return;
+    if (!successMessage || submitting) return;
     // Permalinks and delivery notes need reading-and-clicking time; a plain
     // "Post created" doesn't.
     const timeout = window.setTimeout(() => {
       setSuccessMessage("");
-      setErrorMessage("");
       setCrossPostOutcomes([]);
     }, crossPostOutcomes.length > 0 ? 10000 : 3000);
     return () => window.clearTimeout(timeout);
-  }, [successMessage, errorMessage, crossPostOutcomes.length]);
+  }, [successMessage, submitting, crossPostOutcomes.length]);
 
   useEffect(() => {
     mediaFilesRef.current = mediaFiles;
@@ -261,16 +297,21 @@ export function PostComposer({ user, communityId, startExpanded = false, onPostP
 
   const handleMediaFiles = (files: FileList | null) => {
     if (!files?.length) return;
+    const validationError = postMediaSelectionError([...mediaFiles.map((item) => item.file), ...Array.from(files)]);
+    if (validationError) {
+      setSuccessMessage("");
+      setErrorMessage(validationError);
+      return;
+    }
+    setErrorMessage("");
     const next = Array.from(files)
-      .filter((file) => file.type.startsWith("image/") || file.type.startsWith("video/"))
-      .slice(0, 4 - mediaFiles.length)
       .map((file) => ({
-        id: `${file.name}-${file.lastModified}-${file.size}`,
+        id: crypto.randomUUID(),
         file,
         url: URL.createObjectURL(file),
         type: file.type.startsWith("video/") ? "video" as const : "image" as const,
       }));
-    setMediaFiles((current) => [...current, ...next].slice(0, 4));
+    setMediaFiles((current) => [...current, ...next]);
   };
 
   const removeMediaFile = (id: string) => {
@@ -282,7 +323,21 @@ export function PostComposer({ user, communityId, startExpanded = false, onPostP
   };
 
   const handleSubmit = () => {
+    if (submittingRef.current || isPending || content.length > 500) return;
     if (!content.trim() && !hasAttachment) return;
+    const attachmentCount = mediaFiles.length + Number(Boolean(mediaUrl.trim())) + Number(Boolean(linkUrl.trim() && linkUrl.trim() !== mediaUrl.trim()));
+    const selectionError = postMediaSelectionError(mediaFiles.map((item) => item.file));
+    const invalidUrl = [mediaUrl, linkUrl].filter((url) => url.trim()).some((url) => {
+      try { return !["https:", "http:"].includes(new URL(url.trim()).protocol); } catch { return true; }
+    });
+    const validationError = selectionError || (attachmentCount > MAX_POST_MEDIA_FILES ? "Attach up to 4 files or links in total." : invalidUrl ? "Use a complete link starting with https:// or http://." : null);
+    if (validationError) {
+      setSuccessMessage("");
+      setErrorMessage(validationError);
+      return;
+    }
+    submittingRef.current = true;
+    setSubmitting(true);
     const contentValue = content.trim();
     const tagsValue = tags;
     const selectedPlatformIds = [...selectedPlatforms];
@@ -383,6 +438,7 @@ export function PostComposer({ user, communityId, startExpanded = false, onPostP
         setErrorMessage("Could not create post");
         publishMeshiCause({ kind: "action:failed" });
       } finally {
+        submittingRef.current = false;
         setSubmitting(false);
       }
     });
@@ -397,9 +453,10 @@ export function PostComposer({ user, communityId, startExpanded = false, onPostP
     // colour already claimed it was — and `glass-card` only pulled it into the
     // `.feed-x-layout .glass-card !important` block at globals.css:4031, which
     // is what forced the outward shadow onto a well in the first place.
-    <div className="feed-composer-card p-3 sm:p-4">
+    <fieldset disabled={submitting || isPending} className="feed-composer-card min-w-0 p-3 sm:p-4" aria-busy={submitting || isPending}>
+      <legend className="sr-only">Create a post</legend>
       {(successMessage || errorMessage) && (
-        <div className={`tray mb-3 px-3 py-2 text-xs font-semibold ${successMessage ? "text-[var(--success)]" : "text-[var(--danger)]"}`} role="status">
+        <div className={`tray mb-3 px-3 py-2 text-xs font-semibold ${successMessage ? "text-[var(--success)]" : "text-[var(--danger)]"}`} role={errorMessage ? "alert" : "status"}>
           <div className="flex items-center gap-2">
             {successMessage ? (
               isPending ? <PaperWait size="sm" /> : <CheckCircle2 className="h-3.5 w-3.5" />
@@ -464,6 +521,14 @@ export function PostComposer({ user, communityId, startExpanded = false, onPostP
             value={content}
             onChange={(e) => setContent(e.target.value)}
             placeholder="What's happening?"
+            aria-label="Post text"
+            maxLength={500}
+            onKeyDown={(event) => {
+              if ((event.metaKey || event.ctrlKey) && event.key === "Enter" && !event.nativeEvent.isComposing) {
+                event.preventDefault();
+                handleSubmit();
+              }
+            }}
             className="w-full bg-transparent text-[var(--text-primary)] text-sm placeholder:text-[var(--text-muted)] resize-none outline-none min-h-[80px]"
             rows={3}
           />
@@ -471,7 +536,8 @@ export function PostComposer({ user, communityId, startExpanded = false, onPostP
           <input
             ref={fileInputRef}
             type="file"
-            accept="image/png,image/jpeg,image/webp,image/gif,video/mp4,video/webm,video/quicktime"
+            accept={POST_MEDIA_ACCEPT}
+            aria-label="Attach images or videos"
             multiple
             className="hidden"
             onChange={(event) => {
@@ -485,10 +551,10 @@ export function PostComposer({ user, communityId, startExpanded = false, onPostP
               {mediaFiles.map((item) => (
                 <div key={item.id} className="feed-composer-media-preview">
                   {item.type === "video" ? (
-                    <video src={item.url} className="h-full w-full object-cover" muted playsInline />
+                    <video src={item.url} className="h-full w-full object-cover" controls muted playsInline preload="metadata" aria-label={`Preview ${item.file.name}`} />
                   ) : (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={item.url} alt="" className="h-full w-full object-cover" />
+                    <img src={item.url} alt={`Preview of ${item.file.name}`} className="h-full w-full object-cover" />
                   )}
                   <button type="button" onClick={() => removeMediaFile(item.id)} aria-label="Remove media" className="feed-composer-remove-media">
                     <X className="h-3.5 w-3.5" />
@@ -527,7 +593,7 @@ export function PostComposer({ user, communityId, startExpanded = false, onPostP
               an audience decision announced to no one. */}
           {showVisibility && (
             <div className="tray mt-3 grid gap-2 p-2 sm:grid-cols-3" role="group" aria-label="Who can see this post">
-              {visibilityOptions.map((option) => {
+              {audienceOptions.map((option) => {
                 const Icon = option.icon;
                 const active = visibility === option.id;
                 return (
@@ -586,7 +652,7 @@ export function PostComposer({ user, communityId, startExpanded = false, onPostP
                 <p className="text-micro text-[var(--text-muted)] flex items-center gap-1">
                   <Info className="h-3 w-3" />
                   Cross-posting is for Public posts — this post&apos;s audience is{" "}
-                  {visibility === "friends" ? "Friends" : "Only me"}.
+                  {visibility === "friends" ? "Friends" : visibility === "community" ? "Community members" : "Only me"}.
                 </p>
               ) : availablePlatforms.length > 0 ? (
                 <div className="flex flex-wrap gap-1.5">
@@ -723,7 +789,7 @@ export function PostComposer({ user, communityId, startExpanded = false, onPostP
 
             <div className="flex flex-wrap items-center justify-end gap-3">
               <span className="hidden text-xs font-semibold text-[var(--text-muted)] sm:inline">
-                {visibilityOptions.find((option) => option.id === visibility)?.label}
+                {audienceOptions.find((option) => option.id === visibility)?.label}
               </span>
               {content.length > 0 && (
                 <span className={`text-xs ${content.length > 500 ? "font-semibold text-[var(--danger)]" : "text-[var(--text-muted)]"}`}>
@@ -739,9 +805,20 @@ export function PostComposer({ user, communityId, startExpanded = false, onPostP
               </Button>
             </div>
           </div>
+          <p className="mt-2 text-micro text-[var(--text-muted)]">Up to 4 attachments · 4 MB total. Add a link for larger videos.</p>
+          {draftSaved && (
+            <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-micro text-[var(--text-muted)]">
+              <span>Text and links saved in this tab. Reattach files after leaving.</span>
+              <button type="button" className="min-h-11 underline underline-offset-2" onClick={() => {
+                setContent(""); setTags(""); setMediaUrl(""); setLinkUrl("");
+                mediaFiles.forEach((item) => URL.revokeObjectURL(item.url));
+                setMediaFiles([]); setErrorMessage(""); setSelectedPlatforms(new Set());
+              }}>Discard draft</button>
+            </div>
+          )}
         </div>
         </div>
       )}
-    </div>
+    </fieldset>
   );
 }

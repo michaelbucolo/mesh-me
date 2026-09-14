@@ -211,7 +211,7 @@ function buildPageCsp(nonce: string, httpsOnly: boolean) {
     "font-src 'self' data:",
     "connect-src 'self' https://api.stripe.com https://checkout.stripe.com",
     "frame-src 'self' https://js.stripe.com https://checkout.stripe.com https://www.youtube-nocookie.com https://player.vimeo.com https://clips.twitch.tv https://player.twitch.tv https://www.tiktok.com https://www.instagram.com",
-    "media-src 'self' blob: https:",
+    "media-src 'self' blob: data: https:",
     "worker-src 'self' blob:",
     "manifest-src 'self'",
     "frame-ancestors 'none'",

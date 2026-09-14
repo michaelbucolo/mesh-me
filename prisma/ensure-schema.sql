@@ -1774,3 +1774,10 @@ CREATE INDEX IF NOT EXISTS "MapDoodle_createdAt_idx" ON "MapDoodle"("createdAt")
 
 -- CreateIndex
 CREATE INDEX IF NOT EXISTS "MapDoodle_userId_createdAt_idx" ON "MapDoodle"("userId", "createdAt");
+CREATE TABLE IF NOT EXISTS "PostMediaFile" (
+    "postMediaId" TEXT NOT NULL PRIMARY KEY,
+    "mimeType" TEXT NOT NULL,
+    "data" TEXT NOT NULL,
+    "size" INTEGER NOT NULL,
+    CONSTRAINT "PostMediaFile_postMediaId_fkey" FOREIGN KEY ("postMediaId") REFERENCES "PostMedia" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+);

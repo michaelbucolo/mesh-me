@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { motion } from "framer-motion";
-import { ArrowRight, Eye, EyeOff, ShieldCheck } from "lucide-react";
+import { ArrowRight, Compass, Eye, EyeOff, ShieldCheck } from "lucide-react";
 import { PaperWait } from "@/components/loading/paper-wait";
 import { requestPasswordReset, resolveEntryIdentity, signInForEntry, signUp } from "@/lib/actions";
 import {
@@ -348,6 +348,16 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
     >
       <MeshBorderConstellation state={fx} anchorRef={anchorRef} reducedMotion={Boolean(reduceMotion)} />
       <div className="mesh-gate-halo" aria-hidden="true" style={haloStyle} />
+      <header className="mesh-gate-brandbar">
+        <Link href="/" aria-label="Mesh.me home" className="brand-wordmark text-xl">
+          mesh<span className="brand-wordmark-accent">.me</span>
+        </Link>
+        <Link href="/explore" className="mesh-gate-browse">
+          <Compass size={16} aria-hidden="true" />
+          Explore first
+          <ArrowRight size={14} aria-hidden="true" />
+        </Link>
+      </header>
 
       {/* Success handoff: a radial aurora bloom (periwinkle → cyan → magenta)
           holds for a beat of anticipation, then expands to cover as we glide
@@ -415,6 +425,7 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
               />
             </div>
             <h1 className="mesh-gate-q">Log in</h1>
+            <p className="mesh-gate-welcome">Your world, your way.</p>
             <div ref={anchorRef} className="mesh-gate-inputwrap">
               <input
                 autoFocus
@@ -451,7 +462,7 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
             {message ? (
               <p className="mesh-gate-msg" role="alert">{message}</p>
             ) : (
-              <p className="mesh-gate-hint">Log in or create an account</p>
+              <p className="mesh-gate-hint">Your people. Your interests. One place.</p>
             )}
             <button
               type="button"

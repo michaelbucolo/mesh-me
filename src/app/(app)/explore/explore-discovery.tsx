@@ -288,6 +288,13 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
 
   return (
     <div className="mx-auto w-full max-w-6xl px-4 pb-24 pt-6 sm:px-6">
+      <header className="mb-6 flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-3xl font-semibold tracking-tight text-[var(--text-primary)] sm:text-4xl">Explore your world</h1>
+          <p className="mt-2 text-sm leading-6 text-[var(--text-secondary)]">People, ideas, and moments worth finding.</p>
+        </div>
+        <Link href="/flow" className="mesh-action px-4 text-sm"><Play size={15} aria-hidden="true" /> Open Flow</Link>
+      </header>
       <div className="sticky top-3 z-20 space-y-3">
         <motion.form
           onSubmit={submitSearch}

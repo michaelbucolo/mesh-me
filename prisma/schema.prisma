@@ -224,6 +224,16 @@ model PostMedia {
   width  Int?
   height Int?
   post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  file   PostMediaFile?
+}
+
+// Kept out of ordinary post/media queries so feed responses never embed files.
+model PostMediaFile {
+  postMediaId String @id
+  mimeType    String
+  data        String
+  size        Int
+  media       PostMedia @relation(fields: [postMediaId], references: [id], onDelete: Cascade)
 }
 
 model PostTag {
