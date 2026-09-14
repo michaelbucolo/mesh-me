@@ -5,6 +5,7 @@ import { buildExternalMedia } from "./external-media";
 import { getFriendPlatformFeedPosts, type FriendPlatformFeedPost } from "./friend-mesh";
 import { prisma } from "./prisma";
 import { nativePostAudienceWhere } from "./post-audience";
+import { nativeVideoDuration } from "./video-duration";
 import { getPublicSupplyFeedPosts } from "./public-supply/feed";
 
 // The viewer's follow/community graph is stable within a request, but the feed
@@ -194,6 +195,7 @@ function filterFeedPostsByContent(posts: FeedCardPost[], filter: FeedContentFilt
 export function toFeedCardPost(post: NativeFeedPost): FeedCardPost {
   return {
     ...post,
+    durationSeconds: nativeVideoDuration(post.media),
     media: post.media.map((item) => ({ id: item.id, url: item.url, type: item.type })),
     platform: "meshme",
   };
@@ -804,11 +806,7 @@ export async function getFeedPostById(user: FeedCurrentUser, id: string): Promis
     },
   });
   if (!post) return null;
-  return {
-    ...post,
-    media: post.media.map((item) => ({ id: item.id, url: item.url, type: item.type })),
-    platform: "meshme",
-  };
+  return toFeedCardPost(post);
 }
 
 export async function getCombinedFeedPosts({

@@ -20,6 +20,7 @@ import { clearMeshCache } from "./mesh-cache";
 import { classifyContentSafety } from "./content-safety";
 import { rateLimit, sanitizeForDisplay, validatePostContent, validateUrl } from "./security";
 import { MAX_POST_MEDIA_FILES, detectPostMediaType, postMediaSelectionError } from "./post-media";
+import { readVideoDuration } from "./video-duration";
 
 export type PostAuthor = { id: string; username: string };
 
@@ -28,6 +29,7 @@ const POST_VISIBILITIES = new Set(["public", "friends", "private", "community"])
 type NativePostMediaInput = {
   url: string;
   type: "image" | "video" | "link";
+  durationSeconds?: number | null;
   upload?: { data: string; mimeType: string; size: number };
 };
 
@@ -89,6 +91,7 @@ async function collectNativePostMedia(formData: FormData) {
     const base64 = Buffer.from(arrayBuffer).toString("base64");
     mediaItems.push({
       type: detected.type,
+      durationSeconds: detected.type === "video" ? readVideoDuration(bytes, detected.mime) : null,
       url: `data:${detected.mime};base64,${base64}`,
       upload: { data: base64, mimeType: detected.mime, size: bytes.byteLength },
     });
@@ -173,6 +176,7 @@ export async function createPostAsUser(user: PostAuthor, formData: FormData) {
           return {
             id,
             type: item.type,
+            durationSeconds: item.durationSeconds,
             url: item.upload ? `/api/post-media/${id}` : item.url,
             ...(item.upload ? { file: { create: item.upload } } : {}),
           };

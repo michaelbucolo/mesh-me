@@ -105,6 +105,7 @@ CREATE TABLE IF NOT EXISTS "PostMedia" (
     "type" TEXT NOT NULL DEFAULT 'image',
     "width" INTEGER,
     "height" INTEGER,
+    "durationSeconds" REAL,
     CONSTRAINT "PostMedia_postId_fkey" FOREIGN KEY ("postId") REFERENCES "Post" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
 
