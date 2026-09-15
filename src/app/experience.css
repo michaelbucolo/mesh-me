@@ -211,6 +211,8 @@
 .mesh-experience .mesh-gate-brandbar .brand-wordmark { font-size: 1.5rem; letter-spacing: -.065em; }
 .mesh-experience .mesh-gate-browse { border: 1px solid var(--rule); border-radius: var(--radius-xl); padding: 0 1rem; background: var(--paper-1); font-size: .8125rem; }
 .mesh-experience .mesh-gate-q { letter-spacing: -.06em; }
+/* Programmatic stage headings announce context; interactive controls keep their focus rings. */
+.mesh-experience .mesh-gate-q[tabindex="-1"]:focus { outline: none; }
 .mesh-experience .mesh-gate-welcome { color: var(--text-secondary); font-size: 1.0625rem; letter-spacing: -.01em; }
 .mesh-experience .mesh-gate-focus { gap: 1.25rem; }
 .mesh-experience .mesh-gate-focus .mesh-gate-inputwrap { margin-top: .6rem; }
@@ -228,6 +230,8 @@
 .mesh-experience .mesh-gate-go { right: .7rem; top: 9px; transform: scale(.85); margin: 0; border-width: 0; width: 44px; height: 44px; border-radius: var(--radius-md); }
 .mesh-experience .mesh-gate-inputwrap:has(.mesh-gate-peek) > .mesh-gate-input { padding-right: 6.5rem; }
 .mesh-experience .mesh-gate-go.is-ready { transform: scale(1); }
+/* Opacity alone leaves an invisible arrow in the keyboard tab order. */
+.mesh-experience .mesh-gate-go:not(.is-ready) { visibility: hidden; }
 .mesh-experience .mesh-gate-peek { left: auto; right: 3.6rem; top: 9px; width: 44px; height: 44px; margin: 0; padding: 0; display: grid; place-items: center; transform: none; color: var(--text-secondary); }
 .mesh-experience .mesh-gate-field { color: var(--text-secondary); font-size: .8125rem; letter-spacing: 0; gap: .45rem; }
 .mesh-experience .mesh-gate-input-line {
