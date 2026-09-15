@@ -82,3 +82,25 @@ Motion should feel quick and useful:
 - Page transitions: short fade/slide only.
 
 All motion must respect `prefers-reduced-motion`.
+
+## Signature experience
+
+The login constellation now extends through the app as a restrained drawing of
+connected worlds. `src/app/experience.css` is the scoped signature layer after the
+foundation stylesheet. `SignatureArt` is deterministic SVG, decorative and inert;
+`PageIntro` pairs it with readable, expressive headings. Use it at meaningful
+arrivals, with solid surfaces around text and controls.
+
+- Keep established semantic paper, ink, focus, and accent tokens. User themes
+  continue to own those colors. Glows belong at surface edges; post faces stay solid.
+- Use the loaded Instrument Sans and a brief Fraunces emphasis in feature headings.
+  Keep the shell's navigation labels quiet and familiar.
+- Keep motion bounded. Entrances use opacity and a small translation; mobile
+  selection uses the house spring. No pointer tracking or animated blur per feed tile.
+  Reduced motion, contrast preferences, and forced colors get a static alternative.
+- Login and `/signup` share `MeshEntryExperience`. `SignupForm` owns validation,
+  password visibility, accessible field guidance, and progress. It reads actual
+  controls for autofill and retains fields on rejected submissions. Progress means
+  locally complete details; account creation and availability remain server decisions.
+- Short screens scroll the auth core. The mobile dock respects safe areas and the
+  keyboard. Dialogs retain Radix focus management, Escape, and focus restoration.

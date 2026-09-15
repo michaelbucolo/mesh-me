@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { SignatureArt } from "@/components/ui/signature-art";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import {
@@ -138,21 +139,7 @@ export async function InstagramProfileView({ username, tab, giftSent }: { userna
             {profile.bannerUrl ? (
               <Image src={profile.bannerUrl} alt={profile.bio?.trim() || `${profile.displayName}'s profile banner`} fill sizes="(max-width: 768px) 100vw, 900px" className="object-cover opacity-80" />
             ) : (
-              <div className="absolute inset-0 overflow-hidden" aria-hidden="true">
-                {/* A quiet slice of their mesh: woven strands + constellation nodes */}
-                <div className="absolute -top-8 -right-8 h-40 w-40 rounded-full bg-[var(--accent)] opacity-[0.07] blur-2xl" />
-                <div className="absolute -bottom-12 -left-12 h-56 w-56 rounded-full bg-[var(--mesh-cyan)] opacity-[0.05] blur-3xl" />
-                <svg className="absolute inset-0 h-full w-full opacity-[0.35]" preserveAspectRatio="none" viewBox="0 0 100 40">
-                  <path d="M8 30 Q 30 12 52 22 T 96 14" fill="none" stroke="var(--accent)" strokeWidth="0.18" opacity="0.6" />
-                  <path d="M2 12 Q 26 26 54 12 T 98 26" fill="none" stroke="var(--mesh-cyan)" strokeWidth="0.14" opacity="0.5" />
-                  <path d="M12 36 Q 40 30 62 33 T 94 30" fill="none" stroke="var(--accent)" strokeWidth="0.12" opacity="0.4" />
-                  <circle cx="30" cy="17" r="0.7" fill="var(--accent)" opacity="0.9" />
-                  <circle cx="52" cy="22" r="0.9" fill="var(--mesh-cyan)" opacity="0.8" />
-                  <circle cx="78" cy="17" r="0.6" fill="var(--accent)" opacity="0.7" />
-                  <circle cx="16" cy="28" r="0.5" fill="var(--mesh-cyan)" opacity="0.6" />
-                  <circle cx="88" cy="28" r="0.75" fill="var(--accent)" opacity="0.8" />
-                </svg>
-              </div>
+              <SignatureArt className="mesh-profile-art" />
             )}
             {/* View Public Mesh button */}
             <div className="absolute top-4 right-4">

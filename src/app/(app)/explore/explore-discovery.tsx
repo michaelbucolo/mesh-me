@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { toggleFollow } from "@/lib/actions";
 import type { FeedCardPost } from "@/lib/feed-data";
 import { formatCount, safeHref } from "@/lib/utils";
-import { AnimatePresence, motion, useMotionTemplate, useReducedMotion, useSpring } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   ArrowUpRight,
   BadgeCheck,
@@ -27,6 +27,7 @@ import {
   X,
 } from "lucide-react";
 import Link from "next/link";
+import { PageIntro, SignatureArt } from "@/components/ui/signature-art";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition, type FormEvent } from "react";
 import { EASE_OUT, SPRING_PANEL } from "@/lib/motion";
@@ -287,14 +288,9 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
   };
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-4 pb-24 pt-6 sm:px-6">
-      <header className="mb-6 flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight text-[var(--text-primary)] sm:text-4xl">Explore your world</h1>
-          <p className="mt-2 text-sm leading-6 text-[var(--text-secondary)]">People, ideas, and moments worth finding.</p>
-        </div>
-        <Link href="/flow" className="mesh-action px-4 text-sm"><Play size={15} aria-hidden="true" /> Open Flow</Link>
-      </header>
+    <div className="mesh-explore-page mx-auto w-full max-w-6xl px-4 pb-24 pt-6 sm:px-6">
+      <PageIntro heading="h1" eyebrow="Follow your curiosity" title={<>Find your next <em>spark.</em></>} description="People, ideas, and moments worth finding. See where they take you."
+        action={<Link href="/flow" className="mesh-action px-4 text-sm"><Play size={15} aria-hidden="true" /> Step into Flow <ArrowUpRight size={14} aria-hidden="true" /></Link>} />
       <div className="sticky top-3 z-20 space-y-3">
         <motion.form
           onSubmit={submitSearch}
@@ -869,45 +865,14 @@ function ExploreTile({ post, index }: { post: FeedCardPost; index: number }) {
   const chip = PLATFORM_CHIP[platform];
   const authorName = post.externalAuthor?.name || post.author.displayName;
 
-  // Pointer-driven 3D tilt + moving specular sheen. Springs keep it physical;
-  // reduced motion skips every update so the tile stays flat and static.
-  const rotateX = useSpring(0, { stiffness: 300, damping: 22, mass: 0.6 });
-  const rotateY = useSpring(0, { stiffness: 300, damping: 22, mass: 0.6 });
-  const sheenX = useSpring(50, { stiffness: 220, damping: 26 });
-  const sheenY = useSpring(50, { stiffness: 220, damping: 26 });
-  const sheen = useMotionTemplate`radial-gradient(150px circle at ${sheenX}% ${sheenY}%, rgba(255,255,255,0.3), rgba(110,139,255,0.14) 34%, transparent 62%)`;
-
-  const handlePointerMove = (event: React.PointerEvent<HTMLButtonElement>) => {
-    if (reduce) return;
-    const rect = event.currentTarget.getBoundingClientRect();
-    const px = (event.clientX - rect.left) / rect.width;
-    const py = (event.clientY - rect.top) / rect.height;
-    rotateY.set((px - 0.5) * 12); // horizontal → yaw, capped ±6deg
-    rotateX.set((0.5 - py) * 12); // vertical → pitch, capped ±6deg
-    sheenX.set(px * 100);
-    sheenY.set(py * 100);
-  };
-
-  const resetTilt = () => {
-    rotateX.set(0);
-    rotateY.set(0);
-    sheenX.set(50);
-    sheenY.set(50);
-  };
-
   return (
     <motion.button
       type="button"
-      initial={{ opacity: 0, scale: 0.96, filter: "blur(8px)" }}
-      animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
+      initial={reduce ? false : { opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
       transition={{ ...spring, delay: 0.02 * Math.min(index, 16) }}
-      style={{ rotateX, rotateY, transformPerspective: 900 }}
-      whileHover={{ scale: 1.015 }}
-      whileTap={{ scale: 0.985 }}
-      onPointerMove={handlePointerMove}
-      onPointerLeave={resetTilt}
       onClick={() => router.push(`/feed?flow=${encodeURIComponent(post.id)}`)}
-      className="glass-card group relative block w-full overflow-hidden rounded-2xl text-left transition-[color,background-color,border-color,box-shadow,transform,opacity] hover:border-[var(--border-primary)]"
+      className="glass-card group relative block w-full overflow-hidden rounded-2xl text-left transition-[color,background-color,border-color,box-shadow,transform,opacity] hover:border-[var(--border-primary)] mesh-explore-tile"
       // NO aria-label. It OVERRIDES name-from-contents, so everything inside
       // this button became unreachable: the media alt built by getPostMediaAlt
       // below, and — for a text-only tile — the whole post body. Content inside
@@ -942,11 +907,7 @@ function ExploreTile({ post, index }: { post: FeedCardPost; index: number }) {
           </div>
         </div>
       )}
-      <motion.span
-        aria-hidden
-        className="pointer-events-none absolute inset-0 z-10 rounded-2xl opacity-0 mix-blend-plus-lighter transition-opacity duration-300 group-hover:opacity-100"
-        style={{ background: sheen }}
-      />
+
     </motion.button>
   );
 }
@@ -995,20 +956,20 @@ function TrendingHero({ posts }: { posts: FeedCardPost[] }) {
           return (
             <motion.div
               key={post.id}
-              initial={{ opacity: 0, y: 16, scale: 0.96, filter: "blur(6px)" }}
-              animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
               transition={{ ...spring, delay: 0.06 * index }}
               className="shrink-0 snap-start"
             >
               <Link
                 href={safeHref(post.externalUrl) || `/feed/${post.id}`}
-                className="group relative block h-44 w-[min(16rem,75vw)] overflow-hidden rounded-2xl border border-[var(--border-secondary)] bg-[var(--bg-secondary)]"
+                className="mesh-trending-tile group relative block h-44 w-[min(16rem,75vw)] overflow-hidden rounded-2xl border border-[var(--border-secondary)] bg-[var(--bg-secondary)]"
               >
                 {still ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={still} alt={getPostMediaAlt(post, authorName)} loading="lazy" decoding="async" className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
                 ) : (
-                  <div className="absolute inset-0 bg-[var(--bg-tertiary)]" />
+                  <div className="mesh-trending-placeholder absolute inset-0"><SignatureArt /></div>
                 )}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-transparent" />
                 <motion.span

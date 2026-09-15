@@ -3,10 +3,10 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { ArrowRight, Compass, Eye, EyeOff, ShieldCheck } from "lucide-react";
 import { PaperWait } from "@/components/loading/paper-wait";
-import { requestPasswordReset, resolveEntryIdentity, signInForEntry, signUp } from "@/lib/actions";
+import { requestPasswordReset, resolveEntryIdentity, signInForEntry } from "@/lib/actions";
 import {
   MeshiMascot,
   type MeshiAccessory,
@@ -19,6 +19,8 @@ import {
 } from "@/components/meshi/meshi-mascot";
 import { IdentityProviderButtons } from "@/components/auth/identity-provider-buttons";
 import type { IdentityProvider } from "@/lib/identity-auth";
+import { SignupForm } from "@/components/auth/signup-form";
+import { SignatureArt } from "@/components/ui/signature-art";
 import { EASE_OUT } from "@/lib/motion";
 import {
   MeshBorderConstellation,
@@ -27,6 +29,7 @@ import {
 } from "@/components/auth/mesh-border-constellation";
 
 type MeshEntryExperienceProps = {
+  initialStage?: "identity" | "signup";
   nextPath?: string | null;
   oauthProviders?: IdentityProvider[];
   initialError?: string | null;
@@ -82,10 +85,10 @@ function GoSheen() {
   );
 }
 
-export function MeshEntryExperience({ nextPath, oauthProviders = [], initialError = null }: MeshEntryExperienceProps) {
+export function MeshEntryExperience({ initialStage = "identity", nextPath, oauthProviders = [], initialError = null }: MeshEntryExperienceProps) {
   const router = useRouter();
 
-  const [stage, setStage] = useState<EntryStage>("identity");
+  const [stage, setStage] = useState<EntryStage>(initialStage);
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -97,30 +100,22 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
   const [leaving, setLeaving] = useState(false);
   const [success, setSuccess] = useState(false);
   const [hydrated, setHydrated] = useState(false);
-  // How much of the signup form is filled — Meshi warms up as it comes alive.
-  const [signupFilled, setSignupFilled] = useState<Record<string, boolean>>({});
+  const [signupFilledCount, setSignupFilledCount] = useState(0);
   const [shaking, setShaking] = useState(false);
   const [isPending, startTransition] = useTransition();
-
-  const markFilled = useCallback((field: string, value: string) => {
-    setSignupFilled((current) =>
-      current[field] === Boolean(value.trim()) ? current : { ...current, [field]: Boolean(value.trim()) },
-    );
-  }, []);
 
   const shake = useCallback(() => {
     setShaking(true);
     window.setTimeout(() => setShaking(false), 450);
   }, []);
 
-  const reduceMotion = useMemo(
-    () => typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches,
-    [],
-  );
+  const reduceMotion = useReducedMotion();
 
   const fx = useRef<ConstellationState>({ energy: 0, stage: "identity", phase: "idle", sparks: 0 });
   const anchorRef = useRef<HTMLDivElement>(null);
   const identityRef = useRef<HTMLInputElement>(null);
+  const signupHeadingRef = useRef<HTMLHeadingElement>(null);
+  const resetHeadingRef = useRef<HTMLHeadingElement>(null);
   const passwordRef = useRef<HTMLInputElement>(null);
 
   // This flag intentionally gates browser-only identity interactions after hydration.
@@ -128,6 +123,8 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
 
   useEffect(() => {
     fx.current.stage = stage;
+    if (stage === "signup") signupHeadingRef.current?.focus({ preventScroll: true });
+    if (stage === "reset") resetHeadingRef.current?.focus({ preventScroll: true });
   }, [stage]);
 
   const spark = useCallback(() => {
@@ -171,12 +168,6 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
     // Mount only: from here on, onChange is attached and authoritative.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  // How many signup fields are filled — used to warm the halo as Meshi comes alive.
-  const signupFilledCount = useMemo(
-    () => Object.values(signupFilled).filter(Boolean).length,
-    [signupFilled],
-  );
 
   const identity = useMemo(() => detectIdentity(identifier), [identifier]);
 
@@ -286,15 +277,6 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
     });
   };
 
-  // ── Sign up ─────────────────────────────────────────────────────────────
-  const submitSignup = (formData: FormData) => {
-    setMessage("");
-    startTransition(async () => {
-      const result = await signUp(formData);
-      if (result?.error) setMessage(result.error);
-    });
-  };
-
   // ── Reset ────────────────────────────────────────────────────────────────
   const submitReset = (event: React.FormEvent) => {
     event.preventDefault();
@@ -320,6 +302,7 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
     setPreview(null);
     setPassword("");
     setResetSent(false);
+    setSignupFilledCount(0);
     fx.current.phase = "idle";
   };
 
@@ -347,6 +330,7 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
       data-stage={stage}
     >
       <MeshBorderConstellation state={fx} anchorRef={anchorRef} reducedMotion={Boolean(reduceMotion)} />
+      <SignatureArt className="mesh-entry-orbits" />
       <div className="mesh-gate-halo" aria-hidden="true" style={haloStyle} />
       <header className="mesh-gate-brandbar">
         <Link href="/" aria-label="Mesh.me home" className="brand-wordmark text-xl">
@@ -425,7 +409,7 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
               />
             </div>
             <h1 className="mesh-gate-q">Log in</h1>
-            <p className="mesh-gate-welcome">Your world, your way.</p>
+            <p className="mesh-gate-welcome">A world that feels like you.</p>
             <div ref={anchorRef} className="mesh-gate-inputwrap">
               <input
                 autoFocus
@@ -491,7 +475,8 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
 
         {/* PASSWORD — the field has become the user's Meshi */}
         {stage === "password" && (
-          <form key="password" onSubmit={submitPassword} className="mesh-gate-focus" data-testid="entry-password-form" noValidate>
+          <form key="password" onSubmit={submitPassword} className="mesh-gate-focus" data-testid="entry-password-form" aria-busy={isPending} noValidate>
+            <h1 className="sr-only">Welcome back. Enter your password.</h1>
             <div ref={anchorRef} className={`mesh-gate-meshi${success ? " is-success" : ""}`}>
               <MeshiMascot
                 size={96}
@@ -590,99 +575,24 @@ export function MeshEntryExperience({ nextPath, oauthProviders = [], initialErro
         )}
 
         {/* SIGN UP */}
-        {stage === "signup" && (() => {
-          const filledCount = Object.values(signupFilled).filter(Boolean).length;
-          const signupMood: MeshiMood =
-            filledCount >= 4 ? "celebrating" : filledCount === 3 ? "love" : filledCount === 2 ? "excited" : "happy";
-          return (
-          <form key="signup" action={submitSignup} className="mesh-gate-form" data-testid="entry-signup-form" noValidate>
-            {/* The new account's Meshi. Its MOOD warms as the form fills — the
-                behavioral character stays — but it holds its size and says
-                nothing: the captions and the inflating scale were narration. */}
+        {stage === "signup" && (
+          <section key="signup" className="mesh-gate-form mesh-signup-stage" aria-labelledby="signup-title">
             <div className="mesh-gate-signup-meshi" aria-hidden="true">
-              <MeshiMascot size={72} mood={signupMood} animate bouncy={filledCount >= 4} showGlow={filledCount >= 3} />
+              <MeshiMascot size={64} mood={signupFilledCount >= 4 ? "celebrating" : signupFilledCount >= 2 ? "excited" : "happy"} animate={!reduceMotion} bouncy={signupFilledCount >= 4 && !reduceMotion} showGlow={signupFilledCount >= 3} />
             </div>
-            <h1 className="mesh-gate-q mesh-gate-q-sm">Create account</h1>
-            <p className="mesh-gate-hint">Private by default.</p>
-            <input type="hidden" name="phone" value={signupDraft.phone} />
-            <label className="mesh-gate-field">
-              <span>Email</span>
-              <input
-                name="email"
-                type="email"
-                defaultValue={signupDraft.email}
-                onChange={(e) => { spark(); markFilled("email", e.target.value); }}
-                placeholder="you@example.com"
-                autoComplete="email"
-                required
-                className="mesh-gate-input mesh-gate-input-line"
-                data-testid="entry-signup-email"
-                suppressHydrationWarning
-              />
-            </label>
-            <label className="mesh-gate-field">
-              <span>Username</span>
-              <input
-                name="username"
-                defaultValue={signupDraft.username}
-                onChange={(e) => { spark(); markFilled("username", e.target.value); }}
-                placeholder="yourname"
-                autoCapitalize="none"
-                autoCorrect="off"
-                spellCheck={false}
-                required
-                minLength={3}
-                maxLength={24}
-                className="mesh-gate-input mesh-gate-input-line"
-                data-testid="entry-signup-username"
-                suppressHydrationWarning
-              />
-            </label>
-            <label className="mesh-gate-field">
-              <span>Display name</span>
-              <input
-                name="displayName"
-                onChange={(e) => { spark(); markFilled("displayName", e.target.value); }}
-                placeholder="Your name"
-                required
-                maxLength={48}
-                className="mesh-gate-input mesh-gate-input-line"
-                data-testid="entry-signup-display-name"
-                suppressHydrationWarning
-              />
-            </label>
-            <label className="mesh-gate-field">
-              <span>Password</span>
-              <input
-                name="password"
-                type="password"
-                onChange={(e) => { spark(); markFilled("password", e.target.value); }}
-                placeholder="12+ chars with a number & symbol"
-                autoComplete="new-password"
-                required
-                minLength={12}
-                className="mesh-gate-input mesh-gate-input-line"
-                data-testid="entry-signup-password"
-                suppressHydrationWarning
-              />
-            </label>
-            {message && <p className="mesh-gate-msg" role="alert">{message}</p>}
-            <button type="submit" className="mesh-gate-primary" disabled={isPending} data-testid="entry-create-account-button">
-              {isPending ? <PaperWait size="sm" /> : "Create account"}
-            </button>
-            <button type="button" onClick={backToIdentity} className="mesh-gate-textlink">
-              I already have an account
-            </button>
-          </form>
-          );
-        })()}
-
-        {/* RESET */}
+            <h1 ref={signupHeadingRef} tabIndex={-1} id="signup-title" className="mesh-gate-q mesh-gate-q-sm">Your world starts here.</h1>
+            <p className="mesh-gate-hint">Create your account. Make yourself at home.</p>
+            <SignupForm prefill={signupDraft} onActivity={spark} onProgress={setSignupFilledCount} notice={message} />
+            {oauthProviders.length > 0 && <IdentityProviderButtons providers={oauthProviders} next={nextPath} className="mesh-signup-providers" />}
+            <button type="button" onClick={backToIdentity} className="mesh-gate-textlink">I already have an account</button>
+          </section>
+        )}
+        {/* Reset uses the same calm, focused form language. */}
         {stage === "reset" && (
-          <form key="reset" onSubmit={submitReset} className="mesh-gate-form" noValidate>
-            <h1 className="mesh-gate-q mesh-gate-q-sm">Reset password</h1>
+          <form key="reset" onSubmit={submitReset} className="mesh-gate-form" aria-busy={isPending} noValidate>
+            <h1 ref={resetHeadingRef} tabIndex={-1} className="mesh-gate-q mesh-gate-q-sm">Reset password</h1>
             {resetSent ? (
-              <p className="mesh-gate-hint">If that email has an account, a reset link is on its way.</p>
+              <div className="mesh-reset-sent" role="status"><ShieldCheck size={28} aria-hidden="true" /><h2>Check your inbox</h2><p className="mesh-gate-hint">If that email has an account, a reset link is on its way.</p></div>
             ) : (
               <>
                 <p className="mesh-gate-hint">We&apos;ll send a secure reset link.</p>

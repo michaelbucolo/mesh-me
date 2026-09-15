@@ -10,9 +10,9 @@ export function GuestHeader() {
   const search = useSearchParams().toString();
   const nextPath = `${pathname}${search ? `?${search}` : ""}`;
   return (
-    <header className="flex shrink-0 flex-wrap items-center justify-between gap-x-4 gap-y-1 border-b border-[var(--border-primary)] bg-[var(--bg-primary)] px-4 pb-2 pt-[max(.75rem,env(safe-area-inset-top))] sm:flex-nowrap sm:px-6">
+    <header className="mesh-guest-header flex shrink-0 flex-wrap items-center justify-between gap-x-4 gap-y-1 border-b border-[var(--border-primary)] bg-[var(--bg-primary)] px-4 pb-2 pt-[max(.75rem,env(safe-area-inset-top))] sm:flex-nowrap sm:px-6">
       <Link href="/" className="brand-wordmark text-lg text-[var(--text-primary)]">
-        mesh.me
+        mesh<span className="brand-wordmark-accent">.me</span>
       </Link>
       <nav aria-label="Browse Mesh.me" className="order-last flex w-full items-center justify-center gap-5 sm:order-none sm:w-auto">
         {[{ href: "/explore", label: "Explore" }, { href: "/flow", label: "Flow" }].map((item) => (

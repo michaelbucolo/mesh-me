@@ -1,0 +1,318 @@
+/* Mesh signature experience. Shared semantic paper/ink tokens keep user themes
+   and contrast intact. Art is separate from content; surfaces remain opaque. */
+.mesh-experience {
+  --signature-light: color-mix(in srgb, var(--accent) 9%, transparent);
+  --signature-rim: color-mix(in srgb, var(--accent) 24%, var(--rule));
+  --signature-shadow: 0 12px 36px -24px color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
+/* A sense of place, without placing a canvas or an animation behind the app. */
+.mesh-experience .mesh-shell,
+.mesh-experience .mesh-guest-shell {
+  background: var(--paper-0);
+}
+.mesh-experience .mesh-content,
+.mesh-experience .mesh-guest-shell > div:last-child {
+  background: radial-gradient(ellipse 70% 420px at 90% 0%, var(--signature-light), transparent 78%), var(--paper-0);
+}
+.mesh-experience .mesh-shell-mesh .mesh-content { background: var(--paper-0); }
+.mesh-experience .mesh-sidebar {
+  background: radial-gradient(ellipse 140% 28% at 20% 100%, var(--signature-light), transparent), var(--paper-1);
+  border-right-color: var(--rule);
+}
+.mesh-experience .mesh-sidebar > div:first-child { padding: 1.7rem 1.45rem 2rem; }
+.mesh-experience .mesh-sidebar nav { padding-inline: 1rem; }
+.mesh-experience .mesh-sidebar nav > div { display: grid; gap: .35rem; }
+.mesh-experience .mesh-nav-item {
+  min-height: 48px;
+  border-radius: var(--radius-md);
+  padding-inline: 1rem;
+  gap: .85rem;
+  transition: background-color 180ms var(--mesh-ease-out), color 180ms var(--mesh-ease-out), box-shadow 180ms var(--mesh-ease-out);
+}
+.mesh-experience .mesh-nav-item-active {
+  background: var(--accent-wash);
+  color: var(--text-primary);
+  box-shadow: inset 0 0 0 1px var(--accent-line), var(--signature-shadow);
+}
+.mesh-experience .mesh-nav-item-active > span:first-of-type { border-radius: 4px; }
+.mesh-experience .mesh-nav-item-active svg { color: var(--accent-text); }
+.mesh-experience .mesh-user-dock { background: var(--paper-0); border-radius: var(--radius-lg); }
+.mesh-experience .mesh-topbar {
+  background: var(--paper-0);
+  border-bottom: 1px solid var(--rule);
+  padding-inline: clamp(1rem, 3vw, 2rem);
+}
+.mesh-experience .mesh-topbar form {
+  border-color: var(--rule);
+  border-radius: var(--radius-md);
+  background: var(--paper-1);
+  min-height: 44px;
+  transition: border-color 180ms var(--mesh-ease-out), box-shadow 180ms var(--mesh-ease-out);
+}
+.mesh-experience .mesh-topbar form:focus-within {
+  border-color: var(--focus);
+  box-shadow: 0 0 0 3px var(--accent-wash);
+}
+.mesh-experience .mesh-topbar-icon { border-radius: var(--radius-md); }
+.mesh-experience .mesh-account-panel {
+  border-color: var(--signature-rim);
+  border-radius: var(--radius-lg);
+}
+.mesh-experience .mesh-guest-header {
+  position: relative;
+  z-index: 30;
+  background: var(--paper-0);
+  padding-inline: clamp(1rem, 4vw, 3rem);
+  border-color: var(--rule);
+}
+.mesh-experience .mesh-guest-header .brand-wordmark { font-size: 1.5rem; letter-spacing: -.065em; }
+.mesh-experience .mesh-guest-header nav a { padding-inline: .65rem; }
+.mesh-experience .mesh-guest-header nav a[aria-current="page"] { color: var(--accent-text); }
+
+/* The same connected-world illustration works at the door and inside Mesh. */
+.mesh-signature-art {
+  position: absolute;
+  pointer-events: none;
+  user-select: none;
+  color: var(--accent-text);
+  width: 360px;
+  aspect-ratio: 3 / 2;
+}
+.mesh-signature-art::before {
+  content: "";
+  position: absolute;
+  inset: 5%;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, var(--accent-wash), transparent 68%);
+}
+.mesh-signature-art svg { position: relative; width: 100%; height: 100%; }
+.mesh-orbit-lines { opacity: .38; }
+.mesh-orbit-nodes { opacity: .75; }
+.mesh-orbit-star { opacity: .55; }
+.mesh-orbit-center { opacity: .9; }
+.mesh-page-intro {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  min-height: 260px;
+  margin: -.25rem 0 1.7rem;
+  padding: 2.15rem 0 1.8rem;
+  border-bottom: 1px solid var(--rule);
+}
+.mesh-page-intro > .mesh-signature-art { right: 0; top: 50%; width: 390px; transform: translateY(-50%) rotate(-5deg); }
+.mesh-page-intro-copy { position: relative; z-index: 1; max-width: 65%; }
+.mesh-page-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  margin-bottom: 1rem;
+  color: var(--text-secondary);
+  font-size: .75rem;
+  font-weight: 500;
+  letter-spacing: .02em;
+}
+.mesh-page-eyebrow > span { width: 6px; height: 6px; background: var(--accent-text); border-radius: 50%; box-shadow: 0 0 0 4px var(--accent-wash); }
+.mesh-experience .mesh-page-title {
+  font-family: var(--font-sans-loaded), system-ui, sans-serif;
+  font-size: clamp(2rem, 4.2vw, 3.3rem);
+  font-weight: 500;
+  letter-spacing: -.055em;
+  line-height: 1.13;
+  text-wrap: balance;
+}
+.mesh-page-title em { font-family: var(--font-display-loaded), Georgia, serif; font-weight: 500; color: var(--accent-text); letter-spacing: -.06em; }
+.mesh-page-description { margin-top: .85rem; max-width: 31rem; color: var(--text-secondary); font-size: .9375rem; line-height: 1.75; text-wrap: pretty; }
+.mesh-page-intro-action { margin-top: 1.35rem; }
+.mesh-page-intro-action .mesh-action { gap: .6rem; background: var(--paper-1); border-color: var(--signature-rim); }
+.mesh-feed-intro { min-height: 180px; margin-bottom: .25rem; padding-block: 1.5rem; }
+.mesh-feed-intro > .mesh-signature-art { width: 275px; right: -30px; opacity: .65; }
+.mesh-feed-intro .mesh-page-title { font-size: clamp(1.9rem, 3.2vw, 2.6rem); }
+.mesh-feed-intro .mesh-page-intro-copy { max-width: 75%; }
+.mesh-experience .feed-x-topbar { min-height: 52px; padding-top: .5rem; padding-bottom: .5rem; }
+.mesh-experience .feed-control-strip { padding-block: .75rem; }
+
+/* Cards keep a solid, legible face. Depth appears at the edge, never as lift
+   beneath a post while someone is reading or pressing an inline action. */
+.mesh-experience :is(.glass-card, .mesh-panel, .mesh-surface, .profile-header-card) {
+  border-color: var(--rule);
+  box-shadow: var(--shadow-rest), var(--signature-shadow);
+}
+.mesh-experience .insta-post-card {
+  border-color: var(--rule) !important;
+  box-shadow: var(--shadow-rest), var(--signature-shadow) !important;
+}
+.mesh-experience .insta-post-card:hover { box-shadow: var(--shadow-raised), var(--signature-shadow) !important; }
+.mesh-experience .feed-composer-card { border-color: var(--signature-rim); }
+.mesh-experience .mesh-explore-tile { border-radius: var(--radius-lg); }
+.mesh-experience .mesh-trending-tile { border-color: var(--signature-rim); }
+.mesh-trending-placeholder { background: var(--paper-2); }
+.mesh-trending-placeholder .mesh-signature-art { width: 270px; right: -25px; top: -40px; }
+.mesh-experience .mesh-dialog {
+  border: 1px solid var(--signature-rim);
+  border-radius: var(--radius-xl);
+  background: var(--paper-1);
+  box-shadow: var(--shadow-float), 0 0 0 5px var(--accent-wash);
+}
+.mesh-experience .mesh-dialog > div:first-child { background: linear-gradient(120deg, var(--accent-wash), transparent 80%), var(--paper-1); padding: 1.4rem 1.5rem; }
+.mesh-experience .mesh-dialog > div:last-child { padding: 1.5rem; }
+.mesh-empty-state { isolation: isolate; overflow: hidden; }
+.mesh-empty-art { top: -15px; left: 50%; width: 240px; transform: translateX(-50%); opacity: .5; z-index: -1; }
+.mesh-experience .mesh-empty-state > .mesh-float { border-color: var(--signature-rim); background: var(--paper-1); box-shadow: var(--signature-shadow); }
+.mesh-experience .profile-banner { background: radial-gradient(ellipse at 80% 40%, var(--accent-wash), transparent 70%), var(--paper-2); }
+.mesh-profile-art { right: 3%; top: -65%; width: 600px; }
+.mesh-experience .profile-name { letter-spacing: -.035em; font-size: clamp(1.7rem, 3vw, 2.1rem); }
+.mesh-experience .profile-info { padding-top: .25rem; }
+.mesh-experience .settings-traditional-header { background: radial-gradient(ellipse at 100% 0%, var(--accent-wash), transparent 65%), var(--paper-1); border-color: var(--signature-rim); }
+.mesh-experience .settings-traditional-nav { border-color: var(--rule); }
+.mesh-messages-welcome { position: relative; isolation: isolate; }
+.mesh-messages-welcome > .mesh-signature-art { top: -90px; left: 50%; transform: translateX(-50%); width: 420px; opacity: .55; z-index: -1; }
+.mesh-experience [data-testid="mechat-composer"] { background: var(--paper-1); border-color: var(--rule); }
+.mesh-experience [data-testid="mechat-thread"] { background: radial-gradient(ellipse at 90% 10%, var(--signature-light), transparent 55%), var(--paper-0); }
+
+/* One floating mobile dock, with one shared spring-driven selection. */
+@media (max-width: 767px) {
+  .mesh-experience .mobile-bottom-nav {
+    left: 8px;
+    right: 8px;
+    bottom: max(8px, env(safe-area-inset-bottom));
+    width: calc(100% - 16px);
+    padding: 5px;
+    border: 1px solid var(--rule);
+    border-radius: var(--radius-xl);
+    background: var(--paper-1);
+    box-shadow: var(--shadow-float);
+  }
+  .mesh-experience .mobile-bottom-nav a { min-height: 56px; gap: 5px; }
+  .mesh-mobile-active { position: absolute; inset: 2px; border-radius: var(--radius-lg); background: var(--accent-wash); border: 1px solid var(--accent-line); }
+  .mesh-experience .mesh-topbar { min-height: 64px; }
+  .mesh-page-intro { min-height: 225px; padding-block: 1.5rem; margin-bottom: 1rem; }
+  .mesh-page-intro > .mesh-signature-art { width: 250px; right: -100px; opacity: .45; }
+  .mesh-page-intro-copy { max-width: 88%; }
+  .mesh-page-eyebrow { margin-bottom: .75rem; }
+  .mesh-page-description { max-width: 24rem; font-size: .875rem; }
+  .mesh-feed-intro { min-height: 165px; }
+  .mesh-feed-intro .mesh-page-intro-copy { max-width: 85%; }
+  .mesh-feed-intro > .mesh-signature-art { right: -80px; width: 230px; opacity: .3; }
+}
+@media (max-width: 380px) {
+  .mesh-experience .mesh-guest-header { gap: .2rem; }
+  .mesh-experience .mesh-guest-header .brand-wordmark { font-size: 1.3rem; }
+  .mesh-page-intro > .mesh-signature-art { opacity: .22; }
+}
+
+/* Entering Mesh: preserve Meshi and the interactive constellation, give forms
+   a clear focus frame, and keep every state reachable on short screens. */
+.mesh-experience .mesh-gate { background: radial-gradient(ellipse 60% 80% at 50% 45%, var(--signature-light), transparent 80%), var(--paper-0); }
+.mesh-entry-orbits { position: fixed; width: min(60vw, 700px); top: 50%; right: -24%; transform: translateY(-50%) rotate(-20deg); opacity: .45; z-index: 1; }
+.mesh-experience .mesh-gate-brandbar { padding-top: max(1.25rem, env(safe-area-inset-top)); }
+.mesh-experience .mesh-gate-brandbar .brand-wordmark { font-size: 1.5rem; letter-spacing: -.065em; }
+.mesh-experience .mesh-gate-browse { border: 1px solid var(--rule); border-radius: var(--radius-xl); padding: 0 1rem; background: var(--paper-1); font-size: .8125rem; }
+.mesh-experience .mesh-gate-q { letter-spacing: -.06em; }
+.mesh-experience .mesh-gate-welcome { color: var(--text-secondary); font-size: 1.0625rem; letter-spacing: -.01em; }
+.mesh-experience .mesh-gate-focus { gap: 1.25rem; }
+.mesh-experience .mesh-gate-focus .mesh-gate-inputwrap { margin-top: .6rem; }
+.mesh-experience .mesh-gate-inputwrap > .mesh-gate-input {
+  min-height: 62px;
+  padding: .85rem 3.3rem .85rem 1rem;
+  border: 1px solid var(--edge);
+  border-radius: var(--radius-lg);
+  background: var(--paper-1);
+  text-align: left;
+  font-size: 1rem;
+  box-shadow: var(--signature-shadow);
+}
+.mesh-experience .mesh-gate-inputwrap > .mesh-gate-input:focus { border-color: var(--focus); box-shadow: 0 0 0 3px var(--accent-wash), var(--signature-shadow); }
+.mesh-experience .mesh-gate-go { right: .7rem; top: 9px; transform: scale(.85); margin: 0; border-width: 0; width: 44px; height: 44px; border-radius: var(--radius-md); }
+.mesh-experience .mesh-gate-inputwrap:has(.mesh-gate-peek) > .mesh-gate-input { padding-right: 6.5rem; }
+.mesh-experience .mesh-gate-go.is-ready { transform: scale(1); }
+.mesh-experience .mesh-gate-peek { left: auto; right: 3.6rem; top: 9px; width: 44px; height: 44px; margin: 0; padding: 0; display: grid; place-items: center; transform: none; color: var(--text-secondary); }
+.mesh-experience .mesh-gate-field { color: var(--text-secondary); font-size: .8125rem; letter-spacing: 0; gap: .45rem; }
+.mesh-experience .mesh-gate-input-line {
+  min-height: 48px;
+  border: 1px solid var(--edge);
+  border-radius: var(--radius-md);
+  padding: .7rem .85rem;
+  background: var(--paper-1);
+  text-align: left;
+  color: var(--text-primary);
+  font-weight: 400;
+  font-size: 1rem;
+  letter-spacing: 0;
+  transition: border-color 180ms var(--mesh-ease-out), box-shadow 180ms var(--mesh-ease-out);
+}
+.mesh-experience .mesh-gate-input-line:focus { border-color: var(--focus); box-shadow: 0 0 0 3px var(--accent-wash); }
+.mesh-experience .mesh-gate-input-line[aria-invalid="true"] { border-color: var(--danger); }
+.mesh-experience .mesh-gate-primary { min-height: 52px; gap: .65rem; border: 1px solid var(--accent-line); border-radius: var(--radius-md); box-shadow: var(--shadow-rest), 0 8px 26px -16px var(--accent); color: var(--accent-ink); }
+.mesh-experience .mesh-gate-primary:disabled { cursor: wait; }
+.mesh-experience .mesh-gate-form { width: min(100%, 440px); flex-shrink: 0; }
+.mesh-experience .mesh-gate-core > .mesh-signup-stage { margin-block: auto; }
+.mesh-experience .mesh-signup-stage { gap: .7rem; }
+.mesh-experience .mesh-signup-stage .mesh-gate-q-sm { font-size: clamp(1.65rem, 6vw, 2.2rem); }
+.mesh-experience .mesh-gate-signup-meshi { display: flex; justify-content: center; margin-bottom: .15rem; }
+.mesh-signup-fields { display: grid; gap: 1rem; text-align: left; }
+.mesh-signup-progress { margin: .55rem 0 .15rem; color: var(--text-secondary); font-size: .75rem; text-align: center; }
+.mesh-signup-progress-track { display: flex; gap: 5px; margin-bottom: .65rem; }
+.mesh-signup-progress-track > span { flex: 1; height: 3px; border-radius: 3px; background: var(--rule-strong); transition: background-color 220ms var(--mesh-ease-out); }
+.mesh-signup-progress-track > span[data-complete="true"] { background: var(--accent-text); }
+.mesh-signup-name-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: .85rem; }
+.mesh-field-hint { color: var(--text-secondary); font-size: .75rem; line-height: 1.6; font-weight: 400; }
+.mesh-signup-name-row + .mesh-field-hint { margin-top: -.5rem; }
+.mesh-signup-password-wrap { position: relative; }
+.mesh-experience .mesh-signup-password-wrap input { padding-right: 3rem; }
+.mesh-password-toggle { position: absolute; right: 3px; top: 2px; width: 44px; height: 44px; display: grid; place-items: center; color: var(--text-secondary); border-radius: var(--radius-md); }
+.mesh-password-toggle:hover { color: var(--accent-text); background: var(--accent-wash); }
+.mesh-password-rules { display: flex; flex-wrap: wrap; gap: .45rem .8rem; padding-top: .35rem; color: var(--text-secondary); font-size: .6875rem; font-weight: 400; }
+.mesh-password-rules li { display: flex; align-items: center; gap: .3rem; }
+.mesh-password-rules svg { opacity: .35; }
+.mesh-password-rules li[data-met="true"] { color: var(--accent-text); }
+.mesh-password-rules li[data-met="true"] svg { opacity: 1; }
+.mesh-field-error { color: var(--danger); font-size: .75rem; line-height: 1.5; font-weight: 400; }
+.mesh-signup-reassurance { text-align: center; margin-top: -.6rem; }
+.mesh-signup-providers { margin-top: .25rem; }
+.mesh-experience .mesh-gate-msg { padding: .75rem 1rem; border: 1px solid var(--danger); border-radius: var(--radius-md); background: var(--paper-1); color: var(--danger); line-height: 1.6; }
+.mesh-experience .mesh-gate-foot { gap: .3rem; }
+.mesh-reset-sent { display: grid; justify-items: center; gap: 1rem; padding-block: 1.25rem; }
+.mesh-reset-sent > svg { color: var(--accent-text); }
+.mesh-reset-sent > h2 { color: var(--text-primary); font-size: 1.25rem; }
+@media (max-height: 850px) {
+  .mesh-experience .mesh-gate[data-stage="signup"] .mesh-gate-core { padding-block: 1.25rem; }
+  .mesh-experience .mesh-gate[data-stage="signup"] .mesh-gate-foot { padding-block: .5rem; }
+  .mesh-experience .mesh-signup-stage { gap: .5rem; }
+  .mesh-signup-fields { gap: .85rem; }
+}
+@media (max-width: 600px) {
+  .mesh-entry-orbits { width: 480px; right: -360px; opacity: .25; }
+  .mesh-experience .mesh-gate-core { padding-inline: 1.25rem; }
+  .mesh-experience .mesh-gate-focus { width: 100%; max-width: 440px; }
+  .mesh-experience .mesh-gate-brandbar { padding-inline: 1.25rem; }
+  .mesh-signup-name-row { gap: .65rem; }
+}
+
+/* A bounded entrance. No drifting backgrounds or perpetual decoration. */
+@media (prefers-reduced-motion: no-preference) {
+  .mesh-page-intro-copy { animation: meshSignatureArrival 520ms var(--mesh-ease-out) both; }
+  .mesh-page-intro > .mesh-signature-art { animation: meshSignatureDraw 800ms var(--mesh-ease-out) both; }
+  .mesh-experience .mesh-gate-browse > svg:last-child { transition: transform 200ms var(--mesh-ease-out); }
+  .mesh-experience .mesh-gate-browse:hover > svg:last-child { transform: translateX(3px); }
+}
+@keyframes meshSignatureArrival { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes meshSignatureDraw { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .mesh-experience .mesh-gate-primary,
+  .mesh-experience .mesh-signup-progress-track > span,
+  .mesh-experience .mesh-gate-input-line { transition: none; }
+  .mesh-experience .mesh-gate-primary:hover { transform: none; }
+}
+@media (prefers-contrast: more) {
+  .mesh-signature-art { display: none; }
+  .mesh-experience .mesh-dialog,
+  .mesh-experience .mobile-bottom-nav { border-color: var(--edge); }
+}
+@media (forced-colors: active) {
+  .mesh-signature-art { display: none; }
+  .mesh-signup-progress-track > span[data-complete="true"] { background: Highlight; }
+  .mesh-mobile-active { border-color: Highlight; }
+}
