@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { ArrowRight, Check, Eye, EyeOff } from "lucide-react";
+import { ArrowRight, Check, Circle, Eye, EyeOff } from "lucide-react";
 import { PaperWait } from "@/components/loading/paper-wait";
 import { signUp } from "@/lib/actions";
 import { validatePasswordStrength } from "@/lib/security";
@@ -79,6 +79,7 @@ export function SignupForm({ prefill, onActivity, onProgress, notice }: {
     required: true,
     defaultValue: name === "password" ? undefined : values[name],
     "aria-invalid": Boolean(errors[name]),
+    "aria-labelledby": `signup-${name}-label`,
     "aria-describedby": [errors[name] ? `signup-${name}-error` : "", name === "password" ? "signup-password-rules" : "", name === "username" ? "signup-username-hint" : ""].filter(Boolean).join(" ") || undefined,
     className: "mesh-gate-input mesh-gate-input-line",
     onBlur: (event: React.FocusEvent<HTMLInputElement>) => {
@@ -105,25 +106,25 @@ export function SignupForm({ prefill, onActivity, onProgress, notice }: {
       {notice && <p className="mesh-gate-hint" role="status">{notice}</p>}
       <input type="hidden" name="phone" value={prefill?.phone || ""} />
       <label className="mesh-gate-field" htmlFor="signup-email">
-        <span>Email</span>
+        <span id="signup-email-label">Email</span>
         <input {...fieldProps("email")} type="email" autoComplete="email" placeholder="you@example.com" data-testid="entry-signup-email" />
         {fieldMessage("email")}
       </label>
       <div className="mesh-signup-name-row">
         <label className="mesh-gate-field" htmlFor="signup-displayName">
-          <span>Display name</span>
+          <span id="signup-displayName-label">Display name</span>
           <input {...fieldProps("displayName")} autoComplete="name" maxLength={50} placeholder="Your name" data-testid="entry-signup-display-name" />
           {fieldMessage("displayName")}
         </label>
         <label className="mesh-gate-field" htmlFor="signup-username">
-          <span>Username</span>
+          <span id="signup-username-label">Username</span>
           <input {...fieldProps("username")} autoComplete="username" autoCapitalize="none" autoCorrect="off" spellCheck={false} minLength={3} maxLength={30} placeholder="yourname" data-testid="entry-signup-username" />
           {fieldMessage("username")}
         </label>
       </div>
       <p id="signup-username-hint" className="mesh-field-hint">Your @username uses letters, numbers, and underscores.</p>
       <div className="mesh-gate-field">
-        <label htmlFor="signup-password">Password</label>
+        <label id="signup-password-label" htmlFor="signup-password">Password</label>
         <div className="mesh-signup-password-wrap">
           <input {...fieldProps("password")} type={showPassword ? "text" : "password"} autoComplete="new-password" minLength={12} maxLength={128} placeholder="Make it uniquely yours" data-testid="entry-signup-password" />
           <button type="button" className="mesh-password-toggle" onClick={() => setShowPassword((value) => !value)} aria-label={showPassword ? "Hide password" : "Show password"} aria-pressed={showPassword}>
@@ -131,7 +132,7 @@ export function SignupForm({ prefill, onActivity, onProgress, notice }: {
           </button>
         </div>
         <ul id="signup-password-rules" className="mesh-password-rules">
-          {passwordRules.map((rule) => <li key={rule.label} data-met={rule.met}><Check size={12} aria-hidden="true" /><span>{rule.label}<span className="sr-only">{rule.met ? ": met" : ": needed"}</span></span></li>)}
+          {passwordRules.map((rule) => <li key={rule.label} data-met={rule.met}>{rule.met ? <Check size={12} aria-hidden="true" /> : <Circle size={12} aria-hidden="true" />}<span>{rule.label}<span className="sr-only">{rule.met ? ": met" : ": needed"}</span></span></li>)}
         </ul>
         {fieldMessage("password")}
       </div>

@@ -211,6 +211,8 @@
 .mesh-experience .mesh-gate-brandbar .brand-wordmark { font-size: 1.5rem; letter-spacing: -.065em; }
 .mesh-experience .mesh-gate-browse { border: 1px solid var(--rule); border-radius: var(--radius-xl); padding: 0 1rem; background: var(--paper-1); font-size: .8125rem; }
 .mesh-experience .mesh-gate-q { letter-spacing: -.06em; }
+/* Programmatic stage headings announce context; interactive controls keep their focus rings. */
+.mesh-experience .mesh-gate-q[tabindex="-1"]:focus { outline: none; }
 .mesh-experience .mesh-gate-welcome { color: var(--text-secondary); font-size: 1.0625rem; letter-spacing: -.01em; }
 .mesh-experience .mesh-gate-focus { gap: 1.25rem; }
 .mesh-experience .mesh-gate-focus .mesh-gate-inputwrap { margin-top: .6rem; }
