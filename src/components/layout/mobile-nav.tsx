@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef } from "react";
 import { usePathname } from "next/navigation";
 import { motion, useAnimationControls } from "framer-motion";
+import { SPRING_PANEL } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 import { impactFeedback } from "@/lib/native/haptics";
 import { getBadgeCount, isNavItemActive, primaryNavItems, resolveNavHref, type NavItem } from "@/components/layout/navigation-config";
@@ -61,6 +62,7 @@ function MobileNavItem({
         isActive ? "text-[var(--accent-text)]" : "text-[var(--text-muted)]",
       )}
     >
+      {isActive && <motion.span layoutId="mobile-nav-indicator" transition={SPRING_PANEL} className="mesh-mobile-active" aria-hidden="true" />}
       <motion.span animate={iconControls} className="relative flex">
         <item.icon className="h-[23px] w-[23px]" aria-hidden="true" />
         {badgeCount > 0 && (
@@ -76,7 +78,7 @@ function MobileNavItem({
           </motion.span>
         )}
       </motion.span>
-      <span className="text-[0.625rem] font-medium leading-none">{item.label}</span>
+      <span className="relative text-[0.625rem] font-medium leading-none">{item.label}</span>
     </Link>
   );
 }

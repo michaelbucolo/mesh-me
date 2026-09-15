@@ -57,7 +57,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       return (
         <ToastProvider>
           <NativeInit />
-          <div className="flex h-dvh min-h-0 flex-col bg-[var(--paper-0)]">
+          <div className="mesh-guest-shell flex h-dvh min-h-0 flex-col bg-[var(--paper-0)]">
             <GuestHeader />
             <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">{children}</div>
           </div>

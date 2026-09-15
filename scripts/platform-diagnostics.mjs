@@ -321,7 +321,7 @@ const checks = [
     description: "Login page contains unified sign-in/sign-up test hooks",
     fix: "Restore data-testid hooks in MeshEntryExperience so browser smoke tests can diagnose auth entry flows.",
     run: async () => {
-      const source = read("src/components/auth/mesh-entry-experience.tsx");
+      const source = read("src/components/auth/mesh-entry-experience.tsx") + read("src/components/auth/signup-form.tsx");
       const required = [
         "entry-identity-input",
         "entry-password-form",

@@ -26,7 +26,7 @@ export function Modal({ open, onClose, children, className, title, description }
         <Dialog.Overlay className="fixed inset-0 z-50 bg-[var(--bg-overlay)] backdrop-blur-sm data-[state=open]:animate-fade-in data-[state=closed]:animate-[fadeOut_0.16s_var(--mesh-ease-press)_both]" />
         <Dialog.Content
           className={cn(
-            "ds-glass-panel fixed left-1/2 top-1/2 z-50 grid max-h-[min(86dvh,42rem)] w-[calc(100vw-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 overflow-hidden text-[var(--text-primary)] shadow-[var(--ds-shadow-floating)] data-[state=open]:animate-smooth-reveal data-[state=closed]:animate-smooth-reveal-out",
+            "mesh-dialog ds-glass-panel fixed left-1/2 top-1/2 z-50 grid max-h-[min(86dvh,42rem)] w-[calc(100vw-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 overflow-hidden text-[var(--text-primary)] shadow-[var(--ds-shadow-floating)] data-[state=open]:animate-smooth-reveal data-[state=closed]:animate-smooth-reveal-out",
             className
           )}
         >

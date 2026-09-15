@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { SignatureArt } from "@/components/ui/signature-art";
 import { MeshiMascot } from "@/components/meshi/meshi-mascot";
 import { useMessagesData } from "@/components/messages/messages-data-context";
 import { MeChatConversationList } from "@/components/messages/mechat-conversation-list";
@@ -20,9 +21,10 @@ export function MessagesIndexPane() {
       </div>
 
       <div className="hidden h-full min-h-0 lg:flex lg:items-center lg:justify-center">
-        <div className="mesh-pop-in mx-auto flex w-full max-w-md flex-col items-center px-8 text-center">
+        <div className="mesh-messages-welcome mesh-pop-in mx-auto flex w-full max-w-md flex-col items-center px-8 text-center">
+          <SignatureArt />
           <MeshiMascot size={110} mood="happy" prop="envelope" animate showGlow />
-          <h2 className="mt-6 text-2xl font-semibold text-[var(--mesh-text)]">Your messages</h2>
+          <h2 className="mt-6 text-2xl font-semibold text-[var(--mesh-text)]">Good conversations start here.</h2>
           <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-[var(--mesh-text-secondary)]">
             Your mesh.me conversations live here. Connected platforms keep their own inboxes — none of
             them opens messages to other apps — so MeChat links out to those rather than pretending to

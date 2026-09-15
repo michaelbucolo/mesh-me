@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { PageIntro } from "@/components/ui/signature-art";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { ArrowRight, Camera, Grid3X3, Image as ImageIcon, LayoutList, Link2, MessageCircle, Play, PlusSquare, Rows3, Search, Sparkles, Type, Video } from "lucide-react";
@@ -506,6 +507,7 @@ export function FeedTimelineClient({
   return (
     <main className={`insta-feed-layout feed-x-layout feed-layout-mode-${layoutMode} feed-view-${contentFilter}`} data-meshi-zone="feed">
       <section className="min-w-0">
+        <PageIntro className="mesh-feed-intro" title={<>A little more <em>you.</em></>} description="Your people, your interests, and everything in between." />
         {/* No identity cluster here: the app topbar states "Home" once — this
             bar (hidden under 768px) is only the desktop action strip. It also
             kept a second <h1> on the page. */}

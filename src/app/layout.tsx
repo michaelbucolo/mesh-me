@@ -10,6 +10,7 @@ import { RootClientEffects } from "@/components/root-client-effects";
 import { ThemeProvider } from "@/components/theme-provider";
 import { getBrandTitle, getSiteUrl, meshBrand } from "@/lib/brand";
 import "./globals.css";
+import "./experience.css";
 
 const siteUrl = getSiteUrl();
 
@@ -274,7 +275,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={fontVariables} suppressHydrationWarning>
-      <body className="mesh-app-surface font-sans antialiased" style={{ backgroundColor: "var(--bg-primary)", color: "var(--text-primary)" }}>
+      <body className="mesh-experience mesh-app-surface font-sans antialiased" style={{ backgroundColor: "var(--bg-primary)", color: "var(--text-primary)" }}>
         <Script id="mesh-theme-init" strategy="beforeInteractive" dangerouslySetInnerHTML={{ __html: themeInitScript }} />
         <ThemeProvider>
           {/* Every framer-motion component inherits the user's OS reduced-motion
