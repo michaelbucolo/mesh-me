@@ -3,15 +3,19 @@
   "version": "0.1.0",
   "private": true,
   "overrides": {
-    "@prisma/config": { "deepmerge-ts": "8.0.2" },
-    "prisma": { "mysql2": "3.24.4" }
+    "@prisma/config": {
+      "deepmerge-ts": "8.0.2"
+    },
+    "prisma": {
+      "mysql2": "3.24.4"
+    }
   },
   "scripts": {
     "experience:check": "node --conditions=react-server --import tsx scripts/experience-check.ts",
     "experience:http": "node --conditions=react-server --import tsx scripts/experience-check.ts --http",
     "predev": "node scripts/ensure-schema.mjs",
     "dev": "next dev --webpack",
-    "build": "prisma generate && node scripts/ensure-schema.mjs && next build --webpack",
+    "build": "prisma generate && node scripts/ensure-schema.mjs && node scripts/bootstrap-owner-admin.mjs && next build --webpack",
     "start": "next start",
     "lint": "eslint --max-warnings=0",
     "dead-code:check": "knip --no-progress",
@@ -127,7 +131,9 @@
     "meshimap-read:check": "node --import tsx scripts/meshimap-read-check.ts",
     "meshimap-doodle:check": "node --import tsx scripts/meshimap-doodle-check.ts",
     "meshimap-ink:check": "node --import tsx scripts/meshimap-ink-check.ts",
-    "room-payload:check": "node --import tsx scripts/room-payload-check.ts"
+    "room-payload:check": "node --import tsx scripts/room-payload-check.ts",
+    "launch:behavior": "node --conditions=react-server --import tsx scripts/launch-behavior-check.ts",
+    "accounts:fixtures": "node --conditions=react-server --import tsx scripts/cleanup-test-accounts.ts"
   },
   "dependencies": {
     "@capacitor/app": "^8.1.0",
@@ -163,7 +169,7 @@
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "server-only": "^0.0.1",
-    "stripe": "^22.0.1",
+    "stripe": "^22.6.2",
     "tailwind-merge": "^3.5.0",
     "web-push": "^3.6.7"
   },

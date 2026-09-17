@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { toggleFollow } from "@/lib/actions";
 import type { FeedCardPost } from "@/lib/feed-data";
-import { formatCount, safeHref } from "@/lib/utils";
+import { formatCount } from "@/lib/utils";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   ArrowUpRight,
@@ -27,7 +27,7 @@ import {
   X,
 } from "lucide-react";
 import Link from "next/link";
-import { PageIntro, SignatureArt } from "@/components/ui/signature-art";
+import { PageIntro } from "@/components/ui/signature-art";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition, type FormEvent } from "react";
 import { EASE_OUT, SPRING_PANEL } from "@/lib/motion";
@@ -289,9 +289,9 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
 
   return (
     <div className="mesh-explore-page mx-auto w-full max-w-6xl px-4 pb-24 pt-6 sm:px-6">
-      <PageIntro heading="h1" eyebrow="Follow your curiosity" title={<>Find your next <em>spark.</em></>} description="People, ideas, and moments worth finding. See where they take you."
-        action={<Link href="/flow" className="mesh-action px-4 text-sm"><Play size={15} aria-hidden="true" /> Step into Flow <ArrowUpRight size={14} aria-hidden="true" /></Link>} />
-      <div className="sticky top-3 z-20 space-y-3">
+      <PageIntro className="mesh-explore-intro" heading="h1" eyebrow="Explore" title={<>Find your next <em>spark.</em></>} description="People, ideas, and moments worth finding."
+        action={<Link href="/flow" data-feedback="navigate" className="mesh-action px-4 text-sm"><Play size={15} aria-hidden="true" /> Step into Flow <ArrowUpRight size={14} aria-hidden="true" /></Link>} />
+      <div className="mesh-explore-controls sticky top-0 z-20 space-y-3">
         <motion.form
           onSubmit={submitSearch}
           initial={{ opacity: 0, y: 14 }}
@@ -303,7 +303,8 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search the mesh — filter instantly, press Enter for deep search"
+            placeholder="Find something that moves you"
+            maxLength={120}
             className="w-full bg-transparent text-sm text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)]"
             aria-label="Search the mesh"
             suppressHydrationWarning
@@ -356,15 +357,7 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
             have forced any roving-tabindex implementation to special-case a
             child that is not a tab. It is a sibling now; the tablist wraps only
             the four tabs. */}
-        <div role="tablist" aria-label="Explore sections" className="flex items-center gap-1">
-          {/* Three tabs with no material at all: no face, no --edge ring, no
-              wall. The selected one was a translucent `--accent`/12 pill sliding
-              underneath on a layoutId — a TINT standing in for state, which is
-              Law 2 inverted (colour reading as "how loud"). Every tab is a `.key`
-              now and the selected one is moulded from cobalt with its pinned ink,
-              the same answer globals.css:3367 records for the feed's four chips:
-              "all three selected states are moulded from cobalt … a tint is
-              'louder = selected', which is exactly the reading Law 2 forbids." */}
+        <div role="tablist" aria-label="Explore sections" className="mesh-explore-tabs flex items-center gap-1">
           {/* ROVING TABINDEX AND ARROW KEYS, because role="tab" promises both.
               These four were four separate Tab stops with dead arrow keys, so
               the roles described a widget that was not there — which is worse
@@ -397,14 +390,11 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
                   document.getElementById(`explore-tab-${next}`)?.focus();
                 }}
                 onClick={() => setTab(item.id)}
-                className={`key inline-flex min-h-11 shrink-0 items-center gap-1.5 px-3.5 py-2 text-xs font-semibold ${
-                  selected
-                    ? "key-selected"
-                    : "text-[var(--text-secondary)]"
-                }`}
+                className="mesh-explore-tab relative inline-flex min-h-11 shrink-0 items-center gap-1.5 px-3.5 py-2 text-sm font-medium"
               >
-                <Icon className="h-3.5 w-3.5" aria-hidden />
-                <span>{item.label}</span>
+                {selected && <motion.span layoutId="explore-selection" className="mesh-explore-selection" transition={spring} aria-hidden="true" />}
+                <Icon className="relative h-3.5 w-3.5" aria-hidden />
+                <span className="relative">{item.label}</span>
               </button>
             );
           })}
@@ -579,40 +569,6 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
         </div>
       )}
 
-      {isPostTab && !hasActiveFilters && (
-        <>
-          {!trimmedQuery && <TrendingHero posts={posts} />}
-          {!trimmedQuery && suggestedUsers.length > 0 && (
-            <section className="mt-6" role="tabpanel"
-          id="explore-tabpanel"
-          aria-labelledby={`explore-tab-${tab}`}
-          tabIndex={0}
-          aria-label="People to follow">
-              <SectionHeader title="Meshes to explore" action={{ label: "See all", onClick: () => setTab("people") }} />
-              <div className="[scrollbar-width:none] [&::-webkit-scrollbar]:hidden -mx-1 flex gap-3 overflow-x-auto px-1 pb-1">
-                {suggestedUsers.slice(0, 8).map((user, index) => (
-                  <ExplorePersonCard key={user.id} user={user} currentUserId={currentUserId} index={index} signedOut={signedOut} />
-                ))}
-              </div>
-            </section>
-          )}
-          {!trimmedQuery && communities.length > 0 && (
-            <section className="mt-6" role="tabpanel"
-          id="explore-tabpanel"
-          aria-labelledby={`explore-tab-${tab}`}
-          tabIndex={0}
-          aria-label="Communities">
-              <SectionHeader title="Communities" action={{ label: "See all", onClick: () => setTab("communities") }} />
-              <div className="[scrollbar-width:none] [&::-webkit-scrollbar]:hidden -mx-1 flex gap-3 overflow-x-auto px-1 pb-1">
-                {communities.slice(0, 6).map((community, index) => (
-                  <CommunityCard key={community.id} community={community} index={index} compact />
-                ))}
-              </div>
-            </section>
-          )}
-        </>
-      )}
-
       {isPostTab && (
         <section className="mt-6" role="tabpanel"
           id="explore-tabpanel"
@@ -639,7 +595,7 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
               onClear={hasActiveFilters ? clearFilters : undefined}
             />
           ) : (
-            <div className="columns-2 gap-3 sm:columns-3 lg:columns-4 [&>*]:mb-3">
+            <div className="mesh-discovery-grid">
               {filteredPosts.map((post, index) => (
                 <ExploreTile key={post.id} post={post} index={index} />
               ))}
@@ -649,7 +605,7 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
       )}
 
       {tab === "people" && (
-        <section className="mt-6" aria-label="People to follow">
+        <section className="mt-6" role="tabpanel" id="explore-tabpanel" aria-labelledby={`explore-tab-${tab}`} tabIndex={0} aria-label="People to follow">
           <div className="mb-3 flex items-baseline justify-between">
             <h2 className="text-sm font-semibold text-[var(--text-primary)]">People to follow</h2>
             <span className="text-xs text-[var(--text-muted)]">
@@ -679,7 +635,7 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
       )}
 
       {tab === "communities" && (
-        <section className="mt-6" aria-label="Communities">
+        <section className="mt-6" role="tabpanel" id="explore-tabpanel" aria-labelledby={`explore-tab-${tab}`} tabIndex={0} aria-label="Communities">
           <div className="mb-3 flex items-baseline justify-between">
             <h2 className="text-sm font-semibold text-[var(--text-primary)]">Communities</h2>
             <span className="text-xs text-[var(--text-muted)]">
@@ -696,23 +652,6 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
             </div>
           )}
         </section>
-      )}
-    </div>
-  );
-}
-
-function SectionHeader({ title, action }: { title: string; action?: { label: string; onClick: () => void } }) {
-  return (
-    <div className="mb-3 flex items-baseline justify-between">
-      <h2 className="text-sm font-semibold text-[var(--text-primary)]">{title}</h2>
-      {action && (
-        <button
-          type="button"
-          onClick={action.onClick}
-          className="-my-3 inline-flex min-h-11 items-center text-xs font-medium text-[var(--accent-text)] transition hover:opacity-80"
-        >
-          {action.label}
-        </button>
       )}
     </div>
   );
@@ -859,7 +798,8 @@ function ExplorePersonCard({
 function ExploreTile({ post, index }: { post: FeedCardPost; index: number }) {
   const router = useRouter();
   const reduce = useReducedMotion();
-  const media = post.media[0];
+  const [mediaFailed, setMediaFailed] = useState(false);
+  const media = mediaFailed ? undefined : post.media.find((item) => item.type === "image" || VIDEO_TYPES.includes(item.type.toLowerCase()));
   const isVideo = media && VIDEO_TYPES.includes(media.type.toLowerCase());
   const platform = (post.platform || "meshme").toLowerCase();
   const chip = PLATFORM_CHIP[platform];
@@ -871,7 +811,8 @@ function ExploreTile({ post, index }: { post: FeedCardPost; index: number }) {
       initial={reduce ? false : { opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ ...spring, delay: 0.02 * Math.min(index, 16) }}
-      onClick={() => router.push(`/feed?flow=${encodeURIComponent(post.id)}`)}
+      onClick={() => router.push(`/feed/${encodeURIComponent(post.id)}`)}
+      data-feedback="navigate"
       className="glass-card group relative block w-full overflow-hidden rounded-2xl text-left transition-[color,background-color,border-color,box-shadow,transform,opacity] hover:border-[var(--border-primary)] mesh-explore-tile"
       // NO aria-label. It OVERRIDES name-from-contents, so everything inside
       // this button became unreachable: the media alt built by getPostMediaAlt
@@ -885,11 +826,15 @@ function ExploreTile({ post, index }: { post: FeedCardPost; index: number }) {
       // for. The purpose is carried by a visually-hidden prefix instead of by
       // replacing everything.
     >
-      <span className="sr-only">{`Open post by ${authorName} in the Flow: `}</span>
+      <span className="sr-only">{`Open post by ${authorName}: `}</span>
       {media ? (
-        <div className="relative aspect-[4/5]">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={media.url} alt={getPostMediaAlt(post, authorName)} loading="lazy" className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]" />
+        <div className="relative aspect-[4/3]">
+          {isVideo && !media.posterUrl ? (
+            <video src={media.url} muted playsInline preload="metadata" tabIndex={-1} aria-hidden="true" onError={() => setMediaFailed(true)} className="absolute inset-0 h-full w-full object-cover" />
+          ) : (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={isVideo ? media.posterUrl : media.url} alt={getPostMediaAlt(post, authorName)} loading="lazy" decoding="async" onError={() => setMediaFailed(true)} className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]" />
+          )}
           {isVideo && (
             <span className="absolute right-2 top-2 rounded-full bg-black/55 p-1.5 backdrop-blur">
               <Play className="h-3.5 w-3.5 fill-white text-white" aria-hidden />
@@ -900,10 +845,14 @@ function ExploreTile({ post, index }: { post: FeedCardPost; index: number }) {
           </div>
         </div>
       ) : (
-        <div className="p-4">
-          <p className="line-clamp-5 whitespace-pre-wrap text-sm text-[var(--text-primary)]">{post.content}</p>
-          <div className="mt-3">
-            <TileMeta post={post} authorName={authorName} chip={chip} />
+        <div className="mesh-discovery-note">
+          <div className="mb-5 flex items-center gap-2.5">
+            <Avatar src={post.externalAuthor?.avatarUrl || post.author.avatarUrl} alt="" size="sm" />
+            <span className="min-w-0 truncate text-sm font-medium text-[var(--text-primary)]">{authorName}</span>
+          </div>
+          <p className="line-clamp-5 whitespace-pre-wrap text-base leading-relaxed text-[var(--text-primary)]">{post.content || (isVideo ? "Watch this video" : "Open this post")}</p>
+          <div className="mt-5">
+            <TileMeta post={post} authorName="View post" chip={chip} />
           </div>
         </div>
       )}
@@ -930,82 +879,5 @@ function TileMeta({ post, authorName, chip, overlay }: { post: FeedCardPost; aut
         </span>
       </span>
     </div>
-  );
-}
-
-// The front door of discovery: the hottest posts right now as big swipeable
-// cards with rank badges — a reason to open Explore every day.
-// No "See all" here any more: it switched the feed to Trending mode, which
-// sorted by the same score this rail already sorts by, on the grid directly
-// below. The action was a scroll wearing a button.
-function TrendingHero({ posts }: { posts: FeedCardPost[] }) {
-  const top = [...posts]
-    .filter((post) => post.media.length > 0 || post.content.trim().length > 0)
-    .sort((a, b) => postScore(b) - postScore(a))
-    .slice(0, 5);
-  if (top.length === 0) return null;
-
-  return (
-    <section className="mt-5" aria-label="Trending now">
-      <SectionHeader title="Trending now" />
-      <div className="[scrollbar-width:none] [&::-webkit-scrollbar]:hidden -mx-1 flex snap-x snap-mandatory gap-3 overflow-x-auto px-1 pb-1">
-        {top.map((post, index) => {
-          const media = post.media.find((item) => item.type.toLowerCase() !== "video") || post.media[0];
-          const still = media?.type.toLowerCase() === "video" ? media.posterUrl : media?.url;
-          const authorName = post.externalAuthor?.name || post.author.displayName;
-          return (
-            <motion.div
-              key={post.id}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ ...spring, delay: 0.06 * index }}
-              className="shrink-0 snap-start"
-            >
-              <Link
-                href={safeHref(post.externalUrl) || `/feed/${post.id}`}
-                className="mesh-trending-tile group relative block h-44 w-[min(16rem,75vw)] overflow-hidden rounded-2xl border border-[var(--border-secondary)] bg-[var(--bg-secondary)]"
-              >
-                {still ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={still} alt={getPostMediaAlt(post, authorName)} loading="lazy" decoding="async" className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
-                ) : (
-                  <div className="mesh-trending-placeholder absolute inset-0"><SignatureArt /></div>
-                )}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-transparent" />
-                <motion.span
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ type: "spring", stiffness: 380, damping: 22, delay: 0.06 * index + 0.12 }}
-                  /* Rank is metadata, not a prize (tone reset R4): every rank
-                     rides the same 60% black scrim where white ink is correct.
-                     The accent fill on #1 (and the -14° confetti spin before
-                     it) spent the page's color budget on a number. */
-                  className="absolute left-2.5 top-2.5 flex h-7 min-w-7 items-center justify-center rounded-full bg-black/60 px-1.5 text-xs font-semibold text-white shadow-lg backdrop-blur"
-                >
-                  #{index + 1}
-                </motion.span>
-                {/* The caption block had no ground of its own — white text laid straight
-                    over the thumbnail. That is correct only while the image is there, and
-                    it is not there before it loads, when the post has none, or if the
-                    request fails; the text then lands on the card, which is light paper in
-                    daylight. Measured 1.33:1. The scrim makes white right unconditionally,
-                    which is what the rank badge two elements up already does. */}
-                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/55 to-transparent p-3 pt-8">
-                  {!still && <p className="mb-1 line-clamp-2 text-sm font-semibold leading-snug text-white">{post.content}</p>}
-                  <p className="truncate text-micro font-semibold text-white/85">{authorName}</p>
-                  <p className="mt-0.5 flex items-center gap-2 text-micro text-white/60">
-                    <span className="inline-flex items-center gap-1"><Heart size={11} className="text-[var(--accent-text)]" /> {formatCount(post._count.reactions)}</span>
-                    <span className="inline-flex items-center gap-1"><MessageCircle size={11} /> {formatCount(post._count.comments)}</span>
-                    {post.platform && post.platform !== "meshme" && post.platform !== "mesh" && (
-                      <span className="mesh-eyebrow ">{post.platform}</span>
-                    )}
-                  </p>
-                </div>
-              </Link>
-            </motion.div>
-          );
-        })}
-      </div>
-    </section>
   );
 }

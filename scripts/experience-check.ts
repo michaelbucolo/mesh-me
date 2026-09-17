@@ -18,6 +18,9 @@ async function main() {
   const directory = mkdtempSync(join(tmpdir(), "mesh-experience-"));
   process.env.DATABASE_URL = `file:${join(directory, "test.db")}`;
   delete process.env.DATABASE_AUTH_TOKEN;
+  process.env.VERCEL_ENV = "preview";
+  process.env.STRIPE_SECRET_KEY = "sk_test_isolated_fixture";
+  process.env.STRIPE_WEBHOOK_SECRET = `whsec_${randomBytes(24).toString("hex")}`;
   let server: ChildProcess | undefined;
   let checks = 0;
   const check = (actual: unknown, expected: unknown, message: string) => {
@@ -313,6 +316,51 @@ async function main() {
         await response.text();
       }
       check((await fetch(`${baseUrl}/api/search?q=${"x".repeat(201)}`, { headers: headersFor(0) })).status, 400, "Search bounds are enforced over HTTP");
+      const { default: Stripe } = await import("stripe");
+      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+      const giftSession = {
+        id: "cs_test_http_gift", object: "checkout.session", mode: "payment", status: "complete", payment_status: "unpaid",
+        metadata: { product: "meshpro-gift", recipientUserId: member.id, purchaserUserId: owner.id, months: "1" },
+      };
+      const sendWebhook = async (type: string, livemode = false, signature?: string, timestamp?: number) => {
+        const payload = JSON.stringify({ id: `evt_${randomUUID()}`, object: "event", type, livemode, data: { object: giftSession } });
+        return fetch(`${baseUrl}/api/stripe/webhook`, { method: "POST", body: payload, headers: {
+          "Content-Type": "application/json",
+          "stripe-signature": signature ?? stripe.webhooks.generateTestHeaderString({ payload, secret: process.env.STRIPE_WEBHOOK_SECRET!, timestamp }),
+        } });
+      };
+      check((await sendWebhook("checkout.session.completed", false, "forged")).status, 400, "Webhook signatures are enforced by the deployed route");
+      check((await sendWebhook("checkout.session.completed", false, undefined, Math.floor(Date.now() / 1000) - 600)).status, 400, "Expired signed payloads cannot be replayed");
+      check((await sendWebhook("checkout.session.completed", true)).status, 400, "Live events cannot enter a test-mode deployment");
+      check((await sendWebhook("checkout.session.completed")).status, 200, "An unsettled completion is safely acknowledged");
+      check(await prisma.meshProGift.count(), 0, "An unsettled completion grants no gift");
+      giftSession.payment_status = "paid";
+      check((await sendWebhook("checkout.session.async_payment_succeeded")).status, 200, "Delayed payment success completes through the real webhook route");
+      check(await prisma.meshProGift.count(), 1, "Delayed payment grants exactly one receipt");
+      const giftUntil = (await prisma.user.findUniqueOrThrow({ where: { id: member.id } })).meshProGiftUntil;
+      check(Boolean(giftUntil && giftUntil.getTime() > Date.now()), true, "The recipient receives the paid gift");
+      check((await sendWebhook("checkout.session.completed")).status, 200, "Duplicate completion is acknowledged successfully");
+      check((await prisma.user.findUniqueOrThrow({ where: { id: member.id } })).meshProGiftUntil, giftUntil, "Duplicate payment events do not grant extra time");
+      check((await fetch(`${baseUrl}/api/admin/test-accounts`)).status, 403, "Guests cannot review fixture account records");
+      check((await fetch(`${baseUrl}/api/admin/test-accounts`, { headers: headersFor(2) })).status, 403, "Ordinary members cannot review fixture account records");
+      const fixture = await prisma.user.create({ data: { username: "meshmetester1", displayName: "Mesh Tester One", email: "cleanup-http@example.invalid", passwordHash: "no-login" } });
+      await prisma.post.create({ data: { authorId: fixture.id, content: "Hello from tester one! Testing the mesh." } });
+      const deleteFixture = (index: number, username: string, origin?: string) => fetch(`${baseUrl}/api/admin/test-accounts`, {
+        method: "DELETE", body: JSON.stringify({ id: fixture.id, username }),
+        headers: { ...headersFor(index), "Content-Type": "application/json", ...(origin ? { Origin: origin } : {}) },
+      });
+      check((await deleteFixture(2, fixture.username, baseUrl)).status, 403, "Ordinary members cannot invoke fixture deletion");
+      await prisma.user.update({ where: { id: owner.id }, data: { isAdmin: true } });
+      check((await deleteFixture(0, fixture.username)).status, 403, "Even administrators need same-origin proof for deletion");
+      check((await deleteFixture(0, "wrong", baseUrl)).status, 409, "The server requires the exact confirmation username");
+      const fixtureReview = await fetch(`${baseUrl}/api/admin/test-accounts`, { headers: headersFor(0) });
+      check(fixtureReview.status, 200, "Administrators can review verified fixtures");
+      check(fixtureReview.headers.get("cache-control"), "private, no-store", "Fixture records cannot enter a shared cache");
+      const fixtureReviewText = await fixtureReview.text();
+      check(fixtureReviewText.includes("passwordHash") || fixtureReviewText.includes(fixture.email), false, "The review response does not expose credentials or email addresses");
+      check((await deleteFixture(0, fixture.username, baseUrl)).status, 200, "The authenticated confirmation flow deletes a verified fixture");
+      check(await prisma.user.findUnique({ where: { id: fixture.id } }), null, "HTTP fixture deletion persists");
+      check(await prisma.adminLog.count({ where: { adminId: owner.id, action: "delete_verified_fixture" } }), 1, "Administrative cleanup records an audit entry");
       // Verify removing a post removes its stored bytes as well.
       await invoke("deletePost", [publicPost.id], 0);
       check(await prisma.postMediaFile.findUnique({ where: { postMediaId: mediaIds.get(publicPost.id)! } }), null, "Deleting a post cascades to its media file");

@@ -9,7 +9,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { createPost } from "@/lib/actions";
 import { SHARED_INTAKE_KEY } from "@/app/(app)/share/share-intake";
 import { publishMeshiCause } from "@/lib/meshi-bus";
-import { playSound } from "@/lib/sound";
+import { feedback } from "@/lib/feedback";
 import { MAX_POST_MEDIA_FILES, POST_MEDIA_ACCEPT, postMediaSelectionError } from "@/lib/post-media";
 import { readPostDraft, type PostAudience } from "@/lib/post-draft";
 import { Image as ImageIcon, Hash, Globe, X, Share2, ChevronDown, Info, CheckCircle2, AlertTriangle, Link as LinkIcon, Lock, Users, Video, Eye } from "lucide-react";
@@ -376,7 +376,7 @@ export function PostComposer({ user, communityId, communityIsPublic = true, star
       try {
         const result = await createPost(formData);
         if (result?.success) {
-          playSound("chime");
+          feedback("success");
           // Meshi celebrates AFTER the server confirmed it — publishing on
           // submit would have Meshi cheering for posts that failed.
           publishMeshiCause({ kind: "post:published" });

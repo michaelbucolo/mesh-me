@@ -1,9 +1,10 @@
 import Stripe from "stripe";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { getStripeClient, isMeshProSubscriptionStatus, stripeObjectId } from "@/lib/stripe";
+import { getMeshProPriceId, getStripeClient, isMeshProSubscriptionStatus, stripeObjectId } from "@/lib/stripe";
 import { hasMeshPro, isMeshProGiftActive } from "@/lib/mesh-pro";
 import { sendPushForNotification } from "@/lib/push";
+
 
 type SubscriptionWithPeriod = Stripe.Subscription & {
   current_period_end?: number;
@@ -76,6 +77,9 @@ export async function syncMeshProSubscription(
   // is turned away.
   const product = subscription.metadata?.product;
   if (product && product !== "meshpro") return null;
+  // Legacy payment-link subscriptions may lack metadata, but must still
+  // contain a configured MeshPro price. A shared customer alone proves nothing.
+  if (!product && !subscription.items.data.some((item) => [getMeshProPriceId("monthly"), getMeshProPriceId("yearly")].filter(Boolean).includes(item.price.id))) return null;
 
   const subscriptionId = subscription.id;
   const customerId = stripeObjectId(subscription.customer);
@@ -94,16 +98,29 @@ export async function syncMeshProSubscription(
       });
 
   if (!user) return null;
+  if (user.stripeCustomerId && customerId && user.stripeCustomerId !== customerId) return null;
+  if (user.stripeSubscriptionId && user.stripeSubscriptionId !== subscriptionId) {
+    // A late cancellation for an older subscription cannot revoke its replacement.
+    if (!isActive) return null;
+    const stripe = getStripeClient();
+    if (!stripe) return null;
+    const current = await stripe.subscriptions.retrieve(user.stripeSubscriptionId);
+    if (isMeshProSubscriptionStatus(current.status)) return null;
+  }
 
-  const updated = await prisma.user.update({
-    where: { id: user.id },
+  const written = await prisma.user.updateMany({
+    where: { id: user.id, stripeSubscriptionId: user.stripeSubscriptionId },
     data: {
       isMeshPro: isActive,
       meshProSince: isActive ? user.meshProSince ?? new Date() : null,
-      stripeSubscriptionId: isActive ? subscriptionId : null,
+      // Retain the relationship while past due so the customer can fix billing.
+      stripeSubscriptionId: subscription.status === "canceled" || subscription.status === "incomplete_expired" ? null : subscriptionId,
       ...(customerId ? { stripeCustomerId: customerId } : {}),
     },
   });
+  if (!written.count) return null;
+  const updated = await prisma.user.findUnique({ where: { id: user.id } });
+  if (!updated) return null;
 
   // revalidatePath throws when called during a Server Component render (Next.js
   // error E7), so cache invalidation is opt-in and only requested from route
@@ -140,11 +157,12 @@ export async function applyMeshProGiftSession(
   session: Stripe.Checkout.Session,
   options: { revalidate?: boolean } = {},
 ) {
+  if (session.metadata?.product !== "meshpro-gift" || session.mode !== "payment" || session.status !== "complete" || session.payment_status !== "paid") return null;
   const metadata = session.metadata ?? {};
   const recipientId = metadata.recipientUserId;
   const purchaserId = metadata.purchaserUserId || null;
-  const months = Number.parseInt(metadata.months ?? "", 10);
-  if (!recipientId || !Number.isInteger(months) || months < 1 || months > 24) {
+  const months = Number(metadata.months);
+  if (!recipientId || ![1, 3, 12].includes(months)) {
     console.error("Gift session missing/invalid metadata:", { sessionId: session.id });
     return null;
   }
@@ -169,11 +187,18 @@ export async function applyMeshProGiftSession(
           stripeSessionId: session.id,
         },
       });
-      const base = isMeshProGiftActive(recipient.meshProGiftUntil)
-        ? recipient.meshProGiftUntil!.getTime()
+      // Read after the receipt write has acquired the transaction's write lock,
+      // so two different gifts stack instead of overwriting the same old date.
+      const currentRecipient = await tx.user.findUniqueOrThrow({ where: { id: recipient.id }, select: { meshProGiftUntil: true } });
+      const base = isMeshProGiftActive(currentRecipient.meshProGiftUntil)
+        ? currentRecipient.meshProGiftUntil!.getTime()
         : Date.now();
       const until = new Date(base);
+      const day = until.getUTCDate();
+      until.setUTCDate(1);
       until.setUTCMonth(until.getUTCMonth() + months);
+      const lastDay = new Date(Date.UTC(until.getUTCFullYear(), until.getUTCMonth() + 1, 0)).getUTCDate();
+      until.setUTCDate(Math.min(day, lastDay));
       await tx.user.update({
         where: { id: recipient.id },
         data: { meshProGiftUntil: until },
@@ -247,6 +272,9 @@ export async function syncMeshProCheckoutSessionForUser(sessionId: string, userI
   if (sessionUserId !== userId) {
     return { ok: false, message: "That checkout session does not belong to this account." };
   }
+  if (session.mode !== "subscription" || session.status !== "complete" || (session.payment_status !== "paid" && session.payment_status !== "no_payment_required")) {
+    return { ok: false, message: "Your payment is still being confirmed." };
+  }
 
   const subscription =
     typeof session.subscription === "string"
@@ -254,23 +282,10 @@ export async function syncMeshProCheckoutSessionForUser(sessionId: string, userI
       : session.subscription;
 
   if (subscription) {
-    await syncMeshProSubscription(subscription, userId);
-    return { ok: true, message: "MeshPro is active." };
-  }
-
-  const customerId = stripeObjectId(session.customer);
-  if (customerId && session.payment_status === "paid") {
-    await prisma.user.update({
-      where: { id: userId },
-      data: {
-        isMeshPro: true,
-        meshProSince: new Date(),
-        stripeCustomerId: customerId,
-      },
-    });
-    // No revalidatePath here: this runs during the meshpro page render (E7).
-    // The checkout.session.completed webhook revalidates authoritatively.
-    return { ok: true, message: "MeshPro is active." };
+    const updated = await syncMeshProSubscription(subscription, userId);
+    return updated && isMeshProSubscriptionStatus(subscription.status)
+      ? { ok: true, message: "MeshPro is active." }
+      : { ok: false, message: "Your subscription is not active yet. Check Billing for its status." };
   }
 
   return { ok: false, message: "Checkout has not completed yet." };
@@ -305,7 +320,7 @@ export async function getMeshProBillingState(userId: string): Promise<MeshProBil
     const subscription = await stripe.subscriptions.retrieve(user.stripeSubscriptionId, {
       expand: ["items.data.price"],
     }) as SubscriptionWithPeriod;
-    await syncMeshProSubscription(subscription, userId);
+    const reconciledUser = await syncMeshProSubscription(subscription, userId);
 
     const firstItem = subscription.items.data[0];
     const price = firstItem?.price;
@@ -325,7 +340,7 @@ export async function getMeshProBillingState(userId: string): Promise<MeshProBil
       // Entitlement, not subscription state: a founder keeps MeshPro whatever
       // Stripe says. `status` below still reports the SUBSCRIPTION honestly —
       // that field is about the billing relationship, this one is about access.
-      isMeshPro: hasMeshPro(user) || isMeshProSubscriptionStatus(subscription.status),
+      isMeshPro: reconciledUser ? hasMeshPro(reconciledUser) : hasMeshPro(user),
       status: subscription.status,
       cancelAtPeriodEnd: Boolean(subscription.cancel_at_period_end),
       currentPeriodEnd,

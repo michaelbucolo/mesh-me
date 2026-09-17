@@ -16,7 +16,7 @@ export function GuestHeader() {
       </Link>
       <nav aria-label="Browse Mesh.me" className="order-last flex w-full items-center justify-center gap-5 sm:order-none sm:w-auto">
         {[{ href: "/explore", label: "Explore" }, { href: "/flow", label: "Flow" }].map((item) => (
-          <Link key={item.href} href={item.href}
+          <Link key={item.href} href={item.href} data-feedback="navigate"
             aria-current={pathname === item.href ? "page" : undefined}
             className="inline-flex min-h-11 items-center border-b-2 border-transparent text-sm font-semibold text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)] aria-[current=page]:border-[var(--accent)] aria-[current=page]:text-[var(--text-primary)]">
             {item.label}

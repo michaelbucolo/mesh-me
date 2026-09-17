@@ -24,9 +24,9 @@ import { effectiveProfileVisibility } from "@/lib/profile-visibility";
 import { type Dispatch, type FormEvent, type ReactNode, type SetStateAction, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, useTransition } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
-import { Activity, AlignLeft, AtSign, AudioLines, BadgeCheck, Ban, BarChart3, BellOff, BellRing, CalendarDays, CalendarRange, CheckCheck, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, Compass, CreditCard, Crown, Database, Droplets, EyeOff, Fingerprint, Flame, Ghost, Globe, Hash, IdCard, Info, KeyRound, LayoutGrid, Link as LinkIcon, Lock, LockKeyhole, LogOut, Mail, MailCheck, MapPin, Megaphone, MessageCircle, MessageSquare, Monitor, MonitorSmartphone, Moon, Palette, Phone, PlugZap, RefreshCw, Search, Settings2, ShieldAlert, ShieldCheck, ShieldOff, Sparkles, Smartphone, Sun, Trash2, UserPlus, UserRound, UsersRound, Volume2, WandSparkles, Waypoints, type LucideIcon } from "lucide-react";
+import { Activity, AlignLeft, AtSign, AudioLines, BadgeCheck, Ban, BarChart3, BellOff, BellRing, CalendarDays, CalendarRange, CheckCheck, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, Compass, CreditCard, Crown, Database, Droplets, EyeOff, Fingerprint, Flame, Ghost, Globe, Hash, IdCard, Info, KeyRound, LayoutGrid, Link as LinkIcon, Lock, LockKeyhole, LogOut, Mail, MailCheck, MapPin, Megaphone, MessageCircle, MessageSquare, Monitor, MonitorSmartphone, Moon, Palette, Phone, PlugZap, RefreshCw, Search, Settings2, ShieldAlert, ShieldCheck, ShieldOff, Sparkles, Smartphone, Sun, Trash2, UserPlus, UserRound, UsersRound, WandSparkles, Waypoints, type LucideIcon } from "lucide-react";
 import { PaperWait } from "@/components/loading/paper-wait";
-import { isSoundEnabled, playSound, setSoundEnabled } from "@/lib/sound";
+import { FeedbackSettings } from "@/components/settings/feedback-settings";
 import { GLASS_LEVEL_LABELS, useGlassLevel, writeGlassLevel, type GlassLevel } from "@/lib/glass-level";
 import { isVolumeNormalizationEnabled, setVolumeNormalizationEnabled } from "@/lib/audio-normalize";
 import { AnalyticsControls } from "@/components/analytics/analytics-controls";
@@ -2211,7 +2211,6 @@ function AppearanceSection({
   hasCustomTheme: boolean;
   isMeshPro: boolean;
 }) {
-  const [soundsOn, setSoundsOn] = useState(() => isSoundEnabled());
   const [normalizeOn, setNormalizeOn] = useState(() => isVolumeNormalizationEnabled());
   const modeIcons: Record<"system" | "light" | "dark", LucideIcon> = { system: MonitorSmartphone, light: Sun, dark: Moon };
   // The preset swatches scope each preset's OWN tokens: globals.css's theme
@@ -2225,7 +2224,7 @@ function AppearanceSection({
   );
   return (
     <div className="settings-section-stack">
-      <SettingsCard title="Theme and sound" icon={Palette}>
+      <SettingsCard title="Theme and display" icon={Palette}>
         <div className="grid gap-3 md:grid-cols-2">
           <PickerGroup label="Mode">
             {(["system", "light", "dark"] as const).map((themeMode) => (
@@ -2252,17 +2251,6 @@ function AppearanceSection({
         </div>
         <div className="settings-toggle-grid mt-3">
           <Toggle
-            icon={Volume2}
-            label="Interface sounds"
-            description="Soft pops and chimes for likes, arrivals, messages, and travel"
-            value={soundsOn}
-            onChange={(value) => {
-              setSoundsOn(value);
-              setSoundEnabled(value);
-              if (value) playSound("chime");
-            }}
-          />
-          <Toggle
             icon={AudioLines}
             label="Normalize volume"
             description="Even out loudness across videos and audio from every platform"
@@ -2275,6 +2263,8 @@ function AppearanceSection({
         </div>
         <GlassLevelControl />
       </SettingsCard>
+
+      <FeedbackSettings />
 
       <form onSubmit={applyCustomTheme}>
         <SettingsCard title="Custom theme" icon={Crown}>

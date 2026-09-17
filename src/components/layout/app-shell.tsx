@@ -5,7 +5,7 @@ import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { motion, useAnimationControls } from "framer-motion";
+import { motion, useAnimationControls, useReducedMotion } from "framer-motion";
 import {
   Bell,
   ChevronDown,
@@ -133,18 +133,20 @@ const SIDEBAR_ICON_POP = { duration: 0.46, ease: [0.34, 1.56, 0.64, 1] as const,
 function SidebarNavItem({ item, href, active }: { item: NavItem; href: string; active: boolean }) {
   const Icon = item.icon;
   const iconControls = useAnimationControls();
+  const reduceMotion = useReducedMotion();
   const wasActive = useRef(active);
 
   useEffect(() => {
-    if (active && !wasActive.current) {
+    if (active && !wasActive.current && !reduceMotion) {
       void iconControls.start({ scale: [1, 1.2, 0.94, 1] }, SIDEBAR_ICON_POP);
     }
     wasActive.current = active;
-  }, [active, iconControls]);
+  }, [active, iconControls, reduceMotion]);
 
   return (
     <Link
       href={href}
+      data-feedback="navigate"
       className={`mesh-nav-item group relative flex items-center gap-3.5 rounded-xl px-3.5 py-2.5 text-[0.9375rem] font-medium transition-[color,background-color,border-color,box-shadow,transform,opacity] duration-150 ${
         active
           ? "mesh-nav-item-active bg-[var(--mesh-panel-hover)] font-semibold text-[var(--mesh-text)]"
@@ -336,10 +338,13 @@ function ShellTopBar({
               <Link href="/settings" className="mesh-dropdown-item mesh-account-item" style={{ ["--acc-i" as string]: 3 }}>Settings</Link>
               <Link href="/search" className="mesh-dropdown-item mesh-account-item lg:hidden" style={{ ["--acc-i" as string]: 4 }}>Search</Link>
               <Link href="/meshpro" className="mesh-dropdown-item mesh-account-item" style={{ ["--acc-i" as string]: 5 }}>MeshPro</Link>
+              {user.isAdmin && (
+                <Link href="/admin" data-feedback="navigate" className="mesh-dropdown-item mesh-account-item" style={{ ["--acc-i" as string]: 6 }}>Admin console</Link>
+              )}
               <button
                 type="button"
                 className="mesh-dropdown-item mesh-account-item w-full text-left"
-                style={{ ["--acc-i" as string]: 6 }}
+                style={{ ["--acc-i" as string]: 7 }}
                 onClick={(e) => {
                   (e.currentTarget.closest("details") as HTMLDetailsElement | null)?.removeAttribute("open");
                   window.dispatchEvent(new CustomEvent("mesh:open-bug-report"));
@@ -347,8 +352,8 @@ function ShellTopBar({
               >
                 Report a bug
               </button>
-              <hr className="mesh-account-item my-1 border-[var(--mesh-border)]" style={{ ["--acc-i" as string]: 7 }} />
-              <form action={signOut} className="mesh-account-item" style={{ ["--acc-i" as string]: 8 }}>
+              <hr className="mesh-account-item my-1 border-[var(--mesh-border)]" style={{ ["--acc-i" as string]: 8 }} />
+              <form action={signOut} className="mesh-account-item" style={{ ["--acc-i" as string]: 9 }}>
                 <button type="submit" className="mesh-dropdown-item mesh-dropdown-danger w-full text-left">
                   Sign out
                 </button>

@@ -1,6 +1,6 @@
 # FINAL BUILD SPEC — "Meshi is your hand on the page"
 
-**Base:** HEAD `ddcafed`. **Design system:** `/tmp/claude-0/-home-user-mesh-me/175cdc81-94c5-53bd-b0ec-580d6376a048/scratchpad/human-SYSTEM.md` — **it exists, 524 lines.** THE DESK's headline correction was a false alarm (it searched the repo root only). Item 4.B **#12 is drag on notification rows**; §4.B #15 and #16 are prescribed by name at `:376` and `:377`. **Slice 1 copies this file to `docs/HUMAN_SYSTEM.md`** so the first review of this work is conducted against a text a reviewer can open.
+**Design reference:** `docs/HUMAN_SYSTEM.md`. The implementation follows the interaction and motion specifications maintained in this repository.
 
 **Uncommitted work already in the tree that this spec must merge with, not re-propose:** `src/components/mesh/paint/theme.ts` (new — reads resolved custom properties off the document root, with Lamplight/Daylight constants as Node fallbacks so `mesh-render-parity` stays deterministic), plus modifications to `background.ts`, `caches.ts`, `nodes.ts`, `shared.ts`, and a new `--canvas-shadow` token in `tokens.css`. §5.1–5.4 of the design system is roughly half-built. Slice 8 extends it.
 

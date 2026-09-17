@@ -28,29 +28,22 @@ export async function durableRateLimit(
 ): Promise<DurableRateLimitResult> {
   const now = Date.now();
   try {
-    const existing = await prisma.rateLimitHit.findUnique({ where: { key } });
-
-    if (!existing || existing.resetAt.getTime() <= now) {
-      await prisma.rateLimitHit.upsert({
-        where: { key },
-        create: { key, count: 1, resetAt: new Date(now + windowMs) },
-        update: { count: 1, resetAt: new Date(now + windowMs) },
-      });
-      return { allowed: true, remainingAttempts: maxAttempts - 1, resetInMs: windowMs };
-    }
-
-    if (existing.count >= maxAttempts) {
-      return { allowed: false, remainingAttempts: 0, resetInMs: existing.resetAt.getTime() - now };
-    }
-
-    const updated = await prisma.rateLimitHit.update({
-      where: { key },
-      data: { count: { increment: 1 } },
-    });
+    // One SQLite/libSQL statement owns reset, increment and admission. A
+    // read-then-upsert lets concurrent callers all reset a fresh bucket to 1;
+    // a read-then-increment admits every caller that read below the limit.
+    const [updated] = await prisma.$queryRaw<Array<{ count: number; resetAt: Date }>>`
+      INSERT INTO "RateLimitHit" ("key", "count", "resetAt", "lockCount", "updatedAt")
+      VALUES (${key}, 1, ${new Date(now + windowMs)}, 0, ${new Date(now)})
+      ON CONFLICT ("key") DO UPDATE SET
+        "count" = CASE WHEN "RateLimitHit"."resetAt" <= ${new Date(now)} THEN 1 ELSE MIN("RateLimitHit"."count" + 1, ${maxAttempts + 1}) END,
+        "resetAt" = CASE WHEN "RateLimitHit"."resetAt" <= ${new Date(now)} THEN ${new Date(now + windowMs)} ELSE "RateLimitHit"."resetAt" END,
+        "updatedAt" = ${new Date(now)}
+      RETURNING "count", "resetAt"
+    `;
     return {
-      allowed: true,
+      allowed: updated.count <= maxAttempts,
       remainingAttempts: Math.max(0, maxAttempts - updated.count),
-      resetInMs: existing.resetAt.getTime() - now,
+      resetInMs: Math.max(0, new Date(updated.resetAt).getTime() - now),
     };
   } catch {
     // Fail open — never block auth because the counter store is unavailable.

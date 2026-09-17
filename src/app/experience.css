@@ -320,3 +320,76 @@
   .mesh-signup-progress-track > span[data-complete="true"] { background: Highlight; }
   .mesh-mobile-active { border-color: Highlight; }
 }
+
+/* Discovery puts content in the first viewport. The selected tab travels as
+   one surface, while the posts stay still under the reader's hand. */
+.mesh-explore-intro { min-height: 158px; margin-bottom: .5rem; padding-block: 1rem 1.5rem; }
+.mesh-explore-intro .mesh-page-eyebrow { margin-bottom: .5rem; }
+.mesh-explore-intro .mesh-page-title { font-size: clamp(1.85rem, 3.5vw, 2.65rem); }
+.mesh-explore-intro .mesh-page-description { margin-top: .5rem; font-size: 1rem; }
+.mesh-explore-intro > .mesh-signature-art { width: 235px; right: 1rem; opacity: .5; }
+.mesh-explore-intro .mesh-page-intro-copy { max-width: 100%; padding-right: 12rem; width: 100%; }
+.mesh-explore-intro .mesh-page-intro-action { position: absolute; right: 0; bottom: 0; margin: 0; }
+.mesh-explore-controls { padding-block: .75rem; background: var(--paper-0); }
+.mesh-explore-tabs { padding: 4px; border-radius: var(--radius-lg); background: var(--paper-1); border: 1px solid var(--rule); }
+.mesh-explore-tab { border-radius: var(--radius-md); color: var(--text-secondary); isolation: isolate; }
+.mesh-explore-tab[aria-selected="true"] { color: var(--text-primary); }
+.mesh-explore-selection { position: absolute; inset: 0; border-radius: inherit; background: var(--paper-2); border: 1px solid var(--edge); box-shadow: var(--shadow-rest); }
+.mesh-explore-tab:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
+.mesh-discovery-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; align-items: start; }
+.mesh-discovery-note { padding: 1.5rem; min-height: 210px; display: flex; flex-direction: column; }
+.mesh-discovery-note > div:last-child { margin-top: auto; padding-top: 1.25rem; }
+.mesh-experience .mesh-explore-tile { background: var(--paper-1); border-color: var(--rule); }
+.mesh-experience .mesh-explore-tile:hover { border-color: var(--signature-rim); }
+
+/* A small listening room for the interface, with no background sound. */
+.mesh-feedback-settings { display: grid; gap: 1.25rem; padding: 1.5rem; border: 1px solid var(--rule); border-radius: var(--radius-xl); background: var(--paper-1); }
+.mesh-feedback-preview { position: relative; display: flex; justify-content: center; gap: 2rem; padding: 1.5rem 1rem 2.75rem; border-radius: var(--radius-lg); background: radial-gradient(ellipse at 50% 100%, var(--accent-wash), transparent 75%), var(--paper-0); border: 1px solid var(--rule); }
+.mesh-feedback-sample { display: grid; gap: .65rem; justify-items: center; color: var(--text-secondary); font-size: .875rem; }
+.mesh-feedback-sample-icon { position: relative; display: grid; place-items: center; width: 54px; height: 54px; border-radius: var(--radius-lg); border: 1px solid var(--edge); color: var(--accent-text); background: var(--paper-1); box-shadow: var(--shadow-rest); transition: transform 140ms var(--mesh-ease-press), border-color 180ms; }
+.mesh-feedback-sample:active .mesh-feedback-sample-icon { transform: scale(.94); }
+.mesh-feedback-sample:focus-visible { outline: 2px solid var(--focus); outline-offset: 6px; border-radius: var(--radius-md); }
+.mesh-feedback-preview-label { position: absolute; bottom: .8rem; font-size: .75rem; color: var(--text-muted); }
+.mesh-feedback-row { display: flex; align-items: center; gap: .85rem; }
+.mesh-feedback-row > svg { flex-shrink: 0; color: var(--text-secondary); }
+.mesh-feedback-row > div { flex: 1; }
+.mesh-feedback-row label { font-size: .9375rem; font-weight: 500; }
+.mesh-feedback-row p { color: var(--text-secondary); font-size: .8125rem; margin-top: .25rem; line-height: 1.5; }
+.mesh-feedback-switch { flex-shrink: 0; width: 48px; height: 44px; position: relative; border-radius: 12px; }
+.mesh-feedback-switch::before { content: ""; position: absolute; inset: 8px 0; border-radius: 20px; border: 1px solid var(--edge); background: var(--paper-2); transition: background 160ms; }
+.mesh-feedback-switch > span { position: absolute; top: 11px; left: 3px; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; color: var(--paper-0); background: var(--text-primary); transition: transform 240ms var(--mesh-spring); }
+.mesh-feedback-switch[aria-checked="true"]::before { background: var(--accent); border-color: var(--accent); }
+.mesh-feedback-switch[aria-checked="true"] > span { transform: translateX(20px); background: var(--accent-ink); color: var(--accent); }
+.mesh-feedback-switch:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
+.mesh-feedback-volume { display: flex; align-items: center; gap: 1rem; padding-left: 2rem; font-size: .875rem; }
+.mesh-feedback-volume input { flex: 1; min-width: 0; height: 44px; accent-color: var(--accent); }
+.mesh-feedback-volume output { width: 3ch; text-align: right; font-variant-numeric: tabular-nums; }
+@keyframes meshFeedbackSettle { 0% { transform: scale(.92); } 55% { transform: scale(1.05); } 100% { transform: scale(1); } }
+@keyframes meshFeedbackRing { from { opacity: .5; transform: scale(.92); } to { opacity: 0; transform: scale(1.3); } }
+@media (prefers-reduced-motion: no-preference) {
+  .mesh-feedback-sample-icon.is-playing { animation: meshFeedbackSettle 360ms var(--mesh-ease-out); }
+  .mesh-feedback-sample-icon.is-playing::after { content: ""; position: absolute; inset: -3px; border: 1px solid var(--accent-text); border-radius: inherit; animation: meshFeedbackRing 420ms var(--mesh-ease-out) both; pointer-events: none; }
+}
+@media (max-width: 900px) { .mesh-discovery-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 600px) {
+  .mesh-experience .mesh-explore-intro { min-height: auto; padding-block: .5rem 1rem; }
+  .mesh-explore-intro .mesh-page-intro-copy { padding-right: 0; }
+  .mesh-explore-intro .mesh-page-intro-action { position: static; margin-top: 1rem; }
+  .mesh-explore-intro > .mesh-signature-art { display: none; }
+  .mesh-explore-tabs { flex: 1; justify-content: space-between; gap: 0; }
+  .mesh-explore-tab { padding-inline: .65rem; font-size: .8125rem; }
+  .mesh-explore-tab > svg { display: none; }
+  .mesh-discovery-grid { grid-template-columns: minmax(0, 1fr); gap: .85rem; }
+  .mesh-discovery-note { min-height: 0; padding: 1.25rem; }
+  .mesh-feedback-settings { padding: 1.1rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mesh-feedback-sample-icon, .mesh-feedback-switch > span, .mesh-feedback-switch::before { transition: none; }
+  .mesh-feedback-sample:active .mesh-feedback-sample-icon { transform: none; }
+}
+@media (forced-colors: active) {
+  .mesh-explore-selection { border: 2px solid Highlight; }
+  .mesh-feedback-switch::before { border: 1px solid ButtonText; }
+  .mesh-feedback-switch > span { background: ButtonText; }
+  .mesh-feedback-switch[aria-checked="true"] > span { background: Highlight; color: HighlightText; }
+}

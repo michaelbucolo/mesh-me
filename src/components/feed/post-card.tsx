@@ -19,7 +19,7 @@ import { askMeshiAboutContent } from "@/lib/meshi-events";
 import { getFocusedContentPrompt, type MeshiContentMode } from "@/lib/meshi-content";
 import { getVideoEmbedUrl } from "@/lib/video-embed";
 import { Play } from "lucide-react";
-import { playSound } from "@/lib/sound";
+import { feedback } from "@/lib/feedback";
 import { publishMeshiCause } from "@/lib/meshi-bus";
 
 // Platform colors for origin badges
@@ -197,6 +197,8 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
   // rule can't see that handleLike only runs from events, so it refuses to
   // compile the component over it; a ref increment carries no such suspicion.
   const burstIdRef = useRef(0);
+  const likeInFlight = useRef(false);
+  const saveInFlight = useRef(false);
   const [saveAnimating, setSaveAnimating] = useState(false);
   const [removedFromView, setRemovedFromView] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -323,9 +325,10 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
   };
 
   const handleLike = (viaDoubleTap = false, coords?: { x: number; y: number }) => {
-    if (!currentUserId) return;
+    if (!currentUserId || likeInFlight.current || (viaDoubleTap && liked)) return;
     if (!requireSourceAccount("like")) return;
     if (!canRunSourceAction(liked ? "unlike" : "like")) return;
+    likeInFlight.current = true;
     const newLiked = !liked;
     const previousLiked = liked;
     const previousCount = likeCount;
@@ -334,7 +337,6 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
     setLikeCount((prev) => (newLiked ? prev + 1 : prev - 1));
     if (newLiked) {
       setLikeAnimating(true);
-      playSound("heart");
       setTimeout(() => setLikeAnimating(false), 520);
       if (viaDoubleTap) {
         burstIdRef.current += 1;
@@ -345,20 +347,29 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
       }
     }
     startTransition(async () => {
-      const result = requiresSourceAccount ? await runPlatformAction(newLiked ? "like" : "unlike") : await toggleReaction(post.id);
-      if (result && "error" in result) {
+      try {
+        const result = requiresSourceAccount ? await runPlatformAction(newLiked ? "like" : "unlike") : await toggleReaction(post.id);
+        if (result && "error" in result) {
+          setLiked(previousLiked);
+          setLikeCount(previousCount);
+          handleSourceActionError(String(result.error), newLiked ? "like" : "unlike");
+          feedback("error");
+        } else if (newLiked) {
+          feedback("like");
+          publishMeshiCause({ kind: "post:liked" });
+        }
+      } catch {
         setLiked(previousLiked);
         setLikeCount(previousCount);
-        handleSourceActionError(String(result.error), newLiked ? "like" : "unlike");
-      } else if (newLiked) {
-        // Confirmed like only — unliking is tidying, not a moment.
-        publishMeshiCause({ kind: "post:liked" });
-      }
+        addToast("Couldn't update your reaction. Try again.", "error");
+        feedback("error");
+      } finally { likeInFlight.current = false; }
     });
   };
 
   const handleSave = () => {
-    if (!currentUserId) return;
+    if (!currentUserId || saveInFlight.current) return;
+    saveInFlight.current = true;
     const newSaved = !saved;
     const previousSaved = saved;
     setSavedOverride(newSaved);
@@ -367,6 +378,7 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
       setTimeout(() => setSaveAnimating(false), 300);
     }
     startTransition(async () => {
+      try {
       if (requiresSourceAccount || isExternalFeedItem) {
         // A save is a PRIVATE mesh-side bookmark, never an action on the source
         // platform — no connect gate, no "open it on X" refusal. The snapshot
@@ -391,13 +403,22 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
             postType: post.media.some((item) => item.type.toLowerCase() === "video") ? "video" : "post",
           }),
         }).catch(() => null);
-        if (!response?.ok) setSavedOverride(previousSaved);
+        if (!response?.ok) throw new Error("Save failed");
+        const result = await response.json();
+        if (typeof result.saved !== "boolean") throw new Error("Invalid save response");
+        setSavedOverride(result.saved);
       } else {
         const result = await toggleSavePost(post.id);
         if (result && "error" in result) {
-          setSavedOverride(previousSaved);
+          throw new Error("Save failed");
         }
       }
+      if (newSaved) feedback("save");
+      } catch {
+        setSavedOverride(previousSaved);
+        addToast("Couldn't save that change. Try again.", "error");
+        feedback("error");
+      } finally { saveInFlight.current = false; }
     });
   };
 

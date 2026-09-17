@@ -3,10 +3,9 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef } from "react";
 import { usePathname } from "next/navigation";
-import { motion, useAnimationControls } from "framer-motion";
+import { motion, useAnimationControls, useReducedMotion } from "framer-motion";
 import { SPRING_PANEL } from "@/lib/motion";
 import { cn } from "@/lib/utils";
-import { impactFeedback } from "@/lib/native/haptics";
 import { getBadgeCount, isNavItemActive, primaryNavItems, resolveNavHref, type NavItem } from "@/components/layout/navigation-config";
 import { PlusSquare } from "lucide-react";
 import { useKeyboard } from "@/hooks/use-keyboard";
@@ -32,16 +31,17 @@ function MobileNavItem({
   resolvedHref: string;
 }) {
   const iconControls = useAnimationControls();
+  const reduceMotion = useReducedMotion();
   const wasActive = useRef(isActive);
 
   // Elastic overshoot the instant a tab becomes the active one (route change),
   // not on every incidental re-render.
   useEffect(() => {
-    if (isActive && !wasActive.current) {
+    if (isActive && !wasActive.current && !reduceMotion) {
       void iconControls.start({ scale: [1, 1.28, 0.9, 1] }, ELASTIC_POP);
     }
     wasActive.current = isActive;
-  }, [isActive, iconControls]);
+  }, [isActive, iconControls, reduceMotion]);
 
   return (
     /* A FLAT tab bar, not a row of keys. The previous pass made each tab a
@@ -55,7 +55,7 @@ function MobileNavItem({
        ships ~10px labels under the glyphs. */
     <Link
       href={resolvedHref}
-      onClick={() => impactFeedback("LIGHT")}
+      data-feedback="navigate"
       aria-current={isActive ? "page" : undefined}
       className={cn(
         "relative flex min-h-[52px] flex-col items-center justify-center gap-0.5 px-1",
@@ -128,7 +128,7 @@ export function MobileNav({ unreadNotifications = 0, unreadMessages = 0, usernam
       {showComposeFab && (
         <Link
           href="/feed?compose=true"
-          onClick={() => impactFeedback("MEDIUM")}
+          data-feedback="navigate"
           className={composeClass}
           aria-label="Create post"
           title="Create post"

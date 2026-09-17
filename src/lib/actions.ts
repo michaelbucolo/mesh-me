@@ -46,6 +46,7 @@ import { getFeedPostById } from "./feed-data";
 import { normalizeStudioWeights, authorKey, dominantFormat } from "./flow-ranking";
 import { normalizePlatformId } from "./platform-capabilities";
 import { isValidMutedSourceKey, parseMutedSources, serializeMutedSources } from "./muted-sources";
+import { cancelAccountSubscriptions } from "./account-billing";
 
 async function hashAuthTokenValue(token: string) {
   const crypto = await import("crypto");
@@ -2306,18 +2307,10 @@ export async function deleteAccount(formData: FormData) {
     }
   }
 
-  // Cancel active Stripe subscription if exists
-  if (user.stripeSubscriptionId) {
-    try {
-      const key = process.env.STRIPE_SECRET_KEY;
-      if (key) {
-        const Stripe = (await import("stripe")).default;
-        const stripe = new Stripe(key);
-        await stripe.subscriptions.cancel(user.stripeSubscriptionId);
-      }
-    } catch {
-      // Continue with deletion even if Stripe cancellation fails
-    }
+  // Keep the billing relationship recoverable until every recurring charge is
+  // stopped, including Patron. A failed cancellation must not orphan a bill.
+  if (!(await cancelAccountSubscriptions(user))) {
+    return { error: "We couldn't stop your recurring payments. Please try again or contact support before deleting your account." };
   }
 
   // Clean up orphaned records that don't have cascade rules

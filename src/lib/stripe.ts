@@ -57,10 +57,12 @@ let stripeClient: Stripe | null | undefined;
 export function getStripeClient() {
   const secretKey = process.env.STRIPE_SECRET_KEY?.trim();
   if (!secretKey) return null;
+  // A production deployment must never sell test-mode entitlements.
+  if (process.env.VERCEL_ENV === "production" && !/^[sr]k_live_/.test(secretKey)) return null;
 
   if (stripeClient === undefined) {
     stripeClient = new Stripe(secretKey, {
-      apiVersion: "2026-03-25.dahlia",
+      apiVersion: "2026-08-26.dahlia",
       maxNetworkRetries: 2,
       timeout: 20_000,
       appInfo: {
@@ -82,7 +84,16 @@ export function getMeshProPriceId(plan: MeshProPlan) {
 }
 
 export function getMeshProPaymentLink(plan: MeshProPlan) {
-  return process.env[MESH_PRO_PLANS[plan].paymentLinkEnvKey]?.trim() || null;
+  // A bare payment link cannot tie a purchase to this signed-in account.
+  // Keep the legacy config readable, but offer it only with the same verified
+  // subscription path available. Checkout itself always creates a bound session.
+  if (!getStripeClient() || !process.env.STRIPE_WEBHOOK_SECRET || !getMeshProPriceId(plan)) return null;
+  const value = process.env[MESH_PRO_PLANS[plan].paymentLinkEnvKey]?.trim();
+  if (!value) return null;
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" && url.hostname === "buy.stripe.com" ? url.toString() : null;
+  } catch { return null; }
 }
 
 export function getAppBaseUrl(req?: Request) {

@@ -338,11 +338,11 @@ npm run launch:check
 npm run roadmap:check
 ```
 
-`launch:check` validates critical launch blockers and warns on non-blocking launch tasks.
+`launch:check` checks source files and the current environment. Passing it does not establish that production services work.
 
 `roadmap:check` measures engineering-roadmap implementation signals across all roadmap phases.
 
-Use `PUBLIC_LAUNCH_MASTER_CHECKLIST.md` for a complete owner-based go-live checklist (1300+ lines).
+Use `PUBLIC_LAUNCH_MASTER_CHECKLIST.md` for the release evidence, unresolved production requirements, and fixture cleanup procedure.
 
 [we-are-social-2026]: https://wearesocial.com/nl/blog/2026/04/digital-2026-mid-year-global-update-report/
 [messaging-apps-2026]: https://explodingtopics.com/blog/messaging-apps-stats
