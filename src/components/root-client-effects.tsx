@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
+import { InteractionFeedback } from "@/components/interaction-feedback";
 
 const DynamicFavicon = dynamic(() => import("@/components/dynamic-favicon").then((mod) => mod.DynamicFavicon), {
   ssr: false,
@@ -48,6 +49,7 @@ export function RootClientEffects() {
 
   return (
     <>
+      <InteractionFeedback />
       {lightEffectsReady ? <DynamicFavicon /> : null}
       {lightEffectsReady ? <SpatialInit /> : null}
       {lightEffectsReady ? <PwaRegister /> : null}

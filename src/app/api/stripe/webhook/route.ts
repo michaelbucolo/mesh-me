@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
-import { prisma } from "@/lib/prisma";
 import { applyCharterRefund, applyCharterSession, releaseExpiredCharterSession } from "@/lib/charter";
 import { applyMeshiItemRefund, applyMeshiItemSession } from "@/lib/meshi-item";
 import { applyPatronCheckoutSession, applyPatronRefund, syncPatronSubscription } from "@/lib/patron";
@@ -39,10 +38,19 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
   }
 
+  const expectsLive = /^[sr]k_live_/.test(process.env.STRIPE_SECRET_KEY?.trim() ?? "");
+  if (event.livemode !== expectsLive) {
+    return NextResponse.json({ error: "Payment mode mismatch" }, { status: 400 });
+  }
+
   try {
     switch (event.type) {
+      case "checkout.session.async_payment_succeeded":
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
+        // Completion can precede settlement for bank-based payment methods.
+        // The async success event comes back through this same idempotent path.
+        if (session.status !== "complete" || (session.payment_status !== "paid" && session.payment_status !== "no_payment_required")) break;
 
         // Gifts branch FIRST, before any userId/subscription logic. A gift is a
         // one-time payment with no subscription, so without this branch it
@@ -80,28 +88,21 @@ export async function POST(req: Request) {
           break;
         }
 
+        if (session.metadata?.product !== "meshpro" || session.mode !== "subscription") break;
         const userId = session.metadata?.userId;
         const subscriptionId = stripeObjectId(session.subscription);
 
         if (subscriptionId) {
           const subscription = await stripe.subscriptions.retrieve(subscriptionId);
           await syncMeshProSubscription(subscription, userId, { revalidate: true });
-        } else if (userId) {
-          const customerId = stripeObjectId(session.customer);
-          await prisma.user.update({
-            where: { id: userId },
-            data: {
-              isMeshPro: true,
-              meshProSince: new Date(),
-              ...(customerId ? { stripeCustomerId: customerId } : {}),
-            },
-          });
         }
         break;
       }
       case "customer.subscription.created":
       case "customer.subscription.updated": {
-        const subscription = event.data.object as Stripe.Subscription;
+        // Stripe may deliver events out of order. Read its current state so
+        // an old active snapshot cannot restore a canceled subscription.
+        const subscription = await stripe.subscriptions.retrieve((event.data.object as Stripe.Subscription).id);
         // Patron churn routes to its own sync FIRST: unrouted, this renewal
         // would fall through to the MeshPro sync, resolve the user by the
         // SHARED customer id, and rewrite isMeshPro from patron billing state.

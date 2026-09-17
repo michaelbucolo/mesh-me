@@ -294,4 +294,5 @@ if (failures.length > 0) {
   process.exit(0);
 }
 
-console.log(`\n${ANSI.green}Launch ready: all checks passed.\x1b[0m`);
+console.log(`\n${ANSI.green}Source and environment checks passed.\x1b[0m`);
+console.log("This does not certify the live deployment. Verify production account linking, payment completion, recovery email and moderation before opening registration broadly.");

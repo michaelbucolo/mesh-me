@@ -505,7 +505,8 @@ const checks = [
       const syncSource = read("src/app/api/sync/route.ts") + read("src/app/api/connected-accounts/[id]/sync/route.ts");
       const platformSyncSource = read("src/lib/platform-sync.ts");
 
-      assert(stripeSource.includes('apiVersion: "2026-03-25.dahlia"'), "Stripe API version is not pinned to the SDK-supported latest version");
+      const { default: Stripe } = await import("stripe");
+      assert(stripeSource.includes(`apiVersion: "${Stripe.API_VERSION}"`), "Stripe API version is not pinned to the installed SDK-supported version");
       assert(stripeSource.includes("maxNetworkRetries") && stripeSource.includes("timeout"), "Stripe client retry/timeout config is missing");
       assert(checkoutSource.includes('mode: "subscription"'), "Checkout must use subscription mode for MeshPro");
       assert(portalSource.includes("billingPortal.sessions.create"), "Customer Portal session creation is missing");

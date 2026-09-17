@@ -11,6 +11,7 @@ import { Avatar } from "@/components/ui/avatar";
 import { NativeAspectMedia } from "@/components/ui/native-aspect-media";
 import { attachNormalizer } from "@/lib/audio-normalize";
 import { playSound } from "@/lib/sound";
+import { feedback } from "@/lib/feedback";
 import { safeHref } from "@/lib/utils";
 import { MeshiMascot, type MeshiColor, type MeshiHat, type MeshiHair, type MeshiAccessory, type MeshiEyeStyle, type MeshiBadge } from "@/components/meshi/meshi-mascot";
 import { mechatDraftKey } from "@/lib/mechat-drafts";
@@ -805,7 +806,6 @@ export function MeChatThread({
         // were reading history when you hit Enter.
         nearBottomRef.current = true;
         setMessages((current) => [...current, optimistic]);
-        playSound("send");
 
         const response = await fetch(`/api/messages/${threadId}`, {
           method: "POST",
@@ -828,6 +828,7 @@ export function MeChatThread({
         // Server-confirmed — the bus doctrine (meshi-bus.ts) forbids celebrating
         // anything the server hasn't said yes to, which is why this sits AFTER
         // the throw rather than beside the optimistic bubble.
+        feedback("send");
         publishMeshiCause({ kind: "message:sent" });
         setDraft("");
         // Drop the stored draft under the pre-send key too (creating a thread

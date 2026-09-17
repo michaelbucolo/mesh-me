@@ -142,7 +142,7 @@ export async function getPublicSystemStatus(): Promise<PublicSystemStatus> {
     }),
 
     runStatusCheck("payments", "Payments", async () => {
-      const stripeConfigured = Boolean(getStripeClient());
+      const stripeConfigured = Boolean(getStripeClient() && process.env.STRIPE_WEBHOOK_SECRET?.trim());
       const availablePlans = Object.keys(MESH_PRO_PLANS).filter((plan) => {
         const meshProPlan = plan as keyof typeof MESH_PRO_PLANS;
         return (stripeConfigured && getMeshProPriceId(meshProPlan)) || getMeshProPaymentLink(meshProPlan);
@@ -160,8 +160,8 @@ export async function getPublicSystemStatus(): Promise<PublicSystemStatus> {
         summary: availablePlans.length > 0 ? "Operational" : "Setup needed",
         detail:
           availablePlans.length > 0
-            ? `${availablePlans.length} MeshPro checkout option${availablePlans.length === 1 ? "" : "s"} and ${availableGiftPlans.length} gift option${availableGiftPlans.length === 1 ? "" : "s"} can route to Stripe. Mesh.me does not store card numbers.`
-            : "Stripe checkout needs a secret key plus price IDs or payment links before MeshPro purchases can run.",
+            ? `${availablePlans.length} MeshPro checkout option${availablePlans.length === 1 ? "" : "s"} and ${availableGiftPlans.length} gift option${availableGiftPlans.length === 1 ? "" : "s"} have checkout and webhook configuration. Payment completion is verified separately; Mesh.me does not store card numbers.`
+            : "Stripe checkout needs a matching secret key, price IDs and a webhook signing secret before purchases can run. Production requires live-mode credentials.",
       };
     }),
   ]);

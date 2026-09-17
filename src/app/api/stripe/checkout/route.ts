@@ -8,6 +8,7 @@ import { prisma } from "@/lib/prisma";
 import { isSameOriginRequest } from "@/lib/request-guard";
 import { getAppBaseUrl, getMeshProGiftPriceId, getMeshProPaymentLink, getMeshProPriceId, getStripeClient, parseMeshProGiftPlan, parseMeshProPlan } from "@/lib/stripe";
 import { rateLimit } from "@/lib/security";
+import { durableRateLimit } from "@/lib/durable-rate-limit";
 import Stripe from "stripe";
 
 /**
@@ -71,6 +72,13 @@ export async function POST(req: Request) {
     if (!rl.allowed) {
       return NextResponse.json({ error: "Too many checkout attempts. Please slow down." }, { status: 429 });
     }
+    const sharedLimit = await durableRateLimit(`stripe-checkout:${user.id}`, 8, 60 * 1000);
+    if (!sharedLimit.allowed) {
+      return NextResponse.json({ error: "Too many checkout attempts. Please slow down." }, { status: 429, headers: { "Retry-After": String(Math.ceil(sharedLimit.resetInMs / 1000)) } });
+    }
+    if (!process.env.STRIPE_WEBHOOK_SECRET?.trim()) {
+      return NextResponse.json({ error: "Payments are not available yet. Please check back soon." }, { status: 503 });
+    }
 
     const payload = await req.json().catch(() => ({}));
 
@@ -115,6 +123,7 @@ export async function POST(req: Request) {
       const baseUrl = getAppBaseUrl(req);
       const months = MESH_PRO_GIFT_PRICING[giftPlan].months;
       const giftSession = await stripe.checkout.sessions.create({
+        integration_identifier: "mesh_checkout_pxgvdhsa",
         // NEVER "subscription": the recipient must inherit days, not a billing
         // relationship — and payment mode is also what rejects a recurring
         // price being wired here by mistake.
@@ -199,6 +208,7 @@ export async function POST(req: Request) {
 
       const baseUrl = getAppBaseUrl(req);
       const itemSession = await stripe.checkout.sessions.create({
+        integration_identifier: "mesh_checkout_pxgvdhsa",
         mode: "payment",
         line_items: [
           {
@@ -267,6 +277,7 @@ export async function POST(req: Request) {
       let charterSession: Stripe.Checkout.Session;
       try {
         charterSession = await stripe.checkout.sessions.create({
+          integration_identifier: "mesh_checkout_pxgvdhsa",
           mode: "payment",
           expires_at: Math.floor(Date.now() / 1000) + CHARTER_SESSION_TTL_S,
           line_items: [
@@ -337,6 +348,7 @@ export async function POST(req: Request) {
       const baseUrl = getAppBaseUrl(req);
       const patronMetadata = { product: "patron", patronUserId: user.id };
       const patronSession = await stripe.checkout.sessions.create({
+        integration_identifier: "mesh_checkout_pxgvdhsa",
         mode: "subscription",
         line_items: [
           {
@@ -407,7 +419,11 @@ export async function POST(req: Request) {
     const baseUrl = getAppBaseUrl(req);
 
     // Prevent duplicate subscriptions
-    if (user.isMeshPro && user.stripeSubscriptionId) {
+    if (isFounderUsername(user.username)) {
+      return NextResponse.json({ error: "Your account already includes MeshPro for life.", alreadyActive: true }, { status: 409 });
+    }
+    const existingSubscription = user.stripeSubscriptionId ? await stripe.subscriptions.retrieve(user.stripeSubscriptionId) : null;
+    if (existingSubscription && !["canceled", "incomplete_expired"].includes(existingSubscription.status)) {
       return NextResponse.json(
         {
           error: "MeshPro is already active. Manage your billing instead.",
@@ -424,6 +440,7 @@ export async function POST(req: Request) {
     };
 
     const checkoutParams: Stripe.Checkout.SessionCreateParams = {
+      integration_identifier: "mesh_checkout_pxgvdhsa",
       mode: "subscription",
       line_items: [{ price: priceId, quantity: 1 }],
       success_url: `${baseUrl}/meshpro?payment=success&session_id={CHECKOUT_SESSION_ID}`,

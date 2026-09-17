@@ -7,6 +7,8 @@
 // All sounds respect the user's "Sounds" setting and the browser's autoplay
 // rules (the context unlocks on the first gesture).
 
+import { getSoundLevel, readInteractionPreference, writeInteractionPreference } from "./interaction-preferences";
+
 export type SoundName =
   | "pop" // selecting something / small positive tap
   | "heart" // throwing a like — quick airy swish up
@@ -21,25 +23,18 @@ export type SoundName =
 const SOUND_KEY = "meshSoundsEnabled";
 
 export function isSoundEnabled(): boolean {
-  if (typeof window === "undefined") return false;
-  try {
-    return localStorage.getItem(SOUND_KEY) !== "0";
-  } catch {
-    return true;
-  }
+  // Existing explicit choices survive. New devices stay quiet until opted in.
+  return readInteractionPreference(SOUND_KEY) === "1";
 }
 
 export function setSoundEnabled(on: boolean): void {
-  try {
-    localStorage.setItem(SOUND_KEY, on ? "1" : "0");
-  } catch {
-    // Storage may be unavailable; the session keeps the current behavior.
-  }
+  writeInteractionPreference(SOUND_KEY, on ? "1" : "0");
+  if (!on && master && audioCtx) master.gain.setTargetAtTime(0, audioCtx.currentTime, 0.01);
 }
 
 let audioCtx: AudioContext | null = null;
 let master: GainNode | null = null;
-let unlocked = false;
+let lastSoundAt = -Infinity;
 
 function getCtx(): AudioContext | null {
   if (typeof window === "undefined") return null;
@@ -47,18 +42,8 @@ function getCtx(): AudioContext | null {
     window.AudioContext ||
     (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
   if (!Ctor) return null;
-  if (!audioCtx) {
-    audioCtx = new Ctor();
-    // Browsers keep a context suspended until a user gesture; resume on the
-    // first interaction so sounds Just Work from then on.
-    const unlock = () => {
-      audioCtx?.resume().catch(() => {});
-      unlocked = true;
-      window.removeEventListener("pointerdown", unlock);
-      window.removeEventListener("keydown", unlock);
-    };
-    window.addEventListener("pointerdown", unlock, { passive: true });
-    window.addEventListener("keydown", unlock);
+  if (!audioCtx || audioCtx.state === "closed") {
+    try { audioCtx = new Ctor(); } catch { return null; }
   }
   return audioCtx;
 }
@@ -72,7 +57,7 @@ function getCtx(): AudioContext | null {
 function getMaster(ctx: AudioContext): GainNode {
   if (master && master.context === ctx) return master;
   const g = ctx.createGain();
-  g.gain.value = 0.85; // everything sits softly under this — subtle but present
+  g.gain.value = getSoundLevel() * 0.65;
   const comp = ctx.createDynamicsCompressor();
   comp.threshold.value = -20;
   comp.knee.value = 26;
@@ -125,6 +110,7 @@ function voice(
   gain.connect(getMaster(ctx));
   osc.start(opts.at);
   osc.stop(opts.at + opts.dur + 0.03);
+  osc.onended = () => { osc.disconnect(); lp.disconnect(); gain.disconnect(); };
 }
 
 /** A short breath of filtered noise (for whooshes and swishes). */
@@ -159,6 +145,7 @@ function breath(
   gain.connect(getMaster(ctx));
   src.start(opts.at);
   src.stop(opts.at + opts.dur + 0.03);
+  src.onended = () => { src.disconnect(); filter.disconnect(); lp.disconnect(); gain.disconnect(); };
 }
 
 /**
@@ -166,13 +153,23 @@ function breath(
  * unsupported, or the context hasn't been unlocked by a gesture yet.
  */
 export function playSound(name: SoundName): void {
-  if (!isSoundEnabled()) return;
+  if (!isSoundEnabled() || getSoundLevel() === 0 || document.visibilityState === "hidden") return;
+  if (navigator.userActivation && !navigator.userActivation.hasBeenActive) return;
+  // Interface feedback yields to what the person is watching or listening to.
+  if (Array.from(document.querySelectorAll<HTMLMediaElement>("video, audio")).some((media) => !media.paused && !media.muted && media.volume > 0)) return;
   const ctx = getCtx();
   if (!ctx) return;
   if (ctx.state === "suspended") {
-    if (!unlocked) return;
-    ctx.resume().catch(() => {});
+    if (navigator.userActivation && !navigator.userActivation.isActive) return;
+    const requestedAt = performance.now();
+    void ctx.resume().then(() => {
+      if (ctx.state === "running" && performance.now() - requestedAt < 120) playSound(name);
+    }).catch(() => {});
+    return;
   }
+  if (ctx.state !== "running" || performance.now() - lastSoundAt < 75) return;
+  lastSoundAt = performance.now();
+  getMaster(ctx).gain.setTargetAtTime(getSoundLevel() * 0.65, ctx.currentTime, 0.01);
   const t = ctx.currentTime + 0.005;
   switch (name) {
     case "pop":

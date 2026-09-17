@@ -18,6 +18,9 @@ async function main() {
   const directory = mkdtempSync(join(tmpdir(), "mesh-experience-"));
   process.env.DATABASE_URL = `file:${join(directory, "test.db")}`;
   delete process.env.DATABASE_AUTH_TOKEN;
+  process.env.VERCEL_ENV = "preview";
+  process.env.STRIPE_SECRET_KEY = "sk_test_isolated_fixture";
+  process.env.STRIPE_WEBHOOK_SECRET = `whsec_${randomBytes(24).toString("hex")}`;
   let server: ChildProcess | undefined;
   let checks = 0;
   const check = (actual: unknown, expected: unknown, message: string) => {
@@ -313,6 +316,31 @@ async function main() {
         await response.text();
       }
       check((await fetch(`${baseUrl}/api/search?q=${"x".repeat(201)}`, { headers: headersFor(0) })).status, 400, "Search bounds are enforced over HTTP");
+      const { default: Stripe } = await import("stripe");
+      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+      const giftSession = {
+        id: "cs_test_http_gift", object: "checkout.session", mode: "payment", status: "complete", payment_status: "unpaid",
+        metadata: { product: "meshpro-gift", recipientUserId: member.id, purchaserUserId: owner.id, months: "1" },
+      };
+      const sendWebhook = async (type: string, livemode = false, signature?: string, timestamp?: number) => {
+        const payload = JSON.stringify({ id: `evt_${randomUUID()}`, object: "event", type, livemode, data: { object: giftSession } });
+        return fetch(`${baseUrl}/api/stripe/webhook`, { method: "POST", body: payload, headers: {
+          "Content-Type": "application/json",
+          "stripe-signature": signature ?? stripe.webhooks.generateTestHeaderString({ payload, secret: process.env.STRIPE_WEBHOOK_SECRET!, timestamp }),
+        } });
+      };
+      check((await sendWebhook("checkout.session.completed", false, "forged")).status, 400, "Webhook signatures are enforced by the deployed route");
+      check((await sendWebhook("checkout.session.completed", false, undefined, Math.floor(Date.now() / 1000) - 600)).status, 400, "Expired signed payloads cannot be replayed");
+      check((await sendWebhook("checkout.session.completed", true)).status, 400, "Live events cannot enter a test-mode deployment");
+      check((await sendWebhook("checkout.session.completed")).status, 200, "An unsettled completion is safely acknowledged");
+      check(await prisma.meshProGift.count(), 0, "An unsettled completion grants no gift");
+      giftSession.payment_status = "paid";
+      check((await sendWebhook("checkout.session.async_payment_succeeded")).status, 200, "Delayed payment success completes through the real webhook route");
+      check(await prisma.meshProGift.count(), 1, "Delayed payment grants exactly one receipt");
+      const giftUntil = (await prisma.user.findUniqueOrThrow({ where: { id: member.id } })).meshProGiftUntil;
+      check(Boolean(giftUntil && giftUntil.getTime() > Date.now()), true, "The recipient receives the paid gift");
+      check((await sendWebhook("checkout.session.completed")).status, 200, "Duplicate completion is acknowledged successfully");
+      check((await prisma.user.findUniqueOrThrow({ where: { id: member.id } })).meshProGiftUntil, giftUntil, "Duplicate payment events do not grant extra time");
       // Verify removing a post removes its stored bytes as well.
       await invoke("deletePost", [publicPost.id], 0);
       check(await prisma.postMediaFile.findUnique({ where: { postMediaId: mediaIds.get(publicPost.id)! } }), null, "Deleting a post cascades to its media file");

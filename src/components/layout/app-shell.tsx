@@ -5,7 +5,7 @@ import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { motion, useAnimationControls } from "framer-motion";
+import { motion, useAnimationControls, useReducedMotion } from "framer-motion";
 import {
   Bell,
   ChevronDown,
@@ -133,18 +133,20 @@ const SIDEBAR_ICON_POP = { duration: 0.46, ease: [0.34, 1.56, 0.64, 1] as const,
 function SidebarNavItem({ item, href, active }: { item: NavItem; href: string; active: boolean }) {
   const Icon = item.icon;
   const iconControls = useAnimationControls();
+  const reduceMotion = useReducedMotion();
   const wasActive = useRef(active);
 
   useEffect(() => {
-    if (active && !wasActive.current) {
+    if (active && !wasActive.current && !reduceMotion) {
       void iconControls.start({ scale: [1, 1.2, 0.94, 1] }, SIDEBAR_ICON_POP);
     }
     wasActive.current = active;
-  }, [active, iconControls]);
+  }, [active, iconControls, reduceMotion]);
 
   return (
     <Link
       href={href}
+      data-feedback="navigate"
       className={`mesh-nav-item group relative flex items-center gap-3.5 rounded-xl px-3.5 py-2.5 text-[0.9375rem] font-medium transition-[color,background-color,border-color,box-shadow,transform,opacity] duration-150 ${
         active
           ? "mesh-nav-item-active bg-[var(--mesh-panel-hover)] font-semibold text-[var(--mesh-text)]"
