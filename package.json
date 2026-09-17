@@ -15,7 +15,7 @@
     "experience:http": "node --conditions=react-server --import tsx scripts/experience-check.ts --http",
     "predev": "node scripts/ensure-schema.mjs",
     "dev": "next dev --webpack",
-    "build": "prisma generate && node scripts/ensure-schema.mjs && next build --webpack",
+    "build": "prisma generate && node scripts/ensure-schema.mjs && node scripts/bootstrap-owner-admin.mjs && next build --webpack",
     "start": "next start",
     "lint": "eslint --max-warnings=0",
     "dead-code:check": "knip --no-progress",
@@ -133,7 +133,7 @@
     "meshimap-ink:check": "node --import tsx scripts/meshimap-ink-check.ts",
     "room-payload:check": "node --import tsx scripts/room-payload-check.ts",
     "launch:behavior": "node --conditions=react-server --import tsx scripts/launch-behavior-check.ts",
-    "accounts:fixtures": "node --import tsx scripts/cleanup-test-accounts.ts"
+    "accounts:fixtures": "node --conditions=react-server --import tsx scripts/cleanup-test-accounts.ts"
   },
   "dependencies": {
     "@capacitor/app": "^8.1.0",

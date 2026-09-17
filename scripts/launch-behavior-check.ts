@@ -159,7 +159,7 @@ async function main() {
     const secondFixture = await prisma.user.create({ data: { username: "meshmetester2", displayName: "Mesh Tester Two", email: "fixture-two@example.invalid", passwordHash: "no-login" } });
     const fixturePost = await prisma.post.create({ data: { authorId: firstFixture.id, content: "Hello from tester one! Testing the mesh." } });
     await prisma.comment.create({ data: { authorId: secondFixture.id, postId: fixturePost.id, content: "Nice post! From tester two." } });
-    const runCleanup = (args: string[] = []) => execFileSync(process.execPath, ["--import", "tsx", "scripts/cleanup-test-accounts.ts", ...args], { env: process.env, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
+    const runCleanup = (args: string[] = []) => execFileSync(process.execPath, ["--conditions=react-server", "--import", "tsx", "scripts/cleanup-test-accounts.ts", ...args], { env: process.env, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
     const review = JSON.parse(runCleanup());
     check(review.mode, "review", "Fixture cleanup is read-only by default");
     check(review.accounts.filter((account: { eligible: boolean }) => account.eligible).length, 2, "Only positively identified fixtures are candidates");
@@ -176,6 +176,29 @@ async function main() {
     runCleanup([`--delete-id=${firstFixture.id}`, "--confirm-username=meshmetester1"]);
     check(await prisma.post.findUnique({ where: { id: fixturePost.id } }), null, "Fixture deletion cascades to its posts");
     check(Boolean(await prisma.user.findUnique({ where: { id: buyer.id } })), true, "Fixture cleanup preserves other accounts");
+
+    const runOwnerSetup = (overrides: Partial<NodeJS.ProcessEnv> = {}) => execFileSync(process.execPath, ["scripts/bootstrap-owner-admin.mjs"], {
+      env: { ...process.env, VERCEL_ENV: "production", VERCEL_GIT_COMMIT_REF: "main", MESH_BOOTSTRAP_ADMIN_USERNAME: "", ...overrides },
+      encoding: "utf8", stdio: ["ignore", "pipe", "pipe"],
+    });
+    runOwnerSetup();
+    check(await prisma.user.count({ where: { isAdmin: true } }), 0, "Owner setup is disabled without privileged deployment configuration");
+    assert.throws(() => runOwnerSetup({ MESH_BOOTSTRAP_ADMIN_USERNAME: buyer.username, VERCEL_ENV: "preview" })); checks++;
+    assert.throws(() => runOwnerSetup({ MESH_BOOTSTRAP_ADMIN_USERNAME: buyer.username, VERCEL_GIT_COMMIT_REF: "feature" })); checks++;
+    assert.throws(() => runOwnerSetup({ MESH_BOOTSTRAP_ADMIN_USERNAME: "missing_account" })); checks++;
+    await prisma.user.update({ where: { id: buyer.id }, data: { isSuspended: true } });
+    assert.throws(() => runOwnerSetup({ MESH_BOOTSTRAP_ADMIN_USERNAME: buyer.username })); checks++;
+    await prisma.user.update({ where: { id: buyer.id }, data: { isSuspended: false } });
+    runOwnerSetup({ MESH_BOOTSTRAP_ADMIN_USERNAME: buyer.username });
+    check((await prisma.user.findUniqueOrThrow({ where: { id: buyer.id } })).isAdmin, true, "Owner setup promotes only the configured existing account");
+    check(await prisma.user.count({ where: { isAdmin: true } }), 1, "Other accounts retain their roles");
+    check(await prisma.adminLog.count({ where: { action: "bootstrap_owner_admin", adminId: buyer.id } }), 1, "Owner setup records the change atomically");
+    runOwnerSetup({ MESH_BOOTSTRAP_ADMIN_USERNAME: buyer.username });
+    check(await prisma.adminLog.count({ where: { action: "bootstrap_owner_admin" } }), 1, "Rebuilds are idempotent");
+    assert.throws(() => runOwnerSetup({ MESH_BOOTSTRAP_ADMIN_USERNAME: recipient.username })); checks++;
+    await prisma.user.update({ where: { id: buyer.id }, data: { isAdmin: false } });
+    assert.throws(() => runOwnerSetup({ MESH_BOOTSTRAP_ADMIN_USERNAME: recipient.username })); checks++;
+    check(await prisma.user.count({ where: { isAdmin: true } }), 0, "A completed bootstrap cannot be reused after role revocation");
     console.log(`launch behavior: ${checks} assertions passed (isolated database; mocked payment transport)`);
   } finally {
     await prisma.$disconnect();

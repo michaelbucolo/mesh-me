@@ -19,6 +19,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { AdminActions } from "./admin-actions";
+import { TestAccountCleanup } from "./test-account-cleanup";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { MeshiLogo } from "@/components/meshi/meshi-mascot";
@@ -416,6 +417,7 @@ export default async function AdminPage() {
           </section>
         </aside>
       </section>
+      <TestAccountCleanup />
     </main>
   );
 }

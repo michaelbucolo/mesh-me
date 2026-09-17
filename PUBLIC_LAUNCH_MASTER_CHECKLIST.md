@@ -7,8 +7,8 @@ Updated 17 September 2026. This document separates verified code behavior from p
 | Requirement | Evidence and next action | Status |
 | --- | --- | --- |
 | Canonical domain | Vercel serves `meshs.me` and `www.meshs.me`. Verify ownership and configure `mesh.me` before advertising that address. | Open |
-| Connected accounts | Production `/api/system-status` reports no usable token-encryption key. Set a securely generated 32-byte `APP_DATA_ENCRYPTION_KEY` in Vercel, redeploy, then connect and disconnect each advertised provider with an authorized account. Never replace a working encryption key without a migration. | Blocked |
-| Real payments | The connected Stripe account is in test mode and had no active prices or webhook endpoints. Production reports two configured checkout options, but a completed live payment, entitlement, refund and cancellation have not been demonstrated. Confirm the actual production Stripe account and matching live configuration. | Unverified |
+| Connected accounts | Production `/api/system-status` rejects the existing `APP_DATA_ENCRYPTION_KEY` as unusable. Vercel contains a production secret with that name. Review existing encrypted records before replacing it with a securely generated 32-byte key; retain a recovery path, redeploy, and verify each advertised provider. | Blocked |
+| Real payments | The connected Stripe account is in test mode and had no active prices or webhook endpoints. Vercel has price IDs and static payment links but lacks the Stripe server key and webhook signing secret. Static links cannot safely establish account ownership, so this release leaves purchasing unavailable until matching live keys, prices and a webhook are configured. A completed live payment, entitlement, refund and cancellation still need verification. | Unverified |
 | Gift payments | Production reports zero configured gift prices. Configure one-time prices matching the displayed amounts, or keep purchase controls unavailable. | Blocked |
 | Recovery and verification email | Send and redeem a real recovery/verification email; establish ownership of the configured sender domain. | Unverified |
 | Fixture cleanup | Public post and comment confirm `meshmetester1` and `meshmetester2`. Review production records and execute the exact-ID cleanup below. No production deletion has been performed by this release. | Open |
@@ -38,7 +38,11 @@ Review the deployed interface at desktop and mobile widths: Explore navigation, 
 
 ## Review and remove fixtures
 
-Use an authorized terminal with the production `DATABASE_URL` and `DATABASE_AUTH_TOKEN` supplied securely. Do not put credentials in command history, commits or reports.
+If the database has no administrator, the deployment operator can set `MESH_BOOTSTRAP_ADMIN_USERNAME` to the owner's exact existing username, scoped to Production, and deploy `main`. The build grants only that active account the initial role and records an audit entry in the same transaction. It refuses preview branches, missing accounts, suspended accounts, an existing administrator or a previous completed bootstrap. Remove the variable after verifying access. It never creates an account or changes credentials; ordinary users cannot invoke it.
+
+The admin console has a **Test account cleanup** section with review, exact-username confirmation and an audit entry. Only authenticated administrators can use it. Remove `meshmetester2` first, because its identifying comment belongs to the first tester’s post.
+
+For command-line operations, use an authorized terminal with the production `DATABASE_URL` and `DATABASE_AUTH_TOKEN` supplied securely. Do not put credentials in command history, commits or reports.
 
 ```sh
 npm run accounts:fixtures

@@ -341,6 +341,26 @@ async function main() {
       check(Boolean(giftUntil && giftUntil.getTime() > Date.now()), true, "The recipient receives the paid gift");
       check((await sendWebhook("checkout.session.completed")).status, 200, "Duplicate completion is acknowledged successfully");
       check((await prisma.user.findUniqueOrThrow({ where: { id: member.id } })).meshProGiftUntil, giftUntil, "Duplicate payment events do not grant extra time");
+      check((await fetch(`${baseUrl}/api/admin/test-accounts`)).status, 403, "Guests cannot review fixture account records");
+      check((await fetch(`${baseUrl}/api/admin/test-accounts`, { headers: headersFor(2) })).status, 403, "Ordinary members cannot review fixture account records");
+      const fixture = await prisma.user.create({ data: { username: "meshmetester1", displayName: "Mesh Tester One", email: "cleanup-http@example.invalid", passwordHash: "no-login" } });
+      await prisma.post.create({ data: { authorId: fixture.id, content: "Hello from tester one! Testing the mesh." } });
+      const deleteFixture = (index: number, username: string, origin?: string) => fetch(`${baseUrl}/api/admin/test-accounts`, {
+        method: "DELETE", body: JSON.stringify({ id: fixture.id, username }),
+        headers: { ...headersFor(index), "Content-Type": "application/json", ...(origin ? { Origin: origin } : {}) },
+      });
+      check((await deleteFixture(2, fixture.username, baseUrl)).status, 403, "Ordinary members cannot invoke fixture deletion");
+      await prisma.user.update({ where: { id: owner.id }, data: { isAdmin: true } });
+      check((await deleteFixture(0, fixture.username)).status, 403, "Even administrators need same-origin proof for deletion");
+      check((await deleteFixture(0, "wrong", baseUrl)).status, 409, "The server requires the exact confirmation username");
+      const fixtureReview = await fetch(`${baseUrl}/api/admin/test-accounts`, { headers: headersFor(0) });
+      check(fixtureReview.status, 200, "Administrators can review verified fixtures");
+      check(fixtureReview.headers.get("cache-control"), "private, no-store", "Fixture records cannot enter a shared cache");
+      const fixtureReviewText = await fixtureReview.text();
+      check(fixtureReviewText.includes("passwordHash") || fixtureReviewText.includes(fixture.email), false, "The review response does not expose credentials or email addresses");
+      check((await deleteFixture(0, fixture.username, baseUrl)).status, 200, "The authenticated confirmation flow deletes a verified fixture");
+      check(await prisma.user.findUnique({ where: { id: fixture.id } }), null, "HTTP fixture deletion persists");
+      check(await prisma.adminLog.count({ where: { adminId: owner.id, action: "delete_verified_fixture" } }), 1, "Administrative cleanup records an audit entry");
       // Verify removing a post removes its stored bytes as well.
       await invoke("deletePost", [publicPost.id], 0);
       check(await prisma.postMediaFile.findUnique({ where: { postMediaId: mediaIds.get(publicPost.id)! } }), null, "Deleting a post cascades to its media file");
