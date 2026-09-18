@@ -2,6 +2,7 @@
 
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getCredentialStorageAudit } from "@/lib/credential-storage-audit";
 
 const OAUTH_SECRET_KEYS = [
   "GOOGLE_CLIENT_SECRET",
@@ -68,6 +69,7 @@ export async function getAdminDashboard() {
     communities,
     adminLogs,
     recentSecurityLogs,
+    credentialStorageAudit,
   ] = await Promise.all([
     prisma.user.count(),
     prisma.post.count(),
@@ -167,6 +169,7 @@ export async function getAdminDashboard() {
       orderBy: { createdAt: "desc" },
       take: 12,
     }),
+    getCredentialStorageAudit(),
   ]);
 
   const oauthConfiguredCount = configuredEnvCount(OAUTH_SECRET_KEYS);
@@ -247,5 +250,6 @@ export async function getAdminDashboard() {
     recentSecurityLogs,
     launchChecks,
     securityAlerts,
+    credentialStorageAudit,
   };
 }
