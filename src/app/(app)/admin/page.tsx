@@ -57,6 +57,77 @@ const severityStyles = {
 
 type AdminDashboardData = NonNullable<Awaited<ReturnType<typeof getAdminDashboard>>>;
 type LaunchCheck = AdminDashboardData["launchChecks"][number];
+type CredentialStorageAudit = AdminDashboardData["credentialStorageAudit"];
+
+function CredentialStorageAuditSection({ audit }: { audit: CredentialStorageAudit }) {
+  const statusLabels = {
+    empty: "Empty",
+    payloads_present: "Payloads present",
+    unavailable: "Unavailable",
+  };
+  const fields = [
+    { label: "ConnectedAccount.accessToken", counts: audit.connectedAccounts?.accessToken },
+    { label: "ConnectedAccount.refreshToken", counts: audit.connectedAccounts?.refreshToken },
+    { label: "TwoFactorMethod.secret", counts: audit.twoFactorMethods?.secret },
+  ];
+
+  return (
+    <section id="credential-storage-audit" aria-labelledby="credential-storage-audit-heading" className="mesh-surface mt-5 rounded-[28px] border border-[var(--ds-border)] p-4 shadow-[var(--shadow-soft)] sm:p-5">
+      <h2 id="credential-storage-audit-heading" className="flex items-center gap-2 text-xl font-semibold tracking-[0] text-[var(--text-primary)]">
+        <LockKeyhole className="h-5 w-5 text-[var(--accent-text)]" />
+        Credential storage audit
+      </h2>
+      <div className="mt-3 flex flex-wrap gap-x-6 gap-y-1 text-sm text-[var(--text-secondary)]">
+        <p>Status: <span className="font-semibold text-[var(--text-primary)]">{statusLabels[audit.status]}</span></p>
+        <p>Checked: <time dateTime={audit.checkedAt}>{new Date(audit.checkedAt).toUTCString()}</time></p>
+      </div>
+      <p className="mt-3 text-sm font-semibold text-[var(--text-primary)]">{audit.summary}</p>
+      <p className="mt-1 text-sm leading-6 text-[var(--text-secondary)]">{audit.detail}</p>
+      <div className="mt-4 grid gap-2 text-sm text-[var(--text-secondary)] sm:grid-cols-2">
+        <p>
+          Connected account rows: {audit.connectedAccounts ? (
+            <span className="tabular-nums">{audit.connectedAccounts.totalRows.toLocaleString("en-US")} total, including {audit.connectedAccounts.inactiveRows.toLocaleString("en-US")} inactive</span>
+          ) : "Unavailable"}
+        </p>
+        <p>
+          Two-factor method rows: {audit.twoFactorMethods ? (
+            <span className="tabular-nums">{audit.twoFactorMethods.totalRows.toLocaleString("en-US")}</span>
+          ) : "Unavailable"}
+        </p>
+      </div>
+      {audit.connectedAccounts || audit.twoFactorMethods ? (
+        <div className="mt-4 overflow-x-auto rounded-2xl border border-[var(--ds-border)]">
+          <table className="w-full min-w-[620px] text-left text-sm">
+            <caption className="sr-only">Exact credential field counts across all rows, including inactive connected accounts.</caption>
+            <thead className="bg-[var(--ds-surface)] text-[var(--text-primary)]">
+              <tr>
+                <th scope="col" className="px-4 py-3 font-semibold">Field</th>
+                <th scope="col" className="px-4 py-3 text-right font-semibold">Empty</th>
+                <th scope="col" className="px-4 py-3 text-right font-semibold">enc:v1: prefix</th>
+                <th scope="col" className="px-4 py-3 text-right font-semibold">Other nonempty</th>
+              </tr>
+            </thead>
+            <tbody className="text-[var(--text-secondary)]">
+              {fields.map(({ label, counts }) => (
+                <tr key={label} className="border-t border-[var(--ds-border)]">
+                  <th scope="row" className="px-4 py-3 font-medium text-[var(--text-primary)]">{label}</th>
+                  <td className="px-4 py-3 text-right tabular-nums">{counts ? counts.empty.toLocaleString("en-US") : "Unavailable"}</td>
+                  <td className="px-4 py-3 text-right tabular-nums">{counts ? counts.ciphertext.toLocaleString("en-US") : "Unavailable"}</td>
+                  <td className="px-4 py-3 text-right tabular-nums">{counts ? counts.otherNonempty.toLocaleString("en-US") : "Unavailable"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : null}
+      <p className="mt-3 text-xs leading-5 text-[var(--text-secondary)]">
+        Counts cover all rows, including inactive connected accounts. Empty means null or an empty string.
+        The enc:v1: count checks only the stored prefix; it does not verify decryption or key compatibility.
+        Backups and external copies are not checked. This audit does not establish that key replacement is safe.
+      </p>
+    </section>
+  );
+}
 
 function MetricCard({
   label,
@@ -160,6 +231,8 @@ export default async function AdminPage() {
         <MetricCard label="Communities" value={data.counts.communities} detail={`${data.counts.publicCommunities} public, ${data.counts.privateCommunities} private`} icon={RadioTower} />
         <MetricCard label="Pending reports" value={data.counts.pendingReports} detail={`${reportResolutionRate}% resolved all time`} icon={Flag} />
       </section>
+
+      <CredentialStorageAuditSection audit={data.credentialStorageAudit} />
 
       <section className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
         <div className="grid gap-5">

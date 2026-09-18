@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -86,6 +86,69 @@ async function main() {
     const makeUser = (username: string) => prisma.user.create({ data: { username, email: `${username}@example.invalid`, displayName: username, passwordHash: "fixture-no-password" } });
     const buyer = await makeUser("buyer");
     const recipient = await makeUser("recipient");
+    const { getCredentialStorageAudit } = await import("../src/lib/credential-storage-audit");
+    const emptyAudit = await getCredentialStorageAudit();
+    check(emptyAudit.status, "empty", "An empty database reports no current credential payloads");
+    check(emptyAudit.connectedAccounts, {
+      totalRows: 0, inactiveRows: 0,
+      accessToken: { empty: 0, ciphertext: 0, otherNonempty: 0 },
+      refreshToken: { empty: 0, ciphertext: 0, otherNonempty: 0 },
+    }, "An empty account table produces exact zero counts");
+    check(emptyAudit.twoFactorMethods, { totalRows: 0, secret: { empty: 0, ciphertext: 0, otherNonempty: 0 } }, "Historical two-factor storage is also counted");
+    check(emptyAudit.summary, "No currently stored credential payloads were found.", "The empty result is scoped to current payloads");
+    check(emptyAudit.detail.includes("Backups and external copies are not checked."), true, "The audit does not clear uninspected backups");
+
+    const accountFixtures = [
+      { isActive: true, accessToken: null, refreshToken: "" },
+      { isActive: false, accessToken: "enc:v1:fixture-access", refreshToken: "enc:v1:" },
+      { isActive: false, accessToken: "fixture-legacy-access", refreshToken: " " },
+      { isActive: true, accessToken: "", refreshToken: null },
+      { isActive: false, accessToken: "ENC:v1:fixture-unknown", refreshToken: "enc:v2:fixture-unknown" },
+    ];
+    await prisma.connectedAccount.createMany({ data: accountFixtures.map((values) => ({ userId: buyer.id, platform: "audit-fixture", ...values })) });
+    const methodFixtures = [null, "", "enc:v1:fixture-secret", "fixture-legacy-secret", " "];
+    await prisma.twoFactorMethod.createMany({ data: methodFixtures.map((secret) => ({ userId: buyer.id, method: "totp", secret, isEnabled: false })) });
+    // Invalid current key configuration must not erase historical ciphertext
+    // from the audit or become evidence that replacement is safe.
+    process.env.APP_DATA_ENCRYPTION_KEY = "change-me-please";
+    const storedAudit = await getCredentialStorageAudit();
+    check(storedAudit.status, "payloads_present", "An invalid current key cannot clear existing credentials");
+    check(storedAudit.connectedAccounts, {
+      totalRows: 5, inactiveRows: 3,
+      accessToken: { empty: 2, ciphertext: 1, otherNonempty: 2 },
+      refreshToken: { empty: 2, ciphertext: 1, otherNonempty: 2 },
+    }, "Inactive accounts, malformed prefixes, legacy values and whitespace are retained in the aggregate");
+    check(storedAudit.twoFactorMethods, { totalRows: 5, secret: { empty: 2, ciphertext: 1, otherNonempty: 2 } }, "Disabled historical two-factor payloads are included");
+    check(storedAudit.detail.includes("does not verify decryption or determine whether key replacement is safe"), true, "Prefix counts do not assert decryptability or replacement safety");
+    const serializedAudit = JSON.stringify(storedAudit);
+    check(["fixture-access", "fixture-legacy-access", "fixture-unknown", "fixture-secret", "fixture-legacy-secret"].some((value) => serializedAudit.includes(value)), false, "Only counts, never credential payloads, leave the audit");
+    check(await prisma.connectedAccount.count({ where: { userId: buyer.id, OR: accountFixtures } }), 5, "Auditing preserves every account credential and active state");
+    check(await prisma.twoFactorMethod.count({ where: { userId: buyer.id, isEnabled: false, OR: methodFixtures.map((secret) => ({ secret })) } }), 5, "Auditing preserves every historical two-factor payload");
+    await prisma.connectedAccount.deleteMany({ where: { userId: buyer.id } });
+    const twoFactorOnlyAudit = await getCredentialStorageAudit();
+    check(twoFactorOnlyAudit.status, "payloads_present", "Two-factor payloads alone prevent an empty result");
+    await prisma.twoFactorMethod.deleteMany({ where: { userId: buyer.id } });
+    await prisma.connectedAccount.createMany({ data: [
+      { userId: buyer.id, platform: "audit-empty", accessToken: null, refreshToken: "", isActive: false },
+      { userId: buyer.id, platform: "audit-empty", accessToken: "", refreshToken: null, isActive: true },
+    ] });
+    const emptyFieldsAudit = await getCredentialStorageAudit();
+    check(emptyFieldsAudit.status, "empty", "Rows with only null and empty fields contain no credential payloads");
+    check(emptyFieldsAudit.connectedAccounts?.accessToken.empty, 2, "Null and empty-string values both count as empty");
+    await prisma.connectedAccount.deleteMany({ where: { userId: buyer.id } });
+
+    // Temporarily hide a table in this isolated database to exercise a real
+    // failed read; failures must not be rendered as zero stored credentials.
+    await prisma.$executeRaw`ALTER TABLE TwoFactorMethod RENAME TO AuditUnavailableMethods`;
+    try {
+      const failedAudit = await getCredentialStorageAudit();
+      check(failedAudit.status, "unavailable", "A failed aggregate read is never reported as empty");
+      check([failedAudit.connectedAccounts, failedAudit.twoFactorMethods], [null, null], "Unavailable reads return no misleading partial counts");
+      check(failedAudit.summary, "Credential storage could not be checked.", "A database failure has a plain, non-sensitive status");
+    } finally {
+      await prisma.$executeRaw`ALTER TABLE AuditUnavailableMethods RENAME TO TwoFactorMethod`;
+    }
+
     const gift = (id: string, overrides: Partial<Stripe.Checkout.Session> = {}) => ({
       id, object: "checkout.session", mode: "payment", status: "complete", payment_status: "paid",
       metadata: { product: "meshpro-gift", recipientUserId: recipient.id, purchaserUserId: buyer.id, months: "1" },
@@ -189,7 +252,7 @@ async function main() {
     await prisma.user.update({ where: { id: buyer.id }, data: { isSuspended: true } });
     assert.throws(() => runOwnerSetup({ MESH_BOOTSTRAP_ADMIN_USERNAME: buyer.username })); checks++;
     await prisma.user.update({ where: { id: buyer.id }, data: { isSuspended: false } });
-    runOwnerSetup({ MESH_BOOTSTRAP_ADMIN_USERNAME: buyer.username });
+    runOwnerSetup({ MESH_BOOTSTRAP_ADMIN_USERNAME: buyer.username, DATABASE_URL: `  ${process.env.DATABASE_URL}  ` });
     check((await prisma.user.findUniqueOrThrow({ where: { id: buyer.id } })).isAdmin, true, "Owner setup promotes only the configured existing account");
     check(await prisma.user.count({ where: { isAdmin: true } }), 1, "Other accounts retain their roles");
     check(await prisma.adminLog.count({ where: { action: "bootstrap_owner_admin", adminId: buyer.id } }), 1, "Owner setup records the change atomically");
@@ -199,6 +262,16 @@ async function main() {
     await prisma.user.update({ where: { id: buyer.id }, data: { isAdmin: false } });
     assert.throws(() => runOwnerSetup({ MESH_BOOTSTRAP_ADMIN_USERNAME: recipient.username })); checks++;
     check(await prisma.user.count({ where: { isAdmin: true } }), 0, "A completed bootstrap cannot be reused after role revocation");
+    const invalidDatabase = "unsupported-audit-fixture://sentinel-connection-url";
+    const invalidToken = "sentinel-token-must-stay-private";
+    const failedSetup = spawnSync(process.execPath, ["scripts/bootstrap-owner-admin.mjs"], {
+      env: { ...process.env, VERCEL_ENV: "production", VERCEL_GIT_COMMIT_REF: "main", MESH_BOOTSTRAP_ADMIN_USERNAME: buyer.username, DATABASE_URL: invalidDatabase, DATABASE_AUTH_TOKEN: invalidToken },
+      encoding: "utf8", stdio: ["ignore", "pipe", "pipe"],
+    });
+    check(failedSetup.status, 1, "Invalid database configuration fails owner setup");
+    const failedSetupOutput = `${failedSetup.stdout}${failedSetup.stderr}`.trim();
+    check(failedSetupOutput, "[owner-setup] Database operation failed. Check the connection configuration; credential details have been withheld.", "Database errors expose only the fixed diagnostic");
+    check(failedSetupOutput.includes(invalidDatabase) || failedSetupOutput.includes(invalidToken), false, "Owner setup errors never echo connection URLs or tokens");
     console.log(`launch behavior: ${checks} assertions passed (isolated database; mocked payment transport)`);
   } finally {
     await prisma.$disconnect();
