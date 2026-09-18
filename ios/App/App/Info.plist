@@ -98,8 +98,8 @@
 	<!-- Universal links -->
 	<key>com.apple.developer.associated-domains</key>
 	<array>
-		<string>applinks:mesh.me</string>
-		<string>applinks:www.mesh.me</string>
+		<string>applinks:meshs.me</string>
+		<string>applinks:www.meshs.me</string>
 	</array>
 
 	<!-- Background modes -->

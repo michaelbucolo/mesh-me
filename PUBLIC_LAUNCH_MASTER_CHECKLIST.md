@@ -6,7 +6,7 @@ Updated 18 September 2026. This document separates verified code behavior from p
 
 | Requirement | Evidence and next action | Status |
 | --- | --- | --- |
-| Canonical domain | Vercel serves `meshs.me` and `www.meshs.me`. Verify ownership and configure `mesh.me` before advertising that address. | Open |
+| Canonical domain | The owner confirmed `meshs.me` as the launch domain; Vercel serves `meshs.me` and `www.meshs.me`. Mesh.me remains the product name. The separately owned `mesh.me` domain is not required for launch. | Verified |
 | Connected accounts | Production rejects the existing encryption key as unusable. The authenticated production credential audit confirms that encrypted and other nonempty credential payloads already exist. Recover the matching key or plan an explicit migration/reconnection with recovery coverage; do not replace the key blindly. The audit returns counts only and does not establish decryptability. | Blocked |
 | Real payments | The connected Stripe account is in test mode and had no active prices or webhook endpoints. Vercel has price IDs and static payment links but lacks the Stripe server key and webhook signing secret. Static links cannot safely establish account ownership, so this release leaves purchasing unavailable until matching live keys, prices and a webhook are configured. A completed live payment, entitlement, refund and cancellation still need verification. | Unverified |
 | Gift payments | Production reports zero configured gift prices. Configure one-time prices matching the displayed amounts, or keep purchase controls unavailable. | Blocked |

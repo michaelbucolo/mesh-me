@@ -27,7 +27,7 @@ mesh.me is deployed from the repository root and uses:
 DATABASE_URL="libsql://your-db.turso.io"
 DATABASE_AUTH_TOKEN="your-turso-token"
 AUTH_SECRET="generate-a-long-random-secret"
-NEXT_PUBLIC_APP_URL="https://mesh.me"
+NEXT_PUBLIC_APP_URL="https://www.meshs.me"
 NODE_ENV="production"
 ```
 
@@ -114,8 +114,8 @@ After deploy, confirm:
 
 After deployment:
 
-1. Connect `mesh.me` to Vercel.
-2. Set `NEXT_PUBLIC_APP_URL=https://mesh.me`.
+1. Connect `meshs.me` and `www.meshs.me` to Vercel.
+2. Set `NEXT_PUBLIC_APP_URL=https://www.meshs.me`.
 3. Redeploy so metadata and canonical URLs use the real domain.
 
 ## Database migrations
@@ -144,15 +144,14 @@ npx prisma db seed
 The callback pattern is:
 
 ```text
-https://mesh.me/api/auth/<platform>/callback
+https://www.meshs.me/api/auth/<platform>/callback
 ```
 
 Examples:
 
 ```text
-https://mesh.me/api/auth/youtube/callback
-https://mesh.me/api/auth/github/callback
-https://mesh.me/api/auth/discord/callback
+https://www.meshs.me/api/auth/youtube/callback
+https://www.meshs.me/api/auth/discord/callback
 ```
 
 Do not use `/api/auth/callback/<platform>` because that does not match the implementation.
@@ -176,7 +175,7 @@ Recommended redirect URIs:
 
 ```text
 http://localhost:3000/api/auth/youtube/callback
-https://mesh.me/api/auth/youtube/callback
+https://www.meshs.me/api/auth/youtube/callback
 ```
 
 ## Why Google may block users

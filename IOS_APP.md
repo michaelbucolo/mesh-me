@@ -109,11 +109,11 @@ TypeScript modules that wrap Capacitor plugins with graceful web fallbacks:
 `me.mesh.app` — configured in `capacitor.config.ts`
 
 ### Server URL
-In development, the app loads from the hosted Vercel deployment. For production, update `capacitor.config.ts`:
+The app loads the hosted production site. In `capacitor.config.ts`, use the canonical launch URL:
 
 ```typescript
 server: {
-  url: "https://your-production-domain.com",
+  url: "https://www.meshs.me",
 }
 ```
 
@@ -131,7 +131,7 @@ server: {
 
 ### URL Schemes
 - **Custom scheme**: `meshme://` for deep linking
-- **Universal links**: `mesh.me` and `www.mesh.me`
+- **Universal links**: configure `meshs.me` and `www.meshs.me`
 
 ## Device Support
 
@@ -152,9 +152,9 @@ server: {
 
 - **Category**: Social Networking
 - **Age Rating**: 12+ (social features)
-- **Privacy URL**: https://mesh.me/privacy
-- **Terms URL**: https://mesh.me/terms
-- **Support URL**: https://mesh.me/about
+- **Privacy URL**: https://www.meshs.me/privacy
+- **Terms URL**: https://www.meshs.me/terms
+- **Support URL**: https://www.meshs.me/about
 
 ## Troubleshooting
 
