@@ -32,7 +32,29 @@ async function reviewRows(id?: string) {
     }
     const protectedAccount = user.isAdmin || user.isMeshPro || user.stripeCustomerId || user.stripeSubscriptionId || user.charterNumber || user.patronSince || user.meshProGiftUntil ||
       user._count.connectedAccounts || user._count.authIdentities || user._count.patronStints || user._count.meshProGiftsReceived || user._count.meshProGiftsSent || user._count.ownedMeshiItems || user._count.purchasedMeshiItems;
-    return { user, eligible: evidence && !protectedAccount, reason: !evidence ? "Fixture evidence does not match" : protectedAccount ? "Protected: administrator, connected identity or payment history" : "Verified fixture; no protected relationships" };
+    // Explain every existing protection using only categories and counts.
+    // Keep the eligibility expression above and deletion guards unchanged.
+    const protections = [
+      user.isAdmin && "administrator role",
+      user.isMeshPro && "MeshPro status",
+      user.stripeCustomerId && "billing customer reference",
+      user.stripeSubscriptionId && "billing subscription reference",
+      user.charterNumber && "charter history",
+      user.patronSince && "patron history",
+      user.meshProGiftUntil && "MeshPro gift history",
+      user._count.connectedAccounts && `connected accounts (${user._count.connectedAccounts})`,
+      user._count.authIdentities && `authentication identities (${user._count.authIdentities})`,
+      user._count.patronStints && `patron history records (${user._count.patronStints})`,
+      user._count.meshProGiftsReceived && `gift records received (${user._count.meshProGiftsReceived})`,
+      user._count.meshProGiftsSent && `gift records sent (${user._count.meshProGiftsSent})`,
+      user._count.ownedMeshiItems && `owned items (${user._count.ownedMeshiItems})`,
+      user._count.purchasedMeshiItems && `purchased item records (${user._count.purchasedMeshiItems})`,
+    ].filter(Boolean);
+    const reason = [
+      !evidence && "Fixture evidence does not match",
+      protectedAccount && `Protected: ${protections.join("; ")}`,
+    ].filter(Boolean).join(". ") || "Verified fixture; no protected relationships";
+    return { user, eligible: evidence && !protectedAccount, reason };
   }));
 }
 

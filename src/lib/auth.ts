@@ -78,6 +78,7 @@ export async function getSession() {
   // Look up session in database
   const session = await prisma.session.findUnique({
     where: { id: sessionId },
+    include: { user: { select: { isSuspended: true } } },
   });
 
   if (!session) {
@@ -88,6 +89,12 @@ export async function getSession() {
   if (session.expiresAt < new Date()) {
     // Clean up expired session
     await prisma.session.delete({ where: { id: sessionId } }).catch(() => {});
+    await clearSessionCookiesBestEffort();
+    return null;
+  }
+
+  // A retained or concurrently created session must not bypass suspension.
+  if (!session.user || session.user.isSuspended) {
     await clearSessionCookiesBestEffort();
     return null;
   }

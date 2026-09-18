@@ -1,8 +1,10 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
 import { mkdtempSync, rmSync } from "node:fs";
+import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { mock } from "node:test";
 import Stripe from "stripe";
 
 async function main() {
@@ -86,6 +88,42 @@ async function main() {
     const makeUser = (username: string) => prisma.user.create({ data: { username, email: `${username}@example.invalid`, displayName: username, passwordHash: "fixture-no-password" } });
     const buyer = await makeUser("buyer");
     const recipient = await makeUser("recipient");
+    // Only Next's request-cookie boundary is mocked. getSession, expiry
+    // cleanup and revocation run against the real isolated database.
+    const nextHeaders = createRequire(import.meta.url)("next/headers") as typeof import("next/headers");
+    const requestCookies = new Map<string, string>();
+    const cookieBoundary = mock.method(nextHeaders, "cookies", async () => ({
+      get: (name: string) => {
+        const value = requestCookies.get(name);
+        return value === undefined ? undefined : { name, value };
+      },
+      delete: (name: string) => requestCookies.delete(name),
+    } as unknown as Awaited<ReturnType<typeof nextHeaders.cookies>>));
+    try {
+      const { getSession, invalidateAllUserSessions } = await import("../src/lib/auth");
+      const validSessionId = "1".repeat(64);
+      const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
+      await prisma.session.create({ data: { id: validSessionId, userId: buyer.id, expiresAt } });
+      requestCookies.set("__Host-mesh_session", validSessionId);
+      check(await getSession(), { userId: buyer.id, expiresAt }, "Active sessions retain the existing public return shape");
+      await prisma.user.update({ where: { id: buyer.id }, data: { isSuspended: true } });
+      check(await getSession(), null, "An otherwise-valid session cannot authorize a suspended account");
+      check(await prisma.session.count({ where: { id: validSessionId } }), 1, "Suspension is enforced even while the unexpired session remains stored");
+      await prisma.user.update({ where: { id: buyer.id }, data: { isSuspended: false } });
+      requestCookies.set("__Host-mesh_session", validSessionId);
+      check(await invalidateAllUserSessions(buyer.id), 1, "Revocation removes the user's stored session");
+      check(await getSession(), null, "A revoked session cookie cannot authorize an account");
+      const expiredSessionId = "2".repeat(64);
+      await prisma.session.create({ data: { id: expiredSessionId, userId: buyer.id, expiresAt: new Date(0) } });
+      requestCookies.set("__Host-mesh_session", expiredSessionId);
+      check(await getSession(), null, "An expired session cannot authorize an account");
+      check(await prisma.session.count({ where: { id: expiredSessionId } }), 0, "Expired sessions are still removed from storage");
+    } finally {
+      cookieBoundary.mock.restore();
+      await prisma.user.update({ where: { id: buyer.id }, data: { isSuspended: false } });
+      await prisma.session.deleteMany({ where: { userId: buyer.id } });
+    }
+
     const { getCredentialStorageAudit } = await import("../src/lib/credential-storage-audit");
     const emptyAudit = await getCredentialStorageAudit();
     check(emptyAudit.status, "empty", "An empty database reports no current credential payloads");
@@ -230,7 +268,9 @@ async function main() {
     await prisma.user.update({ where: { id: secondFixture.id }, data: { isAdmin: true } });
     check(JSON.parse(runCleanup()).accounts.find((account: { id: string }) => account.id === secondFixture.id).eligible, false, "Administrative accounts are protected from fixture cleanup");
     await prisma.user.update({ where: { id: secondFixture.id }, data: { isAdmin: false, stripeCustomerId: "cus_protected" } });
-    check(JSON.parse(runCleanup()).accounts.find((account: { id: string }) => account.id === secondFixture.id).eligible, false, "Payment history protects an account even with matching fixture evidence");
+    const billingProtectedReview = JSON.parse(runCleanup()).accounts.find((account: { id: string }) => account.id === secondFixture.id);
+    check(billingProtectedReview.eligible, false, "Payment history protects an account even with matching fixture evidence");
+    check(billingProtectedReview.reason, "Protected: billing customer reference", "A protected billing reference is explained without exposing its value or account identifiers");
     await prisma.user.update({ where: { id: secondFixture.id }, data: { stripeCustomerId: null } });
     assert.throws(() => runCleanup([`--delete-id=${secondFixture.id}`, "--confirm-username=wrong"])); checks++;
     runCleanup([`--delete-id=${secondFixture.id}`, "--confirm-username=meshmetester2"]);
