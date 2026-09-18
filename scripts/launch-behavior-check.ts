@@ -230,7 +230,9 @@ async function main() {
     await prisma.user.update({ where: { id: secondFixture.id }, data: { isAdmin: true } });
     check(JSON.parse(runCleanup()).accounts.find((account: { id: string }) => account.id === secondFixture.id).eligible, false, "Administrative accounts are protected from fixture cleanup");
     await prisma.user.update({ where: { id: secondFixture.id }, data: { isAdmin: false, stripeCustomerId: "cus_protected" } });
-    check(JSON.parse(runCleanup()).accounts.find((account: { id: string }) => account.id === secondFixture.id).eligible, false, "Payment history protects an account even with matching fixture evidence");
+    const billingProtectedReview = JSON.parse(runCleanup()).accounts.find((account: { id: string }) => account.id === secondFixture.id);
+    check(billingProtectedReview.eligible, false, "Payment history protects an account even with matching fixture evidence");
+    check(billingProtectedReview.reason, "Protected: billing customer reference", "A protected billing reference is explained without exposing its value or account identifiers");
     await prisma.user.update({ where: { id: secondFixture.id }, data: { stripeCustomerId: null } });
     assert.throws(() => runCleanup([`--delete-id=${secondFixture.id}`, "--confirm-username=wrong"])); checks++;
     runCleanup([`--delete-id=${secondFixture.id}`, "--confirm-username=meshmetester2"]);
