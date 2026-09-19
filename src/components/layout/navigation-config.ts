@@ -53,7 +53,6 @@ export function getBadgeCount(
   unreadNotifications: number,
   unreadMessages: number,
 ): number {
-  if (badgeKey === "messages") return unreadMessages;
-  if (badgeKey === "notifications") return unreadNotifications;
-  return 0;
+  const count = badgeKey === "messages" ? unreadMessages : badgeKey === "notifications" ? unreadNotifications : 0;
+  return Number.isFinite(count) ? Math.max(0, Math.floor(count)) : 0;
 }

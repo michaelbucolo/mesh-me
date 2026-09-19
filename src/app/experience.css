@@ -43,14 +43,14 @@
   border-bottom: 1px solid var(--rule);
   padding-inline: clamp(1rem, 3vw, 2rem);
 }
-.mesh-experience .mesh-topbar form {
+.mesh-experience .mesh-topbar-search {
   border-color: var(--rule);
   border-radius: var(--radius-md);
   background: var(--paper-1);
   min-height: 44px;
   transition: border-color 180ms var(--mesh-ease-out), box-shadow 180ms var(--mesh-ease-out);
 }
-.mesh-experience .mesh-topbar form:focus-within {
+.mesh-experience .mesh-topbar-search:focus-within {
   border-color: var(--focus);
   box-shadow: 0 0 0 3px var(--accent-wash);
 }
@@ -127,7 +127,7 @@
 .mesh-page-description { margin-top: .85rem; max-width: 31rem; color: var(--text-secondary); font-size: .9375rem; line-height: 1.75; text-wrap: pretty; }
 .mesh-page-intro-action { margin-top: 1.35rem; }
 .mesh-page-intro-action .mesh-action { gap: .6rem; background: var(--paper-1); border-color: var(--signature-rim); }
-.mesh-feed-intro { min-height: 180px; margin-bottom: .25rem; padding-block: 1.5rem; }
+.mesh-feed-intro { min-height: 140px; margin-bottom: .25rem; padding-block: 1.25rem; }
 .mesh-feed-intro > .mesh-signature-art { width: 275px; right: -30px; opacity: .65; }
 .mesh-feed-intro .mesh-page-title { font-size: clamp(1.9rem, 3.2vw, 2.6rem); }
 .mesh-feed-intro .mesh-page-intro-copy { max-width: 75%; }
@@ -156,8 +156,8 @@
   background: var(--paper-1);
   box-shadow: var(--shadow-float), 0 0 0 5px var(--accent-wash);
 }
-.mesh-experience .mesh-dialog > div:first-child { background: linear-gradient(120deg, var(--accent-wash), transparent 80%), var(--paper-1); padding: 1.4rem 1.5rem; }
-.mesh-experience .mesh-dialog > div:last-child { padding: 1.5rem; }
+.mesh-experience .mesh-dialog > div:first-child { background: linear-gradient(120deg, var(--accent-wash), transparent 80%), var(--paper-1); padding: 1.25rem 1.5rem; }
+.mesh-experience .mesh-dialog > div:last-child { padding: clamp(1rem, 4vw, 1.5rem); }
 .mesh-empty-state { isolation: isolate; overflow: hidden; }
 .mesh-empty-art { top: -15px; left: 50%; width: 240px; transform: translateX(-50%); opacity: .5; z-index: -1; }
 .mesh-experience .mesh-empty-state > .mesh-float { border-color: var(--signature-rim); background: var(--paper-1); box-shadow: var(--signature-shadow); }
@@ -193,7 +193,7 @@
   .mesh-page-intro-copy { max-width: 88%; }
   .mesh-page-eyebrow { margin-bottom: .75rem; }
   .mesh-page-description { max-width: 24rem; font-size: .875rem; }
-  .mesh-feed-intro { min-height: 165px; }
+  .mesh-feed-intro { min-height: 125px; }
   .mesh-feed-intro .mesh-page-intro-copy { max-width: 85%; }
   .mesh-feed-intro > .mesh-signature-art { right: -80px; width: 230px; opacity: .3; }
 }
@@ -331,16 +331,86 @@
 .mesh-explore-intro .mesh-page-intro-copy { max-width: 100%; padding-right: 12rem; width: 100%; }
 .mesh-explore-intro .mesh-page-intro-action { position: absolute; right: 0; bottom: 0; margin: 0; }
 .mesh-explore-controls { padding-block: .75rem; background: var(--paper-0); }
+.mesh-explore-controls form:focus-within { border-color: var(--focus); box-shadow: 0 0 0 3px var(--accent-wash); }
 .mesh-explore-tabs { padding: 4px; border-radius: var(--radius-lg); background: var(--paper-1); border: 1px solid var(--rule); }
 .mesh-explore-tab { border-radius: var(--radius-md); color: var(--text-secondary); isolation: isolate; }
 .mesh-explore-tab[aria-selected="true"] { color: var(--text-primary); }
 .mesh-explore-selection { position: absolute; inset: 0; border-radius: inherit; background: var(--paper-2); border: 1px solid var(--edge); box-shadow: var(--shadow-rest); }
 .mesh-explore-tab:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
 .mesh-discovery-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; align-items: start; }
-.mesh-discovery-note { padding: 1.5rem; min-height: 210px; display: flex; flex-direction: column; }
-.mesh-discovery-note > div:last-child { margin-top: auto; padding-top: 1.25rem; }
+.mesh-discovery-note { padding: 1.35rem; min-height: 205px; display: flex; flex-direction: column; }
+.mesh-discovery-note > div:last-child { margin-top: auto; padding-top: 1rem; }
 .mesh-experience .mesh-explore-tile { background: var(--paper-1); border-color: var(--rule); }
 .mesh-experience .mesh-explore-tile:hover { border-color: var(--signature-rim); }
+
+/* Shared spacing makes utility screens feel like part of the same place. */
+.mesh-experience .settings-traditional {
+  width: 100%;
+  max-width: 1240px;
+  margin-inline: auto;
+  padding: clamp(1rem, 2.4vw, 2rem);
+}
+.mesh-experience .settings-traditional-header {
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-rest);
+}
+.mesh-experience .settings-traditional-grid { gap: 1.5rem; margin-top: 1.5rem; }
+.mesh-experience .settings-traditional-nav { border-radius: var(--radius-lg); }
+.mesh-experience .settings-nav-item { border-radius: var(--radius-md); }
+.mesh-experience .settings-nav-item[aria-current="page"] {
+  background: var(--accent-wash);
+  box-shadow: inset 3px 0 0 var(--accent-text);
+}
+.mesh-experience .settings-nav-item:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.mesh-experience .settings-panel-heading { padding: .25rem 0 1.1rem; }
+.mesh-experience .settings-panel-scroll { padding: 1.25rem 0; }
+.mesh-experience .settings-search input { min-height: 44px; }
+.mesh-experience .settings-nav-scroll { scrollbar-width: thin; }
+
+/* Allow content to remain calm while interactive edges respond. */
+.mesh-discovery-byline { min-width: 0; line-height: 1.5; }
+.mesh-discovery-footer { border-top: 1px solid var(--rule); color: var(--text-secondary); }
+.mesh-experience .mesh-explore-tile:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 4px;
+}
+.mesh-explore-filter-summary { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; }
+.mesh-composer-header { padding-bottom: .75rem; }
+.mesh-composer-toolbar { gap: .5rem; }
+.mesh-post-engagement { border-top: 1px solid var(--rule); padding-top: .75rem; }
+.mesh-experience .feed-text-post { min-height: 0; align-content: start; padding-block: .6rem .9rem; }
+
+@media (min-width: 1024px) {
+  .mesh-experience .settings-traditional-grid { grid-template-columns: 15.5rem minmax(0, 1fr); }
+  .mesh-experience .settings-traditional-nav { top: 1.5rem; max-height: calc(100dvh - var(--mesh-topbar-h) - 3rem); }
+}
+
+/* The tablet rail is 72px wide; desktop padding must not consume it. */
+@media (min-width: 768px) and (max-width: 1023px),
+  (min-width: 600px) and (max-width: 767.98px) and (min-height: 560px) {
+  .mesh-experience .mesh-sidebar > div:first-child { padding: 1.25rem 0 1.5rem; }
+  .mesh-experience .mesh-sidebar nav { width: 100%; padding-inline: .5rem; }
+  .mesh-experience .mesh-sidebar nav > div { gap: .5rem; }
+  .mesh-experience .mesh-nav-item { width: 100%; min-height: 48px; gap: 0; }
+  .mesh-experience .mesh-user-dock { margin-inline: 0; }
+}
+
+@media (max-width: 767px) {
+  .mesh-experience .settings-traditional { padding: 1rem .75rem; }
+  .mesh-experience .settings-traditional-grid { margin-top: .75rem; }
+  .mesh-experience .settings-traditional-header { padding: 1rem !important; }
+  .mesh-experience .settings-panel-heading { padding-inline: .25rem !important; }
+  .mesh-experience .settings-panel-scroll { padding-inline: .25rem !important; }
+  .mesh-experience .settings-nav-item { min-height: 60px; gap: .75rem; padding: .75rem; }
+  .mesh-experience .settings-search input { font-size: 1rem; }
+  .mesh-experience .insta-post-card,
+  .mesh-experience .insta-post-card:hover { box-shadow: none !important; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mesh-experience .mesh-nav-item,
+  .mesh-experience .mesh-topbar-search { transition: none; }
+}
 
 /* A small listening room for the interface, with no background sound. */
 .mesh-feedback-settings { display: grid; gap: 1.25rem; padding: 1.5rem; border: 1px solid var(--rule); border-radius: var(--radius-xl); background: var(--paper-1); }
