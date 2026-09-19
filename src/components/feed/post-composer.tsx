@@ -4,6 +4,7 @@ import { PaperWait } from "@/components/loading/paper-wait";
 import { PlatformLogo } from "@/components/platform/platform-logo";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { useReducedMotion } from "framer-motion";
 import { useRef, useState, useTransition, useEffect } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { createPost } from "@/lib/actions";
@@ -12,7 +13,7 @@ import { publishMeshiCause } from "@/lib/meshi-bus";
 import { feedback } from "@/lib/feedback";
 import { MAX_POST_MEDIA_FILES, POST_MEDIA_ACCEPT, postMediaSelectionError } from "@/lib/post-media";
 import { readPostDraft, type PostAudience } from "@/lib/post-draft";
-import { Image as ImageIcon, Hash, Globe, X, Share2, ChevronDown, Info, CheckCircle2, AlertTriangle, Link as LinkIcon, Lock, Users, Video, Eye } from "lucide-react";
+import { Image as ImageIcon, Hash, Globe, X, Share2, ChevronDown, Info, CheckCircle2, AlertTriangle, Link as LinkIcon, Lock, Users } from "lucide-react";
 
 // THERE IS NO HARDCODED PLATFORM LIST HERE ANY MORE.
 //
@@ -108,6 +109,7 @@ function inferComposerMediaType(url: string) {
 
 export function PostComposer({ user, communityId, communityIsPublic = true, startExpanded = false, onPostPending, onPostCreated, onPostFailed }: PostComposerProps) {
   const router = useRouter();
+  const reduce = useReducedMotion();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -249,7 +251,7 @@ export function PostComposer({ user, communityId, communityIsPublic = true, star
     if (!shouldFocusComposer) return;
     setExpanded(true);
     const focusComposer = () => {
-      textareaRef.current?.scrollIntoView({ block: "center", behavior: "smooth" });
+      textareaRef.current?.scrollIntoView({ block: "center", behavior: reduce ? "auto" : "smooth" });
       textareaRef.current?.focus({ preventScroll: true });
     };
     const firstTimeout = window.setTimeout(focusComposer, 100);
@@ -258,7 +260,14 @@ export function PostComposer({ user, communityId, communityIsPublic = true, star
       window.clearTimeout(firstTimeout);
       window.clearTimeout(secondTimeout);
     };
-  }, [shouldFocusComposer]);
+  }, [shouldFocusComposer, reduce]);
+
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (!textarea || !isExpanded) return;
+    textarea.style.height = "auto";
+    textarea.style.height = `${Math.min(Math.max(textarea.scrollHeight, 112), 280)}px`;
+  }, [content, isExpanded]);
 
   useEffect(() => {
     if (!successMessage || submitting) return;
@@ -447,6 +456,8 @@ export function PostComposer({ user, communityId, communityIsPublic = true, star
   const availablePlatforms = publishableAccounts;
   const publishableIds = new Set(publishableAccounts.map((p) => p.id));
   const connectedButNotPublishable = connectedAccounts.filter((p) => !publishableIds.has(p.id));
+  const selectedAudience = audienceOptions.find((option) => option.id === visibility) ?? audienceOptions[0];
+  const AudienceIcon = selectedAudience.icon;
 
   return (
     // `rounded-2xl glass-card` is gone. The composer is a TRAY — the recess its
@@ -512,9 +523,15 @@ export function PostComposer({ user, communityId, communityIsPublic = true, star
           </Button>
         </div>
       ) : (
-        <div className="flex min-w-0 gap-3">
-          <Avatar src={user.avatarUrl} alt={user.displayName} size="md" />
-          <div className="min-w-0 flex-1">
+        <div className="min-w-0">
+          <div className="mesh-composer-header mb-4 flex min-w-0 items-center gap-3">
+            <div className="shrink-0" aria-hidden="true"><Avatar src={user.avatarUrl} alt={user.displayName} size="sm" /></div>
+            <span className="min-w-0 flex-1 truncate text-sm font-semibold text-[var(--text-primary)]">{user.displayName}</span>
+            <button type="button" onClick={() => setShowVisibility(!showVisibility)} aria-expanded={showVisibility} aria-label={`Audience: ${selectedAudience.label}. Change audience`} className="key explore-chip inline-flex min-h-10 shrink-0 items-center gap-1.5 px-3 text-xs font-medium text-[var(--text-secondary)]">
+              <AudienceIcon size={13} aria-hidden="true" />{selectedAudience.label}<ChevronDown size={12} aria-hidden="true" />
+            </button>
+          </div>
+          <div className="min-w-0">
 
           <textarea
             ref={textareaRef}
@@ -529,7 +546,7 @@ export function PostComposer({ user, communityId, communityIsPublic = true, star
                 handleSubmit();
               }
             }}
-            className="w-full bg-transparent text-[var(--text-primary)] text-sm placeholder:text-[var(--text-muted)] resize-none outline-none min-h-[80px]"
+            className="w-full min-h-28 resize-none bg-transparent text-base leading-relaxed text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)]"
             rows={3}
           />
 
@@ -570,6 +587,8 @@ export function PostComposer({ user, communityId, communityIsPublic = true, star
                 Link preview
                 <input
                   value={linkUrl}
+                  type="url"
+                  inputMode="url"
                   onChange={(e) => setLinkUrl(e.target.value)}
                   placeholder="https://example.com"
                   className="theme-input min-h-10 rounded-lg px-3 text-sm"
@@ -579,6 +598,8 @@ export function PostComposer({ user, communityId, communityIsPublic = true, star
                 Image or video URL
                 <input
                   value={mediaUrl}
+                  type="url"
+                  inputMode="url"
                   onChange={(e) => setMediaUrl(e.target.value)}
                   placeholder="https://example.com/photo.jpg"
                   className="theme-input min-h-10 rounded-lg px-3 text-sm"
@@ -623,11 +644,12 @@ export function PostComposer({ user, communityId, communityIsPublic = true, star
               <Hash className="h-4 w-4 text-[var(--text-muted)]" />
               <input
                 value={tags}
+                aria-label="Post tags, separated by commas"
                 onChange={(e) => setTags(e.target.value)}
                 placeholder="Add tags (comma separated)"
                 className="flex-1 bg-transparent text-sm text-[var(--text-secondary)] placeholder:text-[var(--text-muted)] outline-none"
               />
-              <button onClick={() => { setShowTags(false); setTags(""); }} className="text-[var(--text-muted)] hover:text-[var(--text-secondary)]">
+              <button type="button" aria-label="Remove tags" onClick={() => { setShowTags(false); setTags(""); }} className="flex h-11 w-11 items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-secondary)]">
                 <X className="h-4 w-4" />
               </button>
             </div>
@@ -641,7 +663,7 @@ export function PostComposer({ user, communityId, communityIsPublic = true, star
                   <Share2 className="h-3 w-3" />
                   Also post to connected platforms
                 </p>
-                <button onClick={() => setShowCrossPost(false)} className="text-[var(--text-muted)] hover:text-[var(--text-secondary)]">
+                <button type="button" aria-label="Close cross-post options" onClick={() => setShowCrossPost(false)} className="flex h-11 w-11 shrink-0 items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-secondary)]">
                   <X className="h-3 w-3" />
                 </button>
               </div>
@@ -715,28 +737,21 @@ export function PostComposer({ user, communityId, communityIsPublic = true, star
             </button>
           )}
 
-          <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--border-primary)] pt-3">
+          <div className="mesh-composer-toolbar mt-3 flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-t border-[var(--border-primary)] pt-3">
             <div className="flex items-center gap-1">
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="key inline-flex h-10 w-10 items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-primary)]"
-                title="Add images or videos"
+                className="key inline-flex h-11 w-11 items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                title="Add photos or videos"
+                aria-label="Add photos or videos"
               >
-                <ImageIcon className="h-4 w-4" />
-              </button>
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="key inline-flex h-10 w-10 items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-primary)]"
-                title="Add video"
-              >
-                <Video className="h-4 w-4" />
+                <ImageIcon className="h-4 w-4" aria-hidden="true" />
               </button>
               <button
                 type="button"
                 onClick={() => setShowLinkTools(!showLinkTools)}
-                className={"key inline-flex h-10 w-10 items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-primary)] " + (
+                className={"key inline-flex h-11 w-11 items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-primary)] " + (
                   showLinkTools || linkUrl || mediaUrl
                     ? "key-lit [--mould:var(--mould-cobalt)] [--mould-ink:var(--mould-cobalt-ink)] [--mould-plinth:var(--mould-cobalt-plinth)]"
                     : ""
@@ -750,7 +765,7 @@ export function PostComposer({ user, communityId, communityIsPublic = true, star
               <button
                 type="button"
                 onClick={() => setShowTags(!showTags)}
-                className="key inline-flex h-10 w-10 items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                className="key inline-flex h-11 w-11 items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-primary)]"
                 aria-expanded={showTags}
                 aria-label="Add tags"
                 title="Add tags"
@@ -759,22 +774,8 @@ export function PostComposer({ user, communityId, communityIsPublic = true, star
               </button>
               <button
                 type="button"
-                onClick={() => setShowVisibility(!showVisibility)}
-                className={"key inline-flex h-10 w-10 items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-primary)] " + (
-                  showVisibility || visibility !== "public"
-                    ? "key-lit [--mould:var(--mould-cobalt)] [--mould-ink:var(--mould-cobalt-ink)] [--mould-plinth:var(--mould-cobalt-plinth)]"
-                    : ""
-                )}
-                aria-expanded={showVisibility}
-                aria-label="Post visibility"
-                title="Post visibility"
-              >
-                <Eye className="h-4 w-4" />
-              </button>
-              <button
-                type="button"
                 onClick={() => setShowCrossPost(!showCrossPost)}
-                className={"key inline-flex h-10 w-10 items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-primary)] " + (
+                className={"key inline-flex h-11 w-11 items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-primary)] " + (
                   showCrossPost || selectedPlatforms.size > 0
                     ? "key-lit [--mould:var(--mould-cobalt)] [--mould-ink:var(--mould-cobalt-ink)] [--mould-plinth:var(--mould-cobalt-plinth)]"
                     : ""
@@ -788,11 +789,8 @@ export function PostComposer({ user, communityId, communityIsPublic = true, star
             </div>
 
             <div className="flex flex-wrap items-center justify-end gap-3">
-              <span className="hidden text-xs font-semibold text-[var(--text-muted)] sm:inline">
-                {audienceOptions.find((option) => option.id === visibility)?.label}
-              </span>
               {content.length > 0 && (
-                <span className={`text-xs ${content.length > 500 ? "font-semibold text-[var(--danger)]" : "text-[var(--text-muted)]"}`}>
+                <span className={`tabular-nums text-xs ${content.length >= 480 ? "font-semibold text-[var(--warning)]" : "text-[var(--text-muted)]"}`} aria-label={`${500 - content.length} characters remaining`} title={`${500 - content.length} characters remaining`}>
                   {content.length}/500
                 </span>
               )}
@@ -805,11 +803,11 @@ export function PostComposer({ user, communityId, communityIsPublic = true, star
               </Button>
             </div>
           </div>
-          <p className="mt-2 text-micro text-[var(--text-muted)]">Up to 4 attachments · 4 MB total. Add a link for larger videos.</p>
+          {(mediaFiles.length > 0 || showLinkTools) && <p className="mt-3 text-micro leading-relaxed text-[var(--text-muted)]">Up to 4 attachments · 4 MB total. Use a link for larger videos.</p>}
           {draftSaved && (
             <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-micro text-[var(--text-muted)]">
-              <span>Text and links saved in this tab. Reattach files after leaving.</span>
-              <button type="button" className="min-h-11 underline underline-offset-2" onClick={() => {
+              <span className="inline-flex items-center gap-1.5" title="Text and links are saved in this tab. Reattach files after leaving."><CheckCircle2 size={12} aria-hidden="true" />Draft saved in this tab{mediaFiles.length > 0 ? " · files not saved" : ""}</span>
+              <button type="button" className="min-h-11 underline decoration-[var(--rule)] underline-offset-4" onClick={() => {
                 setContent(""); setTags(""); setMediaUrl(""); setLinkUrl("");
                 mediaFiles.forEach((item) => URL.revokeObjectURL(item.url));
                 setMediaFiles([]); setErrorMessage(""); setSelectedPlatforms(new Set());

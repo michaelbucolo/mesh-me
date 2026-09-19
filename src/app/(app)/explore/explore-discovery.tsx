@@ -3,9 +3,10 @@
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/components/ui/toast";
 import { toggleFollow } from "@/lib/actions";
 import type { FeedCardPost } from "@/lib/feed-data";
-import { formatCount } from "@/lib/utils";
+import { formatCount, formatRelativeTime } from "@/lib/utils";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   ArrowUpRight,
@@ -48,6 +49,7 @@ const PLATFORM_CHIP: Record<string, { label: string; color: string }> = {
 };
 
 const spring = SPRING_PANEL;
+const MotionLink = motion.create(Link);
 
 // The Mesh "decisive glide" easing as a framer cubic-bezier tuple.
 
@@ -175,6 +177,7 @@ function getPostMediaAlt(post: FeedCardPost, authorName: string) {
 
 export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggestedUsers, communities, signedOut = false }: ExploreDiscoveryProps) {
   const router = useRouter();
+  const reduce = useReducedMotion();
   const [query, setQuery] = useState("");
   const [tab, setTab] = useState<ExploreTab>("foryou");
   const [activeTag, setActiveTag] = useState<string | null>(null);
@@ -270,6 +273,7 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
   }, [communities, trimmedQuery]);
 
   const hasActiveFilters = Boolean(activeTag || activePlatform || mediaFilter !== "all");
+  const activeFilterCount = Number(Boolean(activeTag)) + Number(Boolean(activePlatform)) + Number(mediaFilter !== "all");
   // Only the platform narrowing is behind the disclosure now, so the disclosure
   // has no reason to exist when there is at most one platform to narrow to.
   const canNarrowByPlatform = availablePlatforms.length > 1;
@@ -294,56 +298,45 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
       <div className="mesh-explore-controls sticky top-0 z-20 space-y-3">
         <motion.form
           onSubmit={submitSearch}
-          initial={{ opacity: 0, y: 14 }}
+          initial={reduce ? false : { opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={spring}
           className="glass-card flex items-center gap-3 rounded-2xl px-4 py-3"
         >
           <Search className="h-4.5 w-4.5 shrink-0 text-[var(--text-muted)]" aria-hidden />
           <input
+            type="search"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Find something that moves you"
+            placeholder={tab === "people" ? "Find people and interests" : tab === "communities" ? "Find your community" : "Search posts, people, and ideas"}
             maxLength={120}
-            className="w-full bg-transparent text-sm text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)]"
-            aria-label="Search the mesh"
+            className="min-w-0 flex-1 bg-transparent text-base text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)] sm:text-sm [&::-webkit-search-cancel-button]:hidden"
+            aria-label="Search Explore"
             suppressHydrationWarning
           />
           {query && (
-            /* Was a bare glyph in a 24px box: no face, no --edge ring, no wall,
-               and `hover:bg-white/5` — a hardcoded white that tracks neither
-               theme. It is a `.key` now, wearing the chip wall via
-               `.explore-chip` because the search chrome must stay quieter than
-               the results it filters. Sized 28px square — exactly the height of
-               the Deep search key beside it, so the two read as one row of parts
-               and the bar does not jump when the first character is typed. */
             <button
               type="button"
               onClick={() => setQuery("")}
-              className="key explore-chip inline-flex h-7 w-7 shrink-0 items-center justify-center text-[var(--text-muted)]"
+              className="key explore-chip -my-1 inline-flex h-11 w-11 shrink-0 items-center justify-center text-[var(--text-muted)]"
               aria-label="Clear search"
             >
               <X className="h-4 w-4" aria-hidden />
             </button>
           )}
           {query.trim() && (
-            /* The one primary action in the bar. It was --accent at 15% alpha
-               carrying --accent as its own ink — a wash reading as "how loud",
-               with unpinned text on it. Moulded from cobalt with its PINNED ink
-               instead, character for character the idiom at
-               feed-timeline-client.tsx:656. Object wall, not chip: it outranks
-               everything else in the bar. */
             <button
               type="submit"
-              className="key key-lit [--mould:var(--mould-cobalt)] [--mould-ink:var(--mould-cobalt-ink)] [--mould-plinth:var(--mould-cobalt-plinth)] inline-flex shrink-0 items-center gap-1 px-3 py-1.5 text-xs font-semibold"
+              className="key key-lit [--mould:var(--mould-cobalt)] [--mould-ink:var(--mould-cobalt-ink)] [--mould-plinth:var(--mould-cobalt-plinth)] inline-flex min-h-11 shrink-0 items-center gap-1 px-3 py-1.5 text-xs font-semibold"
+              aria-label="Search all of Mesh"
             >
-              Deep search <ArrowUpRight className="h-3 w-3" aria-hidden />
+              <span className="hidden sm:inline">Search all</span> <ArrowUpRight className="h-4 w-4" aria-hidden />
             </button>
           )}
         </motion.form>
 
         <motion.div
-          initial={{ opacity: 0, y: 10 }}
+          initial={reduce ? false : { opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ ...spring, delay: 0.05 }}
           /* No tray. This was a `glass-card` box around a row of keys — a box in
@@ -392,7 +385,7 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
                 onClick={() => setTab(item.id)}
                 className="mesh-explore-tab relative inline-flex min-h-11 shrink-0 items-center gap-1.5 px-3.5 py-2 text-sm font-medium"
               >
-                {selected && <motion.span layoutId="explore-selection" className="mesh-explore-selection" transition={spring} aria-hidden="true" />}
+                {selected && <motion.span layoutId={reduce ? undefined : "explore-selection"} className="mesh-explore-selection" transition={spring} aria-hidden="true" />}
                 <Icon className="relative h-3.5 w-3.5" aria-hidden />
                 <span className="relative">{item.label}</span>
               </button>
@@ -400,177 +393,111 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
           })}
           </div>
           {isPostTab && (
-            /* "On" is the neutral selected key (tone reset R4); the active-
-               filter dot is the one accent mark. aria-pressed carries the
-               toggle state the paint shows; aria-expanded the disclosure. */
             <button
               type="button"
               onClick={() => setShowFilters((value) => !value)}
               className={`key ml-auto inline-flex min-h-11 shrink-0 items-center gap-1.5 px-3 py-2 text-xs font-semibold ${
-                showFilters || hasActiveFilters
+                showFilters
                   ? "key-selected"
                   : "text-[var(--text-secondary)]"
               }`}
-              aria-pressed={showFilters || hasActiveFilters}
+              aria-pressed={showFilters}
               aria-expanded={showFilters}
-              aria-label="Toggle filters"
+              aria-controls="explore-filters"
+              aria-label={activeFilterCount ? `Filters, ${activeFilterCount} active` : "Filters"}
             >
               <SlidersHorizontal className="h-3.5 w-3.5" aria-hidden />
               Filters
-              {hasActiveFilters && <span className="h-1.5 w-1.5 rounded-full bg-[var(--accent)]" aria-hidden />}
+              {hasActiveFilters && <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--accent-subtle)] px-1 text-micro text-[var(--accent-text)]" aria-hidden>{activeFilterCount}</span>}
             </button>
           )}
         </motion.div>
       </div>
 
+      {isPostTab && hasActiveFilters && (
+        <div className="mesh-explore-filter-summary mt-3 flex flex-wrap items-center gap-2" aria-label="Active filters">
+          {mediaFilter !== "all" && (
+            <button type="button" onClick={() => setMediaFilter("all")} className="key explore-chip inline-flex min-h-9 items-center gap-1.5 px-3 text-xs" aria-label={`Remove ${activeContentFilter.label.toLowerCase()} filter`}>
+              {activeContentFilter.label}<X size={12} aria-hidden="true" />
+            </button>
+          )}
+          {activePlatform && (
+            <button type="button" onClick={() => setActivePlatform(null)} className="key explore-chip inline-flex min-h-9 items-center gap-1.5 px-3 text-xs" aria-label={`Remove ${PLATFORM_CHIP[activePlatform]?.label || activePlatform} filter`}>
+              {PLATFORM_CHIP[activePlatform]?.label || activePlatform}<X size={12} aria-hidden="true" />
+            </button>
+          )}
+          {activeTag && (
+            <button type="button" onClick={() => setActiveTag(null)} className="key explore-chip inline-flex min-h-9 items-center gap-1.5 px-3 text-xs" aria-label={`Remove ${activeTag} topic filter`}>
+              #{activeTag}<X size={12} aria-hidden="true" />
+            </button>
+          )}
+          <button type="button" onClick={clearFilters} className="min-h-9 px-2 text-xs text-[var(--text-secondary)] underline decoration-[var(--rule)] underline-offset-4">Clear all</button>
+        </div>
+      )}
+
       <AnimatePresence initial={false}>
         {isPostTab && showFilters && (
           <motion.div
-            initial={{ opacity: 0, height: 0 }}
+            id="explore-filters"
+            initial={reduce ? false : { opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{
-              height: { duration: 0.26, ease: EASE_OUT },
-              opacity: { duration: 0.2, ease: EASE_OUT },
-            }}
+            exit={reduce ? { opacity: 0 } : { opacity: 0, height: 0 }}
+            transition={{ duration: reduce ? 0 : 0.2, ease: EASE_OUT }}
             className="overflow-hidden"
           >
-            <div className="glass-card mt-3 space-y-3 rounded-2xl p-4">
-              {/* CONTENT TYPE, which used to be a permanent second row of five
-                  keys at the top of the page. It is a narrowing, like platform
-                  and topic, so it lives with them. Note `media` is the union of
-                  `photos` and `videos` — five buttons for three facts, kept as
-                  they were because collapsing them is a behaviour change and
-                  this pass is about where they live, not what they do. */}
-              <div className="mesh-cascade-soft flex flex-wrap items-center gap-2">
-                <span className="text-micro font-semibold mesh-eyebrow text-[var(--text-muted)]" style={{ "--i": 0 } as React.CSSProperties}>Content</span>
-                {MEDIA_FILTERS.map((filter) => {
-                  const selected = mediaFilter === filter.id;
-                  const Icon = filter.icon;
-                  return (
-                    <button
-                      key={filter.id}
-                      type="button"
-                      aria-pressed={selected}
-                      onClick={() => setMediaFilter(filter.id)}
-                      className={`key explore-chip inline-flex shrink-0 items-center gap-1.5 px-3 py-1.5 text-xs font-semibold ${
-                        selected
-                          ? "key-selected"
-                          : "text-[var(--text-secondary)]"
-                      }`}
-                    >
-                      <Icon className="h-3.5 w-3.5" aria-hidden />
-                      <span>{filter.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-              {canNarrowByPlatform && (
-                <div className="mesh-cascade-soft flex flex-wrap items-center gap-2">
-                  <span className="text-micro font-semibold mesh-eyebrow text-[var(--text-muted)]" style={{ "--i": 0 } as React.CSSProperties}>Platform</span>
-                  {/* The brand hex stays — it identifies a third party, so it is
-                      legitimately WHICH-not-how-loud. What goes is the hex as a
-                      SURFACE with its own colour as ink: selected was
-                      `backgroundColor: ${chip.color}22` under `color: chip.color`,
-                      an unpinned ink on a 13%-alpha wash of itself, which is the
-                      exact failure the --mould-*-ink triples exist to prevent.
-                      Same fix post-card.tsx:482 already landed: the brand colour
-                      becomes a decorative swatch carrying NO text, the label rides
-                      a pinned ink, and selection is a material change — the cobalt
-                      plastic — not a tint. */}
-                  {availablePlatforms.map((platform, platformIndex) => {
-                    const chip = PLATFORM_CHIP[platform];
-                    const selected = activePlatform === platform;
+            <div className="glass-card mt-3 space-y-4 rounded-2xl p-4 sm:p-5">
+              <fieldset className="min-w-0">
+                <legend className="mb-2 text-xs font-semibold text-[var(--text-secondary)]">Content type</legend>
+                <div className="flex flex-wrap gap-2">
+                  {MEDIA_FILTERS.map((filter) => {
+                    const selected = mediaFilter === filter.id;
+                    const Icon = filter.icon;
                     return (
-                      <button
-                        key={platform}
-                        type="button"
-                        onClick={() => setActivePlatform(selected ? null : platform)}
-                        className={`key explore-chip inline-flex items-center gap-1.5 px-3 py-1 text-micro font-semibold ${
-                          selected
-                            ? "key-selected"
-                            : "text-[var(--text-secondary)]"
-                        }`}
-                        style={{ "--i": platformIndex + 1 } as React.CSSProperties}
-                        aria-pressed={selected}
-                      >
-                        <span className="h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: chip.color }} aria-hidden />
-                        {chip.label}
+                      <button key={filter.id} type="button" aria-pressed={selected} onClick={() => setMediaFilter(filter.id)} className={`key explore-chip inline-flex min-h-10 items-center gap-1.5 px-3 py-1.5 text-xs font-medium ${selected ? "key-selected" : "text-[var(--text-secondary)]"}`}>
+                        <Icon className="h-3.5 w-3.5" aria-hidden /><span>{filter.label}</span>
                       </button>
                     );
                   })}
                 </div>
+              </fieldset>
+              {canNarrowByPlatform && (
+                <fieldset className="min-w-0">
+                  <legend className="mb-2 text-xs font-semibold text-[var(--text-secondary)]">Platform</legend>
+                  <div className="flex flex-wrap gap-2">
+                    {availablePlatforms.map((platform) => {
+                      const chip = PLATFORM_CHIP[platform];
+                      const selected = activePlatform === platform;
+                      return (
+                        <button key={platform} type="button" onClick={() => setActivePlatform(selected ? null : platform)} aria-pressed={selected} className={`key explore-chip inline-flex min-h-10 items-center gap-1.5 px-3 py-1.5 text-xs font-medium ${selected ? "key-selected" : "text-[var(--text-secondary)]"}`}>
+                          <span className="h-2 w-2 rounded-full" style={{ backgroundColor: chip.color }} aria-hidden />{chip.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </fieldset>
               )}
-              {hasActiveFilters && (
-                /* Naked text pretending to be a control — no face, no ring, no
-                   wall, and the only feedback was an ink change. A key. */
-                <button
-                  type="button"
-                  onClick={clearFilters}
-                  className="key explore-chip animate-mesh-rise-soft inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-[var(--text-secondary)]"
-                >
-                  <X className="h-3 w-3" aria-hidden /> Clear all filters
-                </button>
+              {trendingTags.length > 0 && (
+                <fieldset className="min-w-0">
+                  <legend className="mb-2 text-xs font-semibold text-[var(--text-secondary)]">Popular topics</legend>
+                  <div className="flex flex-wrap gap-2">
+                    {trendingTags.map((tag) => {
+                      const selected = activeTag === tag.tag;
+                      return (
+                        <button key={tag.tag} type="button" onClick={() => setActiveTag(selected ? null : tag.tag)} aria-pressed={selected} className={`key explore-chip inline-flex min-h-10 max-w-full items-center gap-1 px-3 py-1.5 text-xs font-medium ${selected ? "key-selected" : "text-[var(--text-secondary)]"}`}>
+                          <Hash className="h-3 w-3 shrink-0" aria-hidden /><span className="truncate">{tag.tag}</span><span className="ml-1 tabular-nums text-[var(--text-muted)]">{formatCount(tag.count)}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </fieldset>
               )}
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* TOPICS. Eleven of these used to sit above the content as a row that
-          ran off the right edge mid-word ("music-productio…"). They are a
-          narrowing, so they are behind Filters with the other two now, wrapping
-          instead of overflowing. */}
-      {isPostTab && showFilters && trendingTags.length > 0 && (
-        <div className="glass-card mt-3 flex flex-wrap items-center gap-2 rounded-2xl p-4">
-          <span className="text-micro font-semibold mesh-eyebrow text-[var(--text-muted)]">Topics</span>
-          {trendingTags.map((tag, index) => {
-            const selected = activeTag === tag.tag;
-            return (
-              /* `bg-white/[0.03]` for the resting face and `--accent`/15 for the
-                 selected one: a hardcoded white that tracks neither theme, and a
-                 tint doing the job of a material. Both replaced by the shared key
-                 — --face at rest, the cobalt plastic when selected.
-
-                 `whileTap={{ scale: 0.94 }}` is deleted, and that deletion is
-                 load-bearing rather than tidying. `transform` and `translate` are
-                 separate properties that COMPOSE, so framer's inline scale would
-                 have survived underneath `.key:active`'s translate and the chip
-                 would have shrunk AND dropped at once — the exact bug
-                 globals.css:1080 and :7486 both record. A key answers by
-                 bottoming out, never by shrinking away from the finger. */
-              <motion.button
-                key={tag.tag}
-                type="button"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ ...spring, delay: 0.03 * index }}
-                onClick={() => setActiveTag(selected ? null : tag.tag)}
-                aria-pressed={selected}
-                className={`key explore-chip inline-flex shrink-0 items-center gap-1 px-3.5 py-1.5 text-xs font-semibold ${
-                  selected
-                    ? "key-selected"
-                    : "text-[var(--text-secondary)]"
-                }`}
-              >
-                <Hash className="h-3 w-3" aria-hidden />
-                <span>{tag.tag}</span>
-                {/* On the cobalt face the count inherits the plastic's pinned ink;
-                    on --face it drops to --text-muted, which clears AA there. */}
-                {/* "clean-code1" — the count was rendered flush against the tag
-                    with no separator, so every topic read as a hashtag ending in
-                    a digit. */}
-                <span className={selected ? "ml-0.5 text-micro" : "ml-0.5 text-micro text-[var(--text-muted)]"}>
-                  {formatCount(tag.count)}
-                </span>
-              </motion.button>
-            );
-          })}
-        </div>
-      )}
-
       {isPostTab && (
-        <section className="mt-6" role="tabpanel"
+        <section className="mt-5" role="tabpanel"
           id="explore-tabpanel"
           aria-labelledby={`explore-tab-${tab}`}
           tabIndex={0}
@@ -587,12 +514,14 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
           </div>
           {filteredPosts.length === 0 ? (
             <EmptyState
+              title={hasActiveFilters || trimmedQuery ? "A little too specific" : "Your next discovery starts here"}
               message={
                 hasActiveFilters || trimmedQuery
-                  ? "No posts match your filters. Try broadening your search."
-                  : "Nothing here yet. Connect more accounts or follow more meshes to fill your discovery grid."
+                  ? "Try a different search or remove a filter to see more."
+                  : "Meet people and find communities with something in common."
               }
-              onClear={hasActiveFilters ? clearFilters : undefined}
+              onClear={hasActiveFilters || trimmedQuery ? () => { clearFilters(); setQuery(""); } : () => setTab("people")}
+              actionLabel={hasActiveFilters || trimmedQuery ? "Reset search" : "Discover people"}
             />
           ) : (
             <div className="mesh-discovery-grid">
@@ -618,14 +547,17 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
             // accuses a search nobody made reads as a bug (journey audit,
             // observed by two independent journeys).
             <EmptyState
+              title={trimmedQuery ? "No people found" : "Good company takes a little discovery"}
               message={
                 trimmedQuery
                   ? "No meshes match your search."
                   : "No suggestions right now — follow people from posts you like and more appear here."
               }
+              onClear={trimmedQuery ? () => setQuery("") : undefined}
+              actionLabel="Clear search"
             />
           ) : (
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+            <div className="grid grid-cols-1 gap-3 min-[380px]:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {filteredUsers.map((user, index) => (
                 <ExplorePersonCard key={user.id} user={user} currentUserId={currentUserId} index={index} fullWidth signedOut={signedOut} />
               ))}
@@ -643,7 +575,7 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
             </span>
           </div>
           {filteredCommunities.length === 0 ? (
-            <EmptyState message="No communities match your search." />
+            <EmptyState title={trimmedQuery ? "No communities found" : "Find your people"} message={trimmedQuery ? "Try another name or interest." : "Communities bring shared interests together. Browse them to get started."} onClear={trimmedQuery ? () => setQuery("") : () => router.push("/communities")} actionLabel={trimmedQuery ? "Clear search" : "Browse communities"} />
           ) : (
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {filteredCommunities.map((community, index) => (
@@ -657,14 +589,15 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
   );
 }
 
-function EmptyState({ message, onClear }: { message: string; onClear?: () => void }) {
+function EmptyState({ title, message, onClear, actionLabel = "Clear filters" }: { title: string; message: string; onClear?: () => void; actionLabel?: string }) {
   return (
-    <div className="glass-card flex flex-col items-center gap-3 rounded-2xl p-10 text-center">
-      <Compass className="h-8 w-8 text-[var(--text-muted)]" aria-hidden />
-      <p className="text-sm text-[var(--text-muted)]">{message}</p>
+    <div className="glass-card flex flex-col items-center rounded-2xl px-6 py-12 text-center sm:py-16">
+      <span className="mb-5 flex h-14 w-14 items-center justify-center rounded-full border border-[var(--rule)] bg-[var(--paper-0)]"><Compass className="h-6 w-6 text-[var(--accent-text)]" aria-hidden /></span>
+      <h3 className="text-lg font-medium tracking-tight text-[var(--text-primary)]">{title}</h3>
+      <p className="mt-2 max-w-sm text-sm leading-relaxed text-[var(--text-secondary)]">{message}</p>
       {onClear && (
-        <Button size="sm" variant="secondary" onClick={onClear}>
-          Clear filters
+        <Button size="sm" variant="secondary" className="mt-5" onClick={onClear}>
+          {actionLabel}
         </Button>
       )}
     </div>
@@ -672,11 +605,12 @@ function EmptyState({ message, onClear }: { message: string; onClear?: () => voi
 }
 
 function CommunityCard({ community, index, compact }: { community: SuggestedCommunity; index: number; compact?: boolean }) {
+  const reduce = useReducedMotion();
   return (
     <motion.div
-      initial={{ opacity: 0, y: 12 }}
+      initial={reduce ? false : { opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ ...spring, delay: 0.04 * index }}
+      transition={{ ...spring, delay: 0.025 * Math.min(index, 8) }}
       className={compact ? "shrink-0" : ""}
     >
       <Link
@@ -694,11 +628,11 @@ function CommunityCard({ community, index, compact }: { community: SuggestedComm
             <p className="flex items-center gap-2 text-micro text-[var(--text-muted)]">
               <span className="flex items-center gap-1">
                 <UsersRound className="h-3 w-3" aria-hidden />
-                {formatCount(community.memberCount)}
+                {formatCount(community.memberCount)} {community.memberCount === 1 ? "member" : "members"}
               </span>
               <span className="flex items-center gap-1">
                 <MessageCircle className="h-3 w-3" aria-hidden />
-                {formatCount(community.postCount)}
+                {formatCount(community.postCount)} {community.postCount === 1 ? "post" : "posts"}
               </span>
             </p>
           </div>
@@ -725,6 +659,8 @@ function ExplorePersonCard({
   signedOut?: boolean;
 }) {
   const router = useRouter();
+  const reduce = useReducedMotion();
+  const { addToast } = useToast();
   const [isFollowing, setIsFollowing] = useState(false);
   const [isPending, startTransition] = useTransition();
 
@@ -738,23 +674,27 @@ function ExplorePersonCard({
     startTransition(async () => {
       try {
         const result = await toggleFollow(user.id);
-        if (result && "error" in result) setIsFollowing(previous);
+        if (result && "error" in result) {
+          setIsFollowing(previous);
+          addToast(result.error || "Could not update your follow. Try again.", "error");
+        }
       } catch {
         setIsFollowing(previous);
+        addToast("Could not update your follow. Try again.", "error");
       }
     });
   };
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 12 }}
+      initial={reduce ? false : { opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ ...spring, delay: 0.04 * Math.min(index, 12) }}
-      className={`glass-card group rounded-2xl p-4 text-center transition-[color,background-color,border-color,box-shadow,transform,opacity] hover:border-[var(--border-primary)] ${
+      className={`glass-card group flex flex-col rounded-2xl p-5 text-center transition-[color,background-color,border-color,box-shadow,transform,opacity] hover:border-[var(--border-primary)] ${
         fullWidth ? "w-full" : "w-44 shrink-0"
       }`}
     >
-      <Link href={`/profile/${user.username}`} className="block">
+      <Link href={`/profile/${user.username}`} className="mb-4 block flex-1">
         <Avatar src={user.avatarUrl} alt={user.displayName} size="lg" className="mx-auto mb-2.5" />
         <p className="flex items-center justify-center gap-1 truncate text-sm font-semibold text-[var(--text-primary)] transition-colors group-hover:text-[var(--accent-text)]">
           <span className="truncate">{user.displayName}</span>
@@ -770,7 +710,7 @@ function ExplorePersonCard({
             ))}
           </div>
         )}
-        <p className="mt-2 text-micro text-[var(--text-muted)]">{formatCount(user.followerCount)} followers</p>
+        <p className="mt-2 text-micro text-[var(--text-muted)]">{formatCount(user.followerCount)} {user.followerCount === 1 ? "follower" : "followers"}</p>
       </Link>
       {currentUserId !== user.id && (
         <Button
@@ -778,7 +718,9 @@ function ExplorePersonCard({
           variant={isFollowing ? "secondary" : "default"}
           onClick={handleFollow}
           disabled={isPending}
-          className="mt-3 w-full"
+          className="w-full"
+          aria-label={isFollowing ? `Unfollow ${user.displayName}` : `Follow ${user.displayName}`}
+          aria-pressed={isFollowing}
         >
           {isFollowing ? (
             <>
@@ -796,7 +738,6 @@ function ExplorePersonCard({
 }
 
 function ExploreTile({ post, index }: { post: FeedCardPost; index: number }) {
-  const router = useRouter();
   const reduce = useReducedMotion();
   const [mediaFailed, setMediaFailed] = useState(false);
   const media = mediaFailed ? undefined : post.media.find((item) => item.type === "image" || VIDEO_TYPES.includes(item.type.toLowerCase()));
@@ -806,12 +747,11 @@ function ExploreTile({ post, index }: { post: FeedCardPost; index: number }) {
   const authorName = post.externalAuthor?.name || post.author.displayName;
 
   return (
-    <motion.button
-      type="button"
+    <MotionLink
+      href={`/feed/${encodeURIComponent(post.id)}`}
       initial={reduce ? false : { opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ ...spring, delay: 0.02 * Math.min(index, 16) }}
-      onClick={() => router.push(`/feed/${encodeURIComponent(post.id)}`)}
       data-feedback="navigate"
       className="glass-card group relative block w-full overflow-hidden rounded-2xl text-left transition-[color,background-color,border-color,box-shadow,transform,opacity] hover:border-[var(--border-primary)] mesh-explore-tile"
       // NO aria-label. It OVERRIDES name-from-contents, so everything inside
@@ -846,35 +786,38 @@ function ExploreTile({ post, index }: { post: FeedCardPost; index: number }) {
         </div>
       ) : (
         <div className="mesh-discovery-note">
-          <div className="mb-5 flex items-center gap-2.5">
-            <Avatar src={post.externalAuthor?.avatarUrl || post.author.avatarUrl} alt="" size="sm" />
-            <span className="min-w-0 truncate text-sm font-medium text-[var(--text-primary)]">{authorName}</span>
+          <div className="mesh-discovery-byline mb-4 flex items-center gap-2.5">
+            <div className="shrink-0" aria-hidden="true"><Avatar src={post.externalAuthor?.avatarUrl || post.author.avatarUrl} alt={authorName} size="sm" /></div>
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-sm font-semibold text-[var(--text-primary)]">{authorName}</span>
+              <span className="mt-0.5 block truncate text-xs text-[var(--text-muted)]">@{post.externalAuthor?.username || post.author.username} <span aria-hidden="true">·</span> {formatRelativeTime(post.createdAt)}</span>
+            </span>
           </div>
-          <p className="line-clamp-5 whitespace-pre-wrap text-base leading-relaxed text-[var(--text-primary)]">{post.content || (isVideo ? "Watch this video" : "Open this post")}</p>
-          <div className="mt-5">
-            <TileMeta post={post} authorName="View post" chip={chip} />
+          <p className="line-clamp-5 whitespace-pre-wrap text-[.9375rem] leading-relaxed text-[var(--text-primary)]">{post.content || (isVideo ? "Watch this video" : "Open this post")}</p>
+          <div className="mesh-discovery-footer mt-5">
+            <TileMeta post={post} authorName="Read post" chip={chip} />
           </div>
         </div>
       )}
 
-    </motion.button>
+    </MotionLink>
   );
 }
 
 function TileMeta({ post, authorName, chip, overlay }: { post: FeedCardPost; authorName: string; chip?: { label: string; color: string }; overlay?: boolean }) {
   return (
     <div className="flex items-center justify-between gap-2 text-xs">
-      <span className={`min-w-0 truncate font-medium ${overlay ? "text-white/90" : "text-[var(--text-primary)]"}`}>{authorName}</span>
+      <span className={`inline-flex min-w-0 items-center gap-1 truncate font-medium ${overlay ? "text-white/90" : "text-[var(--text-secondary)]"}`}>{authorName}{!overlay && <ArrowUpRight size={12} aria-hidden="true" />}</span>
       <span className={`flex shrink-0 items-center gap-2 ${overlay ? "text-white/80" : "text-[var(--text-secondary)]"}`}>
         {chip && chip.label !== "mesh.me" && (
-          <span className="rounded-full px-1.5 py-0.5 text-micro font-semibold" style={{ backgroundColor: `${chip.color}33`, color: chip.color }}>
-            {chip.label}
+          <span className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-micro font-medium ${overlay ? "bg-black/55 text-white" : "text-[var(--text-secondary)]"}`}>
+            <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: chip.color }} aria-hidden="true" />{chip.label}
           </span>
         )}
-        <span className="flex items-center gap-0.5">
+        <span className="flex items-center gap-1" aria-label={`${post._count.reactions} likes`}>
           <Heart className="h-3 w-3" aria-hidden /> {formatCount(post._count.reactions)}
         </span>
-        <span className="flex items-center gap-0.5">
+        <span className="flex items-center gap-1" aria-label={`${post._count.comments} comments`}>
           <MessageCircle className="h-3 w-3" aria-hidden /> {formatCount(post._count.comments)}
         </span>
       </span>

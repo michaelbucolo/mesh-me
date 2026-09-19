@@ -699,7 +699,7 @@ export function SettingsControlCenter({
   }
 
   return (
-    <main className="settings-traditional flex flex-col">
+    <div className="settings-traditional flex flex-col">
       <header className="settings-traditional-header plate shrink-0 p-4 md:p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-3">
@@ -971,7 +971,7 @@ export function SettingsControlCenter({
           </div>
         </section>
       </section>
-    </main>
+    </div>
   );
 }
 
