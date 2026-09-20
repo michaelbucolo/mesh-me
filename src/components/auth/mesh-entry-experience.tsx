@@ -287,12 +287,16 @@ export function MeshEntryExperience({ initialStage = "identity", nextPath, oauth
     }
     setMessage("");
     startTransition(async () => {
-      const result = await requestPasswordReset(email);
-      if (result && "error" in result && result.error) {
-        setMessage(result.error);
-        return;
+      try {
+        const result = await requestPasswordReset(email);
+        if (result && "error" in result && result.error) {
+          setMessage(result.error);
+          return;
+        }
+        setResetSent(true);
+      } catch {
+        setMessage("Account recovery is unavailable right now. Please try again.");
       }
-      setResetSent(true);
     });
   };
 

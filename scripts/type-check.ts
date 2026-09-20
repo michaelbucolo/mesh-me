@@ -91,11 +91,6 @@ function stripComments(text: string): string {
  */
 const EXEMPT: { file: string; count: number; why: string }[] = [
   {
-    file: "src/lib/actions.ts",
-    count: 2,
-    why: "transactional email HTML — mail clients do not load the design system, so the CTA needs its own weight",
-  },
-  {
     file: "src/lib/security.ts",
     count: 1,
     why: "the password-strength error message names the character classes a password needs",

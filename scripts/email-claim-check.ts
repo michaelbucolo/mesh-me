@@ -99,8 +99,9 @@ const sourceFiles = execFileSync("git", ["ls-files", "src"], { cwd: ROOT, encodi
 
 // Any file that creates a UserEmail row writes into the globally unique
 // namespace and therefore needs the rule. `verifyEmailToken` is the one
-// exception and is asserted separately below.
-const writers = sourceFiles.filter((f) => /userEmail\.create\(|emails:\s*\{\s*create:/.test(read(f)));
+// exception; its transaction checks current ownership before writing.
+const verificationWriter = "src/lib/auth-token-store.ts";
+const writers = sourceFiles.filter((f) => f !== verificationWriter && /userEmail\.create\(|emails:\s*\{\s*create:/.test(read(f)));
 assert.deepEqual(
   writers.sort(),
   Object.keys(NAMESPACE_WRITERS).sort(),
@@ -127,6 +128,12 @@ for (const [file, { fn, why }] of Object.entries(NAMESPACE_WRITERS)) {
       "  somebody else's account.",
   );
 }
+// Verification proves mailbox access and may create only a missing current
+// primary record. Secondary links must still reference an owned UserEmail row.
+const tokenStore = read(verificationWriter);
+assert.match(tokenStore, /emailRecord\.userId !== token\.userId/, "Verification must refuse another user's email claim");
+assert.match(tokenStore, /if \(!isPrimary && !emailRecord\)/, "An old verification link cannot recreate a removed secondary email");
+
 // The bare pre-check that USED to stand in for the rule must be gone from the
 // two account-creation paths, or the old blanket refusal silently runs first.
 //

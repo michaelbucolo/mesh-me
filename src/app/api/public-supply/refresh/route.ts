@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { PUBLIC_SUPPLY_LANES } from "@/lib/public-supply/registry";
 import { runAllLanes } from "@/lib/public-supply/runner";
 import { isSameOriginRequest } from "@/lib/request-guard";
+import { cronSecretMatches } from "@/lib/cron-secret";
 
 /**
  * REFRESH THE PUBLIC SUPPLY. Scheduled, or triggered by an admin.
@@ -77,7 +78,10 @@ type Authorization = { ok: true; via: string } | { ok: false };
  * will attach to a request on an attacker's behalf.
  */
 function authorizeSecret(request: NextRequest): Authorization {
-  if (secretMatches(request.headers.get("authorization"))) return { ok: true, via: "cron-secret" };
+  const header = request.headers.get("authorization");
+  if (secretMatches(header) || cronSecretMatches(header, process.env.CRON_SECRET)) {
+    return { ok: true, via: "cron-secret" };
+  }
   return { ok: false };
 }
 

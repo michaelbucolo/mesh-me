@@ -20,12 +20,10 @@ import { MeshiChat } from "./meshi-chat";
 import { MeshiActionsMenu } from "./meshi-actions-menu";
 import { useCanvasHasMeshi } from "@/components/mesh/live/meshi-presence";
 import { askMeshi, runMeshiAction } from "@/lib/meshi-client";
-import type { MeshiAction, MeshiHistoryMessage } from "@/lib/meshi-shared";
+import type { MeshiAction, MeshiContext, MeshiHistoryMessage } from "@/lib/meshi-shared";
 import { getMeshGraphData, type MeshGraphEntity } from "@/lib/queries";
 import { getMeshiPreference } from "@/lib/actions";
-import {
-  loadKnowledge, saveKnowledge, indexMeshData,
-} from "@/lib/meshi-knowledge";
+import { clearLegacyMeshiContext } from "@/lib/meshi-knowledge";
 import {
   areFocusedContentEqual,
   getFocusedContentFromElement,
@@ -43,6 +41,7 @@ import { reactionFor, subscribeMeshiCause } from "@/lib/meshi-bus";
 import { shouldHideGlobalMeshi } from "@/lib/meshi-routes";
 import { useGhostMode } from "@/hooks/use-ghost-mode";
 import { MESHI_PREFERENCES_EVENT, type MeshiPreferences } from "@/hooks/use-meshi-preferences";
+import { PRESENCE_ACCOUNT_EVENT, readPresenceAccount } from "@/lib/presence-account";
 
 // One living Meshi represents the user across surfaces. CSS docks the body
 // while browsing; the Mesh canvas takes ownership when it can draw the avatar.
@@ -206,20 +205,13 @@ export function MeshiFloat() {
   const [isFullscreenVideo, setIsFullscreenVideo] = useState(false);
   const [searchingText, setSearchingText] = useState("");
   const [focusedContent, setFocusedContent] = useState<FocusedContent | null>(null);
-  const [chatHistory, setChatHistory] = useState<Array<{ q: string; a: string; time: Date }>>(() => {
-    if (typeof window === "undefined") return [];
-    try {
-      const raw = localStorage.getItem("meshi-chat-history");
-      if (!raw) return [];
-      const parsed = JSON.parse(raw) as Array<{ q: string; a: string; time: string }>;
-      return parsed.map((entry) => ({ ...entry, time: new Date(entry.time) }));
-    } catch {
-      return [];
-    }
-  });
+  // Conversation context is never recovered from another browser session.
+  const [chatHistory, setChatHistory] = useState<Array<{ q: string; a: string; time: Date }>>([]);
 
   const [meshEntities, setMeshEntities] = useState<MeshGraphEntity[]>([]);
-  const [meshStats, setMeshStats] = useState<{ followers: number; following: number; posts: number; communities: number; platforms: number }>({ followers: 0, following: 0, posts: 0, communities: 0, platforms: 0 });
+  const [meshStats, setMeshStats] = useState<MeshiContext["meshData"]>();
+  const contextEpochRef = useRef(0);
+  const [contextSession, setContextSession] = useState(0);
   const focusedContentRef = useRef<FocusedContent | null>(null);
   const speechBubbleTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
 
@@ -245,6 +237,41 @@ export function MeshiFloat() {
   const speechInputRef = useRef<HTMLInputElement>(null);
 
   const pathname = usePathname();
+  // This component lives at the app root and can survive sign-out navigation.
+  // Drop account context at that boundary, and reject late responses from the
+  // previous session rather than letting them repopulate the next account.
+  const resetAccountContext = useCallback(() => {
+    contextEpochRef.current += 1;
+    queueMicrotask(() => {
+      setContextSession(contextEpochRef.current);
+      setChatHistory([]);
+      setMeshEntities([]);
+      setMeshStats(undefined);
+      setFocusedContent(null);
+      focusedContentRef.current = null;
+      setSpeechBubbles([]);
+      setSpeechInput("");
+      setPendingSpeechAction(null);
+      setIsMeshiTyping(false);
+      setIsSearching(false);
+      setSearchingText("");
+      setView("closed");
+    });
+  }, []);
+  useEffect(() => {
+    if (shouldHideGlobalMeshi(pathname)) resetAccountContext();
+  }, [pathname, resetAccountContext]);
+  useEffect(() => {
+    let accountId = readPresenceAccount();
+    const reconcileAccount = () => {
+      const nextAccount = readPresenceAccount();
+      if (nextAccount === accountId) return;
+      accountId = nextAccount;
+      resetAccountContext();
+    };
+    window.addEventListener(PRESENCE_ACCOUNT_EVENT, reconcileAccount);
+    return () => window.removeEventListener(PRESENCE_ACCOUNT_EVENT, reconcileAccount);
+  }, [resetAccountContext]);
   const onMeshRoute = isMeshSurfacePath(pathname);
   // On phone-width Flow the action rail owns the right edge, and the shell's
   // corner slot lands exactly on the rail's bottom key — the audit measured the
@@ -298,6 +325,7 @@ export function MeshiFloat() {
   );
 
   useEffect(() => {
+    clearLegacyMeshiContext();
     const frame = window.requestAnimationFrame(() => setIsMounted(true));
     const bubbleTimers = speechBubbleTimersRef.current;
     return () => {
@@ -407,19 +435,6 @@ export function MeshiFloat() {
     return () => window.clearTimeout(timer);
   }, [meshiEnabled]);
 
-  // Persist Meshi conversation memory
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    try {
-      localStorage.setItem(
-        "meshi-chat-history",
-        JSON.stringify(chatHistory.map((entry) => ({ ...entry, time: entry.time.toISOString() })))
-      );
-    } catch {
-      // ignore storage errors
-    }
-  }, [chatHistory]);
-
   useEffect(() => {
     const applyPrefs = (prefs: Partial<MeshiPreferences>) => {
       if (prefs.color) setMeshiColor(prefs.color);
@@ -459,21 +474,27 @@ export function MeshiFloat() {
 
   // Fetch context only after the user opens optional AI help. Presence never indexes content.
   useEffect(() => {
-    if (!meshiEnabled || (view !== "speech" && view !== "chat")) return;
+    if (!meshiEnabled || shouldHideGlobalMeshi(pathname) || (view !== "speech" && view !== "chat")) return;
     let cancelled = false;
+    const epoch = contextEpochRef.current;
     const timer = window.setTimeout(() => {
       getMeshGraphData().then((data) => {
-        if (!cancelled) {
+        if (!cancelled && epoch === contextEpochRef.current) {
           setMeshEntities(data.entities);
-          setMeshStats(data.stats);
+          setMeshStats(data.access === "allowed" ? data.stats : undefined);
         }
-      }).catch(() => {});
+      }).catch(() => {
+        if (!cancelled && epoch === contextEpochRef.current) {
+          setMeshEntities([]);
+          setMeshStats(undefined);
+        }
+      });
     }, 180);
     return () => {
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [meshiEnabled, view]);
+  }, [meshiEnabled, view, pathname]);
 
   // Contextual prop follows the route; the body itself stays put.
   useEffect(() => {
@@ -585,39 +606,43 @@ export function MeshiFloat() {
 
   // Explicitly requested review uses actual data and reports only completed work.
   const triggerSearch = useCallback(async () => {
-    if (isSearching) return;
+    if (isSearching || shouldHideGlobalMeshi(pathname)) return;
+    const epoch = contextEpochRef.current;
     setIsSearching(true);
     setSearchingText("Reading your Mesh…");
     setMood("searching");
     setView("speech");
     try {
       const data = await getMeshGraphData();
+      if (epoch !== contextEpochRef.current) return;
       setMeshEntities(data.entities);
-      setMeshStats(data.stats);
-      const nodes = data.entities.map((entity) => ({
-        id: entity.id,
-        type: entity.type as "user" | "community" | "tag" | "post" | "platform",
-        label: entity.label,
-        sublabel: entity.sublabel || undefined,
-        data: { followerCount: entity.followerCount || 0, memberCount: entity.memberCount || 0, isMutual: entity.isMutual || false },
-      }));
-      saveKnowledge(indexMeshData(loadKnowledge(), nodes));
-      addSpeechBubble("meshi", nodes.length
-        ? `Reviewed ${nodes.length} items in your Mesh: ${data.stats.followers} followers, ${data.stats.following} following, ${data.stats.posts} posts, and ${data.stats.communities} communities.`
-        : "There is no Mesh context to review yet.");
+      setMeshStats(data.access === "allowed" ? data.stats : undefined);
+      addSpeechBubble("meshi", data.access === "disabled"
+        ? "Mesh context is turned off in your settings. Nothing was reviewed or saved."
+        : data.access === "signed-out"
+          ? "Sign in to review your Mesh context."
+          : data.entities.length
+            ? `Reviewed ${data.entities.length} available items in your Mesh, with your account totals: ${data.stats.followers} followers, ${data.stats.following} following, ${data.stats.posts} posts, and ${data.stats.communities} communities.`
+            : "There is no Mesh context available to review yet.");
       setMood("happy");
     } catch {
+      if (epoch !== contextEpochRef.current) return;
+      setMeshEntities([]);
+      setMeshStats(undefined);
       addSpeechBubble("meshi", "Your Mesh could not be loaded. Please try again.");
       setMood("surprised");
     } finally {
-      setIsSearching(false);
-      setSearchingText("");
+      if (epoch === contextEpochRef.current) {
+        setIsSearching(false);
+        setSearchingText("");
+      }
     }
-  }, [isSearching, addSpeechBubble]);
+  }, [isSearching, addSpeechBubble, pathname]);
 
   const submitSpeechPrompt = useCallback((rawText: string, contentOverride?: FocusedContent) => {
     const text = rawText.trim();
-    if (!text || isMeshiTyping) return;
+    if (!text || isMeshiTyping || shouldHideGlobalMeshi(pathname)) return;
+    const epoch = contextEpochRef.current;
     const content = contentOverride ?? focusedContent;
     addSpeechBubble("user", text);
     setMood("thinking");
@@ -658,6 +683,7 @@ export function MeshiFloat() {
       setView("closed");
       setActiveProp("magnifying-glass");
       setTimeout(() => {
+        if (epoch !== contextEpochRef.current) return;
         setSearchingText(isFocusedContentQuery ? "Reviewing source and media clues…" : "Working…");
         setActiveProp(isFocusedContentQuery ? "notebook" : PAGE_PROPS["/mesh"] || "compass");
         setMood("learning" as MeshiMood);
@@ -681,11 +707,13 @@ export function MeshiFloat() {
         },
         history,
       });
+      if (epoch !== contextEpochRef.current) return;
 
       const elapsed = Date.now() - startedAt;
       if (shouldAnimateSearch && elapsed < 900) {
         await new Promise((resolve) => setTimeout(resolve, 900 - elapsed));
       }
+      if (epoch !== contextEpochRef.current) return;
 
       if (shouldAnimateSearch) {
         setIsSearching(false);
@@ -705,6 +733,7 @@ export function MeshiFloat() {
           action: "suggest",
           suggestionType: (response.action.suggestionType as "people" | "communities" | "content") || "people",
         });
+        if (epoch !== contextEpochRef.current) return;
         setMood(result.mood);
         addSpeechBubble("meshi", result.message);
         setIsMeshiTyping(false);
@@ -712,18 +741,22 @@ export function MeshiFloat() {
         setPendingSpeechAction(response.action);
       }
 
-      setTimeout(() => setMood("happy"), 3000);
+      setTimeout(() => {
+        if (epoch === contextEpochRef.current) setMood("happy");
+      }, 3000);
     })();
   }, [isMeshiTyping, addSpeechBubble, focusedContent, isSearching, chatHistory, meshStats, meshEntities, pathname]);
 
   const confirmPendingSpeechAction = useCallback(() => {
     const content = pendingSpeechAction?.content;
     if (!content || isMeshiTyping) return;
+    const epoch = contextEpochRef.current;
     setPendingSpeechAction(null);
     setIsMeshiTyping(true);
     setMood("thinking");
     void (async () => {
       const result = await runMeshiAction({ action: "post", content });
+      if (epoch !== contextEpochRef.current) return;
       setMood(result.mood);
       addSpeechBubble("meshi", result.message);
       setIsMeshiTyping(false);
@@ -994,6 +1027,7 @@ export function MeshiFloat() {
 
       {/* Full Meshi Chat */}
       <MeshiChat
+        key={contextSession}
         isOpen={view === "chat"}
         onClose={closeAll}
         hat={meshiHat}

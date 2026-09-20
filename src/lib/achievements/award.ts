@@ -21,6 +21,16 @@
 
 import { prisma } from "@/lib/prisma";
 import { ACHIEVEMENTS, achievementProgress, earnedSlugs, type AchievementCounts } from "./catalogue";
+import { ACHIEVEMENT_MESHI_REWARDS, getAchievementRewardBadges } from "./rewards";
+
+/** Durable achievement joins are the entitlement; clients supply no claims. */
+export async function getEarnedAchievementBadges(userId: string): Promise<string[]> {
+  const earned = await prisma.userAchievement.findMany({
+    where: { userId },
+    select: { achievement: { select: { slug: true } } },
+  });
+  return getAchievementRewardBadges(earned.map((row) => row.achievement.slug));
+}
 
 /** Count everything the catalogue can measure, for one person. */
 export async function measureAchievementCounts(userId: string): Promise<AchievementCounts> {
@@ -117,6 +127,7 @@ export type AchievementView = {
   have: number;
   earned: boolean;
   unlockedAt: string | null;
+  reward: { badge: string; label: string } | null;
 };
 
 /**
@@ -144,8 +155,9 @@ export async function getAchievementBoard(userId: string): Promise<AchievementVi
     category: definition.category,
     title: definition.title ?? null,
     threshold: definition.threshold,
-    have,
-    earned,
+    have: unlockedAt.has(definition.slug) ? definition.threshold : have,
+    earned: earned || unlockedAt.has(definition.slug),
+    reward: ACHIEVEMENT_MESHI_REWARDS.find((reward) => reward.slug === definition.slug) ?? null,
     // Awarding is fire-and-forget, so a milestone can be earned by the counts
     // before its row exists. Showing it as earned with no date is truthful;
     // showing it as unearned because the write has not landed would not be.

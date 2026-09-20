@@ -22,6 +22,7 @@ import { MESHI_FACE_IDS, MESHI_FACE_LABELS, MESHI_LASH_IDS, MESHI_LASH_LABELS, t
 import { MESHI_HAIR_COLOR_IDS, MESHI_HAIR_COLOR_LABELS, MESHI_HAIR_IDS, MESHI_HAIR_LABELS } from "@/components/meshi/meshi-hair";
 import { ALL_ACCESSORY_ITEMS, parseAccessories, serializeAccessories } from "@/components/meshi/meshi-slots";
 import { FREE_MESHI_OPTIONS, isFreeMeshiOption } from "./mesh-pro";
+import { ACHIEVEMENT_MESHI_REWARDS, achievementRewardForBadge } from "./achievements/rewards";
 
 export const MESHI_OPTION_VALUES = {
   hats: new Set(["none", "tophat", "beanie", "cap", "party", "crown", "flower", "headphones", "halo", "wizard", "astronaut", "pirate", "chef", "beret", "headband", "bow", "cowboy", "graduation"]),
@@ -37,7 +38,7 @@ export const MESHI_OPTION_VALUES = {
   // lashes" and keeps working via resolveLash(), so nobody's Meshi changes
   // under them.
   eyes: new Set<string>(["regular", ...MESHI_LASH_IDS]),
-  badges: new Set(["none", "spark", "heart", "shield", "verified", "creator", "founder", "charter", "patron"]),
+  badges: new Set(["none", "spark", "heart", "shield", "verified", "creator", "founder", "charter", "patron", ...ACHIEVEMENT_MESHI_REWARDS.map((reward) => reward.badge)]),
 };
 
 export type MeshiPreferenceUpdate = {
@@ -178,6 +179,10 @@ export function resolveRecipeApplication(
       wearable = ents.hasCharterSeat;
     } else if (group === "badges" && value === "patron") {
       wearable = ents.hasPatronRecord;
+    } else if (group === "badges" && achievementRewardForBadge(value)) {
+      // Pro never bypasses an earned milestone. Settings adds only the
+      // authenticated account's durable rewards to these entitlement sets.
+      wearable = isOwnedMeshiOption(owned, group, value);
     } else if (group === "accessories") {
       // Multi-token slot string: not one ownable value. A retired or unknown
       // token would not survive the canonical parse round-trip — vocabulary

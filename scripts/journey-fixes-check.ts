@@ -189,8 +189,14 @@ const postCard = strip(read("src/components/feed/post-card.tsx"));
 
 // ── 10. Scanner integrity ────────────────────────────────────────────────────
 {
-  if (paginated.length < 1500 || queries.length < 50_000 || globals.length < 100_000) {
-    fail("10 integrity", "a scanned file shrank implausibly — the scanner may be reading the wrong tree");
+  // Identify the modules by their contracts. Moving Meshi context into its
+  // server-only module legitimately shrinks queries.ts; byte counts cannot
+  // distinguish that refactor from reading the wrong source.
+  if (!paginated.includes("export async function GET(") ||
+      !queries.includes("export async function searchAll(") ||
+      !queries.includes("export async function getUserSettings(") ||
+      !globals.includes('@import "tailwindcss";')) {
+    fail("10 integrity", "a scanned file is missing its expected module contract");
   } else ok();
 }
 

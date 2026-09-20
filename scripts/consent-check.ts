@@ -439,89 +439,40 @@ assert.ok(
   "raw client context must not reach callMeshiReasoning",
 );
 
-// `focusedContent` — the post the caller is LOOKING AT, scraped from the card in
-// the DOM. It carries a third party's handle and the full body of what they
-// wrote, and it went to OpenAI on the strength of the caller's consent alone.
-//
-// The `meshEntities` gate immediately above it in the route already stated the
-// principle — "The caller's own consent does not speak for them, so resolve
-// theirs, here at the egress" — and shipped strictly LESS of a third party
-// (display name, follower count) than this field does (the post body). One
-// context field was gated and the adjacent one was not, which is the same
-// two-sources-of-truth shape as every other privacy miss in this repo.
-assert.match(
-  chatSource,
-  /focusedContent[\s\S]{0,1200}?meshiDeniedUserIds\(/,
-  "the Meshi chat route must resolve the FOCUSED POST AUTHOR's own allowMeshiUse before\n" +
-    "  their handle and post text go upstream. The caller consented to Meshi reading their\n" +
-    "  own mesh; nobody asked the author of the post on screen.",
-);
-// Resolved by post id, never by the `author` display string: matching a person
-// by fuzzy name either strips the wrong record or silently fails to strip the
-// right one, and both failures are quiet.
-assert.match(
-  chatSource,
-  /post\.findUnique\(\s*\{\s*where:\s*\{\s*id:\s*groundedContext\.focusedContent\.id/,
-  "the focused-content gate must resolve the author from the POST ID. `author` is a\n" +
-    "  display name — matching on it is a fuzzy match against a person, which fails quietly\n" +
-    "  in both directions.",
-);
-// The gate runs at the EGRESS, not before grounding: `groundedContext` is what
-// reaches callMeshiReasoning, so stripping any earlier copy accomplishes nothing.
-const focusedGateAt = chatSource.indexOf("meshiDeniedUserIds([post.authorId])");
-const reasoningCallAt = chatSource.indexOf("callMeshiReasoning(");
-assert.ok(focusedGateAt !== -1, "focused-content consent gate call site not found");
-assert.ok(reasoningCallAt !== -1, "callMeshiReasoning call site not found");
-assert.ok(
-  focusedGateAt < reasoningCallAt,
-  "the focused-content gate must run BEFORE the reasoning call — after it, the data has\n" +
-    "  already left.",
-);
+// All contextual facts are now canonical server reads. The client may select
+// a post by ID, never assert its author, platform, text, or privacy status.
+const contextSource = read("src/lib/meshi-chat-context.ts");
+assert.match(chatSource, /groundedContext\s*=\s*await buildMeshiChatContext\(user, context\)/,
+  "the reasoning egress must use the authenticated context builder");
+assert.match(contextSource, /hasMeshiConsent\(user\.id\)/,
+  "context loading must resolve caller consent before reading Mesh data");
+assert.match(contextSource, /readMeshiMeshContext\(user\)/,
+  "entity context must be reconstructed by the consent- and visibility-filtered server reader");
+assert.match(contextSource, /getFeedPostById\(user, id\)/,
+  "focused content must be a canonical post the authenticated caller can currently open");
+assert.match(contextSource, /hasMeshiConsent\(post\.author\.id\)/,
+  "focused post authors, including shared imported posts, retain their own Meshi consent");
+assert.ok(contextSource.indexOf("hasMeshiConsent(post.author.id)") < contextSource.indexOf("context.focusedContent ="),
+  "post author consent must be checked before building any focused content");
+assert.ok(chatSource.indexOf("await buildMeshiChatContext(") < chatSource.indexOf("callMeshiReasoning({"),
+  "the context builder must complete before the reasoning provider is called");
+assert.doesNotMatch(contextSource, /\.\.\.(?:input|focused)\b/,
+  "raw client fields must never be copied into grounded context");
 
-// Every field of the focusedContent contract is classified: stripped when it
-// identifies the author or reproduces what they wrote, retained with a stated
-// reason otherwise. Pinned as an EXACT set, so a field added to the type later
-// fails this gate until somebody decides which side it falls on — that decision
-// is the whole point, and it is exactly the one nobody made for `author` and
-// `text` when this field was introduced.
-const FOCUSED_CONTENT_STRIPPED = ["author", "text"];
-const FOCUSED_CONTENT_RETAINED: Record<string, string> = {
-  id: "the post's own id — already the key the gate resolves; identifies content, not a person",
-  platform: "which network it came from; the caller can see the badge on the card",
-  mediaTypes: "image/video shape, no authorship",
-  externalUrl: "for a native post this is the /feed/:id permalink the caller is already on",
-  contentRating: "general/adult — a property of the content, needed to answer safely",
-  mediaSignals: "synthetic-media cues; this is what makes 'is this video real?' work at all",
-};
-
+// Every focused field is either server-derived or dropped entirely. A denied
+// or missing post drops the entire focusedContent object, including metadata.
+const SERVER_FOCUSED_FIELDS = ["id", "platform", "author", "text", "mediaTypes", "contentRating"];
+const OMITTED_FOCUSED_FIELDS = ["externalUrl", "mediaSignals"];
 const sharedSource = read("src/lib/meshi-shared.ts");
 const focusedType = /focusedContent\?:\s*\{([\s\S]*?)\n  \};/.exec(sharedSource)?.[1];
-assert.ok(focusedType, "focusedContent shape not found in src/lib/meshi-shared.ts");
+assert.ok(focusedType, "focusedContent shape not found");
 const focusedFields = [...focusedType.matchAll(/^\s*(\w+)\??:/gm)].map((m) => m[1]);
-assert.ok(focusedFields.length > 0, "no fields parsed out of the focusedContent shape");
-assert.deepEqual(
-  [...focusedFields].sort(),
-  [...FOCUSED_CONTENT_STRIPPED, ...Object.keys(FOCUSED_CONTENT_RETAINED)].sort(),
-  "focusedContent gained or lost a field. Every field on it is shipped to a third-party model\n" +
-    "  on behalf of a person who was never asked, so each one has to be classified in\n" +
-    "  scripts/consent-check.ts: add it to FOCUSED_CONTENT_STRIPPED and strip it in the route's\n" +
-    "  egress gate, or to FOCUSED_CONTENT_RETAINED with the reason it carries no authorship.",
-);
-
-// The strip block must actually clear each stripped field. Anchored on the
-// rebuild of focusedContent so a field merely *named* in a comment nearby does
-// not read as stripped.
-const stripBlock = /focusedContent:\s*\{\s*\.\.\.groundedContext\.focusedContent,([\s\S]*?)\},/.exec(chatSource)?.[1];
-assert.ok(stripBlock, "the focused-content strip block was not found in the chat route");
-for (const field of FOCUSED_CONTENT_STRIPPED) {
-  assert.match(
-    stripBlock,
-    new RegExp(String.raw`\b${field}:\s*undefined`),
-    `the focused-content gate must clear \`${field}\` when the author denied Meshi use.\n` +
-      "  It is listed in FOCUSED_CONTENT_STRIPPED, which means it identifies them or reproduces\n" +
-      "  what they wrote.",
-  );
-}
+assert.deepEqual([...focusedFields].sort(), [...SERVER_FOCUSED_FIELDS, ...OMITTED_FOCUSED_FIELDS].sort(),
+  "new focused fields require a server source or explicit omission");
+const focusedBuild = /context\.focusedContent = \{([\s\S]*?)\n  \};/.exec(contextSource)?.[1];
+assert.ok(focusedBuild, "canonical focused-content assignment is missing");
+for (const field of SERVER_FOCUSED_FIELDS) assert.match(focusedBuild, new RegExp(`\\b${field}:`), `${field} must come from the server post`);
+for (const field of OMITTED_FOCUSED_FIELDS) assert.doesNotMatch(focusedBuild, new RegExp(`\\b${field}:`), `${field} must not forward client data`);
 
 // Every card that publishes the focused-content contract must declare its id
 // through a source that yields a real Post id. The mesh lens originally emitted

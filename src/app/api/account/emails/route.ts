@@ -105,6 +105,11 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: "Cannot remove primary email" }, { status: 400 });
   }
 
-  await prisma.userEmail.delete({ where: { id: emailId } });
+  await prisma.$transaction([
+    prisma.emailVerificationToken.deleteMany({
+      where: { userId: session.userId, email: emailRecord.email },
+    }),
+    prisma.userEmail.delete({ where: { id: emailId } }),
+  ]);
   return NextResponse.json({ success: true });
 }

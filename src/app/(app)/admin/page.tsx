@@ -59,6 +59,64 @@ type AdminDashboardData = NonNullable<Awaited<ReturnType<typeof getAdminDashboar
 type LaunchCheck = AdminDashboardData["launchChecks"][number];
 type CredentialStorageAudit = AdminDashboardData["credentialStorageAudit"];
 
+function CredentialRecoveryAudit({ recovery }: { recovery: CredentialStorageAudit["recovery"] }) {
+  return (
+    <div className="mt-5 border-t border-[var(--ds-border)] pt-4">
+      <h3 className="text-base font-semibold text-[var(--text-primary)]">Read-only cryptographic checks</h3>
+      {recovery.status === "not_scanned" ? (
+        <p className="mt-2 text-sm leading-6 text-[var(--text-secondary)]">Not scanned: {recovery.reason}</p>
+      ) : (
+        <>
+          <p className="mt-2 text-sm text-[var(--text-secondary)]">Complete scan: {recovery.ciphertexts.toLocaleString("en-US")} enc:v1: values.</p>
+          <p className="mt-2 text-sm tabular-nums text-[var(--text-secondary)]">
+            Structurally valid: {recovery.structurallyValid.toLocaleString("en-US")} · Malformed or noncanonical: {recovery.malformed.toLocaleString("en-US")}
+          </p>
+          <p className="mt-2 text-xs leading-5 text-[var(--text-secondary)]">
+            Only structurally valid enc:v1: values are authenticated. Other nonempty fields are counted above and are not decrypted.
+          </p>
+          <div className="mt-4 rounded-2xl border border-[var(--ds-border)] bg-[var(--ds-surface)] p-4">
+            <p className="text-sm font-semibold text-[var(--text-primary)]">Current key under production parsing</p>
+            <p className="mt-1 break-all text-sm text-[var(--text-secondary)]">Source: {recovery.currentKey.source ?? "No configured source"}</p>
+            <p className="mt-2 text-sm tabular-nums text-[var(--text-secondary)]">
+              {recovery.currentKey.usable
+                ? `Authenticated: ${recovery.currentKey.authenticated.toLocaleString("en-US")} · Failed authentication: ${recovery.currentKey.failed.toLocaleString("en-US")}`
+                : "No usable current key. Authentication with the current key was not attempted."}
+            </p>
+          </div>
+          <h4 className="mt-4 text-sm font-semibold text-[var(--text-primary)]">Recovery candidates</h4>
+          {recovery.candidates.length ? (
+            <div className="mt-2 overflow-x-auto rounded-2xl border border-[var(--ds-border)]">
+              <table className="w-full min-w-[720px] text-left text-sm">
+                <caption className="sr-only">Aggregate candidate authentication results; no key values are displayed.</caption>
+                <thead><tr>
+                  <th scope="col" className="px-4 py-3 font-semibold">Source</th>
+                  <th scope="col" className="px-4 py-3 font-semibold">Transformation</th>
+                  <th scope="col" className="px-4 py-3 text-right font-semibold">Authenticated</th>
+                  <th scope="col" className="px-4 py-3 text-right font-semibold">Failed authentication</th>
+                </tr></thead>
+                <tbody className="text-[var(--text-secondary)]">
+                  {recovery.candidates.map((candidate) => (
+                    <tr key={`${candidate.source}-${candidate.transformation}`} className="border-t border-[var(--ds-border)]">
+                      <th scope="row" className="px-4 py-3 font-medium">{candidate.source}</th>
+                      <td className="px-4 py-3">{candidate.transformation}</td>
+                      <td className="px-4 py-3 text-right tabular-nums">{candidate.authenticated.toLocaleString("en-US")}</td>
+                      <td className="px-4 py-3 text-right tabular-nums">{candidate.failed.toLocaleString("en-US")}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : <p className="mt-2 text-sm text-[var(--text-secondary)]">No distinct usable recovery candidates were available.</p>}
+        </>
+      )}
+      <p className="mt-3 text-xs leading-5 text-[var(--text-secondary)]">
+        Failed authentication can mean a wrong key or damaged ciphertext. This audit does not rotate keys, migrate credentials, or change stored data or configuration.
+        Provider token validity, backups, and external copies are not checked. These results do not establish that key replacement is safe.
+      </p>
+    </div>
+  );
+}
+
 function CredentialStorageAuditSection({ audit }: { audit: CredentialStorageAudit }) {
   const statusLabels = {
     empty: "Empty",
@@ -125,6 +183,7 @@ function CredentialStorageAuditSection({ audit }: { audit: CredentialStorageAudi
         The enc:v1: count checks only the stored prefix; it does not verify decryption or key compatibility.
         Backups and external copies are not checked. This audit does not establish that key replacement is safe.
       </p>
+      <CredentialRecoveryAudit recovery={audit.recovery} />
     </section>
   );
 }

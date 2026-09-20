@@ -3,32 +3,12 @@
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getCredentialStorageAudit } from "@/lib/credential-storage-audit";
-
-const OAUTH_SECRET_KEYS = [
-  "GOOGLE_CLIENT_SECRET",
-  "GITHUB_OAUTH_CLIENT_SECRET",
-  "DISCORD_CLIENT_SECRET",
-  "SPOTIFY_CLIENT_SECRET",
-  "TWITTER_CLIENT_SECRET",
-  "TWITCH_CLIENT_SECRET",
-  "FACEBOOK_APP_SECRET",
-  "LINKEDIN_CLIENT_SECRET",
-  "REDDIT_CLIENT_SECRET",
-  "TIKTOK_CLIENT_SECRET",
-  "PINTEREST_APP_SECRET",
-  "SNAPCHAT_CLIENT_SECRET",
-  "THREADS_CLIENT_SECRET",
-  "SOUNDCLOUD_CLIENT_SECRET",
-  "PATREON_CLIENT_SECRET",
-  "DRIBBBLE_CLIENT_SECRET",
-] as const;
+import { getOAuthClientId, getOAuthClientSecret, OAUTH_CONFIGS } from "@/lib/oauth";
+import { hasSecretEncryptionKey } from "@/lib/secret-store";
+import { getMeshProPriceId, getStripeClient } from "@/lib/stripe";
 
 type CheckStatus = "pass" | "warn" | "fail";
 type AlertSeverity = "low" | "medium" | "high";
-
-function configuredEnvCount(keys: readonly string[]) {
-  return keys.filter((key) => Boolean(process.env[key])).length;
-}
 
 function check(status: CheckStatus, label: string, description: string) {
   return { status, label, description };
@@ -172,13 +152,14 @@ export async function getAdminDashboard() {
     getCredentialStorageAudit(),
   ]);
 
-  const oauthConfiguredCount = configuredEnvCount(OAUTH_SECRET_KEYS);
+  const oauthConfiguredCount = Object.values(OAUTH_CONFIGS).filter((config) => getOAuthClientId(config) && getOAuthClientSecret(config)).length;
+  const encryptionConfigured = hasSecretEncryptionKey();
   const stripeConfigured = Boolean(
-    process.env.STRIPE_SECRET_KEY &&
-      (process.env.STRIPE_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY) &&
-      process.env.STRIPE_WEBHOOK_SECRET
+    getStripeClient() && process.env.STRIPE_WEBHOOK_SECRET?.trim() &&
+    getMeshProPriceId("monthly") && getMeshProPriceId("yearly")
   );
-  const emailConfigured = Boolean(process.env.RESEND_API_KEY && (process.env.RESEND_FROM_EMAIL || process.env.PASSWORD_RESET_FROM_EMAIL));
+  const emailConfigured = Boolean(process.env.RESEND_API_KEY?.trim() && (process.env.RESEND_FROM_EMAIL?.trim() || process.env.PASSWORD_RESET_FROM_EMAIL?.trim()));
+  const cronConfigured = Boolean(process.env.CRON_SECRET?.trim());
   const adultVerificationConfigured = Boolean(
     process.env.ADULT_VERIFICATION_PROVIDER_URL && process.env.ADULT_VERIFICATION_WEBHOOK_SECRET
   );
@@ -188,10 +169,11 @@ export async function getAdminDashboard() {
     check("pass", "Admin route gated", "Only users with isAdmin can open this panel."),
     check(adminUserCount > 0 ? "pass" : "fail", "Admin account exists", `${adminUserCount} admin account${adminUserCount === 1 ? "" : "s"} found.`),
     check(pendingReportCount === 0 ? "pass" : pendingReportCount > 10 ? "fail" : "warn", "Moderation queue", `${pendingReportCount} report${pendingReportCount === 1 ? "" : "s"} pending.`),
-    check(stripeConfigured ? "pass" : "warn", "MeshPro payments", stripeConfigured ? "Stripe keys and webhook secret are configured." : "Stripe payment environment is incomplete."),
-    check(emailConfigured ? "pass" : "warn", "Account email", emailConfigured ? "Transactional email is configured." : "Password reset and verification email need provider env keys."),
+    check(stripeConfigured ? "pass" : "warn", "MeshPro payments", stripeConfigured ? "Monthly/yearly checkout and webhook configuration is present. A real payment and cancellation still need verification." : "Stripe payment environment is incomplete."),
+    check(emailConfigured ? "pass" : "warn", "Account email", emailConfigured ? "Email transport is configured. Verify the sender domain and a delivered recovery link before launch." : "Password reset and verification email need provider env keys."),
     check(appUrlConfigured ? "pass" : "warn", "Public app URL", appUrlConfigured ? "NEXT_PUBLIC_APP_URL is set." : "NEXT_PUBLIC_APP_URL should be set before launch."),
-    check(oauthConfiguredCount > 0 ? "pass" : "warn", "Connected account OAuth", `${oauthConfiguredCount} social OAuth secret${oauthConfiguredCount === 1 ? "" : "s"} configured.`),
+    check(encryptionConfigured && oauthConfiguredCount > 0 ? "pass" : "fail", "Connected account OAuth", encryptionConfigured ? `${oauthConfiguredCount} supported adapters have client credentials. Provider permissions and callbacks require separate verification.` : "Connecting is disabled because the encryption key is unusable. Review the credential recovery audit before changing it."),
+    check(cronConfigured ? "pass" : "fail", "Background jobs", cronConfigured ? "Vercel cron authentication is configured. Verify scheduled publishing, feed refresh and daily security cleanup in runtime logs." : "CRON_SECRET is missing. Scheduled publishing, feed refresh and daily security cleanup cannot run."),
     check(adultVerificationConfigured ? "pass" : "warn", "Adult verification", adultVerificationConfigured ? "NSFW verification provider is configured." : "NSFW stays off until verification provider keys are configured."),
     check(expiredSessionCount === 0 ? "pass" : "warn", "Expired sessions", `${expiredSessionCount} expired session${expiredSessionCount === 1 ? "" : "s"} should be cleaned up.`),
     check(erroredConnectedAccountCount === 0 ? "pass" : "warn", "Sync health", `${erroredConnectedAccountCount} connected account${erroredConnectedAccountCount === 1 ? "" : "s"} need attention.`),

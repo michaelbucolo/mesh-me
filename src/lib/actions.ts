@@ -1,6 +1,8 @@
 "use server";
 
 import { prisma } from "./prisma";
+import { sendEmailVerificationEmail, sendPasswordResetEmail } from "./account-email";
+import { consumeEmailVerificationToken, consumePasswordResetToken, replaceAccountPassword } from "./auth-token-store";
 import { parseAccessories, serializeAccessories } from "@/components/meshi/meshi-slots";
 import { hasMeshiConsent } from "./consent";
 import { listJournal } from "./meshi-memory";
@@ -48,92 +50,12 @@ import { normalizeStudioWeights, authorKey, dominantFormat } from "./flow-rankin
 import { normalizePlatformId } from "./platform-capabilities";
 import { isValidMutedSourceKey, parseMutedSources, serializeMutedSources } from "./muted-sources";
 import { cancelAccountSubscriptions } from "./account-billing";
+import { achievementRewardForBadge } from "./achievements/rewards";
+import { getEarnedAchievementBadges } from "./achievements/award";
 
 async function hashAuthTokenValue(token: string) {
   const crypto = await import("crypto");
   return crypto.createHash("sha256").update(token).digest("hex");
-}
-
-function escapeEmailHtml(value: string) {
-  return value.replace(/[&<>"']/g, (character) => ({
-    "&": "&amp;",
-    "<": "&lt;",
-    ">": "&gt;",
-    "\"": "&quot;",
-    "'": "&#39;",
-  })[character] || character);
-}
-
-async function sendPasswordResetEmail(to: string, resetUrl: string) {
-  const apiKey = process.env.RESEND_API_KEY;
-  const from = process.env.PASSWORD_RESET_FROM_EMAIL || process.env.RESEND_FROM_EMAIL;
-  if (!apiKey || !from) return false;
-
-  const safeResetUrl = escapeEmailHtml(resetUrl);
-  const response = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      from,
-      to,
-      subject: "Reset your Mesh.me password",
-      text: `Use this secure link to reset your Mesh.me password. The link expires in 1 hour.\n\n${resetUrl}\n\nIf you did not request this, you can ignore this email.`,
-      html: `
-        <div style="font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;line-height:1.5;color:#0f172a">
-          <h1 style="font-size:22px;margin:0 0 12px">Reset your Mesh.me password</h1>
-          <p>Use this secure link to reset your password. The link expires in 1 hour.</p>
-          <p><a href="${safeResetUrl}" style="display:inline-block;border-radius:999px;background:#2563eb;color:#ffffff;padding:12px 18px;text-decoration:none;font-weight:700">Reset password</a></p>
-          <p style="font-size:13px;color:#64748b">If you did not request this, you can ignore this email.</p>
-        </div>
-      `,
-    }),
-  });
-
-  if (!response.ok) {
-    console.error("Password reset email failed", await response.text().catch(() => response.statusText));
-    return false;
-  }
-
-  return true;
-}
-
-async function sendEmailVerificationEmail(to: string, verificationUrl: string) {
-  const apiKey = process.env.RESEND_API_KEY;
-  const from = process.env.EMAIL_VERIFICATION_FROM_EMAIL || process.env.RESEND_FROM_EMAIL || process.env.PASSWORD_RESET_FROM_EMAIL;
-  if (!apiKey || !from) return false;
-
-  const safeVerificationUrl = escapeEmailHtml(verificationUrl);
-  const response = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      from,
-      to,
-      subject: "Verify your Mesh.me email",
-      text: `Verify this email address for your Mesh.me account. The link expires in 24 hours.\n\n${verificationUrl}\n\nIf you did not create this account, you can ignore this email.`,
-      html: `
-        <div style="font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;line-height:1.5;color:#0f172a">
-          <h1 style="font-size:22px;margin:0 0 12px">Verify your Mesh.me email</h1>
-          <p>Confirm this email address for your Mesh.me account. The link expires in 24 hours.</p>
-          <p><a href="${safeVerificationUrl}" style="display:inline-block;border-radius:999px;background:#2563eb;color:#ffffff;padding:12px 18px;text-decoration:none;font-weight:700">Verify email</a></p>
-          <p style="font-size:13px;color:#64748b">If you did not create this account, you can ignore this email.</p>
-        </div>
-      `,
-    }),
-  });
-
-  if (!response.ok) {
-    console.error("Email verification delivery failed", await response.text().catch(() => response.statusText));
-    return false;
-  }
-
-  return true;
 }
 
 async function issueEmailVerificationToken(userId: string, email: string) {
@@ -457,7 +379,8 @@ export async function signUp(formData: FormData) {
 
   // Create session and redirect OUTSIDE try/catch
   // (Next.js redirect throws internally and must not be caught)
-  await createSession(userId);
+  const sessionId = await createSession(userId, passwordHash);
+  if (!sessionId) return { error: "Your sign-in details changed. Please sign in again." };
   redirect("/onboarding");
 }
 
@@ -576,7 +499,8 @@ async function completeSignIn(formData: FormData, options: { createSessionCookie
     clearDurableFailedLogins(identifierKey),
   ]);
   if (shouldCreateSession) {
-    await createSession(user.id);
+    const sessionId = await createSession(user.id, user.passwordHash);
+    if (!sessionId) return { error: "Your sign-in details changed. Please sign in again." };
   }
 
   return { success: true, redirectTo: user.onboarded ? (nextPath || "/mesh") : "/onboarding" };
@@ -595,7 +519,9 @@ export async function signOut() {
 // ─── Password Reset ─────────────────────────────────────────
 
 export async function requestPasswordReset(email: string) {
+  if (typeof email !== "string" || email.length > 254) return { success: true };
   const normalizedEmail = email.trim().toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) return { success: true };
   const rl = await durableRateLimit(`reset:${normalizedEmail}`, 3, 15 * 60 * 1000);
   if (!rl.allowed) {
     return { error: "Too many reset requests. Please try again later." };
@@ -659,19 +585,20 @@ export async function requestEmailVerification(formData?: FormData) {
   }
 
   const { verificationUrl } = await issueEmailVerificationToken(user.id, normalizedEmail);
-  await sendEmailVerificationEmail(normalizedEmail, verificationUrl);
+  const sent = await sendEmailVerificationEmail(normalizedEmail, verificationUrl);
 
   // Local development only — see requestPasswordReset for why not `!== "production"`.
   if (process.env.NODE_ENV === "development") {
     return { success: true, verificationUrl };
   }
 
+  if (!sent) return { error: "We couldn't send the verification email. Please try again later." };
   return { success: true };
 }
 
 export async function verifyEmailToken(token: string) {
-  const trimmedToken = token.trim();
-  if (!trimmedToken || trimmedToken.length < 32) {
+  const trimmedToken = typeof token === "string" ? token.trim() : "";
+  if (!/^[a-f0-9]{64}$/.test(trimmedToken)) {
     return { error: "Invalid verification link. Please request a new one." };
   }
 
@@ -681,71 +608,11 @@ export async function verifyEmailToken(token: string) {
   }
 
   const tokenHash = await hashAuthTokenValue(trimmedToken);
-  const verificationToken = await prisma.emailVerificationToken.findFirst({
-    where: {
-      tokenHash,
-      consumedAt: null,
-      expiresAt: { gt: new Date() },
-    },
-    include: {
-      user: {
-        select: {
-          id: true,
-          email: true,
-        },
-      },
-    },
-  });
-
-  if (!verificationToken) {
-    return { error: "Invalid or expired verification link. Please request a new one." };
-  }
-
-  const normalizedEmail = verificationToken.email.trim().toLowerCase();
-  const isPrimaryEmail = verificationToken.user.email.toLowerCase() === normalizedEmail;
-  const existingEmailRecord = await prisma.userEmail.findUnique({ where: { email: normalizedEmail } });
-  if (existingEmailRecord && existingEmailRecord.userId !== verificationToken.userId) {
-    return { error: "This email is already connected to another account." };
-  }
-
-  await prisma.$transaction(async (tx) => {
-    await tx.emailVerificationToken.update({
-      where: { id: verificationToken.id },
-      data: { consumedAt: new Date() },
-    });
-
-    if (isPrimaryEmail) {
-      await tx.user.update({
-        where: { id: verificationToken.userId },
-        data: { emailVerified: true },
-      });
-    }
-
-    if (existingEmailRecord) {
-      await tx.userEmail.update({
-        where: { id: existingEmailRecord.id },
-        data: {
-          isVerified: true,
-          isPrimary: existingEmailRecord.isPrimary || isPrimaryEmail,
-        },
-      });
-    } else {
-      await tx.userEmail.create({
-        data: {
-          userId: verificationToken.userId,
-          email: normalizedEmail,
-          isPrimary: isPrimaryEmail,
-          isVerified: true,
-        },
-      });
-    }
-  });
-
-  return { success: true, email: normalizedEmail };
+  return consumeEmailVerificationToken(tokenHash);
 }
 
 export async function resetPassword(token: string, newPassword: string) {
-  if (!token || !newPassword) {
+  if (typeof token !== "string" || !/^[a-f0-9]{64}$/.test(token) || typeof newPassword !== "string" || !newPassword) {
     return { error: "Invalid request" };
   }
 
@@ -772,17 +639,8 @@ export async function resetPassword(token: string, newPassword: string) {
 
   const passwordHash = await hashPassword(newPassword);
 
-  await prisma.user.update({
-    where: { id: user.id },
-    data: {
-      passwordHash,
-      resetToken: null,
-      resetTokenExpiry: null,
-    },
-  });
-
-  // Invalidate all existing sessions for security
-  await invalidateAllUserSessions(user.id);
+  const consumed = await consumePasswordResetToken(user.id, tokenHash, passwordHash);
+  if (!consumed) return { error: "Invalid or expired reset link. Please request a new one." };
 
   return { success: true };
 }
@@ -2246,14 +2104,11 @@ export async function changePassword(formData: FormData) {
   }
 
   const newHash = await hashPassword(newPassword);
-  await prisma.user.update({
-    where: { id: user.id },
-    data: { passwordHash: newHash },
-  });
+  const changed = await replaceAccountPassword(user.id, user.passwordHash, newHash);
+  if (!changed) return { error: "Your password changed during this request. Please sign in again." };
 
-  // Invalidate all existing sessions and create a fresh one for the current user
-  await invalidateAllUserSessions(user.id);
-  await createSession(user.id);
+  const sessionId = await createSession(user.id, newHash);
+  if (!sessionId) return { error: "Your sign-in details changed. Please sign in again." };
 
   return { success: true };
 }
@@ -2823,8 +2678,12 @@ function findLockedMeshiOptionForFreeUser(
 
 /** Non-Pro accounts get the free default for anything they may not hold yet. */
 function clampMeshiOptionsToFree<T extends Record<string, string>>(next: T, isPro: boolean): T {
-  if (isPro) return next;
   const clamped = { ...next };
+  // Onboarding cannot manufacture milestone proof, including for Pro users.
+  if (achievementRewardForBadge(clamped.badgeStyle)) {
+    (clamped as Record<string, string>).badgeStyle = DEFAULT_MESHI_PREFERENCE.badgeStyle;
+  }
+  if (isPro) return clamped;
   for (const [field, group] of MESHI_LOCK_CHECKS) {
     const value = clamped[field as keyof T] as string | undefined;
     if (value && !isFreeMeshiOption(group, value)) {
@@ -2867,6 +2726,11 @@ export async function updateMeshiPreference(data: MeshiPreferenceUpdate) {
     return { error: "The patron pin belongs to patrons of record." };
   }
 
+  const achievementReward = achievementRewardForBadge(next.badgeStyle);
+  if (achievementReward && !(await getEarnedAchievementBadges(user.id)).includes(achievementReward.badge)) {
+    return { error: "Reach and save this milestone before wearing its Meshi badge." };
+  }
+
   if (!hasMeshPro(user)) {
     const [current, ownedRows] = await Promise.all([
       prisma.meshiPreference.findUnique({
@@ -2881,7 +2745,7 @@ export async function updateMeshiPreference(data: MeshiPreferenceUpdate) {
         select: { category: true, value: true },
       }),
     ]);
-    const gated = next.badgeStyle === "charter" || next.badgeStyle === "patron"
+    const gated = next.badgeStyle === "charter" || next.badgeStyle === "patron" || achievementReward
       ? { ...next, badgeStyle: undefined }
       : next;
     const lockedOption = findLockedMeshiOptionForFreeUser(gated, current ?? {}, buildOwnedMeshiSets(ownedRows));
