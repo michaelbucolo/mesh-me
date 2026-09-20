@@ -5,6 +5,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { publicPresenceRoute, redactWhere } from "../src/lib/presence-policy";
+import { getPostPresenceKey } from "../src/lib/presence-keys";
 
 async function main() {
   // Always isolate fixtures, including when production env is present.
@@ -23,7 +24,7 @@ async function main() {
     for (const path of ["/feed", "/flow", "/explore", "/communities"]) check(publicPresenceRoute(path), path, `Public surface ${path}`);
     for (const path of ["/messages/secret", "/settings", "/admin", "/explore?q=private", "/feed/secret", "/profile/private", "https://example.com/feed", null]) check(publicPresenceRoute(path), null, `Private route ${path}`);
     const users = await Promise.all(["owner", "friend", "stranger"].map((name) => prisma.user.create({ data: {
-      id: randomUUID(), username: name, displayName: name, email: `${name}@example.invalid`, passwordHash: "isolated-no-login", isPublic: true,
+      id: randomUUID(), username: name, displayName: name, email: `${name}@example.invalid`, passwordHash: "isolated-no-login", isPublic: true, showInDiscovery: true,
     } })));
     const [owner, friend, stranger] = users;
     await prisma.follow.createMany({ data: [
@@ -76,12 +77,51 @@ async function main() {
       check(await canViewPresencePost(owner, post.id), true, `Owner post access ${post.visibility}`);
       check(await canViewPresencePost(friend, post.id), index !== 2, `Friend post access ${post.visibility}`);
       check(await canViewPresencePost(stranger, post.id), index === 0, `Stranger post access ${post.visibility}`);
+      const key = getPostPresenceKey({ id: post.id, sourceType: "mesh" });
+      check(await canViewPresencePost(owner, key), true, `Canonical owner post access ${post.visibility}`);
+      check(await canViewPresencePost(friend, key), index !== 2, `Canonical friend post access ${post.visibility}`);
+      check(await canViewPresencePost(stranger, key), index === 0, `Canonical stranger post access ${post.visibility}`);
+    }
+    const account = await prisma.connectedAccount.create({ data: { userId: owner.id, platform: "youtube", platformUsername: owner.username } });
+    const platformPosts = await Promise.all(["public", "friends", "private"].map((visibility) => prisma.platformPost.create({ data: {
+      connectedAccountId: account.id, platformPostId: randomUUID(), content: `Imported ${visibility}`, visibility,
+    } })));
+    for (const [index, post] of platformPosts.entries()) {
+      const key = getPostPresenceKey({ id: `platform-${post.id}`, platform: "youtube", sourceId: post.id, sourceType: "platform" });
+      check(await canViewPresencePost(owner, key), true, `Canonical imported owner ${post.visibility}`);
+      check(await canViewPresencePost(friend, key), index !== 2, `Canonical imported friend ${post.visibility}`);
+      check(await canViewPresencePost(stranger, key), index === 0, `Canonical imported stranger ${post.visibility}`);
+      check(getPostPresenceKey({ id: `friend-platform-${post.id}` }), key, `Friend imported card shares ${post.visibility} presence key`);
+      check(await canViewPresencePost(owner, `platform-${post.id}`), true, `Legacy imported owner ${post.visibility}`);
+      check(await canViewPresencePost(owner, `friend-platform-${post.id}`), true, `Legacy friend alias owner ${post.visibility}`);
+    }
+    const importedFeedItem = await prisma.platformFeedItem.create({ data: { connectedAccountId: account.id, platformItemId: randomUUID(), content: "Private personalized feed item" } });
+    const importedFeedKey = getPostPresenceKey({ id: `feeditem-${importedFeedItem.id}`, platform: "youtube", sourceId: importedFeedItem.id, sourceType: "platform" });
+    check(await canViewPresencePost(owner, importedFeedKey), true, "Canonical personalized import resolves for owner");
+    check(await canViewPresencePost(friend, importedFeedKey), false, "Canonical personalized import stays private from friend");
+    check(await canViewPresencePost(stranger, importedFeedKey), false, "Canonical personalized import stays private from stranger");
+    check(await canViewPresencePost(owner, `feeditem-${importedFeedItem.id}`), true, "Legacy personalized import resolves for owner");
+    check(await canViewPresencePost(friend, `feeditem-${importedFeedItem.id}`), false, "Legacy personalized import stays private");
+    check(await canViewPresencePost(owner, `platform-${importedFeedItem.id}`), false, "Legacy platform alias cannot change a feed item's source kind");
+    const collision = await prisma.platformFeedItem.create({ data: { id: platformPosts[2].id, connectedAccountId: account.id, platformItemId: randomUUID(), content: "Isolated identifier collision" } });
+    check(await canViewPresencePost(owner, `feeditem-${collision.id}`), false, "Ambiguous legacy feed item collision fails closed");
+    const publicSupply = await prisma.publicPost.create({ data: { platform: "youtube", platformPostId: randomUUID(), lane: "fixture", content: "Public fixture", expiresAt: new Date(Date.now() + 60_000) } });
+    const publicKey = getPostPresenceKey({ id: `public-${publicSupply.id}`, platform: "youtube", sourceType: "platform" });
+    check(await canViewPresencePost(stranger, publicKey), true, "Canonical public-supply key resolves without sourceId");
+    await prisma.publicPost.update({ where: { id: publicSupply.id }, data: { expiresAt: new Date(0) } });
+    check(await canViewPresencePost(stranger, publicKey), false, "Canonical public-supply key preserves expiry gate");
+    for (const key of ["mesh:", "platform:", "imported:unknown", "url:https://example.com/private", `mesh:platform-${platformPosts[0].id}`]) {
+      check(await canViewPresencePost(owner, key), false, `Malformed or wrong namespace ${key} is denied`);
     }
     check(await canViewPresencePost(friend, "missing-post"), false, "Guessed post is denied");
     check(await canViewPresencePost(friend, "x".repeat(161)), false, "Unbounded post ID is denied");
     await prisma.block.create({ data: { blockerId: owner.id, blockedId: friend.id } });
     check((await getBlockedUserIds(friend.id)).has(owner.id), true, "Both block directions are included");
     check(await canViewPresencePost(friend, posts[0].id), false, "Block also revokes public post access");
+    check(await canViewPresencePost(friend, getPostPresenceKey({ id: posts[0].id })), false, "Block revokes canonical native post access");
+    check(await canViewPresencePost(friend, getPostPresenceKey({ id: `platform-${platformPosts[0].id}` })), false, "Block revokes canonical imported post access");
+    check(await canViewPresencePost(friend, `friend-platform-${platformPosts[0].id}`), false, "Block revokes legacy friend-platform alias");
+    check(await canViewPresencePost(friend, `platform-${platformPosts[0].id}`), false, "Block revokes legacy platform alias");
     check(await canViewMeshRoom(friend.id, owner.id), false, "Block revokes room access");
     const where = { viewingMesh: owner.id, activePostId: "secret", activeNodeId: "platform-post:account:secret", activeRoute: "/messages/secret" };
     check(redactWhere(where, { inObservedRoom: true, viewingViewerMesh: false, samePost: false, shareWhere: true }).activeNodeId, null, "Platform post nodes stay private too");
