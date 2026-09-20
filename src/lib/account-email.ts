@@ -55,7 +55,7 @@ export async function sendPasswordResetEmail(to: string, resetUrl: string) {
         <div style="font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;line-height:1.5;color:#0f172a">
           <h1 style="font-size:22px;margin:0 0 12px">Reset your Mesh.me password</h1>
           <p>Use this secure link to reset your password. The link expires in 1 hour.</p>
-          <p><a href="${safeResetUrl}" style="display:inline-block;border-radius:999px;background:#2563eb;color:#ffffff;padding:12px 18px;text-decoration:none;font-weight:700">Reset password</a></p>
+          <p><a href="${safeResetUrl}" style="display:inline-block;border-radius:999px;background:#2563eb;color:#ffffff;padding:12px 18px;text-decoration:none;font-weight:600">Reset password</a></p>
           <p style="font-size:13px;color:#64748b">If you did not request this, you can ignore this email.</p>
         </div>
     `,
@@ -72,7 +72,7 @@ export async function sendEmailVerificationEmail(to: string, verificationUrl: st
         <div style="font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;line-height:1.5;color:#0f172a">
           <h1 style="font-size:22px;margin:0 0 12px">Verify your Mesh.me email</h1>
           <p>Confirm this email address for your Mesh.me account. The link expires in 24 hours.</p>
-          <p><a href="${safeVerificationUrl}" style="display:inline-block;border-radius:999px;background:#2563eb;color:#ffffff;padding:12px 18px;text-decoration:none;font-weight:700">Verify email</a></p>
+          <p><a href="${safeVerificationUrl}" style="display:inline-block;border-radius:999px;background:#2563eb;color:#ffffff;padding:12px 18px;text-decoration:none;font-weight:600">Verify email</a></p>
           <p style="font-size:13px;color:#64748b">If you did not create this account, you can ignore this email.</p>
         </div>
     `,
