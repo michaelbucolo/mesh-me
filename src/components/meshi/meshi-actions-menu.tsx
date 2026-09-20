@@ -1,106 +1,96 @@
 "use client";
 
+import { useRef } from "react";
 import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
-import {
-  X, Sparkles, MessageCircle, Search,
-  Palette, Settings,
-  PenSquare,
-} from "lucide-react";
+import * as Dialog from "@radix-ui/react-dialog";
+import { X, Sparkles, MessageCircle, Compass, Palette, Ghost, ArrowRight, Loader2 } from "lucide-react";
 import { UserMeshi } from "@/components/meshi/user-meshi";
+import { useGhostMode, usePresencePrivacy } from "@/hooks/use-ghost-mode";
 import type { MeshiColor, MeshiHat } from "./meshi-mascot";
 
 interface MeshiActionsMenuProps {
   meshiColor: MeshiColor;
   meshiHat: MeshiHat;
+  activity: string;
   onClose: () => void;
   onAskMeshi: () => void;
   onSearchMesh: () => void;
   onOpenChat: () => void;
 }
 
-export function MeshiActionsMenu({
-  onClose, onAskMeshi, onSearchMesh, onOpenChat,
-}: MeshiActionsMenuProps) {
+export function MeshiActionsMenu({ activity, onClose, onAskMeshi, onSearchMesh, onOpenChat }: MeshiActionsMenuProps) {
   const router = useRouter();
-
+  const { ghost, pending, error, update } = useGhostMode();
+  const { hideActivityStatus, shareWhere } = usePresencePrivacy();
+  const returnFocus = useRef<HTMLElement | null>(typeof document === "undefined" ? null : document.activeElement as HTMLElement);
   const navigate = (path: string) => { onClose(); router.push(path); };
+  const visibility = ghost
+    ? "Ghost Mode is on. Your live presence is hidden from other people."
+    : hideActivityStatus
+      ? "Your activity status is hidden. Your Meshi still reflects what you do on this device."
+      : shareWhere
+        ? "Your live presence and current public space can be visible to people you allow."
+        : "Your activity status can be visible. Your browsing location is shared only in spaces you join.";
 
   return (
-    <motion.div
-      data-meshi-owned="true"
-      initial={{ opacity: 0, y: 10, scale: 0.95 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, y: 10, scale: 0.95 }}
-      transition={{ type: "spring", damping: 25, stiffness: 300 }}
-      className="fixed bottom-[calc(var(--mobile-nav-h)+env(safe-area-inset-bottom)+1.25rem)] right-4 z-50 w-[260px] max-w-[calc(100vw-2rem)] max-h-[60dvh] glass-dropdown rounded-2xl shadow-2xl overflow-hidden flex flex-col md:bottom-[72px]"
-    >
-      {/* Header */}
-      <div className="flex items-center gap-3 px-4 py-3 border-b border-[var(--border-primary)]" style={{ background: "var(--bg-secondary)" }}>
-        <UserMeshi size={28} />
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-[var(--text-primary)]">Meshi</p>
-          <p className="text-micro text-[var(--text-muted)]">Your bridge to the internet</p>
-        </div>
-        <button
-          onClick={onClose}
-          aria-label="Close Meshi actions"
-          className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] transition-colors"
+    <Dialog.Root open onOpenChange={(open) => { if (!open) onClose(); }}>
+      <Dialog.Portal>
+        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/15" />
+        <Dialog.Content
+          data-meshi-owned="true"
+          onCloseAutoFocus={(event) => {
+            event.preventDefault();
+            if (returnFocus.current?.isConnected) returnFocus.current.focus();
+          }}
+          className="fixed bottom-[calc(var(--mobile-nav-h)+env(safe-area-inset-bottom)+1rem)] right-4 z-50 flex max-h-[min(75dvh,40rem)] w-[320px] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-2xl glass-dropdown shadow-2xl outline-none md:bottom-[76px]"
         >
-          <X className="h-4 w-4" />
-        </button>
-      </div>
-
-      {/* Menu Items */}
-      <div className="grid grid-cols-2 gap-2 p-2">
-        <MenuItem icon={Sparkles} iconColor="var(--accent)" label="Ask" onClick={onAskMeshi} />
-        <MenuItem icon={MessageCircle} iconColor="#a78bfa" label="Chat" onClick={onOpenChat} />
-        <MenuItem icon={PenSquare} iconColor="#34d399" label="Post" onClick={() => navigate("/feed?compose=true")} />
-        <MenuItem icon={Search} iconColor="#f59e0b" label="Explore" onClick={onSearchMesh} />
-      </div>
-
-      {/* Footer */}
-      <div className="px-4 py-2 border-t border-[var(--border-primary)] flex items-center justify-between" style={{ background: "var(--bg-secondary)" }}>
-        <button
-          onClick={() => navigate("/settings?tab=meshi")}
-          className="flex items-center gap-1 text-micro text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors"
-        >
-          <Palette className="h-3 w-3" />
-          Customize
-        </button>
-        {/* Was an emerald pulsing "Private first" — the same padlock grammar
-            removed from the chat header, on the FIRST panel every user sees when
-            they tap Meshi. Meshi's replies are generated by a third-party
-            provider, so the pill states that instead, in neutral colour and
-            without the pulse. */}
-        <span
-          className="rounded-full bg-[var(--bg-tertiary)] px-1.5 py-0.5 text-micro font-medium text-[var(--text-muted)]"
-          title="Meshi's replies are generated by a third-party AI provider. What Meshi may send is governed by your Meshi memory rule in Privacy controls."
-        >
-          Cloud AI
-        </span>
-        <button onClick={() => navigate("/settings")} aria-label="Open settings" className="text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors">
-          <Settings className="h-3.5 w-3.5" />
-        </button>
-      </div>
-    </motion.div>
-  );
-}
-
-function MenuItem({ icon: Icon, iconColor, label, onClick }: {
-  icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
-  iconColor: string;
-  label: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className="flex min-h-[72px] flex-col items-center justify-center gap-2 rounded-xl px-3 py-3 text-center hover:bg-[var(--bg-hover)] transition-colors"
-      style={{ color: "var(--text-primary)" }}
-    >
-      <Icon className="h-4 w-4" style={{ color: iconColor }} />
-      <span className="text-sm font-semibold">{label}</span>
-    </button>
+          <div className="flex shrink-0 items-center gap-3 border-b border-[var(--border-primary)] px-4 py-3">
+            <div className={ghost ? "opacity-50" : undefined}><UserMeshi size={36} /></div>
+            <div className="min-w-0 flex-1">
+              <Dialog.Title className="text-sm font-semibold text-[var(--text-primary)]">Your Meshi</Dialog.Title>
+              <Dialog.Description className="mt-0.5 text-xs text-[var(--text-muted)]">Your presence, your way.</Dialog.Description>
+            </div>
+            <Dialog.Close asChild>
+              <button type="button" aria-label="Close Meshi actions" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-hover)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"><X aria-hidden="true" className="h-4 w-4" /></button>
+            </Dialog.Close>
+          </div>
+          <div className="min-h-0 overflow-y-auto overscroll-contain p-4">
+            <div className="rounded-xl bg-[var(--bg-secondary)] p-3">
+              <p className="text-xs text-[var(--text-muted)]">On this device</p>
+              <p className="mt-1 text-sm font-medium text-[var(--text-primary)]">{activity}</p>
+              <p className="mt-2 text-xs leading-relaxed text-[var(--text-secondary)]">{visibility}</p>
+            </div>
+            <div className="mt-3 flex items-center gap-3">
+              <Ghost aria-hidden="true" className="h-4 w-4 shrink-0 text-[var(--text-secondary)]" />
+              <div className="min-w-0 flex-1">
+                <p id="meshi-ghost-label" className="text-sm font-medium text-[var(--text-primary)]">Ghost Mode</p>
+                <p id="meshi-ghost-description" className="text-xs text-[var(--text-muted)]">Browse without live presence</p>
+              </div>
+              <button type="button" role="switch" aria-checked={ghost} aria-labelledby="meshi-ghost-label" aria-describedby="meshi-ghost-description" disabled={pending} onClick={() => { void update(error ? true : !ghost); }} className="flex h-11 w-12 shrink-0 items-center justify-center rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)] disabled:cursor-wait">
+                <span aria-hidden="true" className={`relative flex h-6 w-11 items-center rounded-full transition-colors ${ghost ? "bg-[var(--accent)]" : "bg-[var(--border-primary)]"}`}>
+                  <span className={`flex h-5 w-5 items-center justify-center rounded-full bg-white shadow-sm transition-transform motion-reduce:transition-none ${ghost ? "translate-x-[22px]" : "translate-x-0.5"}`}>{pending && <Loader2 className="h-3 w-3 animate-spin text-black motion-reduce:animate-none" />}</span>
+                </span>
+              </button>
+            </div>
+            <div aria-live="polite" className="text-xs text-[var(--text-secondary)]">{pending && <p className="mt-2">Saving your presence preference…</p>}</div>
+            {error && <div role="alert" className="mt-2 rounded-lg bg-[var(--bg-secondary)] p-3 text-xs text-[var(--text-primary)]"><p>{error}</p><button type="button" onClick={() => { void update(error ? true : !ghost); }} className="mt-1 min-h-11 font-semibold text-[var(--accent-text)]">Try again</button></div>}
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              <button type="button" onClick={() => navigate("/mesh")} className="flex min-h-20 flex-col items-center justify-center gap-2 rounded-xl bg-[var(--bg-secondary)] px-3 text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--bg-hover)]"><Compass aria-hidden="true" className="h-5 w-5" />Your Mesh</button>
+              <button type="button" onClick={() => navigate("/settings?tab=meshi")} className="flex min-h-20 flex-col items-center justify-center gap-2 rounded-xl bg-[var(--bg-secondary)] px-3 text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--bg-hover)]"><Palette aria-hidden="true" className="h-5 w-5" />Customize</button>
+            </div>
+            <button type="button" onClick={() => navigate("/settings?tab=privacy")} className="mt-2 flex min-h-11 w-full items-center justify-between rounded-lg px-1 text-xs text-[var(--text-secondary)]">Privacy controls<ArrowRight aria-hidden="true" className="h-3.5 w-3.5" /></button>
+            <details className="mt-2 border-t border-[var(--border-primary)] pt-2">
+              <summary className="min-h-11 cursor-pointer py-3 text-xs font-medium text-[var(--text-muted)]">Optional AI help</summary>
+              <p className="pb-3 text-xs leading-relaxed text-[var(--text-secondary)]">{"Meshi's replies are generated by a third-party AI provider. What Meshi may send is governed by your Meshi memory rule in Privacy controls."}</p>
+              <div className="grid grid-cols-2 gap-2">
+                <button type="button" onClick={onAskMeshi} className="flex min-h-11 items-center justify-center gap-2 rounded-lg bg-[var(--bg-secondary)] text-xs text-[var(--text-primary)]"><Sparkles aria-hidden="true" className="h-3.5 w-3.5" />Ask Meshi</button>
+                <button type="button" onClick={onOpenChat} className="flex min-h-11 items-center justify-center gap-2 rounded-lg bg-[var(--bg-secondary)] text-xs text-[var(--text-primary)]"><MessageCircle aria-hidden="true" className="h-3.5 w-3.5" />Open chat</button>
+              </div>
+              <button type="button" onClick={onSearchMesh} className="mt-2 min-h-11 w-full rounded-lg text-xs text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]">Review Mesh context</button>
+            </details>
+          </div>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
   );
 }

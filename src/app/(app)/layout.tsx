@@ -86,7 +86,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   return (
     <ToastProvider>
-      <MeshiPrefsBootstrap serverPref={meshiSeed} />
+      <MeshiPrefsBootstrap serverPref={meshiSeed} account={{ id: user.id, ghostMode: user.ghostMode, hideActivityStatus: user.hideActivityStatus }} />
       <NativeInit />
       {/* Signed-in only: keeps connected accounts fresh without a manual
           Sync click. Guests have nothing to sync. */}

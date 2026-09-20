@@ -16,16 +16,24 @@
  */
 
 import { readGhostMode } from "@/lib/ghost-mode";
+import { readPresenceAccount } from "@/lib/presence-account";
 
 const WHERE_SHARE_STORAGE_KEY = "meshShareWhere";
 
 /** Same-tab event fired whenever the opt-in flips, so controls re-sync. */
 export const WHERE_SHARE_EVENT = "meshShareWhereChanged";
+// A failed write must not let readable, stale storage undo an opt-out on the
+// next heartbeat. Keep the fallback scoped to the account, just like consent.
+const memoryOverrides = new Map<string, boolean>();
 
 /** Read the per-device opt-in. Defaults FALSE (opt-in, never opt-out). */
 export function readWhereShare(): boolean {
+  const account = readPresenceAccount();
+  if (account === null) return false;
+  const fallback = memoryOverrides.get(account);
+  if (fallback !== undefined) return fallback;
   try {
-    return localStorage.getItem(WHERE_SHARE_STORAGE_KEY) === "true";
+    return localStorage.getItem(`${WHERE_SHARE_STORAGE_KEY}:${account}`) === "true";
   } catch {
     return false;
   }
@@ -34,10 +42,13 @@ export function readWhereShare(): boolean {
 /** Persist + fan out a change, and push one heartbeat so live rooms apply
  * the new visibility immediately instead of waiting for the next beat. */
 export function broadcastWhereShare(next: boolean): void {
+  const account = readPresenceAccount();
+  if (!account) return;
   try {
-    localStorage.setItem(WHERE_SHARE_STORAGE_KEY, String(next));
+    localStorage.setItem(`${WHERE_SHARE_STORAGE_KEY}:${account}`, String(next));
+    memoryOverrides.delete(account);
   } catch {
-    // best-effort persistence
+    memoryOverrides.set(account, next);
   }
   try {
     window.dispatchEvent(new Event(WHERE_SHARE_EVENT));

@@ -100,12 +100,29 @@ export async function InstagramProfileView({ username, tab, giftSent }: { userna
   // timestamp: a profile the viewer can't open — private, or either side of a
   // block — must not pulse "Active now" at them. profile.lastSeenAt is already
   // nulled server-side under the same conditions, so the label self-hides.
-  const showLive = isLiveNow && canViewProfile;
+  const showLive = isLiveNow && canViewProfile && profile.canShowActivity;
   const presenceLabel = showLive
     ? "Active now"
     : profile.lastSeenAt
       ? formatLastActive(profile.lastSeenAt)
       : null;
+  const meshiPortrait = (
+    <div className={profile.isMeshPro ? "meshi-pro-rim shrink-0" : "shrink-0"}>
+      <MeshiMascot
+        size={48}
+        color={meshi.colorTheme as MeshiColor}
+        hat={meshi.hatStyle as MeshiHat}
+        face={meshi.faceStyle}
+        hair={meshi.hairStyle as MeshiHair}
+        hairColor={meshi.hairColor || "inherit"}
+        accessory={meshi.accessoryStyle as MeshiAccessory}
+        eyeStyle={meshi.eyeStyle as MeshiEyeStyle}
+        badge={meshi.badgeStyle as MeshiBadge}
+        animate={false}
+        showGlow={false}
+      />
+    </div>
+  );
   const basePath = isOwnProfile ? "/profile" : `/profile/${username}`;
   // Analytics is a primary tab at /analytics now, not a profile tab — the
   // header's Analytics button below links there.
@@ -164,6 +181,17 @@ export async function InstagramProfileView({ username, tab, giftSent }: { userna
                   className="profile-avatar h-28 w-28 rounded-full border-4 border-[var(--mesh-bg-elevated)] sm:h-32 sm:w-32"
                 />
               </div>
+              {canViewProfile && (
+                isOwnProfile ? (
+                  <Link href="/settings#meshi" aria-label="Customize your Meshi" className="mb-1 rounded-full p-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]">
+                    {meshiPortrait}
+                  </Link>
+                ) : (
+                  <div className="mb-1 p-2" role="img" aria-label={`${profile.displayName}'s Meshi`}>
+                    {meshiPortrait}
+                  </div>
+                )
+              )}
             </div>
 
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -338,26 +366,7 @@ export async function InstagramProfileView({ username, tab, giftSent }: { userna
 
             {/* Meshi card + Actions */}
             <div className="profile-actions mt-5 flex flex-wrap items-center gap-3">
-              <div className="flex items-center gap-3 rounded-xl border border-[var(--mesh-border)] bg-[var(--mesh-panel)] px-4 py-2.5">
-                {/* The same gold hairline the mesh draws — profile payload's
-                    isMeshPro is already hasMeshPro()-derived (queries.ts), so
-                    founders and gifted members carry it here too. */}
-                <div className={profile.isMeshPro ? "meshi-pro-rim shrink-0" : "shrink-0"}>
-                  <MeshiMascot
-                    size={40}
-                    color={meshi.colorTheme as MeshiColor}
-                    hat={meshi.hatStyle as MeshiHat}
-                    face={meshi.faceStyle}
-                    hair={meshi.hairStyle as MeshiHair}
-                    hairColor={meshi.hairColor || "inherit"}
-                    accessory={meshi.accessoryStyle as MeshiAccessory}
-                    eyeStyle={meshi.eyeStyle as MeshiEyeStyle}
-                    badge={meshi.badgeStyle as MeshiBadge}
-                    animate
-                    interactive={isOwnProfile}
-                    showGlow={false}
-                  />
-                </div>
+              {canViewProfile && <div className="flex items-center gap-3 rounded-xl border border-[var(--mesh-border)] bg-[var(--mesh-panel)] px-4 py-2.5">
                 <div>
                   <p className="text-sm font-semibold text-[var(--mesh-text)]">
                     {isOwnProfile ? "Your Meshi" : `${profile.displayName.split(" ")[0]}'s Meshi`}
@@ -365,12 +374,13 @@ export async function InstagramProfileView({ username, tab, giftSent }: { userna
                   <p className="text-xs text-[var(--mesh-text-muted)]">
                     {isOwnProfile ? "How the mesh sees you" : "How they roam the mesh"}
                   </p>
-                  <div className="mt-0.5 flex items-center gap-1.5">
+                  {presenceLabel && <div className="mt-0.5 flex items-center gap-1.5">
                     <span className={`h-1.5 w-1.5 rounded-full ${showLive ? "bg-[var(--mesh-green)] motion-safe:animate-pulse" : "bg-[var(--mesh-text-muted)]/50"}`} />
                     <span className={`text-micro ${showLive ? "text-[var(--mesh-green)]" : "text-[var(--mesh-text-muted)]"}`}>
-                      {presenceLabel ?? "Away"}
+                      {presenceLabel}
                     </span>
-                  </div>
+                  </div>}
+                  {isOwnProfile && <Link href="/settings#meshi" className="mt-1 inline-flex min-h-11 items-center text-xs font-semibold text-[var(--accent-text)]">Customize your Meshi</Link>}
                   {/* The garment label — static, no interaction, no link, and
                       never a name: "someone gave this" is the whole sentence.
                       Server-fenced in queries.ts behind profileVisible. */}
@@ -384,7 +394,7 @@ export async function InstagramProfileView({ username, tab, giftSent }: { userna
                     </div>
                   )}
                 </div>
-              </div>
+              </div>}
 
               {isOwnProfile ? (
                 <>

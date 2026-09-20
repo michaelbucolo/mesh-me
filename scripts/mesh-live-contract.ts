@@ -863,7 +863,7 @@ function entry(userId: string, mood = "happy"): RemotePresence {
   ok(optedIn.viewingMesh === "room-9" && optedIn.activeRoute === "/flow", "opt-in reveals the where-chip fields");
   ok(optedIn.activeNodeId === null, "…but perch detail still stays in the room");
   const inRoom = redactWhere(loc, { inObservedRoom: true, viewingViewerMesh: false, samePost: false, shareWhere: false });
-  ok(inRoom.viewingMesh === "room-9" && inRoom.activeNodeId === "post:2", "inside the observed room nothing is redacted");
+  ok(inRoom.viewingMesh === "room-9" && inRoom.activeNodeId === null && inRoom.activePostId === null, "room membership does not grant access to a private post");
   const samePost = redactWhere(loc, { inObservedRoom: false, viewingViewerMesh: false, samePost: true, shareWhere: false });
   ok(samePost.activePostId === "post:2" && samePost.viewingMesh === "", "same-post co-presence reveals only the shared post");
 }

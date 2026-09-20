@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { MessageCircle, X } from "lucide-react";
 import {
   MeshiMascot,
@@ -30,6 +30,7 @@ interface Delivery {
   message: string;
   meshiColor: string;
   meshiHat: string;
+  meshiFace?: string;
   meshiHair: string;
   /* Optional: payloads from before the field existed render with inherit. */
   meshiHairColor?: string;
@@ -46,6 +47,7 @@ const POLL_INTERVAL_MS = 90_000;
 
 export function MeshiDelivery() {
   const prefs = useMeshiPreferences();
+  const reduceMotion = useReducedMotion();
   const pathname = usePathname();
   const [queue, setQueue] = useState<Delivery[]>([]);
   const seenIdsRef = useRef<Set<string>>(new Set());
@@ -120,16 +122,16 @@ export function MeshiDelivery() {
         <motion.div
           key={current.id}
           data-meshi-avoid="true"
-          initial={{ opacity: 0, x: -160, y: 24 }}
+          initial={reduceMotion ? { opacity: 0 } : { opacity: 0, x: -160, y: 24 }}
           animate={{ opacity: 1, x: 0, y: 0 }}
-          exit={{ opacity: 0, x: -80, y: 40, scale: 0.9 }}
-          transition={{ type: "spring", damping: 22, stiffness: 240 }}
+          exit={reduceMotion ? { opacity: 0 } : { opacity: 0, x: -80, y: 40, scale: 0.9 }}
+          transition={reduceMotion ? { duration: 0.1 } : { type: "spring", damping: 22, stiffness: 240 }}
           className="fixed bottom-[calc(5.5rem+env(safe-area-inset-bottom))] left-3 z-50 flex max-w-[320px] items-end gap-2 sm:bottom-6 sm:left-6"
           role="status"
           aria-live="polite"
         >
           <motion.div
-            animate={{ y: [0, -4, 0] }}
+            animate={reduceMotion ? { y: 0 } : { y: [0, -4, 0] }}
             transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
             className={current.isPro ? "shrink-0 meshi-pro-rim" : "shrink-0"}
           >
@@ -138,6 +140,8 @@ export function MeshiDelivery() {
               mood="love"
               color={current.meshiColor as MeshiColor}
               hat={current.meshiHat as MeshiHat}
+              face={current.meshiFace}
+              animate={!reduceMotion}
               hair={current.meshiHair as MeshiHair}
               hairColor={current.meshiHairColor || "inherit"}
               accessory={current.meshiAccessory as MeshiAccessory}
@@ -148,9 +152,9 @@ export function MeshiDelivery() {
           </motion.div>
 
           <motion.div
-            initial={{ opacity: 0, y: 8, scale: 0.92 }}
+            initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 8, scale: 0.92 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            transition={{ delay: 0.25, type: "spring", damping: 20, stiffness: 280 }}
+            transition={reduceMotion ? { duration: 0.1 } : { delay: 0.25, type: "spring", damping: 20, stiffness: 280 }}
             className="mb-2 rounded-2xl rounded-bl-sm border border-[var(--border-primary)] bg-[var(--bg-elevated)] px-3.5 py-2.5 shadow-xl"
           >
             <div className="mb-1 flex items-center justify-between gap-3">

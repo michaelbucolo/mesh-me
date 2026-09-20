@@ -25,6 +25,7 @@ import {
 import { signOut } from "@/lib/actions";
 import { readGhostMode } from "@/lib/ghost-mode";
 import { readWhereShare } from "@/lib/where-share";
+import { publicPresenceRoute } from "@/lib/presence-policy";
 import { useTheme } from "@/components/theme-provider";
 import { useToast } from "@/components/ui/toast";
 import { shareContent } from "@/lib/native/share";
@@ -518,7 +519,7 @@ export function AppShell({ children, user }: AppShellProps) {
   // "online" for your people. The mesh page runs its own richer heartbeat
   // (cursor position, moods), so this one stands down there.
   useEffect(() => {
-    if (isMeshSurface) return;
+    if (isMeshSurface || isFeedSurface) return;
     let cancelled = false;
 
     const heartbeat = () => {
@@ -545,7 +546,7 @@ export function AppShell({ children, user }: AppShellProps) {
         method: "POST",
         credentials: "same-origin",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ ...meshi, surface: "feed", activeRoute: pathname, ghostMode, shareWhere }),
+        body: JSON.stringify({ ...meshi, surface: "feed", activeRoute: publicPresenceRoute(pathname), ghostMode, shareWhere }),
       }).catch(() => {});
     };
 
@@ -555,7 +556,7 @@ export function AppShell({ children, user }: AppShellProps) {
       cancelled = true;
       window.clearInterval(intervalId);
     };
-  }, [isMeshSurface, pathname]);
+  }, [isMeshSurface, isFeedSurface, pathname]);
 
   return (
     <div className={`mesh-shell h-dvh max-h-dvh min-h-0 overflow-hidden text-[var(--mesh-text)] md:grid md:grid-cols-[var(--mesh-sidebar-width)_1fr] ${isFeedSurface ? "mesh-shell-feed" : ""} ${isMeshSurface || isFlowSurface || isMapSurface ? "mesh-shell-mesh" : ""} ${isMessagesSurface ? "mesh-shell-chat" : ""} ${isFlowSurface ? "mesh-shell-flow" : ""} ${isExploreSurface ? "mesh-shell-explore" : ""}`}>

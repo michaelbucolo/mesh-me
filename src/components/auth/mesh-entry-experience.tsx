@@ -15,7 +15,6 @@ import {
   type MeshiEyeStyle,
   type MeshiHair,
   type MeshiHat,
-  type MeshiMood,
 } from "@/components/meshi/meshi-mascot";
 import { IdentityProviderButtons } from "@/components/auth/identity-provider-buttons";
 import type { IdentityProvider } from "@/lib/identity-auth";
@@ -40,7 +39,7 @@ type MeshiPreview = {
   meshi: {
     color: MeshiColor;
     hat: MeshiHat;
-    face: MeshiMood;
+    face: string;
     hair: MeshiHair;
     hairColor: string;
     accessory: MeshiAccessory;
@@ -232,6 +231,7 @@ export function MeshEntryExperience({ initialStage = "identity", nextPath, oauth
       window.setTimeout(() => {
         setStage("password");
         setPassword("");
+        setShowPassword(false);
         setLeaving(false);
         window.setTimeout(() => passwordRef.current?.focus(), 180);
         window.setTimeout(() => {
@@ -301,6 +301,7 @@ export function MeshEntryExperience({ initialStage = "identity", nextPath, oauth
     setMessage("");
     setPreview(null);
     setPassword("");
+    setShowPassword(false);
     setResetSent(false);
     setSignupFilledCount(0);
     fx.current.phase = "idle";
@@ -404,8 +405,8 @@ export function MeshEntryExperience({ initialStage = "identity", nextPath, oauth
               <MeshiMascot
                 size={84}
                 mood={message ? "surprised" : isPending ? "thinking" : identity.kind === "email" ? "wink" : "happy"}
-                animate
-                bouncy={!identifier}
+                animate={!reduceMotion}
+                bouncy={!identifier && !reduceMotion}
               />
             </div>
             <h1 className="mesh-gate-q">Log in</h1>
@@ -481,6 +482,7 @@ export function MeshEntryExperience({ initialStage = "identity", nextPath, oauth
               <MeshiMascot
                 size={96}
                 color={preview?.meshi.color}
+                face={preview?.meshi.face}
                 // Meshi keeps its eyes shut while you type your password —
                 // and visibly peeks the moment you hit "show password".
                 mood={
@@ -501,8 +503,8 @@ export function MeshEntryExperience({ initialStage = "identity", nextPath, oauth
                 eyeStyle={preview?.meshi.eye}
                 badge={preview?.meshi.badge}
                 showGlow
-                animate
-                bouncy
+                animate={!reduceMotion}
+                bouncy={!reduceMotion}
               />
             </div>
             {/* ONE voice for a wrong password: Meshi's bubble carries the

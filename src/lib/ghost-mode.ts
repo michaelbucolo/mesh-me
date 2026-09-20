@@ -17,13 +17,25 @@ export const GHOST_STORAGE_KEY = "meshGhostMode";
 
 /** Same-tab event fired whenever Ghost Mode flips, so every control re-syncs. */
 export const GHOST_EVENT = "meshGhostModeChanged";
+let memoryGhost = true;
+let memoryAuthoritative = false;
+
+export function initializeGhostMode(next: boolean): void {
+  memoryGhost = next;
+  try {
+    localStorage.setItem(GHOST_STORAGE_KEY, String(next));
+    memoryAuthoritative = false;
+  } catch { memoryAuthoritative = true; }
+}
 
 /** Read the per-device Ghost Mode flag. Safe on the server / before hydration. */
 export function readGhostMode(): boolean {
+  if (memoryAuthoritative) return memoryGhost;
   try {
-    return localStorage.getItem(GHOST_STORAGE_KEY) === "true";
+    const stored = localStorage.getItem(GHOST_STORAGE_KEY);
+    return stored === null ? memoryGhost : stored === "true";
   } catch {
-    return false;
+    return memoryGhost;
   }
 }
 
@@ -36,11 +48,7 @@ export function readGhostMode(): boolean {
  * caller's job (`setGhostMode`) so a screen with its own save status can own it.
  */
 export function broadcastGhostMode(next: boolean): void {
-  try {
-    localStorage.setItem(GHOST_STORAGE_KEY, String(next));
-  } catch {
-    // best-effort persistence
-  }
+  initializeGhostMode(next);
   try {
     window.dispatchEvent(new Event(GHOST_EVENT));
   } catch {

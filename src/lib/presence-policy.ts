@@ -66,6 +66,13 @@ export interface WhereRevealContext {
   shareWhere: boolean;
 }
 
+/** Only coarse public surfaces can be shared. Paths containing searches,
+ * message IDs, account settings or profile identities never leave the server. */
+export function publicPresenceRoute(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  return ["/feed", "/flow", "/explore", "/communities"].includes(value) ? value : null;
+}
+
 /** May this viewer see WHERE the subject is browsing? */
 function revealsWhere(ctx: WhereRevealContext): boolean {
   return ctx.inObservedRoom || ctx.viewingViewerMesh || ctx.shareWhere;
@@ -84,11 +91,11 @@ export function redactWhere<
   return {
     ...fields,
     viewingMesh: reveal ? fields.viewingMesh : "",
-    activeRoute: reveal ? fields.activeRoute : null,
+    activeRoute: reveal ? publicPresenceRoute(fields.activeRoute) : null,
     // Perch/post detail is ROOM detail — never carried outside the room
     // except for the same-post lane, which reveals only the shared post.
-    activeNodeId: ctx.inObservedRoom ? fields.activeNodeId : null,
+    activeNodeId: ctx.inObservedRoom && (!fields.activeNodeId?.match(/^(post|friend-post|platform-post):/) || (ctx.samePost && fields.activeNodeId === `post:${fields.activePostId}`)) ? fields.activeNodeId : null,
     activePostId:
-      ctx.inObservedRoom || ctx.samePost ? fields.activePostId : null,
+      ctx.samePost ? fields.activePostId : null,
   };
 }

@@ -10,7 +10,7 @@ import {
   toggleMessageReaction,
   type MeChatMessageMetadata,
 } from "@/lib/mechat-metadata";
-import { clearMeChatTyping, getMeChatTypingUsers, type TypingMeshi } from "@/lib/mechat-presence";
+import { clearMeChatTyping, getMeChatActivityUserIds, getMeChatTypingUsers, type TypingMeshi } from "@/lib/mechat-presence";
 import { getCachedMeshiFor } from "@/lib/mechat-meshi-cache";
 import { getPlatformMessagingCapability } from "@/lib/platform-capabilities";
 import { deliverMeChatMessageToPlatform } from "@/lib/platform-sync";
@@ -56,10 +56,10 @@ function optionalCleanText(value: unknown, maxLength: number) {
 }
 
 async function getAuthorizedThread(threadId: string, userId: string) {
-  return prisma.messageThread.findFirst({
+  const thread = await prisma.messageThread.findFirst({
     where: {
       id: threadId,
-      members: { some: { userId } },
+      members: { some: { userId, user: { isSuspended: false } } },
     },
     include: {
       members: {
@@ -77,6 +77,17 @@ async function getAuthorizedThread(threadId: string, userId: string) {
       },
     },
   });
+  if (!thread) return null;
+  const visibleUserIds = await getMeChatActivityUserIds(threadId, userId);
+  return {
+    ...thread,
+    members: thread.members.map((member) => ({
+      ...member,
+      // Read receipts and raw timestamps are the same private activity signal.
+      lastRead: member.userId === userId || visibleUserIds.has(member.userId) ? member.lastRead : new Date(0),
+      user: { ...member.user, readReceipts: visibleUserIds.has(member.userId) },
+    })),
+  };
 }
 
 function serializeMessage(
@@ -184,7 +195,7 @@ async function serializeThreadMessages(thread: ThreadWithMembers, currentUserId:
 
   return {
     messages: messages.map((message) => serializeMessage(message, thread, messagesById, meshiByUser)),
-    typingUsers: getMeChatTypingUsers(thread.id, currentUserId),
+    typingUsers: await getMeChatTypingUsers(thread.id, currentUserId),
   };
 }
 

@@ -29,6 +29,7 @@ import type { MeshApiResponse } from "../core/domain";
 import type { LeavingMeshi, MeshRuntimeRef, RemotePresence } from "../scene/runtime";
 import type { SceneNode } from "../scene/scene-model";
 import { setCanvasMeshi } from "./meshi-presence";
+import { openMeshi } from "@/lib/meshi-events";
 
 /** Rich hover preview — STILLS ONLY (the Lens is the only video surface). */
 function HoverPreviewCard({ node }: { node: SceneNode }) {
@@ -105,6 +106,7 @@ const RemoteMeshi = memo(function RemoteMeshi({
           size={54}
           color={p.meshiColor as MeshiColor}
           hat={p.meshiHat as MeshiHat}
+          face={p.meshiFace}
           hair={(p.meshiHair || "none") as MeshiHair}
           hairColor={p.meshiHairColor || "inherit"}
           accessory={(p.meshiAccessory || "none") as MeshiAccessory}
@@ -272,15 +274,24 @@ export function MeshiLayer({
         const m = meshData.meshiPreference;
         // The URL may address this mesh by username; presence always speaks in
         // ids, so compare against the resolved owner id from the payload.
-        const ownerOnline = !viewUserId || ownerLive;
+        const ownerOnline = isOwnMesh || !viewUserId || ownerLive;
         return (
           <div
             ref={(el) => {
               rtRef.current.ownerMeshiEl = el;
             }}
             className="pointer-events-none absolute left-1/2 top-1/2 z-[6] -translate-x-1/2 -translate-y-1/2"
-            aria-hidden="true"
+            aria-hidden={isOwnMesh ? undefined : true}
           >
+            {isOwnMesh && (
+              <button
+                type="button"
+                aria-label="Your Meshi · presence and appearance"
+                onPointerDown={(event) => event.stopPropagation()}
+                onClick={(event) => { event.stopPropagation(); openMeshi("actions"); }}
+                className="pointer-events-auto absolute left-1/2 top-1/2 z-10 h-14 w-14 -translate-x-1/2 -translate-y-1/2 rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--accent)]"
+              />
+            )}
             {/* The mesh owner's own mark. `isMeshPro` here is hasMeshPro() from
                 the server (api/mesh/route.ts), so a founder's derived membership
                 counts exactly as a paid one. */}
@@ -363,6 +374,7 @@ export function MeshiLayer({
               size={54}
               color={l.p.meshiColor as MeshiColor}
               hat={l.p.meshiHat as MeshiHat}
+              face={l.p.meshiFace}
               hair={(l.p.meshiHair || "none") as MeshiHair}
               hairColor={l.p.meshiHairColor || "inherit"}
               accessory={(l.p.meshiAccessory || "none") as MeshiAccessory}

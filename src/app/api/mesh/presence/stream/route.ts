@@ -1,4 +1,6 @@
 import { getCurrentUser } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+import { canViewPresencePost } from "@/lib/presence-post-access";
 import {
   buildPresencePayload,
   canViewMeshRoom,
@@ -61,20 +63,17 @@ export async function GET(request: Request) {
   const meshOwner = searchParams.get("meshOwner");
   const surface = searchParams.get("surface");
   const activePostId = searchParams.get("activePostId");
+  if (activePostId && !await canViewPresencePost(user, activePostId)) {
+    return new Response("Post unavailable", { status: 403 });
+  }
 
   const viewerId = user.id;
   const [initialConnected, initialBlocked, roomAllowed] = await Promise.all([
-    getMutualConnectionIds(viewerId),
-    getBlockedUserIds(viewerId),
+    getMutualConnectionIds(viewerId), getBlockedUserIds(viewerId),
     canViewMeshRoom(viewerId, meshOwner, user.isAdmin),
   ]);
-  // Reassigned by the periodic refresh below, so these stay `let`.
   let connectedSet = initialConnected;
   let blockedSet = initialBlocked;
-  // Only report the requested room if the viewer could actually open that mesh —
-  // otherwise it collapses to their own room, so the stream can't spy either.
-  // Re-evaluated periodically below so a tightened meshVisibility takes effect
-  // on a long-lived stream without requiring a reconnect.
   let allowedMeshOwner = roomAllowed ? meshOwner : null;
 
   const encoder = new TextEncoder();
@@ -86,6 +85,7 @@ export async function GET(request: Request) {
   const stream = new ReadableStream({
     async start(controller) {
       let pending = false;
+      let pushing = false;
       let lastPush = 0;
       const MIN_INTERVAL_MS = 140;
       let coalesceTimer: ReturnType<typeof setTimeout> | null = null;
@@ -104,6 +104,8 @@ export async function GET(request: Request) {
       let lastSerialized = "";
       const pushPayload = async () => {
         pending = false;
+        if (pushing || closed) return;
+        pushing = true;
         lastPush = Date.now();
         try {
           const all = await listPresences();
@@ -123,8 +125,9 @@ export async function GET(request: Request) {
             send("presence", payload);
           }
         } catch {
-          // Best-effort; keep the stream open for the next change.
-        }
+          lastSerialized = "";
+          send("presence", { presences: [], summary: { totalOnline: 0, sameMeshOnline: 0, connectedOnline: 0 } });
+        } finally { pushing = false; }
       };
 
       // Coalesce bursts of change events into at most one push per interval so a
@@ -148,22 +151,42 @@ export async function GET(request: Request) {
       // real movement is pushed, and it crosses instances in <1s.
       const tickTimer = setInterval(schedulePush, 400);
 
-      // Refresh the viewer's mutual-connection and block sets periodically so
-      // newly added connections appear — and a fresh block takes effect — without
-      // reopening the stream.
+      // Graph permissions refresh on the established bounded cadence; account
+      // Ghost/hide/suspension gates use the shared 250ms authority snapshot.
+      let refreshingAccess = false;
       const connectionsTimer = setInterval(() => {
-        Promise.all([
-          getMutualConnectionIds(viewerId),
-          getBlockedUserIds(viewerId),
-          canViewMeshRoom(viewerId, meshOwner, user.isAdmin),
-        ])
-          .then(([connections, blocks, stillAllowed]) => {
+        if (closed || refreshingAccess) return;
+        refreshingAccess = true;
+        void (async () => {
+          try {
+            const currentViewer = await prisma.user.findUnique({
+              where: { id: viewerId },
+              select: { id: true, username: true, displayName: true, avatarUrl: true,
+                isVerified: true, meshProGiftUntil: true, nsfwEnabled: true,
+                adultVerificationStatus: true, adultVerificationExpiresAt: true,
+                isSuspended: true, isAdmin: true },
+            });
+            if (!currentViewer || currentViewer.isSuspended ||
+                (activePostId && !await canViewPresencePost(currentViewer, activePostId))) {
+              send("presence", { presences: [], summary: { totalOnline: 0, sameMeshOnline: 0, connectedOnline: 0 } });
+              cleanup();
+              return;
+            }
+            const [connections, blocks, stillAllowed] = await Promise.all([
+              getMutualConnectionIds(viewerId), getBlockedUserIds(viewerId),
+              canViewMeshRoom(viewerId, meshOwner, currentViewer.isAdmin),
+            ]);
             connectedSet = connections;
             blockedSet = blocks;
             allowedMeshOwner = stillAllowed ? meshOwner : null;
-          })
-          .catch(() => {});
-      }, 20000);
+            schedulePush();
+          } catch {
+            // A failed authorization refresh must not retain old permissions.
+            send("presence", { presences: [], summary: { totalOnline: 0, sameMeshOnline: 0, connectedOnline: 0 } });
+            cleanup();
+          } finally { refreshingAccess = false; }
+        })();
+      }, 20_000);
 
       // Keepalive as a real `ping` EVENT (not a comment): it keeps
       // intermediaries from timing the connection out AND — because comments

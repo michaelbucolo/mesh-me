@@ -46,7 +46,6 @@ import {
   changePassword,
   requestAdultVerification,
   requestEmailVerification,
-  setGhostMode,
   signOut,
   updateMeshCosmetics,
   updateMeshPrivacy,
@@ -59,7 +58,7 @@ import {
   updateProfileVisibility,
 } from "@/lib/actions";
 import { getNsfwPolicyForRegion, isAdultVerificationActive, normalizeUsState } from "@/lib/content-safety";
-import { broadcastGhostMode, GHOST_EVENT, readGhostMode } from "@/lib/ghost-mode";
+import { useGhostMode } from "@/hooks/use-ghost-mode";
 import { broadcastWhereShare, readWhereShare, WHERE_SHARE_EVENT } from "@/lib/where-share";
 import { MESH_PAPERS } from "@/components/mesh/paint/papers";
 import { isFreeMeshiOption } from "@/lib/mesh-pro";
@@ -375,12 +374,7 @@ export function SettingsControlCenter({
   // Ghost Mode persists via its own action (not the privacy FormData) and is
   // also flippable from the header pill, so it tracks its own state and stays
   // in lockstep with that control via the shared same-tab event.
-  const [ghostMode, setGhostModeState] = useState(settings.ghostMode);
-  useEffect(() => {
-    const sync = () => setGhostModeState(readGhostMode());
-    window.addEventListener(GHOST_EVENT, sync);
-    return () => window.removeEventListener(GHOST_EVENT, sync);
-  }, []);
+  const { ghost: ghostMode, pending: ghostPending, update: updateGhostMode } = useGhostMode(settings.ghostMode);
   const [notifications, setNotifications] = useState({
     pushEnabled: settings.notificationPreference.pushEnabled,
     emailDigest: settings.notificationPreference.emailDigest,
@@ -538,11 +532,8 @@ export function SettingsControlCenter({
   }
 
   function applyGhostMode(next: boolean) {
-    setGhostModeState(next);
-    // Mirror the header pill: localStorage + same-tab event + live heartbeat.
-    broadcastGhostMode(next);
-    // Persist to the account (cross-device) with the standard save-status pill.
-    runSave("Ghost Mode", () => setGhostMode(next));
+    if (ghostPending) return;
+    runSave("Ghost Mode", () => updateGhostMode(next));
   }
 
   function applyNotifications(next: typeof notifications) {

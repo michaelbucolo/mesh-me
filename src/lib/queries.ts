@@ -344,6 +344,7 @@ export async function getUserProfile(username: string) {
       createdAt: true,
       lastSeenAt: true,
       hideActivityStatus: true,
+      ghostMode: true,
       // The one part of the milestone board that is public — and only because
       // wearing it is a deliberate choice the person made.
       activeTitle: true,
@@ -584,8 +585,11 @@ export async function getUserProfile(username: string) {
     // (or the raw hide flag) when the user hides their activity OR their profile
     // isn't visible to the viewer. `profileVisible` is already true for your own
     // profile, so you always see your own last-seen.
-    lastSeenAt: user.hideActivityStatus || !profileVisible ? null : user.lastSeenAt,
+    canShowActivity: profileVisible && !user.hideActivityStatus && !user.ghostMode && !user.isSuspended && !blockedEitherWay,
+    lastSeenAt: user.hideActivityStatus || user.ghostMode || user.isSuspended || blockedEitherWay || !profileVisible ? null : user.lastSeenAt,
     hideActivityStatus: undefined,
+    ghostMode: undefined,
+    meshiPreference: profileVisible ? user.meshiPreference : null,
     // Founder accounts read as MeshPro to everyone, not just to themselves —
     // getCurrentUser resolves this for the session user, and this is the same
     // rule on the OTHER side of the request, for the profile being viewed.
