@@ -20,6 +20,10 @@ import { getFocusedContentPrompt, type MeshiContentMode } from "@/lib/meshi-cont
 import { getVideoEmbedUrl } from "@/lib/video-embed";
 import { Play } from "lucide-react";
 import { feedback } from "@/lib/feedback";
+import { celebrate } from "@/lib/celebration";
+import { areVisualEffectsEnabled } from "@/lib/interaction-preferences";
+import { useReducedMotion } from "framer-motion";
+import socialMotion from "./social-motion.module.css";
 import { publishMeshiCause } from "@/lib/meshi-bus";
 
 // Platform colors for origin badges
@@ -177,6 +181,9 @@ function ExpandablePostText({
 
 export const PostCard = memo(function PostCard({ post, currentUserId, connectedPlatforms = [], compact, eager, savedRefs }: PostCardProps) {
   const router = useRouter();
+  const reduce = useReducedMotion();
+  const likeButtonRef = useRef<HTMLButtonElement>(null);
+  const saveButtonRef = useRef<HTMLButtonElement>(null);
   const [liked, setLiked] = useState(post.reactions && post.reactions.length > 0);
   const [likeCount, setLikeCount] = useState(post._count.reactions);
   const [playingEmbed, setPlayingEmbed] = useState(false);
@@ -342,17 +349,7 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
 
     setLiked(newLiked);
     setLikeCount((prev) => (newLiked ? prev + 1 : prev - 1));
-    if (newLiked) {
-      setLikeAnimating(true);
-      setTimeout(() => setLikeAnimating(false), 520);
-      if (viaDoubleTap) {
-        burstIdRef.current += 1;
-        const burstId = burstIdRef.current;
-        const point = coords ?? { x: 50, y: 50 };
-        setBursts((current) => [...current.slice(-3), { id: burstId, x: point.x, y: point.y }]);
-        window.setTimeout(() => setBursts((current) => current.filter((b) => b.id !== burstId)), 850);
-      }
-    }
+
     startTransition(async () => {
       try {
         const result = requiresSourceAccount ? await runPlatformAction(newLiked ? "like" : "unlike") : await toggleReaction(post.id);
@@ -361,9 +358,27 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
           setLikeCount(previousCount);
           handleSourceActionError(String(result.error), newLiked ? "like" : "unlike");
           feedback("error");
-        } else if (newLiked) {
-          feedback("like");
-          publishMeshiCause({ kind: "post:liked" });
+        } else {
+          const confirmedLiked = typeof result?.liked === "boolean" ? result.liked : newLiked;
+          setLiked(confirmedLiked);
+          setLikeCount(Math.max(0, previousCount + Number(confirmedLiked) - Number(Boolean(previousLiked))));
+          if (confirmedLiked && !previousLiked) {
+            feedback("like");
+            publishMeshiCause({ kind: "post:liked" });
+            if (!reduce) {
+              setLikeAnimating(true);
+              window.setTimeout(() => setLikeAnimating(false), 520);
+              if (viaDoubleTap && areVisualEffectsEnabled() && !document.hidden && !window.matchMedia("(prefers-reduced-motion: reduce), (forced-colors: active)").matches) {
+                burstIdRef.current += 1;
+                const burstId = burstIdRef.current;
+                const point = coords ?? { x: 50, y: 50 };
+                setBursts((current) => [...current.slice(-3), { id: burstId, x: point.x, y: point.y }]);
+                window.setTimeout(() => setBursts((current) => current.filter((b) => b.id !== burstId)), 850);
+              } else {
+                celebrate({ kind: "like", anchor: likeButtonRef.current });
+              }
+            }
+          }
         }
       } catch {
         setLiked(previousLiked);
@@ -380,47 +395,54 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
     const newSaved = !saved;
     const previousSaved = saved;
     setSavedOverride(newSaved);
-    if (newSaved) {
-      setSaveAnimating(true);
-      setTimeout(() => setSaveAnimating(false), 300);
-    }
+
     startTransition(async () => {
       try {
-      if (requiresSourceAccount || isExternalFeedItem) {
-        // A save is a PRIVATE mesh-side bookmark, never an action on the source
-        // platform — no connect gate, no "open it on X" refusal. The snapshot
-        // rides /api/saves (SavedFlowItem, the Flow's exact contract) because
-        // supply rows are pruned on retention schedules and a bookmark must
-        // outlive the cache that fed it. This used to flip cosmetic state and
-        // return: the button lied, and a reload erased the save.
-        const image =
-          post.media.find((item) => item.type.toLowerCase() === "image")?.url ||
-          post.media[0]?.posterUrl;
-        const response = await fetch("/api/saves", {
-          method: "POST",
-          credentials: "same-origin",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            refId: post.id,
-            platform: originPlatform || undefined,
-            title: post.content.trim().slice(0, 280) || undefined,
-            url: safeHref(post.externalUrl) || undefined,
-            thumbnailUrl: image && /^https?:\/\//i.test(image) ? image : undefined,
-            authorName: externalAuthor?.name || post.author.displayName || undefined,
-            postType: post.media.some((item) => item.type.toLowerCase() === "video") ? "video" : "post",
-          }),
-        }).catch(() => null);
-        if (!response?.ok) throw new Error("Save failed");
-        const result = await response.json();
-        if (typeof result.saved !== "boolean") throw new Error("Invalid save response");
-        setSavedOverride(result.saved);
-      } else {
-        const result = await toggleSavePost(post.id);
-        if (result && "error" in result) {
-          throw new Error("Save failed");
+        let confirmedSaved = newSaved;
+        if (requiresSourceAccount || isExternalFeedItem) {
+          // A save is a PRIVATE mesh-side bookmark, never an action on the source
+          // platform — no connect gate, no "open it on X" refusal. The snapshot
+          // rides /api/saves (SavedFlowItem, the Flow's exact contract) because
+          // supply rows are pruned on retention schedules and a bookmark must
+          // outlive the cache that fed it. This used to flip cosmetic state and
+          // return: the button lied, and a reload erased the save.
+          const image =
+            post.media.find((item) => item.type.toLowerCase() === "image")?.url ||
+            post.media[0]?.posterUrl;
+          const response = await fetch("/api/saves", {
+            method: "POST",
+            credentials: "same-origin",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              refId: post.id,
+              platform: originPlatform || undefined,
+              title: post.content.trim().slice(0, 280) || undefined,
+              url: safeHref(post.externalUrl) || undefined,
+              thumbnailUrl: image && /^https?:\/\//i.test(image) ? image : undefined,
+              authorName: externalAuthor?.name || post.author.displayName || undefined,
+              postType: post.media.some((item) => item.type.toLowerCase() === "video") ? "video" : "post",
+            }),
+          }).catch(() => null);
+          if (!response?.ok) throw new Error("Save failed");
+          const result = await response.json();
+          if (typeof result.saved !== "boolean") throw new Error("Invalid save response");
+          confirmedSaved = result.saved;
+        } else {
+          const result = await toggleSavePost(post.id);
+          if (result && "error" in result) {
+            throw new Error("Save failed");
+          }
+          if (typeof result.saved === "boolean") confirmedSaved = result.saved;
         }
-      }
-      if (newSaved) feedback("save");
+        setSavedOverride(confirmedSaved);
+        if (confirmedSaved && !previousSaved) {
+          feedback("save");
+          celebrate({ kind: "save", anchor: saveButtonRef.current });
+          if (!reduce) {
+            setSaveAnimating(true);
+            window.setTimeout(() => setSaveAnimating(false), 300);
+          }
+        }
       } catch {
         setSavedOverride(previousSaved);
         addToast("Couldn't save that change. Try again.", "error");
@@ -912,12 +934,14 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
           <div className="flex items-center gap-0.5">
             <button
               type="button"
+              ref={likeButtonRef}
+              data-feedback="off"
               onClick={() => handleLike()}
               disabled={isPending || isOptimistic}
               aria-label={liked ? "Unlike post" : "Like post"}
               aria-pressed={Boolean(liked)}
               className={cn(
-                "insta-post-action relative",
+                "insta-post-action relative", socialMotion.action,
                 // Liked is a filled glyph in the like token, background
                 // transparent (tone reset R4). The crimson TILE this used to
                 // mould was the loudest element on the feed — state is
@@ -941,13 +965,14 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
                   setPlatformActionMessage("Comment syncing for this source is not available with the current provider permissions. Open the source post to comment there.");
                 }
               }}
-              className="insta-post-action"
+              className={`insta-post-action ${socialMotion.action}`}
+              data-feedback="navigate"
               aria-label="Comment on post"
             >
               <MessageCircle className="h-5 w-5" />
             </Link>
             <div className="relative" ref={shareRef} onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setShowShareMenu(false); }}>
-              <button ref={shareButtonRef} type="button" onClick={() => { setShowShareMenu(!showShareMenu); setShowMenu(false); }} disabled={isOptimistic} className="insta-post-action" aria-label="Share post" aria-expanded={showShareMenu} aria-controls={`${disclosureId}-share`}>
+              <button ref={shareButtonRef} type="button" onClick={() => { setShowShareMenu(!showShareMenu); setShowMenu(false); }} disabled={isOptimistic} className={`insta-post-action ${socialMotion.action}`} data-feedback="select" aria-label="Share post" aria-expanded={showShareMenu} aria-controls={`${disclosureId}-share`}>
                 <Share2 className="h-5 w-5" />
               </button>
               {showShareMenu && (
@@ -965,6 +990,8 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
           <div>
             <button
               type="button"
+              ref={saveButtonRef}
+              data-feedback="off"
               onClick={handleSave}
               disabled={isOptimistic}
               // One vocabulary for one action: card, detail, and rail all say
@@ -972,7 +999,7 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
               aria-label={saved ? "Remove from saved" : "Save post"}
               aria-pressed={saved}
               className={cn(
-                "insta-post-action",
+                "insta-post-action", socialMotion.action,
                 saved && "text-[var(--accent-text)]",
               )}
             >
@@ -1040,9 +1067,10 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
 
       {/* Double-tap heart blooms from the exact tap point (not dead-centre),
           with an expanding aurora ring behind it. */}
-      {bursts.map((burst) => (
+      {!reduce && bursts.map((burst) => (
         <span
           key={burst.id}
+          aria-hidden="true"
           className="pointer-events-none absolute z-10 flex items-center justify-center"
           style={{ left: `${burst.x}%`, top: `${burst.y}%`, width: 0, height: 0 }}
         >

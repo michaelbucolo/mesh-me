@@ -11,6 +11,8 @@ import { createPost } from "@/lib/actions";
 import { SHARED_INTAKE_KEY } from "@/app/(app)/share/share-intake";
 import { publishMeshiCause } from "@/lib/meshi-bus";
 import { feedback } from "@/lib/feedback";
+import { celebrate } from "@/lib/celebration";
+import socialMotion from "./social-motion.module.css";
 import { MAX_POST_MEDIA_FILES, POST_MEDIA_ACCEPT, postMediaSelectionError } from "@/lib/post-media";
 import { readPostDraft, type PostAudience } from "@/lib/post-draft";
 import { Image as ImageIcon, Hash, Globe, X, Share2, ChevronDown, Info, CheckCircle2, AlertTriangle, Link as LinkIcon, Lock, Users } from "lucide-react";
@@ -113,6 +115,7 @@ export function PostComposer({ user, communityId, communityIsPublic = true, star
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const publishButtonRef = useRef<HTMLButtonElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const mediaFilesRef = useRef<LocalMediaPreview[]>([]);
   const submittingRef = useRef(false);
@@ -386,6 +389,7 @@ export function PostComposer({ user, communityId, communityIsPublic = true, star
         const result = await createPost(formData);
         if (result?.success) {
           feedback("success");
+          celebrate({ kind: "success", anchor: publishButtonRef.current });
           // Meshi celebrates AFTER the server confirmed it — publishing on
           // submit would have Meshi cheering for posts that failed.
           publishMeshiCause({ kind: "post:published" });
@@ -464,7 +468,7 @@ export function PostComposer({ user, communityId, communityIsPublic = true, star
     // colour already claimed it was — and `glass-card` only pulled it into the
     // `.feed-x-layout .glass-card !important` block at globals.css:4031, which
     // is what forced the outward shadow onto a well in the first place.
-    <fieldset disabled={submitting || isPending} className="feed-composer-card min-w-0 p-3 sm:p-4" aria-busy={submitting || isPending}>
+    <fieldset disabled={submitting || isPending} className={`feed-composer-card min-w-0 p-3 sm:p-4 ${socialMotion.composer}`} aria-busy={submitting || isPending}>
       <legend className="sr-only">Create a post</legend>
       {(successMessage || errorMessage) && (
         <div className={`tray mb-3 px-3 py-2 text-xs font-semibold ${successMessage ? "text-[var(--success)]" : "text-[var(--danger)]"}`} role={errorMessage ? "alert" : "status"}>
@@ -795,6 +799,8 @@ export function PostComposer({ user, communityId, communityIsPublic = true, star
                 </span>
               )}
               <Button
+                ref={publishButtonRef}
+                data-feedback="off"
                 onClick={handleSubmit}
                 disabled={(!content.trim() && !hasAttachment) || content.length > 500 || isPending || submitting}
                 size="sm"

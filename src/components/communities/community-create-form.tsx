@@ -2,7 +2,7 @@
 
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { ArrowRight, Lock, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -10,10 +10,13 @@ import { COMMUNITY_SPACE_TYPES } from "@/lib/community-constants";
 import { createCommunity } from "@/lib/actions";
 import { cn } from "@/lib/utils";
 
-const CARD_SPRING = { type: "spring" as const, stiffness: 420, damping: 26 };
+import { SPRING_PANEL } from "@/lib/motion";
+
+const CARD_SPRING = SPRING_PANEL;
 
 export function CommunityCreateForm() {
   const router = useRouter();
+  const reduce = useReducedMotion();
   const formRef = useRef<HTMLFormElement>(null);
   const [spaceType, setSpaceType] = useState("creator");
   const [visibility, setVisibility] = useState("public");
@@ -69,11 +72,13 @@ export function CommunityCreateForm() {
                 key={type.id}
                 type="button"
                 onClick={() => setSpaceType(type.id)}
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0, scale: selected ? 1.02 : 1 }}
+                aria-pressed={selected}
+                data-feedback={selected ? "off" : "select"}
+                initial={reduce ? false : { opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
                
-                whileTap={{ scale: 0.97 }}
-                transition={{ ...CARD_SPRING, delay: 0.04 * index }}
+                whileTap={reduce ? undefined : { scale: 0.97 }}
+                transition={reduce ? { duration: 0 } : { ...CARD_SPRING, delay: 0.025 * Math.min(index, 4) }}
                 className={cn(
                   "rounded-[22px] border p-4 text-left transition-colors hover:border-[var(--accent)] hover:bg-[var(--accent-subtle)]",
                   selected
@@ -140,11 +145,13 @@ export function CommunityCreateForm() {
             <motion.button
               type="button"
               onClick={() => setVisibility("public")}
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0, scale: visibility === "public" ? 1.02 : 1 }}
+              aria-pressed={visibility === "public"}
+              data-feedback={visibility === "public" ? "off" : "select"}
+              initial={reduce ? false : { opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
              
-              whileTap={{ scale: 0.97 }}
-              transition={{ ...CARD_SPRING, delay: 0.08 }}
+              whileTap={reduce ? undefined : { scale: 0.97 }}
+              transition={reduce ? { duration: 0 } : CARD_SPRING}
               className={cn(
                 "rounded-[22px] border p-4 text-left transition-colors hover:border-[var(--accent)]",
                 visibility === "public"
@@ -159,11 +166,13 @@ export function CommunityCreateForm() {
             <motion.button
               type="button"
               onClick={() => setVisibility("private")}
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0, scale: visibility === "private" ? 1.02 : 1 }}
+              aria-pressed={visibility === "private"}
+              data-feedback={visibility === "private" ? "off" : "select"}
+              initial={reduce ? false : { opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
              
-              whileTap={{ scale: 0.97 }}
-              transition={{ ...CARD_SPRING, delay: 0.12 }}
+              whileTap={reduce ? undefined : { scale: 0.97 }}
+              transition={reduce ? { duration: 0 } : CARD_SPRING}
               className={cn(
                 "rounded-[22px] border p-4 text-left transition-colors hover:border-[var(--accent)]",
                 visibility === "private"

@@ -12,6 +12,7 @@ import { NativeAspectMedia } from "@/components/ui/native-aspect-media";
 import { attachNormalizer } from "@/lib/audio-normalize";
 import { playSound } from "@/lib/sound";
 import { feedback } from "@/lib/feedback";
+import { celebrate } from "@/lib/celebration";
 import { safeHref } from "@/lib/utils";
 import { MeshiMascot, type MeshiColor, type MeshiHat, type MeshiHair, type MeshiAccessory, type MeshiEyeStyle, type MeshiBadge } from "@/components/meshi/meshi-mascot";
 import { mechatDraftKey } from "@/lib/mechat-drafts";
@@ -23,6 +24,7 @@ import {
   type MeChatAttachmentType,
   type MeChatMessageMetadata,
 } from "@/lib/mechat-metadata";
+import styles from "./message-motion.module.css";
 
 type Person = {
   id: string;
@@ -385,6 +387,7 @@ export function MeChatThread({
   const [actionsFor, setActionsFor] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const bottomRef = useRef<HTMLDivElement>(null);
+  const sendButtonRef = useRef<HTMLButtonElement>(null);
   // Auto-scroll only when you're already near the bottom, so reading history
   // isn't yanked down by an incoming message; a "New messages" pill offers the
   // jump instead.
@@ -831,6 +834,11 @@ export function MeChatThread({
         // the throw rather than beside the optimistic bubble.
         feedback("send");
         publishMeshiCause({ kind: "message:sent" });
+        // A saved local bubble can still carry a failed external delivery.
+        // Only the successful outcome gets a visual send acknowledgement.
+        if (sendButtonRef.current?.isConnected && (!isExternalThread || data.message.metadata.delivery?.status === "delivered")) {
+          celebrate({ kind: "send", anchor: sendButtonRef.current });
+        }
         setDraft("");
         // Drop the stored draft under the pre-send key too (creating a thread
         // moves the key from recipient to thread mid-flight).
@@ -1580,7 +1588,7 @@ export function MeChatThread({
                 bottomRef.current?.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "end" });
                 setNewBelowCount(0);
               }}
-              className="mechat-key key key-lit [--mould:var(--mould-cobalt)] [--mould-ink:var(--mould-cobalt-ink)] [--mould-plinth:var(--mould-cobalt-plinth)] pointer-events-auto flex min-h-9 items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold"
+              className={`${styles.contextReveal} mechat-key key key-lit [--mould:var(--mould-cobalt)] [--mould-ink:var(--mould-cobalt-ink)] [--mould-plinth:var(--mould-cobalt-plinth)] pointer-events-auto flex min-h-9 items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold`}
             >
               {newBelowCount > 1 ? `${newBelowCount} new messages` : "New messages"}
               <ArrowDown size={14} aria-hidden="true" />
@@ -1591,7 +1599,7 @@ export function MeChatThread({
               onClick={() => {
                 bottomRef.current?.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "end" });
               }}
-              className="mechat-key key pointer-events-auto flex h-11 w-11 items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+              className={`${styles.contextReveal} mechat-key key pointer-events-auto flex h-11 w-11 items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)]`}
               aria-label="Jump to latest"
               title="Jump to latest"
             >
@@ -1622,7 +1630,7 @@ export function MeChatThread({
         )}
 
         {replyTo && (
-          <div className="mb-2 flex items-center justify-between gap-2 rounded-xl border border-[var(--border-primary)] bg-[var(--bg-secondary)] px-3 py-2 text-xs">
+          <div className={`${styles.contextReveal} mb-2 flex items-center justify-between gap-2 rounded-xl border border-[var(--border-primary)] bg-[var(--bg-secondary)] px-3 py-2 text-xs`}>
             <span className="min-w-0">
               <span className="block font-semibold">Replying to {replyTo.sender.displayName}</span>
               <span className="block truncate text-[var(--text-muted)]">{replyTo.content}</span>
@@ -1641,7 +1649,7 @@ export function MeChatThread({
         )}
 
         {pendingSource?.sourcePlatform && (
-          <div className="mb-2 flex items-center justify-between gap-2 rounded-xl border border-[var(--border-primary)] bg-[var(--bg-secondary)] px-3 py-2 text-xs">
+          <div className={`${styles.contextReveal} mb-2 flex items-center justify-between gap-2 rounded-xl border border-[var(--border-primary)] bg-[var(--bg-secondary)] px-3 py-2 text-xs`}>
             <span className="min-w-0 font-semibold text-[var(--text-secondary)]">
               Sharing from {pendingSource.sourcePlatform}. Source credit stays attached.
             </span>
@@ -1652,7 +1660,7 @@ export function MeChatThread({
         )}
 
         {attachments.length > 0 && (
-          <div className="mb-2 flex flex-wrap gap-2">
+          <div className={`${styles.contextReveal} mb-2 flex flex-wrap gap-2`}>
             {attachments.map((attachment) => (
               <button
                 key={attachment.id}
@@ -1670,7 +1678,7 @@ export function MeChatThread({
         )}
 
         {showMediaTools && (
-          <div className="mb-2 grid gap-2 rounded-xl border border-[var(--border-primary)] bg-[var(--bg-secondary)] p-2 md:grid-cols-[8rem_1fr_10rem_auto]">
+          <div className={`${styles.contextReveal} mb-2 grid gap-2 rounded-xl border border-[var(--border-primary)] bg-[var(--bg-secondary)] p-2 md:grid-cols-[8rem_1fr_10rem_auto]`}>
             <select
               value={attachmentType}
               onChange={(event) => setAttachmentType(event.target.value as MeChatAttachmentType)}
@@ -1749,6 +1757,7 @@ export function MeChatThread({
                 }
               }}
               rows={1}
+              aria-label={isExternalThread ? `Reply on ${platformDisplayName(threadPlatform)}` : "Message"}
               className="min-h-11 min-w-0 flex-1 resize-none bg-transparent px-2 py-3 text-base leading-5 text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)] md:text-sm"
               placeholder={
                 isExternalThread
@@ -1780,6 +1789,7 @@ export function MeChatThread({
               its pinned ink; empty is --face, and `.key:disabled` (globals.css:4984)
               already draws a key that is bottomed out with nothing left to press. */}
           <button
+            ref={sendButtonRef}
             type="submit"
             disabled={isPending || (!draft.trim() && attachments.length === 0 && !pendingSource?.sourceUrl)}
             className={`mechat-key key flex h-11 w-11 shrink-0 items-center justify-center disabled:cursor-not-allowed ${

@@ -11,6 +11,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { getBrandTitle, getSiteUrl, meshBrand } from "@/lib/brand";
 import "./globals.css";
 import "./experience.css";
+import "./motion.css";
 
 const siteUrl = getSiteUrl();
 

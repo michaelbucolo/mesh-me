@@ -1,0 +1,115 @@
+/* Short responses to intent. All decorative motion settles; nothing loops
+   while someone is reading, composing, or watching a post. */
+.mesh-celebrations {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  overflow: hidden;
+  pointer-events: none;
+  contain: strict;
+}
+.mesh-celebration-dot,
+.mesh-celebration-ring {
+  position: absolute;
+  display: block;
+  color: var(--accent-text);
+  pointer-events: none;
+}
+.mesh-celebration-dot { width: 4px; height: 4px; border-radius: 50%; background: currentColor; }
+.mesh-celebration-star {
+  width: 8px;
+  height: 8px;
+  border-radius: 0;
+  clip-path: polygon(50% 0, 62% 37%, 100% 50%, 62% 62%, 50% 100%, 37% 62%, 0 50%, 37% 37%);
+}
+.mesh-celebration-ring { width: 30px; height: 30px; border: 1px solid currentColor; border-radius: 50%; }
+.mesh-celebration-dot[data-kind="like"],
+.mesh-celebration-ring[data-kind="like"] { color: var(--danger); }
+[data-mesh-effects="off"] :is(.like-burst, .mesh-burst-ring, .flow-heart-burst) { display: none; }
+
+.mesh-route-arrival {
+  position: absolute;
+  inset: 0 12% auto;
+  height: 2px;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0;
+  background: linear-gradient(90deg, transparent, var(--accent-text), transparent);
+  transform-origin: 20% 50%;
+}
+[data-nav-dir="back"] > .mesh-route-arrival { transform-origin: 80% 50%; }
+.mesh-nav-active-wash {
+  pointer-events: none;
+  background: var(--accent-wash);
+  border: 1px solid var(--accent-line);
+  box-shadow: var(--signature-shadow);
+}
+.mesh-experience .mesh-nav-item-active { background: transparent; box-shadow: none; }
+.mesh-experience .mesh-nav-item-active > .mesh-nav-active-wash { border-radius: inherit; }
+.mesh-toast-symbol {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+  background: color-mix(in srgb, currentColor 10%, transparent);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .mesh-button {
+    transition: scale 140ms var(--mesh-ease-press), translate 180ms var(--mesh-ease-out),
+      background-color 160ms var(--mesh-ease-out), color 160ms var(--mesh-ease-out),
+      border-color 160ms var(--mesh-ease-out), opacity 140ms var(--mesh-ease-out);
+  }
+  .mesh-button:not(:disabled):not([aria-disabled="true"]):active { scale: .97; translate: 0 0; }
+  .mesh-button[aria-busy="true"] { scale: 1; translate: 0 0; }
+  .mesh-nav-icon { transition: scale 220ms var(--mesh-spring), translate 220ms var(--mesh-spring), color 140ms var(--mesh-ease-out); }
+  .mesh-nav-item:active .mesh-nav-icon,
+  .mobile-bottom-nav a:active .mesh-nav-icon { scale: .88; }
+  .mesh-mobile-nav-label { transition: opacity 140ms var(--mesh-ease-out), color 140ms var(--mesh-ease-out); }
+  .mesh-route-arrival { animation: meshRouteLight 420ms var(--mesh-ease-out) both; }
+  .nav-sweep[data-phase="settling"] { animation: meshSweepSettle 180ms var(--mesh-ease-out) both; }
+  .nav-sweep[data-phase="settling"] .nav-sweep-line { animation-play-state: paused; }
+  .mesh-dialog[data-state="open"] { animation: meshPanelArrive 240ms var(--mesh-ease-out) both; }
+  .mesh-dialog[data-state="closed"] { animation: meshPanelLeave 160ms var(--mesh-ease-press) both; }
+  .mesh-toast-in { animation: meshToastArrive 320ms var(--mesh-ease-out) both; }
+  .mesh-toast-in .mesh-toast-symbol-success { animation: meshSuccessSettle 380ms var(--mesh-spring) both; }
+  .mesh-orbit-nodes { animation: meshConstellationWake 800ms var(--mesh-ease-out) both; }
+  .mesh-orbit-star { animation: meshConstellationWake 1000ms var(--mesh-ease-out) both; }
+  .mesh-experience .mesh-topbar-icon { transition: scale 140ms var(--mesh-ease-press), background-color 160ms var(--mesh-ease-out); }
+  .mesh-experience .mesh-topbar-icon:active { scale: .94; }
+  .mesh-empty-state > .mesh-float { animation: meshSuccessSettle 440ms var(--mesh-ease-out) both; }
+}
+
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .mesh-button:not(:disabled):not([aria-disabled="true"]):not([aria-busy="true"]):hover { translate: 0 -1px; }
+  .mesh-button:not(:disabled):active { translate: 0 0; }
+  .mesh-nav-item:hover .mesh-nav-icon { translate: 0 -1px; scale: 1.05; }
+  .mesh-nav-item:active .mesh-nav-icon { translate: none; scale: .88; }
+}
+
+@keyframes meshRouteLight {
+  0% { opacity: 0; transform: scaleX(.2); }
+  20% { opacity: .6; }
+  100% { opacity: 0; transform: scaleX(1); }
+}
+@keyframes meshSweepSettle { from { opacity: .65; } to { opacity: 0; } }
+@keyframes meshPanelArrive { from { opacity: 0; transform: scale(.975); } to { opacity: 1; transform: scale(1); } }
+@keyframes meshPanelLeave { from { opacity: 1; transform: scale(1); } to { opacity: 0; transform: scale(.985); } }
+@keyframes meshToastArrive { from { opacity: 0; transform: translateY(10px) scale(.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes meshSuccessSettle { from { opacity: .4; transform: scale(.82); } to { opacity: 1; transform: scale(1); } }
+@keyframes meshConstellationWake { from { opacity: 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .mesh-celebrations, .mesh-route-arrival { display: none; }
+  .mesh-button, .mesh-nav-icon, .mesh-mobile-nav-label, .mesh-topbar-icon { transition: none; }
+  .mesh-button:active, .mesh-button:hover { scale: none; translate: none; }
+  .nav-sweep-line { animation: none; transform: none; opacity: .6; }
+  .mesh-dialog[data-state], .mesh-toast-symbol, .mesh-orbit-nodes, .mesh-orbit-star { animation: none; }
+}
+@media (forced-colors: active) {
+  .mesh-celebrations, .mesh-route-arrival, .like-burst, .mesh-burst-ring, .flow-heart-burst { display: none; }
+  .mesh-nav-active-wash { border-color: Highlight; }
+  .mesh-toast-symbol { background: Canvas; }
+}

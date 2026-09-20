@@ -33,8 +33,9 @@ import { MeshiBrandLockup } from "@/components/meshi/meshi-identity";
 import { Avatar } from "@/components/ui/avatar";
 import { GhostModeToggle } from "@/components/layout/ghost-mode-toggle";
 import { MobileNav } from "@/components/layout/mobile-nav";
+import { RouteMotion } from "@/components/layout/route-motion";
 import { primaryNavItems, resolveNavHref, isNavItemActive, getBadgeCount, type NavItem } from "@/components/layout/navigation-config";
-import { SPRING_PANEL } from "@/lib/motion";
+import { EASE_OUT, SPRING_PANEL } from "@/lib/motion";
 
 const CommandPalette = dynamic(
   () => import("@/components/layout/command-palette").then((module) => module.CommandPalette),
@@ -137,7 +138,7 @@ const isOnMap = (p: string) => p === "/meshimap" || p.startsWith("/meshimap/");
 
 // Shared morphing sidebar indicator + a spring pop when an icon lands active.
 const SIDEBAR_INDICATOR_SPRING = SPRING_PANEL;
-const SIDEBAR_ICON_POP = { duration: 0.46, ease: [0.34, 1.56, 0.64, 1] as const, times: [0, 0.4, 0.7, 1] };
+const SIDEBAR_ICON_POP = { duration: 0.32, ease: EASE_OUT, times: [0, 0.4, 0.7, 1] };
 
 function SidebarNavItem({ item, href, active, badgeCount }: { item: NavItem; href: string; active: boolean; badgeCount: number }) {
   const Icon = item.icon;
@@ -147,7 +148,7 @@ function SidebarNavItem({ item, href, active, badgeCount }: { item: NavItem; hre
 
   useEffect(() => {
     if (active && !wasActive.current && !reduceMotion) {
-      void iconControls.start({ scale: [1, 1.2, 0.94, 1] }, SIDEBAR_ICON_POP);
+      void iconControls.start({ scale: [1, 1.14, 0.97, 1] }, SIDEBAR_ICON_POP);
     }
     wasActive.current = active;
   }, [active, iconControls, reduceMotion]);
@@ -165,6 +166,14 @@ function SidebarNavItem({ item, href, active, badgeCount }: { item: NavItem; hre
       }`}
       aria-current={active ? "page" : undefined}
     >
+      {active && (
+        <motion.span
+          layoutId="sidebar-nav-surface"
+          transition={reduceMotion ? { duration: 0 } : SIDEBAR_INDICATOR_SPRING}
+          className="mesh-nav-active-wash pointer-events-none absolute inset-0 rounded-[inherit]"
+          aria-hidden="true"
+        />
+      )}
       {/* ONE shared indicator (single accent bar, soft glow) that slides and
           stretches between items on route change via framer layoutId. */}
       {active && (
@@ -176,7 +185,7 @@ function SidebarNavItem({ item, href, active, badgeCount }: { item: NavItem; hre
           aria-hidden="true"
         />
       )}
-      <motion.span animate={iconControls} className="relative flex shrink-0">
+      <motion.span animate={iconControls} className="mesh-nav-icon relative flex shrink-0">
         <Icon className={`h-[20px] w-[20px] shrink-0 ${active ? "stroke-[2px]" : "stroke-[1.5px]"}`} aria-hidden="true" />
         {badgeCount > 0 && (
           <span className="mesh-nav-badge absolute -right-2.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--accent)] px-1 text-micro font-semibold text-[var(--accent-ink)]" aria-hidden="true">
@@ -184,7 +193,7 @@ function SidebarNavItem({ item, href, active, badgeCount }: { item: NavItem; hre
           </span>
         )}
       </motion.span>
-      <span data-nav-label className="truncate">{item.label}</span>
+      <span data-nav-label className="relative truncate">{item.label}</span>
     </Link>
   );
 }
@@ -200,6 +209,7 @@ function ShellTopBar({
 }) {
   const router = useRouter();
   const pathname = usePathname();
+  const reduceMotion = useReducedMotion();
   const { addToast } = useToast();
   const [query, setQuery] = useState("");
   const accountMenuRef = useRef<HTMLDetailsElement>(null);
@@ -278,7 +288,13 @@ function ShellTopBar({
       `}</style>
       <div className="min-w-0 flex-1 lg:flex-none">
         <div className="flex min-w-0 items-center gap-2">
-          <h1 className="truncate text-[1.25rem] font-semibold tracking-tight text-[var(--mesh-text)] lg:text-xl">{routeInfo.title}</h1>
+          <motion.h1
+            key={routeInfo.title}
+            initial={reduceMotion ? false : { opacity: 0.6, y: 3 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: reduceMotion ? 0 : 0.18, ease: EASE_OUT }}
+            className="truncate text-[1.25rem] font-semibold tracking-tight text-[var(--mesh-text)] lg:text-xl"
+          >{routeInfo.title}</motion.h1>
         </div>
         {/* No subtitle (tone reset R7): a marketing line under every H1 is the
             product captioning itself. routeInfo.description survives only as
@@ -406,12 +422,11 @@ export function AppShell({ children, user }: AppShellProps) {
   const { theme, setMode } = useTheme();
   const routeInfo = useMemo(() => getRouteInfo(pathname, user.username), [pathname, user.username]);
 
-  // Directional route transitions: diff the incoming path against a small
-  // history stack so going deeper enters from the right and returning slides in
-  // from the left. The route slot exposes this as data-nav-dir, which the shared
-  // Mesh Motion CSS reads. Unknown/initial → no direction (neutral rise).
+  // The arrival light follows the journey: right when going deeper, left when
+  // returning. The content itself stays still so dialogs and canvas gestures
+  // remain anchored. The shared CSS reads data-nav-dir from the route slot.
   // Derived during render via React's "adjust state when a prop changes"
-  // pattern, so the fresh (keyed) slot carries the direction on its first paint.
+  // pattern, so the persistent slot carries the direction on its first paint.
   const [navTracker, setNavTracker] = useState<{ path: string; dir: NavDir; history: string[] }>(
     () => ({ path: pathname, dir: undefined, history: [pathname] })
   );
@@ -421,8 +436,7 @@ export function AppShell({ children, user }: AppShellProps) {
     const prev = history[history.length - 1];
     let dir: NavDir;
     // The Mesh and the Flow are one vertical space: you dive DOWN into the Flow
-    // and rise back UP to the Mesh, so that pair transitions vertically instead
-    // of the usual horizontal forward/back slide.
+    // and rise back UP to the Mesh, so that pair's light follows a vertical path.
     if (prev && isOnMesh(prev) && isOnFlow(pathname)) dir = "dive";
     else if (prev && isOnFlow(prev) && isOnMesh(pathname)) dir = "rise";
     else {
@@ -676,16 +690,15 @@ export function AppShell({ children, user }: AppShellProps) {
         {!isFlowSurface && <ShellTopBar user={user} routeInfo={routeInfo} unreadCounts={unreadCounts} />}
 
         <div className="mesh-content flex-1 overflow-y-auto">
-          <div key={pathname} className="mesh-route-slot animate-page-enter" data-nav-dir={navDir}>
+          <RouteMotion pathname={pathname} direction={navDir}>
             {children}
-          </div>
+          </RouteMotion>
         </div>
       </main>
 
-      {/* The Mesh and the Flow are still one vertical space, and the route slot
-          still animates vertically between them (see data-nav-dir dive/rise) —
-          that motion keys off the ROUTE CHANGE, so it survives arriving by any
-          means, including the tab bar.
+      {/* The Mesh and the Flow are still one vertical space. Their decorative
+          arrival light follows the route direction without moving the canvas
+          or any fixed controls. It works when arriving by the tab bar too.
 
           What is gone is the pair of floating handles that used to sit at the
           bottom of the Mesh ("Flow ⌄") and the top of the Flow ("⌃ Mesh"). Both

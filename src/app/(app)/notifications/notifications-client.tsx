@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState, useTransition } from "react";
-import { AnimatePresence, motion, type Transition } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion, type Transition } from "framer-motion";
 import { AtSign, Bell, BellDot, Check, ChevronDown, Heart, LockKeyhole, MessageCircle, RefreshCw, Repeat, Search, ShieldCheck, Trash2, UserPlus, Users, X } from "lucide-react";
 import { PaperWait } from "@/components/loading/paper-wait";
 import { Avatar } from "@/components/ui/avatar";
@@ -16,6 +16,8 @@ import {
 } from "@/lib/notifications";
 import { formatRelativeTime } from "@/lib/utils";
 import { EASE_OUT, SPRING_PANEL } from "@/lib/motion";
+import { feedback } from "@/lib/feedback";
+import socialMotion from "@/components/feed/social-motion.module.css";
 
 type NoticeState = {
   type: "success" | "error" | "info";
@@ -43,6 +45,7 @@ const visibleCategories = notificationCategories;
 const pillSpring: Transition = SPRING_PANEL;
 
 export function NotificationsClient({ initialPayload }: { initialPayload: NotificationCenterPayload }) {
+  const reduce = useReducedMotion();
   const [payload, setPayload] = useState(initialPayload);
   const [activeCategory, setActiveCategory] = useState<NotificationCategory>("all");
   const [query, setQuery] = useState("");
@@ -88,6 +91,7 @@ export function NotificationsClient({ initialPayload }: { initialPayload: Notifi
         }
         setPayload(data as NotificationCenterPayload);
         const changed = data.updated ?? data.deleted ?? 0;
+        if (changed > 0) feedback("save");
         setNotice({
           type: "success",
           message: action === "delete-read"
@@ -192,6 +196,7 @@ export function NotificationsClient({ initialPayload }: { initialPayload: Notifi
           onClick={() => requestNotificationAction("mark-read")}
           disabled={isPending || payload.unreadCount === 0}
           className="inline-flex min-h-11 items-center gap-1.5 px-3 text-sm font-medium text-[var(--accent-text)] transition hover:opacity-80 disabled:opacity-40"
+          data-feedback="off"
           data-testid="mark-all-notifications-read"
         >
           <Check size={15} aria-hidden="true" />
@@ -232,6 +237,7 @@ export function NotificationsClient({ initialPayload }: { initialPayload: Notifi
                   <button
                     key={category}
                     type="button"
+                    data-feedback={active ? "off" : "select"}
                     onClick={() => setActiveCategory(category)}
                     className={`mesh-choice relative shrink-0 rounded-full px-3 py-2 text-xs font-medium ${active ? "" : "text-[var(--text-secondary)]"}`}
                     aria-pressed={active}
@@ -241,8 +247,8 @@ export function NotificationsClient({ initialPayload }: { initialPayload: Notifi
                         not badges. */}
                     {active && (
                       <motion.span
-                        layoutId="notif-category-pill"
-                        transition={pillSpring}
+                        layoutId={reduce ? undefined : "notif-category-pill"}
+                        transition={reduce ? { duration: 0 } : pillSpring}
                         className="absolute inset-0 rounded-full bg-[var(--paper-3)]"
                         aria-hidden="true"
                       />
@@ -259,7 +265,7 @@ export function NotificationsClient({ initialPayload }: { initialPayload: Notifi
           </div>
 
           {notice && (
-            <div className={`rounded-md border px-4 py-3 text-sm ${
+            <div role={notice.type === "error" ? "alert" : "status"} className={`rounded-md border px-4 py-3 text-sm ${
               notice.type === "error"
                 ? "border-[var(--mesh-danger)]/30 text-[var(--mesh-danger)]"
                 : notice.type === "success"
@@ -272,14 +278,14 @@ export function NotificationsClient({ initialPayload }: { initialPayload: Notifi
 
           {filteredGroups.length > 0 ? (
             <div className="grid gap-3" data-testid="notification-group-list">
-              <AnimatePresence mode="popLayout">
+              <AnimatePresence initial={false} mode="popLayout">
               {filteredGroups.map((group, idx) => (
                 <motion.div
                   key={group.key}
-                  initial={{ opacity: 0, y: 12 }}
+                  initial={reduce ? false : { opacity: 0, y: 6 }}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
-                  transition={{ duration: 0.28, delay: idx * 0.045, ease: EASE_OUT }}
+                  exit={reduce ? { opacity: 0 } : { opacity: 0, y: -4 }}
+                  transition={reduce ? { duration: 0 } : { duration: 0.2, delay: Math.min(idx, 4) * 0.02, ease: EASE_OUT }}
                 >
                 <NotificationGroupCard
                   group={group}
@@ -306,6 +312,7 @@ export function NotificationsClient({ initialPayload }: { initialPayload: Notifi
           <div className="flex flex-wrap justify-end gap-2">
             <button
               type="button"
+              data-feedback="off"
               onClick={() => requestNotificationAction("delete-read")}
               disabled={isPending || !payload.notifications.some((notification) => notification.read)}
               className="mesh-action px-4 text-sm text-[var(--mesh-danger)]"
@@ -334,6 +341,7 @@ function NotificationGroupCard({
   onMarkRead: () => void;
   onMarkUnread: () => void;
 }) {
+  const reduce = useReducedMotion();
   const Icon = categoryIcons[group.category];
   const primary = group.notifications[0];
   const isStack = group.notifications.length > 1;
@@ -393,13 +401,14 @@ group.priority === "high" ? "bg-[var(--mould-crimson)] text-[var(--mould-crimson
 
   return (
     <article
-      className={`mesh-surface mesh-pressable rounded-lg p-4 transition ${group.priority === "high" ? "mesh-priority-ring" : ""}`}
+      className={`${socialMotion.notice} mesh-surface rounded-lg p-4 transition ${group.priority === "high" ? "mesh-priority-ring" : ""}`}
       data-testid="notification-group"
     >
       <div className="flex items-start gap-2">
         {isStack ? (
           <button
             type="button"
+            data-feedback="select"
             onClick={onToggle}
             aria-expanded={expanded}
             className="flex min-w-0 flex-1 items-start gap-3 text-left"
@@ -408,11 +417,11 @@ group.priority === "high" ? "bg-[var(--mould-crimson)] text-[var(--mould-crimson
             <ChevronDown
               size={16}
               aria-hidden="true"
-              className={`ml-auto mt-2.5 shrink-0 text-[var(--text-muted)] transition-transform duration-200 ${expanded ? "rotate-180" : ""}`}
+              className={`ml-auto mt-2.5 shrink-0 text-[var(--text-muted)] motion-safe:transition-transform motion-safe:duration-200 ${expanded ? "rotate-180" : ""}`}
             />
           </button>
         ) : (
-          <Link href={group.href} className="flex min-w-0 flex-1 items-start gap-3">
+          <Link href={group.href} data-feedback="navigate" className="flex min-w-0 flex-1 items-start gap-3">
             {identity}
           </Link>
         )}
@@ -421,11 +430,11 @@ group.priority === "high" ? "bg-[var(--mould-crimson)] text-[var(--mould-crimson
             primary; this stays a quiet secondary. The unread mark is a dot —
             the same glyph the expanded rows use for unread state. */}
         {group.unreadCount > 0 ? (
-          <button type="button" onClick={onMarkRead} disabled={busy} className="mesh-action mesh-action-secondary h-11 w-11 shrink-0 justify-center px-0" aria-label={`Mark ${group.title} read`} title="Mark read">
+          <button type="button" data-feedback="off" onClick={onMarkRead} disabled={busy} className="mesh-action mesh-action-secondary h-11 w-11 shrink-0 justify-center px-0" aria-label={`Mark ${group.title} read`} title="Mark read">
             <Check size={15} aria-hidden="true" />
           </button>
         ) : (
-          <button type="button" onClick={onMarkUnread} disabled={busy} className="mesh-action mesh-action-secondary h-11 w-11 shrink-0 justify-center px-0" aria-label={`Mark ${group.title} unread`} title="Mark unread">
+          <button type="button" data-feedback="off" onClick={onMarkUnread} disabled={busy} className="mesh-action mesh-action-secondary h-11 w-11 shrink-0 justify-center px-0" aria-label={`Mark ${group.title} unread`} title="Mark unread">
             <span className="h-2 w-2 rounded-full bg-current" aria-hidden="true" />
           </button>
         )}
@@ -434,10 +443,10 @@ group.priority === "high" ? "bg-[var(--mould-crimson)] text-[var(--mould-crimson
       <AnimatePresence>
       {expanded && (
         <motion.div
-          initial={{ height: 0, opacity: 0 }}
+          initial={reduce ? false : { height: 0, opacity: 0 }}
           animate={{ height: "auto", opacity: 1 }}
           exit={{ height: 0, opacity: 0 }}
-          transition={{ duration: 0.25, ease: EASE_OUT }}
+          transition={{ duration: reduce ? 0 : 0.2, ease: EASE_OUT }}
           className="overflow-hidden"
         >
         <div className="mt-4 grid gap-2 border-t border-[var(--border-primary)] pt-3">

@@ -1,4 +1,5 @@
 import Image from "next/image";
+import socialMotion from "@/components/feed/social-motion.module.css";
 import { SignatureArt } from "@/components/ui/signature-art";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
@@ -150,7 +151,7 @@ export async function InstagramProfileView({ username, tab, giftSent }: { userna
           </section>
         )}
         {/* Profile header */}
-        <section className="profile-header-card rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] overflow-hidden">
+        <section className={`${socialMotion.profileHero} profile-header-card rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] overflow-hidden`}>
           {/* Banner */}
           <div className="profile-banner relative h-36 sm:h-44 bg-gradient-to-br from-[var(--mesh-bg-deep)] via-[var(--mesh-bg-elevated)] to-[var(--mesh-bg)]">
             {profile.bannerUrl ? (
@@ -792,7 +793,9 @@ function ProfileTab({ label, count, href, active = false }: { label: string; cou
   return (
     <Link
       href={href}
-      className={`flex shrink-0 items-center gap-2 border-b-2 px-4 py-3 text-sm font-medium transition-colors ${
+      aria-current={active ? "page" : undefined}
+      data-feedback={active ? "off" : "navigate"}
+      className={`${socialMotion.profileTab} flex shrink-0 items-center gap-2 border-b-2 px-4 py-3 text-sm font-medium transition-colors ${
         active
           ? "border-[var(--accent)] text-[var(--mesh-text)]"
           : "border-transparent text-[var(--mesh-text-muted)] hover:text-[var(--mesh-text-secondary)]"

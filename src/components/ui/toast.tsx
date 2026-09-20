@@ -107,12 +107,12 @@ function ToastMessage({ toast, onRemove }: { toast: Toast; onRemove: (id: string
         if (!event.currentTarget.contains(event.relatedTarget)) setFocused(false);
       }}
       className={cn(
-        "pointer-events-auto relative flex min-w-0 items-center gap-3 overflow-hidden rounded-xl border bg-[var(--bg-elevated)] px-4 py-3 text-sm text-[var(--text-primary)] shadow-[var(--shadow-float)]",
+        "mesh-toast pointer-events-auto relative flex min-w-0 items-center gap-3 overflow-hidden rounded-xl border bg-[var(--bg-elevated)] px-4 py-3 text-sm text-[var(--text-primary)] shadow-[var(--shadow-float)]",
         exiting ? "mesh-toast-out" : "mesh-toast-in",
         border
       )}
     >
-      <Icon aria-hidden="true" className="h-[18px] w-[18px] shrink-0" style={{ color }} />
+      <span className={`mesh-toast-symbol mesh-toast-symbol-${toast.type}`} style={{ color }}><Icon aria-hidden="true" className="h-[18px] w-[18px]" /></span>
       <span className="min-w-0 flex-1 break-words leading-5 [overflow-wrap:anywhere]">{toast.message}</span>
       <button
         type="button"

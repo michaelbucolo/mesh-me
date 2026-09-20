@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 
 /**
  * Navigation feedback as a luminous sweep — not a progress bar. When an
- * in-app navigation starts, a thin brand-gradient light glides across the top
+ * in-app navigation takes a moment, a thin brand-gradient light glides across the top
  * edge; it settles the moment the new route commits. Indeterminate and
  * energetic, matching the mesh's aesthetic rather than a filling bar.
  */
@@ -31,30 +31,71 @@ function sweepPersonality(path: string): [string, string] {
 export function NavigationProgress() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const [active, setActive] = useState(false);
+  const routeKey = `${pathname}?${searchParams.toString()}`;
+  const [phase, setPhase] = useState<"idle" | "waiting" | "loading" | "settling">("idle");
   const [sweep, setSweep] = useState<[string, string]>(["var(--accent)", "var(--mesh-cyan)"]);
-  const hideTimer = useRef<number | null>(null);
+  const phaseRef = useRef(phase);
+  const navigationVersion = useRef(0);
+  const committedRoute = useRef(routeKey);
+  const timers = useRef<{ show: number | null; settle: number | null; fallback: number | null }>({ show: null, settle: null, fallback: null });
 
-  // Settle shortly after the committed route (path or query) changes.
+  const changePhase = useCallback((next: typeof phase) => {
+    phaseRef.current = next;
+    setPhase(next);
+  }, []);
+
+  const clearTimers = useCallback(() => {
+    for (const timer of Object.values(timers.current)) {
+      if (timer !== null) window.clearTimeout(timer);
+    }
+    timers.current = { show: null, settle: null, fallback: null };
+  }, []);
+
+  const settle = useCallback(() => {
+    const wasVisible = phaseRef.current === "loading";
+    clearTimers();
+    if (!wasVisible) {
+      changePhase("idle");
+      return;
+    }
+    changePhase("settling");
+    timers.current.settle = window.setTimeout(() => changePhase("idle"), 180);
+  }, [changePhase, clearTimers]);
+
+  // Path and query commits end loading. A stable string avoids treating a new
+  // search-params object as another journey on unrelated renders.
   useEffect(() => {
-    if (!active) return;
-    if (hideTimer.current) window.clearTimeout(hideTimer.current);
-    hideTimer.current = window.setTimeout(() => setActive(false), 360);
-    return () => {
-      if (hideTimer.current) window.clearTimeout(hideTimer.current);
+    if (committedRoute.current === routeKey) return;
+    committedRoute.current = routeKey;
+    clearTimers();
+    // Settle on the next animation frame, after the destination has painted.
+    // A newer click in that frame owns its own feedback and must keep loading.
+    const version = navigationVersion.current;
+    const frame = window.requestAnimationFrame(() => {
+      if (version === navigationVersion.current) settle();
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [routeKey, clearTimers, settle]);
+
+  // Cached routes land immediately, without a loading flash. A slower journey
+  // gains a light after 100ms; nothing delays the navigation itself.
+  useEffect(() => {
+    const begin = (path: string) => {
+      clearTimers();
+      navigationVersion.current += 1;
+      setSweep(sweepPersonality(path));
+      changePhase("waiting");
+      timers.current.show = window.setTimeout(() => changePhase("loading"), 100);
+      // A canceled/interrupted navigation must not leave an endless animation.
+      timers.current.fallback = window.setTimeout(settle, 10_000);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pathname, searchParams]);
-
-  // Kick off the sweep as soon as an in-app navigation is initiated.
-  useEffect(() => {
     const onClick = (event: MouseEvent) => {
       if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-      const anchor = (event.target as HTMLElement | null)?.closest("a");
-      if (!anchor) return;
+      const anchor = event.target instanceof Element ? event.target.closest("a") : null;
+      if (!anchor || anchor.getAttribute("aria-disabled") === "true") return;
       const href = anchor.getAttribute("href");
       const target = anchor.getAttribute("target");
-      if (!href || href.startsWith("#") || target === "_blank" || anchor.hasAttribute("download")) return;
+      if (!href || href.startsWith("#") || (target && target !== "_self") || anchor.hasAttribute("download")) return;
       let url: URL;
       try {
         url = new URL(href, window.location.href);
@@ -63,24 +104,34 @@ export function NavigationProgress() {
       }
       if (url.origin !== window.location.origin) return;
       if (url.pathname === window.location.pathname && url.search === window.location.search) return;
-      setSweep(sweepPersonality(url.pathname));
-      setActive(true);
+      begin(url.pathname);
     };
-    const onPopState = () => setActive(true);
+    const onPopState = () => {
+      const nextRoute = `${window.location.pathname}?${new URLSearchParams(window.location.search).toString()}`;
+      if (nextRoute !== committedRoute.current) begin(window.location.pathname);
+    };
+    const onVisibilityChange = () => {
+      if (document.visibilityState !== "hidden") return;
+      clearTimers();
+      changePhase("idle");
+    };
     document.addEventListener("click", onClick, true);
+    document.addEventListener("visibilitychange", onVisibilityChange);
     window.addEventListener("popstate", onPopState);
     return () => {
       document.removeEventListener("click", onClick, true);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
       window.removeEventListener("popstate", onPopState);
-      if (hideTimer.current) window.clearTimeout(hideTimer.current);
+      clearTimers();
     };
-  }, []);
+  }, [changePhase, clearTimers, settle]);
 
-  if (!active) return null;
+  if (phase === "idle" || phase === "waiting") return null;
 
   return (
     <div
       className="nav-sweep"
+      data-phase={phase}
       aria-hidden="true"
       style={{ ["--sweep-a" as string]: sweep[0], ["--sweep-b" as string]: sweep[1] }}
     >

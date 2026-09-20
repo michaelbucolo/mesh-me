@@ -32,6 +32,9 @@ import { PageIntro } from "@/components/ui/signature-art";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition, type FormEvent } from "react";
 import { EASE_OUT, SPRING_PANEL } from "@/lib/motion";
+import { celebrate } from "@/lib/celebration";
+import { feedback } from "@/lib/feedback";
+import socialMotion from "@/components/feed/social-motion.module.css";
 
 const PLATFORM_CHIP: Record<string, { label: string; color: string }> = {
   instagram: { label: "Instagram", color: "#E4405F" },
@@ -610,12 +613,13 @@ function CommunityCard({ community, index, compact }: { community: SuggestedComm
     <motion.div
       initial={reduce ? false : { opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ ...spring, delay: 0.025 * Math.min(index, 8) }}
+      transition={reduce ? { duration: 0 } : { ...spring, delay: 0.025 * Math.min(index, 5) }}
       className={compact ? "shrink-0" : ""}
     >
       <Link
         href={`/communities/${community.slug}`}
-        className={`glass-card group flex flex-col gap-2 rounded-2xl p-4 transition-[color,background-color,border-color,box-shadow,transform,opacity] hover:border-[var(--border-primary)] ${
+        data-feedback="navigate"
+        className={`${socialMotion.discovery} glass-card group flex flex-col gap-2 rounded-2xl p-4 transition-[color,background-color,border-color,box-shadow,transform,opacity] hover:border-[var(--border-primary)] ${
           compact ? "w-56 shrink-0" : "h-full"
         }`}
       >
@@ -664,7 +668,9 @@ function ExplorePersonCard({
   const [isFollowing, setIsFollowing] = useState(false);
   const [isPending, startTransition] = useTransition();
 
-  const handleFollow = () => {
+  const handleFollow = (event: React.MouseEvent<HTMLButtonElement>) => {
+    const anchor = event.currentTarget;
+    if (isPending) return;
     if (signedOut) {
       router.push("/login?next=/explore");
       return;
@@ -677,10 +683,18 @@ function ExplorePersonCard({
         if (result && "error" in result) {
           setIsFollowing(previous);
           addToast(result.error || "Could not update your follow. Try again.", "error");
+          feedback("error");
+        } else if (result?.success) {
+          setIsFollowing(result.following);
+          if (result.following && !previous) {
+            feedback("success");
+            celebrate({ kind: "success", anchor });
+          }
         }
       } catch {
         setIsFollowing(previous);
         addToast("Could not update your follow. Try again.", "error");
+        feedback("error");
       }
     });
   };
@@ -689,8 +703,8 @@ function ExplorePersonCard({
     <motion.div
       initial={reduce ? false : { opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ ...spring, delay: 0.04 * Math.min(index, 12) }}
-      className={`glass-card group flex flex-col rounded-2xl p-5 text-center transition-[color,background-color,border-color,box-shadow,transform,opacity] hover:border-[var(--border-primary)] ${
+      transition={reduce ? { duration: 0 } : { ...spring, delay: 0.025 * Math.min(index, 5) }}
+      className={`${socialMotion.discovery} glass-card group flex flex-col rounded-2xl p-5 text-center transition-[color,background-color,border-color,box-shadow,transform,opacity] hover:border-[var(--border-primary)] ${
         fullWidth ? "w-full" : "w-44 shrink-0"
       }`}
     >
@@ -716,6 +730,7 @@ function ExplorePersonCard({
         <Button
           size="sm"
           variant={isFollowing ? "secondary" : "default"}
+          data-feedback="off"
           onClick={handleFollow}
           disabled={isPending}
           className="w-full"
@@ -751,7 +766,7 @@ function ExploreTile({ post, index }: { post: FeedCardPost; index: number }) {
       href={`/feed/${encodeURIComponent(post.id)}`}
       initial={reduce ? false : { opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ ...spring, delay: 0.02 * Math.min(index, 16) }}
+      transition={reduce ? { duration: 0 } : { ...spring, delay: 0.02 * Math.min(index, 5) }}
       data-feedback="navigate"
       className="glass-card group relative block w-full overflow-hidden rounded-2xl text-left transition-[color,background-color,border-color,box-shadow,transform,opacity] hover:border-[var(--border-primary)] mesh-explore-tile"
       // NO aria-label. It OVERRIDES name-from-contents, so everything inside
@@ -773,7 +788,7 @@ function ExploreTile({ post, index }: { post: FeedCardPost; index: number }) {
             <video src={media.url} muted playsInline preload="metadata" tabIndex={-1} aria-hidden="true" onError={() => setMediaFailed(true)} className="absolute inset-0 h-full w-full object-cover" />
           ) : (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={isVideo ? media.posterUrl : media.url} alt={getPostMediaAlt(post, authorName)} loading="lazy" decoding="async" onError={() => setMediaFailed(true)} className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]" />
+            <img src={isVideo ? media.posterUrl : media.url} alt={getPostMediaAlt(post, authorName)} loading="lazy" decoding="async" onError={() => setMediaFailed(true)} className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 motion-safe:group-hover:scale-[1.03]" />
           )}
           {isVideo && (
             <span className="absolute right-2 top-2 rounded-full bg-black/55 p-1.5 backdrop-blur">

@@ -2,9 +2,11 @@
 
 import { useEffect } from "react";
 import { feedback } from "@/lib/feedback";
+import { installCelebrations } from "@/lib/celebration";
 
 export function InteractionFeedback() {
   useEffect(() => {
+    const removeCelebrations = installCelebrations();
     const onClick = (event: MouseEvent) => {
       if (!event.isTrusted || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
       const target = event.target instanceof Element
@@ -14,7 +16,10 @@ export function InteractionFeedback() {
       feedback(target.dataset.feedback === "navigate" ? "navigate" : "select");
     };
     document.addEventListener("click", onClick);
-    return () => document.removeEventListener("click", onClick);
+    return () => {
+      document.removeEventListener("click", onClick);
+      removeCelebrations();
+    };
   }, []);
   return null;
 }

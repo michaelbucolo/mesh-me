@@ -41,6 +41,14 @@ export function setHapticsEnabled(enabled: boolean): void {
   writeInteractionPreference("meshHapticsEnabled", enabled ? "1" : "0");
 }
 
+export function areVisualEffectsEnabled(): boolean {
+  return readInteractionPreference("meshVisualEffectsEnabled") !== "0";
+}
+
+export function setVisualEffectsEnabled(enabled: boolean): void {
+  writeInteractionPreference("meshVisualEffectsEnabled", enabled ? "1" : "0");
+}
+
 export function getSoundLevel(): number {
   const stored = readInteractionPreference("meshSoundLevel");
   const level = stored === null ? 0.4 : Number(stored);
