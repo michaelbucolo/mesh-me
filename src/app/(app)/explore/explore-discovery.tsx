@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { toggleFollow } from "@/lib/actions";
 import type { FeedCardPost } from "@/lib/feed-data";
-import { formatCount, formatRelativeTime } from "@/lib/utils";
+import { formatCount } from "@/lib/utils";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   ArrowUpRight,
@@ -790,7 +790,14 @@ function ExploreTile({ post, index }: { post: FeedCardPost; index: number }) {
             <div className="shrink-0" aria-hidden="true"><Avatar src={post.externalAuthor?.avatarUrl || post.author.avatarUrl} alt={authorName} size="sm" /></div>
             <span className="min-w-0 flex-1">
               <span className="block truncate text-sm font-semibold text-[var(--text-primary)]">{authorName}</span>
-              <span className="mt-0.5 block truncate text-xs text-[var(--text-muted)]">@{post.externalAuthor?.username || post.author.username} <span aria-hidden="true">·</span> {formatRelativeTime(post.createdAt)}</span>
+              <span className="mt-0.5 block truncate text-xs text-[var(--text-muted)]">
+                @{post.externalAuthor?.username || post.author.username} <span aria-hidden="true">·</span>{" "}
+                {/* One calendar date on the server and client, independent of
+                    browser timezone or time elapsed before hydration. */}
+                <time dateTime={new Date(post.createdAt).toISOString()}>
+                  {new Date(post.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" })}
+                </time>
+              </span>
             </span>
           </div>
           <p className="line-clamp-5 whitespace-pre-wrap text-[.9375rem] leading-relaxed text-[var(--text-primary)]">{post.content || (isVideo ? "Watch this video" : "Open this post")}</p>

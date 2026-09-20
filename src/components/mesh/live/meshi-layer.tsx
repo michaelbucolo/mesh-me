@@ -287,7 +287,14 @@ export function MeshiLayer({
               <button
                 type="button"
                 aria-label="Your Meshi · presence and appearance"
-                onPointerDown={(event) => event.stopPropagation()}
+                onPointerDown={(event) => {
+                  event.stopPropagation();
+                  // Meshi keeps moving with the scene. Keep this press on the
+                  // same button until release so its native click is delivered.
+                  event.currentTarget.setPointerCapture(event.pointerId);
+                }}
+                onPointerUp={(event) => event.stopPropagation()}
+                onPointerCancel={(event) => event.stopPropagation()}
                 onClick={(event) => { event.stopPropagation(); openMeshi("actions"); }}
                 className="pointer-events-auto absolute left-1/2 top-1/2 z-10 h-14 w-14 -translate-x-1/2 -translate-y-1/2 rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--accent)]"
               />
