@@ -1,7 +1,7 @@
 "use client";
 
 import * as Dialog from "@radix-ui/react-dialog";
-import { useId, type RefObject } from "react";
+import type { RefObject } from "react";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "./button";
@@ -17,14 +17,12 @@ interface ModalProps {
 }
 
 export function Modal({ open, onClose, children, className, title, description, initialFocusRef }: ModalProps) {
-  const descriptionId = useId();
-
   return (
     <Dialog.Root open={open} onOpenChange={(nextOpen) => (!nextOpen ? onClose() : undefined)}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-[var(--bg-overlay)] backdrop-blur-sm data-[state=open]:animate-fade-in data-[state=closed]:animate-[fadeOut_0.16s_var(--mesh-ease-press)_both]" />
         <Dialog.Content
-          aria-describedby={description ? descriptionId : undefined}
+          {...(description ? {} : { "aria-describedby": undefined })}
           onOpenAutoFocus={(event) => {
             if (initialFocusRef?.current) {
               event.preventDefault();
@@ -42,7 +40,7 @@ export function Modal({ open, onClose, children, className, title, description, 
                 {title || "Dialog"}
               </Dialog.Title>
               {description && (
-                <Dialog.Description id={descriptionId} className="mt-1 text-sm leading-6 text-[var(--text-secondary)]">
+                <Dialog.Description className="mt-1 text-sm leading-6 text-[var(--text-secondary)]">
                   {description}
                 </Dialog.Description>
               )}
