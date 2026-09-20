@@ -25,6 +25,7 @@ export function useToast() {
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const [announcement, setAnnouncement] = useState<Pick<Toast, "id" | "message"> | null>(null);
 
   const removeToast = useCallback((id: string) => {
     setToasts((prev) => prev.filter((toast) => toast.id !== id));
@@ -34,6 +35,9 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     (message: string, type: "success" | "error" | "info" = "success") => {
       const id = Math.random().toString(36).slice(2);
       setToasts((prev) => [...prev, { id, message, type }].slice(-3));
+      // Errors announce through their alert. Informational updates use the
+      // already-mounted polite region, including repeated message text.
+      if (type !== "error") setAnnouncement({ id, message });
     },
     []
   );
@@ -42,6 +46,9 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   return (
     <ToastContext.Provider value={contextValue}>
       {children}
+      <div role="status" aria-live="polite" aria-atomic="true" className="sr-only">
+        {announcement && <span key={announcement.id}>{announcement.message}</span>}
+      </div>
       <div className="pointer-events-none fixed inset-x-4 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-[60] flex flex-col gap-2 sm:left-auto sm:w-[min(24rem,calc(100vw-2rem))] md:bottom-5">
         {toasts.map((toast) => (
           <ToastMessage key={toast.id} toast={toast} onRemove={removeToast} />
@@ -61,7 +68,7 @@ function ToastMessage({ toast, onRemove }: { toast: Toast; onRemove: (id: string
   const [exiting, setExiting] = useState(false);
   const [hovered, setHovered] = useState(false);
   const [focused, setFocused] = useState(false);
-  const [pageHidden, setPageHidden] = useState(false);
+  const [pageHidden, setPageHidden] = useState(() => typeof document !== "undefined" && document.hidden);
   const lifetime = toast.type === "error" ? 6000 : TOAST_LIFETIME;
   const remaining = useRef(lifetime);
   const paused = hovered || focused || pageHidden;
@@ -91,8 +98,8 @@ function ToastMessage({ toast, onRemove }: { toast: Toast; onRemove: (id: string
 
   return (
     <div
-      role={toast.type === "error" ? "alert" : "status"}
-      aria-atomic="true"
+      role={toast.type === "error" ? "alert" : undefined}
+      aria-atomic={toast.type === "error" ? true : undefined}
       onPointerEnter={(event) => { if (event.pointerType === "mouse") setHovered(true); }}
       onPointerLeave={() => setHovered(false)}
       onFocusCapture={() => setFocused(true)}
