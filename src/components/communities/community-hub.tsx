@@ -68,11 +68,14 @@ function FeaturedCard({ community }: { community: Community }) {
 }
 
 function CommunityRow({ community, selected, onSelect, index }: { community: Community; selected: boolean; onSelect: () => void; index: number }) {
+  const reduce = useReducedMotion();
   return (
     <motion.button
       type="button"
       onClick={onSelect}
-      whileTap={{ scale: 0.99 }}
+      data-feedback={selected ? "off" : "select"}
+      aria-pressed={selected}
+      whileTap={reduce ? undefined : { scale: 0.99 }}
       style={{ "--i": index } as CSSProperties}
       className={`relative block w-full rounded-xl px-4 py-3 text-left transition-colors ${
         selected ? "border border-[var(--mesh-border-active)]" : "border border-transparent hover:bg-[var(--mesh-panel)]"
@@ -80,8 +83,8 @@ function CommunityRow({ community, selected, onSelect, index }: { community: Com
     >
       {selected && (
         <motion.span
-          layoutId="community-row-highlight"
-          transition={HUB_SPRING}
+          layoutId={reduce ? undefined : "community-row-highlight"}
+          transition={reduce ? { duration: 0 } : HUB_SPRING}
           className="pointer-events-none absolute inset-0 rounded-xl bg-[var(--mesh-panel-hover)]"
           aria-hidden="true"
         />
@@ -182,8 +185,8 @@ export function CommunityHub({ data }: { data: CommunitiesHubData }) {
               <motion.button
                 type="button"
                 onClick={() => scrollCarousel(-1)}
-                whileTap={{ scale: 0.88 }}
-                transition={HUB_SPRING}
+                whileTap={prefersReducedMotion ? undefined : { scale: 0.96 }}
+                transition={prefersReducedMotion ? { duration: 0 } : HUB_SPRING}
                 className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-[var(--mesh-border)] text-[var(--mesh-text-muted)] hover:bg-[var(--mesh-panel)] hover:text-[var(--mesh-text)] transition-colors"
                 aria-label="Previous"
               >
@@ -192,8 +195,8 @@ export function CommunityHub({ data }: { data: CommunitiesHubData }) {
               <motion.button
                 type="button"
                 onClick={() => scrollCarousel(1)}
-                whileTap={{ scale: 0.88 }}
-                transition={HUB_SPRING}
+                whileTap={prefersReducedMotion ? undefined : { scale: 0.96 }}
+                transition={prefersReducedMotion ? { duration: 0 } : HUB_SPRING}
                 className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-[var(--mesh-border)] text-[var(--mesh-text-muted)] hover:bg-[var(--mesh-panel)] hover:text-[var(--mesh-text)] transition-colors"
                 aria-label="Next"
               >
@@ -217,7 +220,7 @@ export function CommunityHub({ data }: { data: CommunitiesHubData }) {
                 key={cat}
                 type="button"
                 onClick={() => setActiveCategory(cat)}
-                whileTap={{ scale: 0.95 }}
+                whileTap={prefersReducedMotion ? undefined : { scale: 0.97 }}
                 className={`relative inline-flex min-h-11 items-center rounded-full px-4 text-sm font-medium transition-colors ${
                   active
                     ? "border border-transparent text-[var(--accent-ink)]"
@@ -226,8 +229,8 @@ export function CommunityHub({ data }: { data: CommunitiesHubData }) {
               >
                 {active && (
                   <motion.span
-                    layoutId="community-category-pill"
-                    transition={HUB_SPRING}
+                    layoutId={prefersReducedMotion ? undefined : "community-category-pill"}
+                    transition={prefersReducedMotion ? { duration: 0 } : HUB_SPRING}
                     className="absolute inset-0 rounded-full bg-[var(--accent)]"
                     aria-hidden="true"
                   />

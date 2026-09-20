@@ -19,7 +19,7 @@ import { cn } from "@/lib/utils";
 // the entire point of the press — silently stops happening. Caught by measuring
 // the bottom edge in a real browser, not by reading the CSS.
 const buttonVariants = cva(
-  "inline-flex select-none items-center justify-center gap-2 whitespace-nowrap text-sm font-semibold tracking-[0] disabled:pointer-events-none disabled:opacity-50 cursor-pointer",
+  "mesh-button inline-flex select-none items-center justify-center gap-2 whitespace-nowrap text-sm font-semibold tracking-[0] disabled:pointer-events-none disabled:opacity-50 cursor-pointer",
   {
     variants: {
       variant: {

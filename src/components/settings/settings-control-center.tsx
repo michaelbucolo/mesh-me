@@ -21,8 +21,9 @@ import {
 
 import Link from "next/link";
 import { effectiveProfileVisibility } from "@/lib/profile-visibility";
-import { type Dispatch, type FormEvent, type ReactNode, type SetStateAction, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, useTransition } from "react";
+import { type Dispatch, type FormEvent, type ReactNode, type SetStateAction, useCallback, useEffect, useId, useMemo, useRef, useState, useSyncExternalStore, useTransition } from "react";
 import { createPortal } from "react-dom";
+import { LayoutGroup, motion, useReducedMotion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { Activity, AlignLeft, AtSign, AudioLines, BadgeCheck, Ban, BarChart3, BellOff, BellRing, CalendarDays, CalendarRange, CheckCheck, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, Compass, CreditCard, Crown, Database, Droplets, EyeOff, Fingerprint, Flame, Ghost, Globe, Hash, IdCard, Info, KeyRound, LayoutGrid, Link as LinkIcon, Lock, LockKeyhole, LogOut, Mail, MailCheck, MapPin, Megaphone, MessageCircle, MessageSquare, Monitor, MonitorSmartphone, Moon, Palette, Phone, PlugZap, RefreshCw, Search, Settings2, ShieldAlert, ShieldCheck, ShieldOff, Sparkles, Smartphone, Sun, Trash2, UserPlus, UserRound, UsersRound, WandSparkles, Waypoints, type LucideIcon } from "lucide-react";
 import { PaperWait } from "@/components/loading/paper-wait";
@@ -65,6 +66,10 @@ import { isFreeMeshiOption } from "@/lib/mesh-pro";
 import { ACHIEVEMENT_MESHI_REWARDS, achievementRewardForBadge } from "@/lib/achievements/rewards";
 import { getDisplayNameForAnyPlatform } from "@/lib/platform-capabilities";
 import { publishMeshiCause } from "@/lib/meshi-bus";
+import { celebrate } from "@/lib/celebration";
+import { feedback } from "@/lib/feedback";
+import { SPRING_SNAP } from "@/lib/motion";
+import styles from "./settings-motion.module.css";
 
 /* TOYBOX — the two moulded plastics this surface uses.
    `.key-lit` (globals.css:4996) reads a PINNED TRIPLE off the element: face, ink
@@ -357,6 +362,11 @@ export function SettingsControlCenter({
   blockedUsers,
 }: SettingsControlCenterProps) {
   const router = useRouter();
+  const reduceMotion = useReducedMotion();
+  const navigationId = useId();
+  const panelHeadingRef = useRef<HTMLHeadingElement>(null);
+  const sectionNavRef = useRef<HTMLElement>(null);
+  const requestedFocusRef = useRef<"detail" | "navigation" | null>(null);
   const { mode, setMode, preset, setPreset, customTheme, setCustomTheme, clearCustomTheme } = useTheme();
   const [activeSection, setActiveSection] = useState<SettingsSectionId>("account");
   const [profile, setProfile] = useState({
@@ -433,6 +443,7 @@ export function SettingsControlCenter({
   const [isPending, startTransition] = useTransition();
 
   const selectSection = useCallback((sectionId: SettingsSectionId) => {
+    if (window.matchMedia("(max-width: 1023px)").matches) requestedFocusRef.current = "detail";
     setActiveSection(sectionId);
     setMobileDetailOpen(true);
     if (typeof window === "undefined") return;
@@ -442,6 +453,16 @@ export function SettingsControlCenter({
       window.history.replaceState(null, "", `${window.location.pathname}${nextHash}`);
     }
   }, []);
+
+  useEffect(() => {
+    // A phone swaps list and detail in place. Keep keyboard and screen-reader
+    // focus on the visible side instead of leaving it in a hidden button.
+    if (requestedFocusRef.current === "detail") panelHeadingRef.current?.focus({ preventScroll: true });
+    if (requestedFocusRef.current === "navigation") {
+      sectionNavRef.current?.querySelector<HTMLButtonElement>('[aria-current="page"]')?.focus({ preventScroll: true });
+    }
+    requestedFocusRef.current = null;
+  }, [activeSection, mobileDetailOpen]);
 
   useEffect(() => {
     if (!status) return;
@@ -486,12 +507,13 @@ export function SettingsControlCenter({
   const connectedCount = settings.connectedAccounts.filter((account) => account.isActive).length;
 
   const showMobileSectionList = useCallback(() => {
+    requestedFocusRef.current = "navigation";
     setMobileDetailOpen(false);
     if (typeof window === "undefined" || !window.location.hash) return;
     window.history.replaceState(null, "", window.location.pathname);
   }, []);
 
-  function runSave(label: string, task: () => Promise<unknown>) {
+  function runSave(label: string, task: () => Promise<unknown>, celebrationAnchor?: HTMLElement | null) {
     const queued = saveQueueRef.current.then(task, task);
     saveQueueRef.current = queued.then(() => undefined, () => undefined);
     startTransition(async () => {
@@ -503,6 +525,10 @@ export function SettingsControlCenter({
           return;
         }
         setStatus({ type: "success", message: `${label} saved.` });
+        if (celebrationAnchor?.isConnected) {
+          feedback("save");
+          celebrate({ kind: "save", anchor: celebrationAnchor });
+        }
         publishMeshiCause({ kind: "settings:saved" });
         router.refresh();
       } catch (error) {
@@ -520,7 +546,7 @@ export function SettingsControlCenter({
     formData.set("website", profile.website);
     formData.set("accentColor", profile.accentColor);
     formData.set("interests", profile.interestTags);
-    runSave("Profile", () => updateProfile(formData));
+    runSave("Profile", () => updateProfile(formData), event.currentTarget.querySelector<HTMLButtonElement>('button[type="submit"]'));
   }
 
   function applyPrivacy(next: typeof privacy) {
@@ -621,7 +647,7 @@ export function SettingsControlCenter({
       accessoryStyle: meshiState.accessoryStyle,
       eyeStyle: meshiState.eyeStyle,
       badgeStyle: meshiState.badgeStyle,
-    }));
+    }), event.currentTarget.querySelector<HTMLButtonElement>('button[type="submit"]'));
   }
 
   function applyCustomTheme(event: FormEvent) {
@@ -821,7 +847,8 @@ export function SettingsControlCenter({
               />
             </div>
           </div>
-          <nav className="settings-nav-scroll flex flex-col gap-1 p-2 lg:min-h-0 lg:flex-1 lg:overflow-y-auto" aria-label="Settings sections">
+          <LayoutGroup id={navigationId}>
+          <nav ref={sectionNavRef} className="settings-nav-scroll flex flex-col gap-1 p-2 lg:min-h-0 lg:flex-1 lg:overflow-y-auto" aria-label="Settings sections">
             {visibleSections.length === 0 && (
               <p className="px-3 py-4 text-sm text-[var(--text-muted)]">No settings match &ldquo;{searchQuery.trim()}&rdquo;.</p>
             )}
@@ -833,9 +860,11 @@ export function SettingsControlCenter({
                   key={section.id}
                   type="button"
                   onClick={() => selectSection(section.id)}
-                  className={`settings-nav-item w-full min-w-0 shrink-0 ${active ? "settings-nav-item-active" : ""}`}
+                  className={`settings-nav-item ${styles.navItem} w-full min-w-0 shrink-0 ${active ? "settings-nav-item-active" : ""}`}
                   aria-current={active ? "page" : undefined}
+                  data-feedback="navigate"
                 >
+                  {active && <motion.span aria-hidden="true" className={styles.navMarker} layoutId="current-section" initial={false} transition={reduceMotion ? { duration: 0 } : SPRING_SNAP} />}
                   <Icon size={18} aria-hidden="true" />
                   <span className="min-w-0 flex-1 text-left">
                     <span className="block truncate text-sm font-semibold">{section.label}</span>
@@ -846,6 +875,7 @@ export function SettingsControlCenter({
               );
             })}
           </nav>
+          </LayoutGroup>
         </aside>
 
         {/* Not a `.plate`. The detail side of a split view is the BACKGROUND
@@ -864,14 +894,14 @@ export function SettingsControlCenter({
                 <ChevronLeft size={16} aria-hidden="true" />
                 Settings
               </button>
-              <h2 className="text-lg font-semibold text-[var(--text-primary)]">{activeSectionMeta.label}</h2>
+              <h2 ref={panelHeadingRef} tabIndex={-1} className="text-lg font-semibold text-[var(--text-primary)]">{activeSectionMeta.label}</h2>
               <p className="mt-0.5 text-xs text-[var(--text-muted)]">
                 {activeSectionMeta.description}
                 {autosaveSections.has(activeSection) && " · Changes save automatically"}
               </p>
             </div>
           </div>
-          <div className="settings-panel-scroll px-4 py-4">
+          <div key={activeSection} className={`settings-panel-scroll ${styles.sectionEntrance} px-4 py-4`}>
             {activeSection === "account" && (
               <AccountSection
                 settings={settings}

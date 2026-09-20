@@ -6,6 +6,9 @@ import { useRouter } from "next/navigation";
 import { Check, Lock } from "lucide-react";
 import type { AchievementView } from "@/lib/achievements/award";
 import { recordAchievements, setActiveTitle } from "@/lib/achievements/actions";
+import { celebrate } from "@/lib/celebration";
+import { feedback } from "@/lib/feedback";
+import socialMotion from "@/components/feed/social-motion.module.css";
 
 // EVERYTHING, INCLUDING WHAT YOU HAVE NOT DONE.
 //
@@ -81,15 +84,26 @@ export function MilestonesBoard({
   // opinion about what you earned is not the deciding one.
   const wearable = earned.filter((a) => a.title);
 
-  function wear(next: string | null) {
+  function wear(next: string | null, anchor: HTMLButtonElement) {
+    if (next === title || pending) return;
     setError("");
     startTransition(async () => {
-      const result = await setActiveTitle(next);
-      if (result?.error) {
-        setError(result.error);
-        return;
+      try {
+        const result = await setActiveTitle(next);
+        if (result?.error) {
+          setError(result.error);
+          feedback("error");
+          return;
+        }
+        setTitle(next);
+        if (next) {
+          feedback("success");
+          celebrate({ kind: "success", anchor });
+        }
+      } catch {
+        setError("Could not update your title. Try again.");
+        feedback("error");
       }
-      setTitle(next);
     });
   }
 
@@ -118,9 +132,10 @@ export function MilestonesBoard({
             <button
               type="button"
               disabled={pending}
-              onClick={() => wear(null)}
+              data-feedback="off"
+              onClick={(event) => wear(null, event.currentTarget)}
               aria-pressed={title === null}
-              className={`ds-focus-ring min-h-11 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
+              className={`${socialMotion.choice} ds-focus-ring min-h-11 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
                 title === null
                   ? "border-[var(--accent-text)] text-[var(--accent-text)]"
                   : "border-[var(--mesh-border)] text-[var(--mesh-text-secondary)]"
@@ -133,9 +148,10 @@ export function MilestonesBoard({
                 key={a.slug}
                 type="button"
                 disabled={pending}
-                onClick={() => wear(a.title)}
+                data-feedback="off"
+                onClick={(event) => wear(a.title, event.currentTarget)}
                 aria-pressed={title === a.title}
-                className={`ds-focus-ring min-h-11 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
+                className={`${socialMotion.choice} ds-focus-ring min-h-11 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
                   title === a.title
                     ? "border-[var(--accent-text)] text-[var(--accent-text)]"
                     : "border-[var(--mesh-border)] text-[var(--mesh-text-secondary)]"
@@ -145,7 +161,7 @@ export function MilestonesBoard({
               </button>
             ))}
           </div>
-          {error && <p className="mt-2 text-xs text-[var(--mesh-danger,#dc2626)]">{error}</p>}
+          {error && <p role="alert" className="mt-2 text-xs text-[var(--mesh-danger,#dc2626)]">{error}</p>}
         </section>
       )}
 
@@ -153,7 +169,7 @@ export function MilestonesBoard({
         {achievements.map((a) => (
           <li
             key={a.slug}
-            className={`rounded-2xl border p-4 ${
+            className={`${socialMotion.milestone} rounded-2xl border p-4 ${
               a.earned ? "border-[var(--accent-text)]/40" : "border-[var(--mesh-border)]"
             }`}
           >

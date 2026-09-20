@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useSyncExternalStore } from "react";
-import { Bookmark, Check, MousePointer2, Send, Smartphone, Volume2 } from "lucide-react";
+import { Bookmark, Check, MousePointer2, Send, Smartphone, Sparkles, Volume2 } from "lucide-react";
 import { feedback, type FeedbackKind } from "@/lib/feedback";
-import { getSoundLevel, isHapticsEnabled, setHapticsEnabled, setSoundLevel, subscribeInteractionPreferences } from "@/lib/interaction-preferences";
+import { areVisualEffectsEnabled, getSoundLevel, isHapticsEnabled, setHapticsEnabled, setSoundLevel, setVisualEffectsEnabled, subscribeInteractionPreferences } from "@/lib/interaction-preferences";
 import { isSoundEnabled, setSoundEnabled } from "@/lib/sound";
+import { celebrate } from "@/lib/celebration";
 
 const previews = [
   { name: "Tap", kind: "select", icon: MousePointer2 },
@@ -16,11 +17,13 @@ export function FeedbackSettings() {
   const sound = useSyncExternalStore(subscribeInteractionPreferences, isSoundEnabled, () => false);
   const haptics = useSyncExternalStore(subscribeInteractionPreferences, isHapticsEnabled, () => true);
   const level = useSyncExternalStore(subscribeInteractionPreferences, getSoundLevel, () => 0.4);
+  const visualEffects = useSyncExternalStore(subscribeInteractionPreferences, areVisualEffectsEnabled, () => true);
   const [preview, setPreview] = useState<{ kind: FeedbackKind; count: number }>({ kind: "select", count: 0 });
 
-  const tryFeedback = (kind: FeedbackKind) => {
+  const tryFeedback = (kind: FeedbackKind, anchor: HTMLButtonElement) => {
     setPreview((current) => ({ kind, count: current.count + 1 }));
     feedback(kind);
+    if (kind === "save" || kind === "send") celebrate({ kind, anchor });
   };
 
   return (
@@ -31,7 +34,7 @@ export function FeedbackSettings() {
       </div>
       <div className="mesh-feedback-preview" aria-label="Preview interaction feedback">
         {previews.map(({ name, kind, icon: Icon }) => (
-          <button key={kind} type="button" data-feedback="off" className="mesh-feedback-sample" onClick={() => tryFeedback(kind)} aria-label={`Preview ${name.toLowerCase()} feedback`}>
+          <button key={kind} type="button" data-feedback="off" className="mesh-feedback-sample" onClick={(event) => tryFeedback(kind, event.currentTarget)} aria-label={`Preview ${name.toLowerCase()} feedback`}>
             <span key={preview.kind === kind ? preview.count : 0} className={preview.kind === kind && preview.count > 0 ? "mesh-feedback-sample-icon is-playing" : "mesh-feedback-sample-icon"}>
               <Icon size={22} aria-hidden="true" />
             </span>
@@ -52,6 +55,13 @@ export function FeedbackSettings() {
         <input id="interface-volume" type="range" min="0" max="100" step="5" value={Math.round(level * 100)} onChange={(event) => setSoundLevel(Number(event.target.value) / 100)} onPointerUp={() => feedback("select")} onKeyUp={(event) => { if (["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) feedback("select"); }} />
         <output htmlFor="interface-volume">{Math.round(level * 100)}%</output>
       </div>}
+      <div className="mesh-feedback-row">
+        <Sparkles size={18} aria-hidden="true" />
+        <div><label id="effects-label">Particle effects</label><p id="effects-description">A little spark when something lands. Respects Reduce Motion.</p></div>
+        <button type="button" role="switch" aria-checked={visualEffects} aria-labelledby="effects-label" aria-describedby="effects-description" className="mesh-feedback-switch" onClick={() => setVisualEffectsEnabled(!visualEffects)}>
+          <span>{visualEffects ? <Check size={12} aria-hidden="true" /> : null}</span>
+        </button>
+      </div>
       <div className="mesh-feedback-row">
         <Smartphone size={18} aria-hidden="true" />
         <div><label id="haptics-label">Haptic feedback</label><p id="haptics-description">Gentle taps on supported devices.</p></div>

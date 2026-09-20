@@ -1,0 +1,111 @@
+/* Content stays still. Feedback belongs to the control being used. */
+.action > svg {
+  transform-origin: 50% 65%;
+}
+
+.composer {
+  transition: border-color 160ms var(--mesh-ease-out), box-shadow 160ms var(--mesh-ease-out);
+}
+
+.composer:focus-within {
+  border-color: var(--accent-text);
+  box-shadow: 0 0 0 3px var(--accent-subtle);
+}
+
+.discovery,
+.notice,
+.milestone,
+.choice {
+  transition: border-color 180ms var(--mesh-ease-out), background-color 180ms var(--mesh-ease-out);
+}
+
+.discovery:focus-visible,
+.notice:focus-within {
+  border-color: var(--accent-text);
+}
+
+.profileTab {
+  position: relative;
+  isolation: isolate;
+}
+
+.profileTab::before {
+  content: "";
+  position: absolute;
+  inset: 4px 2px 6px;
+  border-radius: var(--radius-md);
+  background: var(--paper-hover);
+  opacity: 0;
+  z-index: -1;
+  pointer-events: none;
+  transition: opacity 160ms var(--mesh-ease-out);
+}
+
+.profileTab:focus-visible::before {
+  opacity: 1;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .discovery:hover,
+  .notice:hover {
+    border-color: var(--accent-text);
+  }
+
+  .profileTab:hover::before {
+    opacity: 1;
+  }
+
+  .milestone:hover {
+    background: var(--paper-hover);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .action > svg {
+    transition: transform 180ms var(--mesh-ease-out);
+  }
+
+  .action:not(:disabled):active > svg {
+    transform: scale(0.82) rotate(-7deg);
+  }
+
+  .choice:not(:disabled):active {
+    transform: scale(0.97);
+  }
+
+  .choice {
+    transition: transform 140ms var(--mesh-ease-press), border-color 180ms var(--mesh-ease-out), background-color 180ms var(--mesh-ease-out);
+  }
+
+  .profileHero {
+    animation: arrive 320ms var(--mesh-ease-out) both;
+  }
+
+  .profileTab[aria-current="page"]::before {
+    animation: selected 240ms var(--mesh-ease-out) both;
+  }
+
+  .notice {
+    transition: border-color 180ms var(--mesh-ease-out), background-color 180ms var(--mesh-ease-out), box-shadow 180ms var(--mesh-ease-out);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .action:not(:disabled):hover > svg {
+      transform: translateY(-1px) rotate(-5deg);
+    }
+
+    .action:not(:disabled):active > svg {
+      transform: scale(0.82) rotate(-7deg);
+    }
+  }
+}
+
+@keyframes arrive {
+  from { opacity: 0.4; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes selected {
+  from { opacity: 0.7; }
+  to { opacity: 0; }
+}

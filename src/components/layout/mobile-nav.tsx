@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 import { motion, useAnimationControls, useReducedMotion } from "framer-motion";
-import { SPRING_PANEL } from "@/lib/motion";
+import { EASE_OUT, SPRING_PANEL } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 import { getBadgeCount, isNavItemActive, primaryNavItems, resolveNavHref, type NavItem } from "@/components/layout/navigation-config";
 import { PlusSquare } from "lucide-react";
@@ -17,7 +17,7 @@ interface MobileNavProps {
 }
 
 // A springy elastic overshoot for the active tab's icon.
-const ELASTIC_POP = { duration: 0.52, ease: [0.34, 1.56, 0.64, 1] as const, times: [0, 0.42, 0.72, 1] };
+const ELASTIC_POP = { duration: 0.36, ease: EASE_OUT, times: [0, 0.42, 0.72, 1] };
 
 function MobileNavItem({
   item,
@@ -38,7 +38,7 @@ function MobileNavItem({
   // not on every incidental re-render.
   useEffect(() => {
     if (isActive && !wasActive.current && !reduceMotion) {
-      void iconControls.start({ scale: [1, 1.28, 0.9, 1] }, ELASTIC_POP);
+      void iconControls.start({ scale: [1, 1.16, 0.96, 1] }, ELASTIC_POP);
     }
     wasActive.current = isActive;
   }, [isActive, iconControls, reduceMotion]);
@@ -57,7 +57,7 @@ function MobileNavItem({
       )}
     >
       {isActive && <motion.span layoutId="mobile-nav-indicator" transition={reduceMotion ? { duration: 0 } : SPRING_PANEL} className="mesh-mobile-active" aria-hidden="true" />}
-      <motion.span animate={iconControls} className="relative flex">
+      <motion.span animate={iconControls} className="mesh-nav-icon relative flex">
         <item.icon className="h-[23px] w-[23px]" aria-hidden="true" />
         {badgeCount > 0 && (
           <motion.span
@@ -73,7 +73,7 @@ function MobileNavItem({
           </motion.span>
         )}
       </motion.span>
-      <span className="relative text-micro font-medium leading-none">{item.label}</span>
+      <span className="mesh-mobile-nav-label relative text-micro font-medium leading-none">{item.label}</span>
     </Link>
   );
 }
