@@ -1,5 +1,7 @@
 import { EventEmitter } from "events";
 import { prisma } from "@/lib/prisma";
+import { hasMeshPro } from "@/lib/mesh-pro";
+import { parseLastAction } from "@/components/mesh/live/action-bus";
 import {
   isSignificantPresenceWrite,
   PRESENCE_WRITE_BEHIND_MS,
@@ -24,6 +26,7 @@ export type PresenceEntry = {
   meshiEyeStyle: string;
   meshiBadge: string;
   meshiMood: string;
+  meshiFace?: string;
   position: { x: number; y: number };
   // Viewport-relative position (0-1 range) for where Meshi sits on the user's screen.
   viewportPosition: { vx: number; vy: number };
@@ -260,6 +263,8 @@ export async function setPresence(entry: PresenceEntry): Promise<void> {
 // Remove a user's presence (leaving the mesh / logout / hidden activity).
 export async function removePresence(userId: string): Promise<void> {
   presence.store.delete(userId);
+  presenceRevision += 1;
+  dbCache = null;
   const state = pendingWrites.get(userId);
   if (state?.timer) clearTimeout(state.timer);
   pendingWrites.delete(userId);
@@ -279,62 +284,83 @@ export async function removePresence(userId: string): Promise<void> {
 // viewer's own heartbeats are never delayed by it.
 const DB_CACHE_TTL_MS = 250;
 const PRUNE_INTERVAL_MS = 10000;
-let dbCache: { at: number; entries: PresenceEntry[] } | null = null;
-let dbInFlight: Promise<PresenceEntry[]> | null = null;
+type Authority = {
+  id: string; username: string; displayName: string; avatarUrl: string | null;
+  ghostMode: boolean; hideActivityStatus: boolean; isSuspended: boolean;
+  isMeshPro: boolean; meshProGiftUntil: Date | null;
+  meshiPreference: { colorTheme: string; hatStyle: string; hairStyle: string;
+    hairColor: string; accessoryStyle: string; eyeStyle: string; badgeStyle: string; faceStyle: string } | null;
+};
+type Snapshot = { entries: PresenceEntry[]; authorities: Map<string, Authority> };
+let presenceRevision = 0;
+let dbCache: { at: number; revision: number; snapshot: Snapshot } | null = null;
+let dbInFlight: Promise<Snapshot> | null = null;
 let lastPruneAt = 0;
 
-async function fetchDbPresences(): Promise<PresenceEntry[]> {
-  if (dbCache && Date.now() - dbCache.at < DB_CACHE_TTL_MS) return dbCache.entries;
+function applyAuthority(entry: PresenceEntry, user: Authority | undefined): PresenceEntry | null {
+  if (!user || user.ghostMode || user.hideActivityStatus || user.isSuspended || entry.ghostMode) return null;
+  const look = user.meshiPreference;
+  return {
+    ...entry, username: user.username, displayName: user.displayName, avatarUrl: user.avatarUrl,
+    meshiColor: look?.colorTheme ?? "blue", meshiHat: look?.hatStyle ?? "none",
+    meshiHair: look?.hairStyle ?? "none", meshiHairColor: look?.hairColor ?? "inherit",
+    meshiAccessory: look?.accessoryStyle ?? "none", meshiEyeStyle: look?.eyeStyle ?? "regular",
+    meshiBadge: look?.badgeStyle ?? "none", meshiFace: look?.faceStyle ?? "happy",
+    isPro: hasMeshPro(user),
+  };
+}
+
+async function fetchDbPresences(): Promise<Snapshot> {
+  if (dbCache && dbCache.revision === presenceRevision && Date.now() - dbCache.at < DB_CACHE_TTL_MS) return dbCache.snapshot;
   if (dbInFlight) return dbInFlight;
+  const revision = presenceRevision;
   dbInFlight = (async () => {
     const cutoff = Date.now() - STALE_MS;
     try {
-      const rows = (await prisma.meshPresence.findMany({
-        where: { lastSeen: { gte: new Date(cutoff) } },
-      })) as PresenceRow[];
-      const entries = rows.map(rowToEntry);
-      dbCache = { at: Date.now(), entries };
-      // Prune stale rows on a slow cadence rather than on every read.
+      const rows = await prisma.meshPresence.findMany({ where: { lastSeen: { gte: new Date(cutoff) } } });
+      const ids = [...new Set([...rows.map((r) => r.userId), ...presence.store.keys()])];
+      // This single shared snapshot also gates memory entries. Neither a stale
+      // heartbeat nor another device may override current account privacy.
+      const users = await prisma.user.findMany({
+        where: { id: { in: ids } },
+        select: { id: true, username: true, displayName: true, avatarUrl: true,
+          ghostMode: true, hideActivityStatus: true, isSuspended: true,
+          isMeshPro: true, meshProGiftUntil: true,
+          meshiPreference: { select: { colorTheme: true, hatStyle: true, hairStyle: true,
+            hairColor: true, accessoryStyle: true, eyeStyle: true, badgeStyle: true, faceStyle: true } } },
+      });
+      const snapshot = { entries: rows.map(rowToEntry), authorities: new Map(users.map((u) => [u.id, u])) };
+      // A removal racing a read cannot resurrect the removed snapshot.
+      if (revision !== presenceRevision) return { entries: [], authorities: new Map() };
+      dbCache = { at: Date.now(), revision, snapshot };
       if (Date.now() - lastPruneAt > PRUNE_INTERVAL_MS) {
         lastPruneAt = Date.now();
-        prisma.meshPresence
-          .deleteMany({ where: { lastSeen: { lt: new Date(cutoff) } } })
-          .catch(() => {});
+        void prisma.meshPresence.deleteMany({ where: { lastSeen: { lt: new Date(cutoff) } } }).catch(() => {});
       }
-      return entries;
+      return snapshot;
     } catch {
-      // DB unavailable — reuse the last snapshot (or nothing) and keep serving.
-      return dbCache?.entries ?? [];
-    } finally {
-      dbInFlight = null;
-    }
+      // Never reuse authorizations after their fresh read failed.
+      dbCache = null;
+      return { entries: [], authorities: new Map<string, Authority>() };
+    } finally { dbInFlight = null; }
   })();
   return dbInFlight;
 }
 
-// Return every fresh presence entry, merging the shared DB (cross-instance,
-// short-cached) with the in-memory cache (same-instance, always fresh). Memory
-// wins on ties so an in-flight heartbeat is never dropped.
 export async function listPresences(): Promise<PresenceEntry[]> {
-  const now = Date.now();
-  const cutoff = now - STALE_MS;
-  const merged = new Map<string, PresenceEntry>();
-
-  const dbEntries = await fetchDbPresences();
-  for (const entry of dbEntries) merged.set(entry.userId, entry);
-
+  const cutoff = Date.now() - STALE_MS;
+  const snapshot = await fetchDbPresences();
+  const merged = new Map(snapshot.entries.map((entry) => [entry.userId, entry]));
   for (const [userId, entry] of presence.store) {
-    if (entry.lastSeen < cutoff) {
-      presence.store.delete(userId);
-      continue;
-    }
+    if (entry.lastSeen < cutoff) { presence.store.delete(userId); continue; }
     const existing = merged.get(userId);
-    if (!existing || entry.lastSeen >= existing.lastSeen) {
-      merged.set(userId, entry);
-    }
+    if (!existing || entry.lastSeen >= existing.lastSeen) merged.set(userId, entry);
   }
-
-  return [...merged.values()];
+  return [...merged.values()].flatMap((entry) => {
+    if (entry.lastSeen < cutoff) return [];
+    const visible = applyAuthority(entry, snapshot.authorities.get(entry.userId));
+    return visible ? [visible] : [];
+  });
 }
 
 export type ViewerContext = {
@@ -454,6 +480,11 @@ export function buildPresencePayload(
       },
     );
 
+    const action = parseLastAction(entry.lastAction);
+    const safeAction = !action?.targetId ||
+      (!/^(post|friend-post|platform-post):/.test(action.targetId) && action.verb !== "strum" && action.verb !== "heart" && action.verb !== "fling") ||
+      (Boolean(activePostId) && entry.activePostId === activePostId && action.targetId === `post:${activePostId}`);
+
     presences.push({
       userId: entry.userId,
       username: entry.username,
@@ -467,6 +498,7 @@ export function buildPresencePayload(
       meshiEyeStyle: entry.meshiEyeStyle,
       meshiBadge: entry.meshiBadge,
       meshiMood: entry.meshiMood,
+      meshiFace: entry.meshiFace,
       position: entry.position,
       viewportPosition: entry.viewportPosition,
       surface: entry.surface,
@@ -478,7 +510,7 @@ export function buildPresencePayload(
       ghostMode: entry.ghostMode,
       // Room actions are ROOM detail: a heart's target names the post they
       // just liked, so it never leaves the observed room either.
-      lastAction: isViewingSameMesh ? entry.lastAction : null,
+      lastAction: isViewingSameMesh && safeAction ? entry.lastAction : null,
       isPro: entry.isPro,
       isOnline,
     });
@@ -493,25 +525,8 @@ export function buildPresencePayload(
 // Is this user visibly live on mesh.me right now? (Fresh heartbeat, not
 // ghosting.) Powers profile badges and any other "live" affordance.
 export async function isUserLiveNow(userId: string): Promise<boolean> {
-  const now = Date.now();
-
-  // Single-row lookup instead of listing every online user platform-wide.
-  // Same merge rule as listPresences: the fresher entry wins, memory on ties.
-  let dbEntry: PresenceEntry | null = null;
-  try {
-    const row = (await prisma.meshPresence.findUnique({
-      where: { userId },
-    })) as PresenceRow | null;
-    if (row) dbEntry = rowToEntry(row);
-  } catch {
-    // DB unavailable — fall back to memory only.
-  }
-
-  const memEntry = presence.store.get(userId) ?? null;
-  const entry =
-    memEntry && (!dbEntry || memEntry.lastSeen >= dbEntry.lastSeen) ? memEntry : dbEntry;
-
-  return Boolean(entry && !entry.ghostMode && now - entry.lastSeen < ONLINE_WINDOW_MS);
+  const all = await listPresences();
+  return all.some((entry) => entry.userId === userId && Date.now() - entry.lastSeen < ONLINE_WINDOW_MS);
 }
 
 export async function getMutualConnectionIds(userId: string): Promise<Set<string>> {
@@ -556,7 +571,7 @@ export async function canViewMeshRoom(
   viewerIsAdmin = false,
 ): Promise<boolean> {
   if (!meshOwnerId || meshOwnerId === viewerId) return true;
-  const [target, isFriend] = await Promise.all([
+  const [target, isFriend, blocks] = await Promise.all([
     prisma.user.findUnique({
       where: { id: meshOwnerId },
       select: {
@@ -566,8 +581,9 @@ export async function canViewMeshRoom(
       },
     }),
     areMutualFollowers(viewerId, meshOwnerId),
+    getBlockedUserIds(viewerId),
   ]);
-  if (!target) return false;
+  if (!target || blocks.has(meshOwnerId)) return false;
   // Suspended accounts' presence rooms stay locked to everyone but admins (the
   // owner already returned true above).
   if (target.isSuspended && !viewerIsAdmin) return false;

@@ -5,7 +5,6 @@
 // process-global map: presence endpoints are polled every few seconds by every
 // open thread, and a per-poll preference query would be pure amplification.
 
-import { getUserMeshiPreference } from "@/lib/actions";
 import type { TypingMeshi } from "@/lib/mechat-presence";
 import { hasMeshPro } from "@/lib/mesh-pro";
 import { prisma } from "@/lib/prisma";
@@ -32,7 +31,7 @@ export async function getCachedMeshiFor(userId: string): Promise<TypingMeshi | n
   // hasMeshPro() (paid, founder, or gifted window) — never the raw column,
   // which is unpatched for anyone who isn't the session user.
   const [pref, row] = await Promise.all([
-    getUserMeshiPreference(userId),
+    prisma.meshiPreference.findUnique({ where: { userId } }),
     prisma.user.findUnique({
       where: { id: userId },
       select: { username: true, isMeshPro: true, meshProGiftUntil: true },
@@ -42,6 +41,7 @@ export async function getCachedMeshiFor(userId: string): Promise<TypingMeshi | n
     ? {
         color: pref.colorTheme,
         hat: pref.hatStyle,
+        face: pref.faceStyle,
         hair: pref.hairStyle,
         hairColor: pref.hairColor,
         accessory: pref.accessoryStyle,

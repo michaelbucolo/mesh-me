@@ -11,7 +11,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { AutoplayVideo } from "@/components/feed/autoplay-video";
 import { NativeAspectMedia } from "@/components/ui/native-aspect-media";
-import { useState, useTransition, useRef, useEffect, memo, type ReactNode } from "react";
+import { useState, useTransition, useRef, useEffect, useId, memo, type ReactNode } from "react";
 import { toggleReaction, toggleSavePost, repost, deletePost, reportPost } from "@/lib/actions";
 import { BlockAuthorConfirmDialog } from "@/components/privacy/block-controls";
 import { getDisplayNameForAnyPlatform, getPlatformActionCapability } from "@/lib/platform-capabilities";
@@ -165,7 +165,8 @@ function ExpandablePostText({
         <button
           type="button"
           onClick={() => setExpanded((value) => !value)}
-          className="mt-1 text-xs font-semibold text-[var(--text-primary)] transition hover:text-[var(--accent-text)]"
+          aria-expanded={expanded}
+          className="mt-1 inline-flex min-h-9 items-center text-xs font-semibold text-[var(--text-primary)] transition hover:text-[var(--accent-text)]"
         >
           {expanded ? "Show less" : "Show more"}
         </button>
@@ -204,6 +205,9 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
   const [isPending, startTransition] = useTransition();
   const menuRef = useRef<HTMLDivElement>(null);
   const shareRef = useRef<HTMLDivElement>(null);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
+  const shareButtonRef = useRef<HTMLButtonElement>(null);
+  const disclosureId = useId();
   const originPlatform = normalizePlatform(post.platform);
   const connectedPlatformSet = new Set(connectedPlatforms.map((platform) => normalizePlatform(platform)).filter(Boolean));
   const requiresSourceAccount = Boolean(originPlatform && originPlatform !== "meshme");
@@ -262,23 +266,26 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
     );
 
   useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
+    if (!showMenu && !showShareMenu) return;
+    function handleClickOutside(event: PointerEvent) {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) setShowMenu(false);
       if (shareRef.current && !shareRef.current.contains(event.target as Node)) setShowShareMenu(false);
     }
     function handleEscape(event: KeyboardEvent) {
       if (event.key === "Escape") {
+        if (showMenu) menuButtonRef.current?.focus();
+        else if (showShareMenu) shareButtonRef.current?.focus();
         setShowMenu(false);
         setShowShareMenu(false);
       }
     }
-    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("pointerdown", handleClickOutside);
     document.addEventListener("keydown", handleEscape);
     return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("pointerdown", handleClickOutside);
       document.removeEventListener("keydown", handleEscape);
     };
-  }, []);
+  }, [showMenu, showShareMenu]);
 
   const requireSourceAccount = (action: string) => {
     setPlatformActionMessage("");
@@ -477,8 +484,13 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
     askMeshiAboutContent({ prompt: getFocusedContentPrompt(content, mode), content });
   };
 
-  const handleCopyLink = () => {
-    navigator.clipboard.writeText(post.externalUrl || `${window.location.origin}/feed/${post.id}`);
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(post.externalUrl || `${window.location.origin}/feed/${post.id}`);
+    } catch {
+      addToast("Could not copy the link. Open the post to share it.", "error");
+      return;
+    }
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
     // Close BOTH menus this can be triggered from, and confirm with a toast —
@@ -508,11 +520,13 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
       data-meshi-content-rating={post.contentRating || (post.isNsfw ? "adult" : "general")}
       data-meshi-content-media-signals={mediaSignals.join("|")}
       className={cn(
-        "insta-post-card group relative overflow-hidden",
+        "insta-post-card group relative overflow-visible",
+        (showMenu || showShareMenu) && "z-20",
         post.isPinned && "ring-1 ring-[var(--accent-muted)]",
         isOptimistic && "feed-post-pending",
       )}
       onDoubleClick={(event) => {
+        if ((event.target as HTMLElement).closest("button, a, input, textarea, video") || window.getSelection()?.toString()) return;
         if (!liked && !isOptimistic) {
           // Bloom the hearts from where the user actually tapped, not dead-centre.
           const rect = event.currentTarget.getBoundingClientRect();
@@ -561,7 +575,7 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
                   </Link>
                 )}
                 {post.author.isVerified && (
-                  <BadgeCheck className="h-4 w-4" style={{ color: "var(--accent-text)" }} />
+                  <BadgeCheck className="h-4 w-4 shrink-0" style={{ color: "var(--accent-text)" }} aria-label="Verified" />
                 )}
               </div>
               <div className="flex items-center gap-1 text-[0.78125rem] flex-wrap" style={{ color: "var(--text-muted)" }}>
@@ -667,17 +681,20 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
              only affordance in the card header. `.insta-icon-button` is the
              shared class the four topbar controls already use, and it is
              moulded at the end of globals.css. */
-          <div className="relative" ref={menuRef}>
+          <div className="relative" ref={menuRef} onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setShowMenu(false); }}>
             <button
+              ref={menuButtonRef}
               type="button"
-              onClick={() => setShowMenu(!showMenu)}
+              onClick={() => { setShowMenu(!showMenu); setShowShareMenu(false); }}
               aria-label="More post options"
+              aria-expanded={showMenu}
+              aria-controls={`${disclosureId}-options`}
               className="insta-icon-button"
             >
               <MoreHorizontal className="h-4 w-4" />
             </button>
             {showMenu && (
-              <div className="absolute right-0 top-8 w-48 z-20 py-1 glass-dropdown animate-smooth-reveal">
+              <div id={`${disclosureId}-options`} className="absolute right-0 top-full z-20 mt-2 w-56 max-w-[calc(100vw-3rem)] py-1 glass-dropdown animate-smooth-reveal [&>button]:min-h-11 [&>a]:min-h-11">
                 <button onClick={handleCopyLink} className="flex items-center gap-2.5 w-full px-3 py-2 text-sm hover:opacity-80 transition-colors" style={{ color: "var(--text-secondary)" }}>
                   <Copy className="h-4 w-4" /> Copy link
                 </button>
@@ -898,6 +915,7 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
               onClick={() => handleLike()}
               disabled={isPending || isOptimistic}
               aria-label={liked ? "Unlike post" : "Like post"}
+              aria-pressed={Boolean(liked)}
               className={cn(
                 "insta-post-action relative",
                 // Liked is a filled glyph in the like token, background
@@ -928,21 +946,23 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
             >
               <MessageCircle className="h-5 w-5" />
             </Link>
-            <button type="button" onClick={() => setShowShareMenu(!showShareMenu)} disabled={isOptimistic} className="insta-post-action" aria-label="Share post">
-              <Share2 className="h-5 w-5" />
-            </button>
+            <div className="relative" ref={shareRef} onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setShowShareMenu(false); }}>
+              <button ref={shareButtonRef} type="button" onClick={() => { setShowShareMenu(!showShareMenu); setShowMenu(false); }} disabled={isOptimistic} className="insta-post-action" aria-label="Share post" aria-expanded={showShareMenu} aria-controls={`${disclosureId}-share`}>
+                <Share2 className="h-5 w-5" />
+              </button>
+              {showShareMenu && (
+                <div id={`${disclosureId}-share`} className="absolute bottom-full left-1/2 z-20 mb-2 w-52 -translate-x-1/2 py-1 glass-dropdown animate-smooth-reveal [&>button]:min-h-11 [&>a]:min-h-11">
+                  <Link href={meChatShareHref} className="flex w-full items-center gap-2.5 px-3 py-2 text-sm transition-colors hover:opacity-80" style={{ color: "var(--text-secondary)" }}>
+                    <MessageCircle className="h-4 w-4" /> Share in MeChat
+                  </Link>
+                  <button type="button" onClick={handleCopyLink} className="flex w-full items-center gap-2.5 px-3 py-2 text-sm transition-colors hover:opacity-80" style={{ color: "var(--text-secondary)" }}>
+                    <Link2 className="h-4 w-4" /> {copied ? "Copied!" : "Copy link"}
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
-          <div className="relative" ref={shareRef}>
-            {showShareMenu && (
-              <div className="absolute right-0 top-9 z-20 w-52 py-1 glass-dropdown animate-smooth-reveal">
-                <Link href={meChatShareHref} className="flex w-full items-center gap-2.5 px-3 py-2 text-sm transition-colors hover:opacity-80" style={{ color: "var(--text-secondary)" }}>
-                  <MessageCircle className="h-4 w-4" /> Share in MeChat
-                </Link>
-                <button onClick={handleCopyLink} className="flex w-full items-center gap-2.5 px-3 py-2 text-sm transition-colors hover:opacity-80" style={{ color: "var(--text-secondary)" }}>
-                  <Link2 className="h-4 w-4" /> {copied ? "Copied!" : "Copy link"}
-                </button>
-              </div>
-            )}
+          <div>
             <button
               type="button"
               onClick={handleSave}
@@ -950,6 +970,7 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
               // One vocabulary for one action: card, detail, and rail all say
               // "Save post" / "Remove from saved" (audit 2 heard three names).
               aria-label={saved ? "Remove from saved" : "Save post"}
+              aria-pressed={saved}
               className={cn(
                 "insta-post-action",
                 saved && "text-[var(--accent-text)]",
@@ -960,26 +981,11 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
           </div>
         </div>
 
-        <p className="feed-like-count mt-1.5 text-[0.78125rem] font-semibold text-[var(--text-primary)]">
-          <span key={likeCount} className="mesh-roll-in tabular-nums">{formatCount(likeCount)}</span> {likeCount === 1 ? "like" : "likes"}
-        </p>
-
-        {requiresSourceAccount && !hasSourceAccount && (
-          <Link
-            href={`/connected-accounts?platform=${encodeURIComponent(originPlatform || "")}&next=/feed`}
-            className="key mt-2 flex min-h-11 items-center px-3 py-2 text-xs font-semibold text-[var(--text-primary)]"
-          >
-            Connect {platformLabel || post.platform} to like, comment, and sync actions back to the source.
-          </Link>
-        )}
-
-        {platformActionMessage && (
-          <p className="tray mt-2 px-3 py-2 text-xs font-semibold leading-5 text-[var(--warning)]" role="status">
-            {platformActionMessage}
+        <div className="mesh-post-engagement flex flex-wrap items-center gap-x-4 gap-y-1 text-[0.78125rem] text-[var(--text-muted)]">
+          <p className="feed-like-count font-semibold text-[var(--text-primary)]">
+            <span key={likeCount} className="mesh-roll-in tabular-nums">{formatCount(likeCount)}</span> {likeCount === 1 ? "like" : "likes"}
           </p>
-        )}
 
-        <div className="mt-1 flex flex-wrap items-center gap-2 text-[0.78125rem] text-[var(--text-muted)]">
           <Link
             href={postHref}
             onClick={(event) => {
@@ -995,7 +1001,7 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
             }}
             className="inline-flex min-h-11 items-center hover:text-[var(--text-primary)]"
           >
-            View {formatCount(post._count.comments)} {post._count.comments === 1 ? "comment" : "comments"}
+            {post._count.comments > 0 ? `${formatCount(post._count.comments)} ${post._count.comments === 1 ? "comment" : "comments"}` : "Start the conversation"}
           </Link>
           {repostCount > 0 && (
             <button type="button" onClick={handleRepost} disabled={isPending || isOptimistic} className="inline-flex min-h-11 items-center hover:text-[var(--text-primary)]">
@@ -1003,6 +1009,21 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
             </button>
           )}
         </div>
+
+        {requiresSourceAccount && !hasSourceAccount && (
+          <Link
+            href={`/connected-accounts?platform=${encodeURIComponent(originPlatform || "")}&next=/feed`}
+            className="key mt-2 flex min-h-11 items-center px-3 py-2 text-xs font-semibold text-[var(--text-primary)]"
+          >
+            Connect {platformLabel || post.platform} to like, comment, and sync actions back to the source.
+          </Link>
+        )}
+
+        {platformActionMessage && (
+          <p className="tray mt-2 px-3 py-2 text-xs font-semibold leading-5 text-[var(--warning)]" role="status">
+            {platformActionMessage}
+          </p>
+        )}
 
         {post.tags.length > 0 && (
           <div className="mt-3 flex flex-wrap gap-1.5">

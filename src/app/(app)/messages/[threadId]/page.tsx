@@ -11,6 +11,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { nsfwHiddenWhere } from "@/lib/content-safety";
 import { directThreadWhere } from "@/lib/direct-thread";
 import { parseMeChatMetadata } from "@/lib/mechat-metadata";
+import { getMeChatActivityUserIds } from "@/lib/mechat-presence";
 import { prisma } from "@/lib/prisma";
 import { getPostById, getThreadMessages } from "@/lib/queries";
 
@@ -376,6 +377,16 @@ export default async function ThreadDetailPage({ params, searchParams }: ThreadP
         getThreadMessages(activeThreadId),
       ])
     : [undefined, []];
+  const visibleActivityUserIds = activeThreadId
+    ? await getMeChatActivityUserIds(activeThreadId, user.id)
+    : new Set<string>();
+  conversationMembers = conversationMembers.map((member) => ({
+    ...member,
+    readReceipts: visibleActivityUserIds.has(member.userId),
+    lastRead: member.userId === user.id || visibleActivityUserIds.has(member.userId)
+      ? member.lastRead
+      : new Date(0).toISOString(),
+  }));
   const sharedContent = await sharedContentPromise;
   const messagesById = new Map(messages.map((message) => [message.id, {
     id: message.id,

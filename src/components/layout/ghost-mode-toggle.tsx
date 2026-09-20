@@ -3,9 +3,10 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { EyeOff } from "lucide-react";
-import { setGhostMode } from "@/lib/actions";
-import { broadcastGhostMode, GHOST_EVENT, GHOST_STORAGE_KEY, readGhostMode } from "@/lib/ghost-mode";
+import { useGhostMode } from "@/hooks/use-ghost-mode";
 import { playSound } from "@/lib/sound";
+import { impactFeedback } from "@/lib/native/haptics";
+import { useToast } from "@/components/ui/toast";
 
 // Hydration-safe "have we mounted on the client yet?" — false during SSR and
 // the first client paint, true thereafter. Avoids setState-in-effect.
@@ -20,29 +21,8 @@ const emptySubscribe = () => () => {};
  */
 export function GhostModeToggle({ compact = false, initialGhost = false }: { compact?: boolean; initialGhost?: boolean }) {
   const prefersReducedMotion = useReducedMotion();
-  const [ghost, setGhost] = useState(initialGhost);
-
-  // The account value is the source of truth. Sync the per-device localStorage
-  // (which the mesh scene and heartbeats read) to it on mount, so Ghost Mode
-  // reflects the account state on every device — not just the one you toggled on.
-  useEffect(() => {
-    try {
-      if ((localStorage.getItem(GHOST_STORAGE_KEY) === "true") !== initialGhost) {
-        localStorage.setItem(GHOST_STORAGE_KEY, String(initialGhost));
-        window.dispatchEvent(new Event(GHOST_EVENT));
-      }
-    } catch {
-      // best-effort sync
-    }
-  }, [initialGhost]);
-
-  // Stay in lockstep with the other Ghost control (the Settings toggle): when
-  // either flips, both reflect it live without a reload.
-  useEffect(() => {
-    const sync = () => setGhost(readGhostMode());
-    window.addEventListener(GHOST_EVENT, sync);
-    return () => window.removeEventListener(GHOST_EVENT, sync);
-  }, []);
+  const { ghost, pending, error, update } = useGhostMode(initialGhost);
+  const { addToast } = useToast();
 
   // Motion is only enabled after mount so SSR output (static icon) matches the
   // first client paint — avoids a hydration mismatch on the icon subtree.
@@ -57,9 +37,9 @@ export function GhostModeToggle({ compact = false, initialGhost = false }: { com
     if (burstTimer.current !== null) window.clearTimeout(burstTimer.current);
   }, []);
 
-  const toggle = () => {
-    const next = !ghost;
-    setGhost(next);
+  const toggle = async () => {
+    if (pending) return;
+    const next = error ? true : !ghost;
     if (next && !prefersReducedMotion) {
       setBurst((value) => value + 1);
       setDematerializing(true);
@@ -67,10 +47,9 @@ export function GhostModeToggle({ compact = false, initialGhost = false }: { com
       burstTimer.current = window.setTimeout(() => setDematerializing(false), 760);
     }
     playSound(next ? "ghost" : "pop");
-    // localStorage + same-tab event + an immediate presence heartbeat.
-    broadcastGhostMode(next);
-    // Persist to the account so Ghost Mode follows the user to other devices.
-    void setGhostMode(next).catch(() => {});
+    void impactFeedback("LIGHT");
+    const result = await update(next);
+    if (result.error) addToast(result.error, "error");
   };
 
   const motionEnabled = mounted && !prefersReducedMotion;
@@ -79,10 +58,12 @@ export function GhostModeToggle({ compact = false, initialGhost = false }: { com
     <button
       type="button"
       onClick={toggle}
+      disabled={pending}
+      aria-busy={pending}
       suppressHydrationWarning
       aria-pressed={ghost}
-      aria-label={ghost ? "Ghost Mode is on — tap to become visible" : "Turn on Ghost Mode"}
-      title={ghost ? "Ghost Mode on: others can't see you live" : "Ghost Mode: hide your live presence"}
+      aria-label={error ? "Retry saving Ghost Mode" : ghost ? "Ghost Mode is on — tap to become visible" : "Turn on Ghost Mode"}
+      title={error ?? (ghost ? "Ghost Mode on: others can't see you live" : "Ghost Mode: hide your live presence")}
       /* ON is state, not a call to action (tone reset R4): the neutral
          selected key. The grape plastic this once wore was the only purple
          fill in the chrome — a per-feature hue, which the color budget

@@ -62,6 +62,7 @@ export type MeChatSerializedMessage = {
 type TypingMeshi = {
   color: string;
   hat: string;
+  face?: string;
   hair: string;
   /* Optional client-side, like isPro below: older in-flight payloads render
      with the inherit fallback. */
@@ -1443,6 +1444,7 @@ export function MeChatThread({
                               mood="happy"
                               color={reader.meshi.color as MeshiColor}
                               hat={reader.meshi.hat as MeshiHat}
+                              face={reader.meshi.face}
                               hair={reader.meshi.hair as MeshiHair}
                               hairColor={reader.meshi.hairColor || "inherit"}
                               accessory={reader.meshi.accessory as MeshiAccessory}
@@ -1495,6 +1497,7 @@ export function MeChatThread({
                       mood="happy"
                       color={user.meshi.color as MeshiColor}
                       hat={user.meshi.hat as MeshiHat}
+                      face={user.meshi.face}
                       hair={user.meshi.hair as MeshiHair}
                       hairColor={user.meshi.hairColor || "inherit"}
                       accessory={user.meshi.accessory as MeshiAccessory}
@@ -1539,6 +1542,7 @@ export function MeChatThread({
                       mood="happy"
                       color={user.meshi.color as MeshiColor}
                       hat={user.meshi.hat as MeshiHat}
+                      face={user.meshi.face}
                       hair={user.meshi.hair as MeshiHair}
                       hairColor={user.meshi.hairColor || "inherit"}
                       accessory={user.meshi.accessory as MeshiAccessory}

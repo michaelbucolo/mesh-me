@@ -43,6 +43,7 @@ import {
 import { communityThreadTitle } from "./community-constants";
 import { isUniqueConstraintError } from "./prisma-errors";
 import { getFeedPostById } from "./feed-data";
+import { removePresence } from "./mesh-presence-store";
 import { normalizeStudioWeights, authorKey, dominantFormat } from "./flow-ranking";
 import { normalizePlatformId } from "./platform-capabilities";
 import { isValidMutedSourceKey, parseMutedSources, serializeMutedSources } from "./muted-sources";
@@ -2345,6 +2346,7 @@ export async function updatePrivacy(formData: FormData) {
     where: { id: user.id },
     data: { isPublic, showInDiscovery, hideActivityStatus, readReceipts },
   });
+  if (hideActivityStatus) await removePresence(user.id);
 
   // Privacy-downgrade coupling (strictly one-directional): going private or
   // undiscoverable authoritatively removes you from the Global Mesh, so stored
@@ -2372,6 +2374,7 @@ export async function setGhostMode(ghostMode: boolean) {
     where: { id: user.id },
     data: { ghostMode: Boolean(ghostMode) },
   });
+  if (ghostMode) await removePresence(user.id);
 
   revalidatePath("/settings");
   return { success: true };
@@ -2929,32 +2932,9 @@ export async function getMeshiPreference() {
   return pref || DEFAULT_MESHI_PREFERENCE;
 }
 
-// Get another user's Meshi preference (for social Meshi on their mesh nodes)
-export async function getUserMeshiPreference(userId: string) {
-  if (!userId) return null;
-
-  const pref = await prisma.meshiPreference.findUnique({
-    where: { userId },
-  });
-
-  return pref
-    ? {
-        hatStyle: pref.hatStyle,
-        faceStyle: pref.faceStyle,
-        colorTheme: pref.colorTheme,
-        hairStyle: pref.hairStyle,
-        hairColor: pref.hairColor,
-        accessoryStyle: pref.accessoryStyle,
-        eyeStyle: pref.eyeStyle,
-        badgeStyle: pref.badgeStyle,
-      }
-    : null;
-}
-
 /**
  * The gift form's live preview: the friend's ACTUAL Meshi, so a wardrobe
- * piece is chosen on them rather than off a shelf. The Meshi itself is public
- * (getUserMeshiPreference above), but this endpoint still answers with ONE
+ * piece is chosen on them rather than off a shelf. This endpoint answers with ONE
  * uniform error for unknown, suspended, and blocked-either-direction — the
  * gift page must not become a way to probe who has blocked whom.
  */

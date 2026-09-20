@@ -8,8 +8,13 @@ import { usePathname, useRouter } from "next/navigation";
 import { motion, useAnimationControls, useReducedMotion } from "framer-motion";
 import {
   Bell,
+  Bookmark,
+  Bug,
   ChevronDown,
   ChevronRight,
+  CreditCard,
+  Link2,
+  LogOut,
   Moon,
   Search,
   Settings,
@@ -20,6 +25,7 @@ import {
 import { signOut } from "@/lib/actions";
 import { readGhostMode } from "@/lib/ghost-mode";
 import { readWhereShare } from "@/lib/where-share";
+import { publicPresenceRoute } from "@/lib/presence-policy";
 import { useTheme } from "@/components/theme-provider";
 import { useToast } from "@/components/ui/toast";
 import { shareContent } from "@/lib/native/share";
@@ -27,7 +33,7 @@ import { MeshiBrandLockup } from "@/components/meshi/meshi-identity";
 import { Avatar } from "@/components/ui/avatar";
 import { GhostModeToggle } from "@/components/layout/ghost-mode-toggle";
 import { MobileNav } from "@/components/layout/mobile-nav";
-import { primaryNavItems, resolveNavHref, isNavItemActive, type NavItem } from "@/components/layout/navigation-config";
+import { primaryNavItems, resolveNavHref, isNavItemActive, getBadgeCount, type NavItem } from "@/components/layout/navigation-config";
 import { SPRING_PANEL } from "@/lib/motion";
 
 const CommandPalette = dynamic(
@@ -70,6 +76,9 @@ type RouteInfo = {
 const routeInfoMap: Record<string, RouteInfo> = {
   "/mesh": { title: "The Mesh", description: "Your accounts and connections in one graph." },
   "/feed": { title: "Feed", description: "Your timeline across all connected platforms." },
+  "/flow": { title: "Flow", description: "Discover videos from your Mesh." },
+  "/saved": { title: "Saved", description: "Posts and moments you want to return to." },
+  "/meshimap": { title: "MeshiMap", description: "Explore the places in your Mesh." },
   // NOT "your universal messaging hub, all your conversations in one place".
   // Measured from src/lib/platform-capabilities.ts: no listed messenger can
   // sync a message, because none expose an official direct-message API to
@@ -93,7 +102,7 @@ const routeInfoMap: Record<string, RouteInfo> = {
 };
 
 function getRouteInfo(pathname: string, username: string): RouteInfo {
-  if (pathname.startsWith(`/profile/${username}`) || pathname === "/profile") {
+  if (pathname === `/profile/${username}` || pathname.startsWith(`/profile/${username}/`) || pathname === "/profile") {
     return { title: "Profile", description: "Your identity. Your story. Your Mesh." };
   }
 
@@ -130,7 +139,7 @@ const isOnMap = (p: string) => p === "/meshimap" || p.startsWith("/meshimap/");
 const SIDEBAR_INDICATOR_SPRING = SPRING_PANEL;
 const SIDEBAR_ICON_POP = { duration: 0.46, ease: [0.34, 1.56, 0.64, 1] as const, times: [0, 0.4, 0.7, 1] };
 
-function SidebarNavItem({ item, href, active }: { item: NavItem; href: string; active: boolean }) {
+function SidebarNavItem({ item, href, active, badgeCount }: { item: NavItem; href: string; active: boolean; badgeCount: number }) {
   const Icon = item.icon;
   const iconControls = useAnimationControls();
   const reduceMotion = useReducedMotion();
@@ -147,6 +156,8 @@ function SidebarNavItem({ item, href, active }: { item: NavItem; href: string; a
     <Link
       href={href}
       data-feedback="navigate"
+      aria-label={badgeCount > 0 ? `${item.label}, ${badgeCount} unread ${item.badgeKey}` : item.label}
+      title={item.label}
       className={`mesh-nav-item group relative flex items-center gap-3.5 rounded-xl px-3.5 py-2.5 text-[0.9375rem] font-medium transition-[color,background-color,border-color,box-shadow,transform,opacity] duration-150 ${
         active
           ? "mesh-nav-item-active bg-[var(--mesh-panel-hover)] font-semibold text-[var(--mesh-text)]"
@@ -159,7 +170,7 @@ function SidebarNavItem({ item, href, active }: { item: NavItem; href: string; a
       {active && (
         <motion.span
           layoutId="sidebar-nav-indicator"
-          transition={SIDEBAR_INDICATOR_SPRING}
+          transition={reduceMotion ? { duration: 0 } : SIDEBAR_INDICATOR_SPRING}
           className="pointer-events-none absolute bottom-[19%] left-0 top-[19%] w-[3px] rounded-r-full"
           style={{ background: "var(--accent)" }}
           aria-hidden="true"
@@ -167,6 +178,11 @@ function SidebarNavItem({ item, href, active }: { item: NavItem; href: string; a
       )}
       <motion.span animate={iconControls} className="relative flex shrink-0">
         <Icon className={`h-[20px] w-[20px] shrink-0 ${active ? "stroke-[2px]" : "stroke-[1.5px]"}`} aria-hidden="true" />
+        {badgeCount > 0 && (
+          <span className="mesh-nav-badge absolute -right-2.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--accent)] px-1 text-micro font-semibold text-[var(--accent-ink)]" aria-hidden="true">
+            {badgeCount > 99 ? "99+" : badgeCount}
+          </span>
+        )}
       </motion.span>
       <span data-nav-label className="truncate">{item.label}</span>
     </Link>
@@ -186,7 +202,6 @@ function ShellTopBar({
   const pathname = usePathname();
   const { addToast } = useToast();
   const [query, setQuery] = useState("");
-  const searchInputRef = useRef<HTMLInputElement>(null);
   const accountMenuRef = useRef<HTMLDetailsElement>(null);
 
   // A native <details> stays open through Next's soft navigation, so the
@@ -195,6 +210,30 @@ function ShellTopBar({
   useEffect(() => {
     accountMenuRef.current?.removeAttribute("open");
   }, [pathname]);
+
+  useEffect(() => {
+    const closeWhenOutside = (event: PointerEvent | FocusEvent) => {
+      const menu = accountMenuRef.current;
+      if (menu?.open && event.target instanceof Node && !menu.contains(event.target)) {
+        menu.open = false;
+      }
+    };
+    const closeWithEscape = (event: KeyboardEvent) => {
+      const menu = accountMenuRef.current;
+      if (event.key !== "Escape" || event.defaultPrevented || !menu?.open) return;
+      event.preventDefault();
+      menu.open = false;
+      menu.querySelector("summary")?.focus();
+    };
+    document.addEventListener("pointerdown", closeWhenOutside);
+    document.addEventListener("focusin", closeWhenOutside);
+    document.addEventListener("keydown", closeWithEscape);
+    return () => {
+      document.removeEventListener("pointerdown", closeWhenOutside);
+      document.removeEventListener("focusin", closeWhenOutside);
+      document.removeEventListener("keydown", closeWithEscape);
+    };
+  }, []);
 
   // Note: Cmd/Ctrl+K is owned by the command palette (which autofocuses after
   // this ran and overrode it) — so no topbar handler here, and no ⌘K badge that
@@ -217,42 +256,24 @@ function ShellTopBar({
     }
   }
 
-  const ownerInitials = (
-    user.displayName
-      .split(/\s+/)
-      .map((part) => part.charAt(0))
-      .filter(Boolean)
-      .slice(0, 2)
-      .join("") || user.username.charAt(0) || "M"
-  ).toUpperCase();
-
   return (
     // Height comes from `.mesh-topbar { min-height: var(--mesh-topbar-h) }` in
     // unlayered CSS, which outranks any min-h-* utility on this element — do
     // not add one; it would read as live and lie.
     <header className="mesh-topbar lg-scroll-edge sticky top-0 z-30 flex items-center gap-3 border-b border-[var(--mesh-border)] bg-[var(--mesh-bg)]/95 px-4 backdrop-blur-xl lg:gap-4 lg:px-6">
-      {/* Account dropdown: top-right spring reveal + quick top-down item
-          stagger. Bespoke keyframes scoped here; self-guards reduced motion. */}
+      {/* The whole disclosure arrives together, so every action is available
+          as soon as the menu opens. */}
       <style>{`
         @keyframes meshAcctPanelIn {
-          from { opacity: 0; transform: scale(0.96) translateY(-6px); }
+          from { opacity: 0; transform: scale(0.98) translateY(-4px); }
           to { opacity: 1; transform: scale(1) translateY(0); }
-        }
-        @keyframes meshAcctItemIn {
-          from { opacity: 0; transform: translateY(-7px); }
-          to { opacity: 1; transform: translateY(0); }
         }
         details[open] > .mesh-account-panel {
           transform-origin: top right;
-          animation: meshAcctPanelIn 260ms var(--mesh-spring) both;
-        }
-        details[open] > .mesh-account-panel .mesh-account-item {
-          animation: meshAcctItemIn 300ms var(--mesh-ease-out) both;
-          animation-delay: calc(var(--acc-i, 0) * 38ms + 70ms);
+          animation: meshAcctPanelIn 180ms var(--mesh-ease-out) both;
         }
         @media (prefers-reduced-motion: reduce) {
-          details[open] > .mesh-account-panel,
-          details[open] > .mesh-account-panel .mesh-account-item { animation: none; }
+          details[open] > .mesh-account-panel { animation: none; }
         }
       `}</style>
       <div className="min-w-0 flex-1 lg:flex-none">
@@ -264,12 +285,11 @@ function ShellTopBar({
             the share-sheet text. */}
       </div>
 
-      <form onSubmit={submitSearch} className="mx-auto hidden w-full max-w-md items-center gap-2 rounded-xl border border-[var(--mesh-border)] bg-[var(--mesh-panel)] px-3.5 py-2 lg:flex">
+      <form role="search" onSubmit={submitSearch} className="mesh-topbar-search mx-auto hidden w-full max-w-md items-center gap-2 rounded-xl border border-[var(--mesh-border)] bg-[var(--mesh-panel)] px-3.5 py-2 lg:flex">
         <Search className="h-4 w-4 shrink-0 text-[var(--mesh-text-muted)]" aria-hidden="true" />
         <label htmlFor="mesh-topbar-search" className="sr-only">Search your Mesh</label>
         <input
           id="mesh-topbar-search"
-          ref={searchInputRef}
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           className="mesh-search-input min-w-0 flex-1 bg-transparent text-sm text-[var(--mesh-text)] outline-none placeholder:text-[var(--mesh-text-muted)]"
@@ -293,7 +313,7 @@ function ShellTopBar({
           <Share2 className="h-4 w-4" aria-hidden="true" />
           <span>Share</span>
         </button>
-        <Link href="/notifications" className="mesh-topbar-icon key relative" aria-label="Notifications" title="Notifications">
+        <Link href="/notifications" className="mesh-topbar-icon key relative" aria-label={unreadCounts.unreadNotifications > 0 ? `Notifications, ${unreadCounts.unreadNotifications} unread` : "Notifications"} aria-current={pathname === "/notifications" ? "page" : undefined} title="Notifications">
           <Bell className="h-4 w-4" aria-hidden="true" />
           {unreadCounts.unreadNotifications > 0 && (
             /* `text-white` on `bg-[var(--accent)]` was a real contrast failure,
@@ -301,7 +321,7 @@ function ShellTopBar({
                and white on it measures ~1.9:1. --accent-ink is the PINNED ink for
                that fill (tokens.css:69, 197) and is contrast-verified in both
                themes. */
-            <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--accent)] px-1 text-micro font-semibold text-[var(--accent-ink)]">
+            <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--accent)] px-1 text-micro font-semibold text-[var(--accent-ink)]" aria-hidden="true">
               {unreadCounts.unreadNotifications > 99 ? "99+" : unreadCounts.unreadNotifications}
             </span>
           )}
@@ -315,50 +335,65 @@ function ShellTopBar({
               (globals.css:1 `@import "tailwindcss"`), so unlayered `.key` beats
               every one of them — leaving them would be dead markup that reads as
               if it still did something. */}
-          <summary className="mesh-topbar-owner key flex cursor-pointer list-none items-center gap-2 p-0 text-sm font-semibold text-[var(--mesh-text)] lg:px-3 lg:py-1.5 [&::-webkit-details-marker]:hidden" aria-label="Account menu">
-            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--accent)]/15 text-xs font-semibold text-[var(--text-primary)] ring-1 ring-[var(--mesh-border)] lg:hidden" aria-hidden="true">{ownerInitials}</span>
+          <summary
+            className="mesh-topbar-owner key flex cursor-pointer list-none items-center gap-2 p-0 text-sm font-semibold text-[var(--mesh-text)] lg:px-2.5 lg:py-1.5 [&::-webkit-details-marker]:hidden"
+            aria-label="Account menu"
+            onKeyDown={(event) => {
+              if (event.key !== "ArrowDown") return;
+              event.preventDefault();
+              const menu = accountMenuRef.current;
+              if (!menu) return;
+              menu.open = true;
+              menu.querySelector<HTMLAnchorElement>(".mesh-account-panel a")?.focus();
+            }}
+          >
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--accent)]/15 text-xs text-[var(--text-primary)] ring-1 ring-[var(--mesh-border)]" aria-hidden="true">
+              {user.avatarUrl ? <Image src={user.avatarUrl} alt="" width={32} height={32} unoptimized className="h-full w-full rounded-full object-cover" /> : [...(user.displayName.trim() || user.username)][0]?.toUpperCase()}
+            </span>
             <span className="hidden max-w-[9rem] truncate lg:inline">{user.displayName}</span>
             <ChevronDown className="hidden h-3.5 w-3.5 text-[var(--mesh-text-muted)] lg:block" aria-hidden="true" />
           </summary>
-          <div className="mesh-account-panel absolute right-0 top-[calc(100%+0.5rem)] w-64 rounded-xl border border-[var(--mesh-border)] bg-[var(--mesh-panel-solid)] p-2 shadow-lg z-50">
-            <div className="flex items-center gap-3 rounded-lg bg-[var(--mesh-bg-elevated)] p-3">
-              <Avatar src={user.avatarUrl} alt={user.displayName} size="sm" />
+          <div
+            className="mesh-account-panel absolute right-0 top-[calc(100%+0.5rem)] z-50 max-h-[calc(100dvh-10rem)] w-72 max-w-[calc(100vw-2rem)] overflow-y-auto overscroll-contain rounded-xl border border-[var(--mesh-border)] bg-[var(--mesh-panel-solid)] p-2 shadow-lg"
+            onClick={(event) => {
+              if ((event.target as Element).closest("a, button")) accountMenuRef.current?.removeAttribute("open");
+            }}
+          >
+            <Link href={`/profile/${user.username}`} className="mesh-account-profile mesh-dropdown-item gap-3 rounded-lg p-3" aria-label="View your profile">
+              <div className="shrink-0" aria-hidden="true"><Avatar src={user.avatarUrl} alt={user.displayName} size="md" /></div>
               <div className="min-w-0">
                 <p className="truncate text-sm font-semibold text-[var(--mesh-text)]">{user.displayName}</p>
                 <p className="truncate text-xs text-[var(--mesh-text-muted)]">@{user.username}</p>
               </div>
+              <ChevronRight className="ml-auto h-4 w-4 shrink-0 text-[var(--mesh-text-muted)]" aria-hidden="true" />
+            </Link>
+            <div className="mesh-account-section mt-1 grid gap-0.5 border-t border-[var(--mesh-border)] pt-1">
+              <Link href="/search" className="mesh-dropdown-item mesh-account-item lg:hidden"><Search className="h-4 w-4" aria-hidden="true" />Search</Link>
+              <Link href="/saved" className="mesh-dropdown-item mesh-account-item"><Bookmark className="h-4 w-4" aria-hidden="true" />Saved</Link>
+              <Link href="/connected-accounts" className="mesh-dropdown-item mesh-account-item"><Link2 className="h-4 w-4" aria-hidden="true" />One Account</Link>
             </div>
-            <div
-              className="mt-2 grid gap-0.5"
-              onClick={() => accountMenuRef.current?.removeAttribute("open")}
-            >
-              <Link href={`/profile/${user.username}`} className="mesh-dropdown-item mesh-account-item" style={{ ["--acc-i" as string]: 0 }}>Profile</Link>
-              <Link href="/saved" className="mesh-dropdown-item mesh-account-item" style={{ ["--acc-i" as string]: 1 }}>Saved</Link>
-              <Link href="/connected-accounts" className="mesh-dropdown-item mesh-account-item" style={{ ["--acc-i" as string]: 2 }}>One Account</Link>
-              <Link href="/settings" className="mesh-dropdown-item mesh-account-item" style={{ ["--acc-i" as string]: 3 }}>Settings</Link>
-              <Link href="/search" className="mesh-dropdown-item mesh-account-item lg:hidden" style={{ ["--acc-i" as string]: 4 }}>Search</Link>
-              <Link href="/meshpro" className="mesh-dropdown-item mesh-account-item" style={{ ["--acc-i" as string]: 5 }}>MeshPro</Link>
+            <div className="mesh-account-section mt-1 grid gap-0.5 border-t border-[var(--mesh-border)] pt-1">
+              <Link href="/settings" className="mesh-dropdown-item mesh-account-item"><Settings className="h-4 w-4" aria-hidden="true" />Settings</Link>
+              <Link href="/meshpro" className="mesh-dropdown-item mesh-account-item"><CreditCard className="h-4 w-4" aria-hidden="true" />MeshPro</Link>
               {user.isAdmin && (
-                <Link href="/admin" data-feedback="navigate" className="mesh-dropdown-item mesh-account-item" style={{ ["--acc-i" as string]: 6 }}>Admin console</Link>
+                <Link href="/admin" data-feedback="navigate" className="mesh-dropdown-item mesh-account-item"><ShieldCheck className="h-4 w-4" aria-hidden="true" />Admin console</Link>
               )}
               <button
                 type="button"
                 className="mesh-dropdown-item mesh-account-item w-full text-left"
-                style={{ ["--acc-i" as string]: 7 }}
-                onClick={(e) => {
-                  (e.currentTarget.closest("details") as HTMLDetailsElement | null)?.removeAttribute("open");
+                onClick={() => {
                   window.dispatchEvent(new CustomEvent("mesh:open-bug-report"));
                 }}
               >
+                <Bug className="h-4 w-4" aria-hidden="true" />
                 Report a bug
               </button>
-              <hr className="mesh-account-item my-1 border-[var(--mesh-border)]" style={{ ["--acc-i" as string]: 8 }} />
-              <form action={signOut} className="mesh-account-item" style={{ ["--acc-i" as string]: 9 }}>
-                <button type="submit" className="mesh-dropdown-item mesh-dropdown-danger w-full text-left">
-                  Sign out
-                </button>
-              </form>
             </div>
+            <form action={signOut} className="mesh-account-signout mt-1 border-t border-[var(--mesh-border)] pt-1">
+              <button type="submit" className="mesh-dropdown-item mesh-dropdown-danger w-full text-left">
+                <LogOut className="h-4 w-4" aria-hidden="true" />Sign out
+              </button>
+            </form>
           </div>
         </details>
       </div>
@@ -484,7 +519,7 @@ export function AppShell({ children, user }: AppShellProps) {
   // "online" for your people. The mesh page runs its own richer heartbeat
   // (cursor position, moods), so this one stands down there.
   useEffect(() => {
-    if (isMeshSurface) return;
+    if (isMeshSurface || isFeedSurface) return;
     let cancelled = false;
 
     const heartbeat = () => {
@@ -511,7 +546,7 @@ export function AppShell({ children, user }: AppShellProps) {
         method: "POST",
         credentials: "same-origin",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ ...meshi, surface: "feed", activeRoute: pathname, ghostMode, shareWhere }),
+        body: JSON.stringify({ ...meshi, surface: "feed", activeRoute: publicPresenceRoute(pathname), ghostMode, shareWhere }),
       }).catch(() => {});
     };
 
@@ -521,10 +556,11 @@ export function AppShell({ children, user }: AppShellProps) {
       cancelled = true;
       window.clearInterval(intervalId);
     };
-  }, [isMeshSurface, pathname]);
+  }, [isMeshSurface, isFeedSurface, pathname]);
 
   return (
     <div className={`mesh-shell h-dvh max-h-dvh min-h-0 overflow-hidden text-[var(--mesh-text)] md:grid md:grid-cols-[var(--mesh-sidebar-width)_1fr] ${isFeedSurface ? "mesh-shell-feed" : ""} ${isMeshSurface || isFlowSurface || isMapSurface ? "mesh-shell-mesh" : ""} ${isMessagesSurface ? "mesh-shell-chat" : ""} ${isFlowSurface ? "mesh-shell-flow" : ""} ${isExploreSurface ? "mesh-shell-explore" : ""}`}>
+      <a href="#mesh-main-content" className="mesh-skip-link sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-lg focus:bg-[var(--paper-1)] focus:px-4 focus:py-3 focus:text-[var(--text-primary)] focus:shadow-lg">Skip to content</a>
 
       {/* The per-item static active bar is superseded by the shared morphing
           indicator rendered inside the active SidebarNavItem. */}
@@ -548,8 +584,9 @@ export function AppShell({ children, user }: AppShellProps) {
             {primaryNavItems.map((item) => {
               const href = resolveNavHref(item.href, user.username);
               const active = isNavItemActive(pathname, item.href, user.username);
+              const badgeCount = getBadgeCount(item.badgeKey, unreadCounts.unreadNotifications, unreadCounts.unreadMessages);
 
-              return <SidebarNavItem key={item.href} item={item} href={href} active={active} />;
+              return <SidebarNavItem key={item.href} item={item} href={href} active={active} badgeCount={badgeCount} />;
             })}
           </div>
         </nav>
@@ -561,11 +598,7 @@ export function AppShell({ children, user }: AppShellProps) {
             className="group flex items-center gap-2 rounded-lg px-2 py-1.5 text-[var(--mesh-text-muted)] transition-colors hover:bg-[var(--mesh-panel-hover)] hover:text-[var(--mesh-text-secondary)]"
           >
             <ShieldCheck className="h-4 w-4 shrink-0 text-[var(--accent-text)]" aria-hidden="true" />
-            {/* `text-micro`, not `text-xs`: this is a persistent quiet badge, which is
-                exactly what the micro step is the floor for. At the caption step the
-                sentence no longer fits the 16rem rail and truncated to "…you own your
-                d…", which is a worse outcome than one step smaller. */}
-            <span className="min-w-0 flex-1 truncate text-micro font-medium">Privacy first — you own your data</span>
+            <span className="min-w-0 flex-1 truncate text-micro font-medium">Privacy controls</span>
             <ChevronRight className="h-3.5 w-3.5 shrink-0 opacity-0 transition-opacity group-hover:opacity-100" aria-hidden="true" />
           </Link>
         </div>
@@ -609,10 +642,9 @@ export function AppShell({ children, user }: AppShellProps) {
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between border-t border-[var(--mesh-border)] px-5 py-3">
+        <div className="mesh-sidebar-footer flex items-center justify-between border-t border-[var(--mesh-border)] px-5 py-3">
           <div className="text-micro text-[var(--mesh-text-muted)]">
             <p suppressHydrationWarning>© {new Date().getFullYear()} Mesh.me</p>
-            <p>All rights reserved</p>
           </div>
           {/* Two footer controls. The theme toggle carried `.mesh-pressable`,
               which is the OLD paper model: `translateY(-2px)` plus a wide blurred
@@ -630,17 +662,17 @@ export function AppShell({ children, user }: AppShellProps) {
               aria-label={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
               title={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
             >
-              {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+              {theme === "dark" ? <Sun className="h-4 w-4" aria-hidden="true" /> : <Moon className="h-4 w-4" aria-hidden="true" />}
             </button>
             <Link href="/settings" className="key inline-flex items-center justify-center p-1.5 text-[var(--mesh-text-muted)] hover:text-[var(--mesh-text-secondary)]" aria-label="Settings">
-              <Settings className="h-4 w-4" />
+              <Settings className="h-4 w-4" aria-hidden="true" />
             </Link>
           </div>
         </div>
       </aside>
 
       {/* Main Content */}
-      <main className={`mesh-main flex h-dvh min-h-0 min-w-0 flex-col overflow-hidden pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-0 ${isMeshSurface ? "mesh-main-mesh" : ""}`}>
+      <main id="mesh-main-content" tabIndex={-1} className={`mesh-main flex h-dvh min-h-0 min-w-0 flex-col overflow-hidden pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-0 ${isMeshSurface ? "mesh-main-mesh" : ""}`}>
         {!isFlowSurface && <ShellTopBar user={user} routeInfo={routeInfo} unreadCounts={unreadCounts} />}
 
         <div className="mesh-content flex-1 overflow-y-auto">

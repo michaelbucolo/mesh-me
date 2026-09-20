@@ -2,6 +2,7 @@
 
 import { Modal } from "./modal";
 import { Button } from "./button";
+import { useRef } from "react";
 
 interface ConfirmDialogProps {
   open: boolean;
@@ -24,10 +25,12 @@ export function ConfirmDialog({
   cancelLabel = "Cancel",
   destructive = false,
 }: ConfirmDialogProps) {
+  const cancelRef = useRef<HTMLButtonElement>(null);
+
   return (
-    <Modal open={open} onClose={onClose} title={title} description={description} className="max-w-sm">
-      <div className="flex justify-end gap-2">
-        <Button type="button" variant="secondary" onClick={onClose}>
+    <Modal open={open} onClose={onClose} title={title} description={description} initialFocusRef={cancelRef} className="max-w-sm">
+      <div className="flex flex-wrap justify-end gap-2">
+        <Button ref={cancelRef} type="button" variant="secondary" onClick={onClose}>
           {cancelLabel}
         </Button>
         <Button

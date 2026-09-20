@@ -756,7 +756,7 @@ select:focus-visible {
    /search. Photographed on the running build at 1440×900 they were 90px apart,
    both a magnifier next to the word "Mesh", and nothing on screen told a person
    which one did what. The field that belongs to the page wins there. */
-.mesh-shell-explore .mesh-topbar form {
+.mesh-shell-explore .mesh-topbar-search {
   display: none;
 }
 

@@ -9,9 +9,9 @@ import { FlowReels } from "./flow-reels";
 import { PaperWait } from "@/components/loading/paper-wait";
 import { PostCard } from "@/components/feed/post-card";
 import { PostComposer } from "@/components/feed/post-composer";
-import { MeshiMascot, type MeshiColor, type MeshiHat } from "@/components/meshi/meshi-mascot";
-import { readGhostMode } from "@/lib/ghost-mode";
-import { readWhereShare } from "@/lib/where-share";
+import { MeshiMascot, type MeshiColor, type MeshiHat, type MeshiHair, type MeshiAccessory, type MeshiEyeStyle, type MeshiBadge } from "@/components/meshi/meshi-mascot";
+import { GHOST_EVENT, readGhostMode } from "@/lib/ghost-mode";
+import { WHERE_SHARE_EVENT, readWhereShare } from "@/lib/where-share";
 import { getPostPresenceKey } from "@/lib/presence-keys";
 import type { FeedContentFilter, FeedSource } from "@/lib/feed-data";
 
@@ -61,6 +61,12 @@ type FeedPresence = {
   avatarUrl: string | null;
   meshiColor: string;
   meshiHat: string;
+  meshiFace?: string;
+  meshiHair?: string;
+  meshiHairColor?: string;
+  meshiAccessory?: string;
+  meshiEyeStyle?: string;
+  meshiBadge?: string;
   activePostId: string | null;
   surface?: "mesh" | "feed";
   viewportPosition: { vx: number; vy: number };
@@ -118,8 +124,8 @@ const feedViews: Array<{
   { id: "links", label: "Links", copy: "Shared links", icon: Link2, layoutMode: "compact" },
 ];
 
-function getFeedPresenceKey(post: Pick<FeedPost, "id" | "platform" | "sourceId"> | null | undefined) {
-  if (!post?.id) return null;
+function getFeedPresenceKey(post: Pick<FeedPost, "id" | "platform" | "sourceId" | "optimistic"> | null | undefined) {
+  if (!post?.id || post.optimistic) return null;
   return getPostPresenceKey({
     id: post.id,
     platform: post.platform,
@@ -356,7 +362,7 @@ export function FeedTimelineClient({
         else visibleRatios.delete(id);
       }
       const [bestId] = [...visibleRatios.entries()].sort((a, b) => b[1] - a[1])[0] ?? [];
-      if (bestId) setActiveFeedItemId(bestId);
+      setActiveFeedItemId(bestId ?? null);
     }, { threshold: [0.35, 0.55, 0.75], rootMargin: "-12% 0px -38% 0px" });
 
     const nodes = root.querySelectorAll<HTMLElement>("[data-feed-post-id]");
@@ -374,65 +380,85 @@ export function FeedTimelineClient({
     return () => observer.disconnect();
   }, [loadMore]);
 
+  // Feed owns its heartbeat, including the empty space between posts. Keep
+  // location hints optional: a local draft is never a shared place.
   useEffect(() => {
-    if (!activeFeedItemId || !activePresencePostId) return;
     let cancelled = false;
+    let request: AbortController | null = null;
+    setSamePostPresences([]);
 
-    const sendPresence = async () => {
-      if (document.hidden) return;
-      const activeNode = document.querySelector<HTMLElement>(`[data-feed-post-id="${CSS.escape(activeFeedItemId)}"]`);
+    const refreshPresence = async () => {
+      request?.abort();
+      if (document.hidden || cancelled) {
+        setSamePostPresences([]);
+        return;
+      }
+      const controller = new AbortController();
+      request = controller;
+      const activeNode = activeFeedItemId && activePresencePostId
+        ? document.querySelector<HTMLElement>(`[data-feed-post-id="${CSS.escape(activeFeedItemId)}"]`)
+        : null;
       const rect = activeNode?.getBoundingClientRect();
       const focusX = window.innerWidth / 2;
       const focusY = window.innerHeight * 0.42;
       const vx = rect ? Math.max(0, Math.min(1, (focusX - rect.left) / Math.max(1, rect.width))) : 0.5;
       const vy = rect ? Math.max(0, Math.min(1, (focusY - rect.top) / Math.max(1, rect.height))) : 0.5;
-      await fetch("/api/mesh/presence", {
+      const ghostMode = readGhostMode();
+      const send = fetch("/api/mesh/presence", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "same-origin",
+        signal: controller.signal,
         body: JSON.stringify({
           surface: "feed",
           activePostId: activePresencePostId,
-          activeNodeId: activeFeedItemId,
+          activeNodeId: activePresencePostId ? activeFeedItemId : null,
           activeRoute: "/feed",
           position: { x: vx * 1000, y: vy * 1000 },
           viewportPosition: { vx, vy },
           activity: "exploring",
-          // Must send ghostMode so the server's last-seen touch stays frozen
-          // while ghosting — every other heartbeat caller sends it too.
-          ghostMode: readGhostMode(),
-          // EVERY heartbeat caller must stamp the where-share opt-in: the
-          // server treats an absent flag as false, so omitting it here would
-          // flip-flop an opted-in user's entry against the app-shell beat
-          // (where-chip blinking + every flip forcing a write-through).
+          ghostMode,
           shareWhere: readWhereShare(),
         }),
-      }).catch(() => {});
-    };
+      }).catch(() => null);
 
-    const loadPresence = async () => {
-      if (document.hidden) return;
+      if (!activePresencePostId || ghostMode) {
+        setSamePostPresences([]);
+        await send;
+        return;
+      }
       const params = new URLSearchParams({ surface: "feed", activePostId: activePresencePostId });
       const response = await fetch(`/api/mesh/presence?${params.toString()}`, {
         credentials: "same-origin",
         cache: "no-store",
+        signal: controller.signal,
       }).catch(() => null);
-      if (!response?.ok || cancelled) return;
+      if (cancelled || controller.signal.aborted) return;
+      if (!response?.ok) {
+        setSamePostPresences([]);
+        return;
+      }
       const payload = await response.json().catch(() => ({}));
-      if (cancelled) return;
+      if (cancelled || controller.signal.aborted) return;
       setSamePostPresences((payload.presences || []).filter((presence: FeedPresence) => presence.isOnline && presence.activePostId === activePresencePostId).slice(0, 5));
+      await send;
     };
 
-    void sendPresence();
-    void loadPresence();
-    const heartbeat = window.setInterval(() => {
-      void sendPresence();
-      void loadPresence();
-    }, 5500);
-
+    const refresh = () => { void refreshPresence(); };
+    refresh();
+    const heartbeat = window.setInterval(refresh, 5500);
+    document.addEventListener("visibilitychange", refresh);
+    window.addEventListener(GHOST_EVENT, refresh);
+    window.addEventListener(WHERE_SHARE_EVENT, refresh);
+    window.addEventListener("storage", refresh);
     return () => {
       cancelled = true;
+      request?.abort();
       window.clearInterval(heartbeat);
+      document.removeEventListener("visibilitychange", refresh);
+      window.removeEventListener(GHOST_EVENT, refresh);
+      window.removeEventListener(WHERE_SHARE_EVENT, refresh);
+      window.removeEventListener("storage", refresh);
     };
   }, [activeFeedItemId, activePresencePostId]);
 
@@ -728,7 +754,18 @@ function FeedPostPresence({ presences }: { presences: FeedPresence[] }) {
               className="absolute flex -translate-x-1/2 -translate-y-1/2 items-center gap-1.5 rounded-[var(--radius-md)] bg-[var(--media-chip)] px-1.5 py-1 shadow-[0_var(--plinth-h-chip)_0_0_var(--media-chip-plinth)]"
               style={{ left: `${left}%`, top: `${top}%` }}
             >
-              <MeshiMascot size={18} color={presence.meshiColor as MeshiColor} hat={presence.meshiHat as MeshiHat} animate={false} />
+              <MeshiMascot
+                size={18}
+                color={presence.meshiColor as MeshiColor}
+                hat={presence.meshiHat as MeshiHat}
+                face={presence.meshiFace}
+                hair={(presence.meshiHair || "none") as MeshiHair}
+                hairColor={presence.meshiHairColor || "inherit"}
+                accessory={(presence.meshiAccessory || "none") as MeshiAccessory}
+                eyeStyle={(presence.meshiEyeStyle || "regular") as MeshiEyeStyle}
+                badge={(presence.meshiBadge || "none") as MeshiBadge}
+                animate={false}
+              />
               <span className="max-w-[5.25rem] truncate text-micro font-semibold text-[var(--media-ink-2)]">
                 {label}
               </span>
@@ -744,6 +781,12 @@ function FeedPostPresence({ presences }: { presences: FeedPresence[] }) {
               size={20}
               color={presence.meshiColor as MeshiColor}
               hat={presence.meshiHat as MeshiHat}
+              face={presence.meshiFace}
+              hair={(presence.meshiHair || "none") as MeshiHair}
+              hairColor={presence.meshiHairColor || "inherit"}
+              accessory={(presence.meshiAccessory || "none") as MeshiAccessory}
+              eyeStyle={(presence.meshiEyeStyle || "regular") as MeshiEyeStyle}
+              badge={(presence.meshiBadge || "none") as MeshiBadge}
               animate={false}
               className="shadow-sm"
             />

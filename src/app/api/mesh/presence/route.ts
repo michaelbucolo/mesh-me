@@ -8,6 +8,8 @@ import {
 import { getCurrentUser } from "@/lib/auth";
 import { hasMeshPro } from "@/lib/mesh-pro";
 import { prisma } from "@/lib/prisma";
+import { publicPresenceRoute } from "@/lib/presence-policy";
+import { canViewPresencePost } from "@/lib/presence-post-access";
 import { isSameOriginRequest, readJsonObject } from "@/lib/request-guard";
 import {
   buildPresencePayload,
@@ -35,7 +37,7 @@ export async function POST(request: Request) {
 
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (user.hideActivityStatus) {
+  if (user.hideActivityStatus || user.ghostMode) {
     await removePresence(user.id);
     return NextResponse.json({ ok: true, hidden: true });
   }
@@ -48,7 +50,21 @@ export async function POST(request: Request) {
     // a ghosting user stays hidden even from a fresh device whose local heartbeat
     // hasn't set the flag yet. The client body can only ADD ghosting for the
     // current session (e.g. the instant toggle before the account write lands).
-    const ghosting = ghostMode === true || user.ghostMode === true;
+    const ghosting = ghostMode === true;
+    if (ghosting) {
+      await removePresence(user.id);
+      return NextResponse.json({ ok: true, hidden: true });
+    }
+    const requestedPost = typeof activePostId === "string" && activePostId.length > 0 ? activePostId : null;
+    if (requestedPost && !await canViewPresencePost(user, requestedPost)) {
+      await removePresence(user.id);
+      return NextResponse.json({ error: "Post unavailable" }, { status: 403 });
+    }
+    const requestedRoom = typeof viewingMesh === "string" && viewingMesh.length > 0 ? viewingMesh.slice(0, 160) : user.id;
+    if (!await canViewMeshRoom(user.id, requestedRoom, user.isAdmin)) {
+      await removePresence(user.id);
+      return NextResponse.json({ error: "Mesh unavailable" }, { status: 403 });
+    }
 
     // Tiny world actions broadcast to the room: a Meshi throwing a heart at a
     // post, a reaction burst (star/spark/wow), a wave hello on arrival, or a
@@ -87,11 +103,11 @@ export async function POST(request: Request) {
       position: normalizePosition(position),
       viewportPosition: normalizeViewportPosition(viewportPosition),
       // Normalize own-mesh views to the current user id so all viewers of the same mesh match.
-      viewingMesh: (typeof viewingMesh === "string" && viewingMesh.length > 0) ? viewingMesh.slice(0, 160) : user.id,
+      viewingMesh: requestedRoom,
       surface: surface === "feed" ? "feed" : "mesh",
-      activePostId: typeof activePostId === "string" && activePostId.length > 0 ? activePostId.slice(0, 160) : null,
+      activePostId: requestedPost,
       activeNodeId: typeof activeNodeId === "string" && activeNodeId.length > 0 ? activeNodeId.slice(0, 160) : null,
-      activeRoute: typeof activeRoute === "string" && activeRoute.length > 0 ? activeRoute.slice(0, 160) : null,
+      activeRoute: publicPresenceRoute(activeRoute),
       // The where-chip OPT-IN: strictly boolean-true from the client; the
       // payload builder redacts location for everyone who hasn't opted in.
       shareWhere: shareWhere === true,
@@ -138,6 +154,9 @@ export async function GET(request: Request) {
   const meshOwner = searchParams.get("meshOwner"); // filter to users viewing a specific mesh owner id
   const surface = searchParams.get("surface");
   const activePostId = searchParams.get("activePostId");
+  if (activePostId && !await canViewPresencePost(user, activePostId)) {
+    return NextResponse.json({ error: "Post unavailable" }, { status: 403 });
+  }
 
   const [connectedSet, blockedSet, roomAllowed] = await Promise.all([
     getMutualConnectionIds(user.id),

@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { motion, AnimatePresence, useAnimationControls } from "framer-motion";
+import { motion, AnimatePresence, useAnimationControls, useReducedMotion, MotionConfig } from "framer-motion";
 import { usePathname } from "next/navigation";
-import { Send } from "lucide-react";
+import { Send, Ghost } from "lucide-react";
 import {
   MeshiMascot,
   type MeshiAccessory,
@@ -25,7 +25,6 @@ import { getMeshGraphData, type MeshGraphEntity } from "@/lib/queries";
 import { getMeshiPreference } from "@/lib/actions";
 import {
   loadKnowledge, saveKnowledge, indexMeshData,
-  getKnowledgeLevelDescription, type MeshiExplorationState,
 } from "@/lib/meshi-knowledge";
 import {
   areFocusedContentEqual,
@@ -42,16 +41,13 @@ import {
 } from "@/lib/meshi-events";
 import { reactionFor, subscribeMeshiCause } from "@/lib/meshi-bus";
 import { shouldHideGlobalMeshi } from "@/lib/meshi-routes";
+import { useGhostMode } from "@/hooks/use-ghost-mode";
 import { MESHI_PREFERENCES_EVENT, type MeshiPreferences } from "@/hooks/use-meshi-preferences";
 
-// Meshi is chrome, not a character in the user's feed. One instance, docked in
-// the corner (CSS owns the position — see `.meshi-float-shell` in globals.css),
-// silent until opened. It used to trail the pointer, dodge scrolls, fly to a
-// per-route arrival point and hold a permanent "Tap" balloon; all of that was
-// the product performing for the user instead of waiting for them. The face
-// still reacts to real causes (meshi-bus) and to typing/idleness, because a
-// docked character that never blinks is a sticker — but it no longer moves,
-// and it speaks only inside its own opened panel.
+// One living Meshi represents the user across surfaces. CSS docks the body
+// while browsing; the Mesh canvas takes ownership when it can draw the avatar.
+// Activity and real product events shape expressions. Presence controls come
+// first, and optional AI help speaks only after the user opens it.
 
 // The contextual prop for a route. Uses a most-specific-first prefix match so
 // sub-routes (e.g. "/feed/abc") keep the prop; indexing PAGE_PROPS by the
@@ -224,19 +220,15 @@ export function MeshiFloat() {
 
   const [meshEntities, setMeshEntities] = useState<MeshGraphEntity[]>([]);
   const [meshStats, setMeshStats] = useState<{ followers: number; following: number; posts: number; communities: number; platforms: number }>({ followers: 0, following: 0, posts: 0, communities: 0, platforms: 0 });
-  const [knowledge, setKnowledge] = useState<MeshiExplorationState>(() => {
-    if (typeof window === "undefined") return { totalNodesVisited: 0, totalExplorations: 0, lastExplorationAt: 0, knowledgeLevel: 1, entries: {} };
-    return loadKnowledge();
-  });
-  const [isExploring, setIsExploring] = useState(false);
-  const [explorationProgress, setExplorationProgress] = useState(0);
-
   const focusedContentRef = useRef<FocusedContent | null>(null);
-  const explorationTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const speechBubbleTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
 
   const [isIdle, setIsIdle] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
+  const [isScrolling, setIsScrolling] = useState(false);
+  const [isHidden, setIsHidden] = useState(false);
+  const reducedMotion = useReducedMotion();
+  const { ghost } = useGhostMode();
   const [activeProp, setActiveProp] = useState<MeshiProp>("none");
   const tapSquashControls = useAnimationControls();
   const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -310,8 +302,6 @@ export function MeshiFloat() {
     const bubbleTimers = speechBubbleTimersRef.current;
     return () => {
       window.cancelAnimationFrame(frame);
-      explorationTimersRef.current.forEach(clearTimeout);
-      explorationTimersRef.current = [];
       for (const t of bubbleTimers.values()) clearTimeout(t);
       bubbleTimers.clear();
     };
@@ -369,7 +359,7 @@ export function MeshiFloat() {
   // live in the post's own ⋯ menu, which hands the exact post over via
   // MESHI_PROMPT_EVENT.
   useEffect(() => {
-    if (!meshiEnabled || shouldHideGlobalMeshi(pathname)) return;
+    if (!meshiEnabled || shouldHideGlobalMeshi(pathname) || (view !== "speech" && view !== "chat")) return;
     let frame: number | null = null;
 
     const updateFocusedContent = () => {
@@ -396,7 +386,7 @@ export function MeshiFloat() {
       window.removeEventListener("scroll", scheduleUpdate);
       window.removeEventListener("resize", scheduleUpdate);
     };
-  }, [meshiEnabled, pathname]);
+  }, [meshiEnabled, pathname, view]);
 
   useEffect(() => {
     if (!meshiEnabled) return;
@@ -467,30 +457,15 @@ export function MeshiFloat() {
     };
   }, []);
 
-  // Load mesh data AND index it into knowledge system
+  // Fetch context only after the user opens optional AI help. Presence never indexes content.
   useEffect(() => {
-    if (!meshiEnabled || view === "closed") return;
+    if (!meshiEnabled || (view !== "speech" && view !== "chat")) return;
     let cancelled = false;
     const timer = window.setTimeout(() => {
       getMeshGraphData().then((data) => {
         if (!cancelled) {
           setMeshEntities(data.entities);
           setMeshStats(data.stats);
-          // Auto-index mesh data into knowledge system
-          if (data.entities.length > 0) {
-            const nodes = data.entities.map((e) => ({
-              id: e.id,
-              type: e.type as "user" | "community" | "tag" | "post" | "platform",
-              label: e.label,
-              sublabel: e.sublabel || undefined,
-              data: { followerCount: e.followerCount || 0, memberCount: e.memberCount || 0, isMutual: e.isMutual || false },
-            }));
-            setKnowledge((prev) => {
-              const updated = indexMeshData(prev, nodes);
-              saveKnowledge(updated);
-              return updated;
-            });
-          }
         }
       }).catch(() => {});
     }, 180);
@@ -507,46 +482,66 @@ export function MeshiFloat() {
     queueMicrotask(() => setActiveProp(contextualProp));
   }, [pathname, meshiEnabled]);
 
-  // Typing/idleness awareness: the docked face thinks while you type and dozes
-  // when you've been away — reactions to the user's real state, not a timer
-  // cycling expressions.
+  // Only activity facts are observed: no input values, keystrokes, or messages.
+  // Capture nested scrollers as well as the document so Meshi follows the feed.
   useEffect(() => {
     if (!meshiEnabled) return;
+    let scrollTimer: ReturnType<typeof setTimeout> | null = null;
     const armIdleTimer = () => {
-      if (isIdle) setIsIdle(false);
+      if (document.visibilityState === "hidden") return;
+      setIsIdle(false);
       if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
-      idleTimerRef.current = setTimeout(() => setIsIdle(true), 20000);
+      idleTimerRef.current = setTimeout(() => setIsIdle(true), 45000);
     };
-    const handleKeyDown = () => {
-      if (!isTyping) setIsTyping(true);
+    const handleInput = (event: Event) => {
+      const target = event.target;
+      const editable = target instanceof HTMLElement && (
+        target.isContentEditable ||
+        (target instanceof HTMLTextAreaElement && !target.readOnly && !target.disabled) ||
+        (target instanceof HTMLInputElement && !target.readOnly && !target.disabled &&
+          ["text", "search", "email", "url", "tel", "number"].includes(target.type))
+      );
+      if (!editable) return;
+      setIsTyping(true);
       armIdleTimer();
-      if (view === "closed") setMood("thinking");
-    };
-    const handleKeyUp = () => {
       if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
-      typingTimerRef.current = setTimeout(() => setIsTyping(false), 2000);
+      typingTimerRef.current = setTimeout(() => setIsTyping(false), 1600);
     };
-    window.addEventListener("mousemove", armIdleTimer, { passive: true });
-    window.addEventListener("keydown", handleKeyDown, { passive: true });
-    window.addEventListener("keyup", handleKeyUp, { passive: true });
+    const handleScroll = () => {
+      armIdleTimer();
+      setIsScrolling(true);
+      if (scrollTimer) clearTimeout(scrollTimer);
+      scrollTimer = setTimeout(() => setIsScrolling(false), 900);
+    };
+    const handleVisibility = () => {
+      const hidden = document.visibilityState === "hidden";
+      setIsHidden(hidden);
+      if (hidden) {
+        setIsIdle(true);
+        setIsTyping(false);
+        setIsScrolling(false);
+        if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
+      } else armIdleTimer();
+    };
+    document.addEventListener("input", handleInput, true);
+    document.addEventListener("scroll", handleScroll, { passive: true, capture: true });
+    document.addEventListener("visibilitychange", handleVisibility);
+    window.addEventListener("pointermove", armIdleTimer, { passive: true });
     window.addEventListener("pointerdown", armIdleTimer, { passive: true });
-    idleTimerRef.current = setTimeout(() => setIsIdle(true), 20000);
+    window.addEventListener("keydown", armIdleTimer, { passive: true });
+    queueMicrotask(handleVisibility);
     return () => {
-      window.removeEventListener("mousemove", armIdleTimer);
-      window.removeEventListener("keydown", handleKeyDown);
-      window.removeEventListener("keyup", handleKeyUp);
+      document.removeEventListener("input", handleInput, true);
+      document.removeEventListener("scroll", handleScroll, true);
+      document.removeEventListener("visibilitychange", handleVisibility);
+      window.removeEventListener("pointermove", armIdleTimer);
       window.removeEventListener("pointerdown", armIdleTimer);
+      window.removeEventListener("keydown", armIdleTimer);
       if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
       if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
+      if (scrollTimer) clearTimeout(scrollTimer);
     };
-  }, [meshiEnabled, isIdle, isTyping, view]);
-
-  // Idle behavior
-  useEffect(() => {
-    if (!meshiEnabled || view !== "closed") return;
-    if (isIdle) queueMicrotask(() => setMood("sleepy"));
-    else if (isTyping) queueMicrotask(() => setMood("thinking"));
-  }, [isIdle, isTyping, view, meshiEnabled]);
+  }, [meshiEnabled]);
 
   // Meshi reacts to things that actually happened.
   //
@@ -588,58 +583,37 @@ export function MeshiFloat() {
     speechBubbleTimersRef.current.set(id, timer);
   }, []);
 
-  // Meshi exploration — walks the mesh graph and indexes it. Status reads as
-  // flat progress, not narration.
-  const triggerExploration = useCallback(() => {
-    setIsExploring(true);
+  // Explicitly requested review uses actual data and reports only completed work.
+  const triggerSearch = useCallback(async () => {
+    if (isSearching) return;
     setIsSearching(true);
-    setSearchingText("Scanning your mesh…");
-    setMood("searching" as MeshiMood);
-    setView("closed");
-    setExplorationProgress(0);
-
-    const totalSteps = 5;
-    const stepDuration = 800;
-    const messages = [
-      "Reading connections…",
-      "Indexing posts and communities…",
-      "Indexing platforms…",
-      "Updating notes…",
-      "Finishing up…",
-    ];
-
-    explorationTimersRef.current.forEach(clearTimeout);
-    explorationTimersRef.current = [];
-
-    messages.forEach((msg, i) => {
-      const t = setTimeout(() => {
-        setSearchingText(msg);
-        setExplorationProgress(((i + 1) / totalSteps) * 100);
-        if (i === 1) setMood("learning" as MeshiMood);
-        if (i === 3) setMood("thinking");
-      }, i * stepDuration);
-      explorationTimersRef.current.push(t);
-    });
-
-    const finishTimer = setTimeout(() => {
-      setIsSearching(false);
-      setIsExploring(false);
-      setExplorationProgress(0);
-      const stats = meshStats;
-      const kLevel = knowledge.knowledgeLevel;
-      const levelDesc = getKnowledgeLevelDescription(kLevel);
-      const summary = stats.followers + stats.following + stats.posts > 0
-        ? `Indexed ${stats.followers} followers, ${stats.following} following, ${stats.posts} posts and ${stats.communities} communities across ${stats.platforms} platforms. Knowledge level ${kLevel}/10 (${levelDesc}).`
-        : "Nothing to index yet. Connect a platform to grow your mesh.";
+    setSearchingText("Reading your Mesh…");
+    setMood("searching");
+    setView("speech");
+    try {
+      const data = await getMeshGraphData();
+      setMeshEntities(data.entities);
+      setMeshStats(data.stats);
+      const nodes = data.entities.map((entity) => ({
+        id: entity.id,
+        type: entity.type as "user" | "community" | "tag" | "post" | "platform",
+        label: entity.label,
+        sublabel: entity.sublabel || undefined,
+        data: { followerCount: entity.followerCount || 0, memberCount: entity.memberCount || 0, isMutual: entity.isMutual || false },
+      }));
+      saveKnowledge(indexMeshData(loadKnowledge(), nodes));
+      addSpeechBubble("meshi", nodes.length
+        ? `Reviewed ${nodes.length} items in your Mesh: ${data.stats.followers} followers, ${data.stats.following} following, ${data.stats.posts} posts, and ${data.stats.communities} communities.`
+        : "There is no Mesh context to review yet.");
       setMood("happy");
-      setView("speech");
-      addSpeechBubble("meshi", summary);
-    }, totalSteps * stepDuration);
-    explorationTimersRef.current.push(finishTimer);
-  }, [meshStats, knowledge.knowledgeLevel, addSpeechBubble]);
-
-  // Legacy triggerSearch now uses exploration
-  const triggerSearch = triggerExploration;
+    } catch {
+      addSpeechBubble("meshi", "Your Mesh could not be loaded. Please try again.");
+      setMood("surprised");
+    } finally {
+      setIsSearching(false);
+      setSearchingText("");
+    }
+  }, [isSearching, addSpeechBubble]);
 
   const submitSpeechPrompt = useCallback((rawText: string, contentOverride?: FocusedContent) => {
     const text = rawText.trim();
@@ -715,8 +689,6 @@ export function MeshiFloat() {
 
       if (shouldAnimateSearch) {
         setIsSearching(false);
-        setIsExploring(false);
-        setExplorationProgress(0);
         setView("speech");
       }
 
@@ -772,18 +744,17 @@ export function MeshiFloat() {
 
   const handleMeshiClick = useCallback(() => {
     // A one-shot press acknowledgment; no particles, no escalation.
-    tapSquashControls.start({
+    if (!reducedMotion) void tapSquashControls.start({
       scale: [0.92, 1.06, 1],
       transition: { duration: 0.3, ease: [0.22, 1.2, 0.36, 1], times: [0, 0.5, 1] },
     });
-    // void: impactFeedback is async and rejects when the native bridge is
-    // unavailable — every other call site guards it, so match them here.
-    void impactFeedback("MEDIUM");
+    // The feedback bridge respects device support and the user’s preferences.
+    void impactFeedback("LIGHT");
     if (view === "closed") { setView("actions"); setMood("excited"); }
     else if (view === "actions") { setView("closed"); }
     else if (view === "speech") { setView("closed"); setSpeechBubbles([]); }
     else { setView("closed"); }
-  }, [view, tapSquashControls]);
+  }, [view, tapSquashControls, reducedMotion]);
 
   const closeAll = useCallback(() => { setView("closed"); setSpeechBubbles([]); setPendingSpeechAction(null); }, []);
 
@@ -792,13 +763,6 @@ export function MeshiFloat() {
     const handleMeshiOpen = (event: Event) => {
       const customEvent = event as CustomEvent<MeshiOpenMode>;
       const mode = customEvent.detail || "actions";
-      // On the Mesh the floating body is hidden, so anchored modes (speech/actions)
-      // have nothing to attach to — open the full chat modal instead.
-      if (isMeshSurfaceRef.current) {
-        setView("chat");
-        setMood("happy");
-        return;
-      }
       if (mode === "speech") {
         setView("speech");
         setMood("thinking");
@@ -845,7 +809,7 @@ export function MeshiFloat() {
     const handleKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "m") {
         e.preventDefault();
-        setView((prev) => (prev !== "closed" ? "closed" : isMeshSurfaceRef.current ? "chat" : "actions"));
+        setView((prev) => (prev !== "closed" ? "closed" : "actions"));
       }
     };
     window.addEventListener("keydown", handleKey);
@@ -853,6 +817,17 @@ export function MeshiFloat() {
   }, []);
 
   if (!isMounted || !meshiEnabled || shouldHideGlobalMeshi(pathname)) return null;
+
+  const activity = isIdle || isHidden ? "Resting" : isTyping
+    ? (pathname.startsWith("/messages") ? "Writing a message" : "Writing")
+    : isScrolling ? "Scrolling" : onMeshRoute ? "Exploring the Mesh"
+    : pathname.startsWith("/messages") ? "In MeChat"
+    : pathname.startsWith("/explore") ? "Exploring"
+    : pathname.startsWith("/profile") ? "Visiting a profile"
+    : pathname.startsWith("/settings") ? "Making yourself at home"
+    : "Here with you";
+  const visibleMood = isFullscreenVideo ? "learning" : isSearching ? "searching"
+    : isIdle || isHidden ? "sleepy" : isTyping ? "thinking" : isScrolling ? "learning" : mood;
 
   const activeHeldProp: MeshiProp =
     isFullscreenVideo || isSearching
@@ -864,12 +839,12 @@ export function MeshiFloat() {
           : "none";
 
   return (
-    <>
+    <MotionConfig reducedMotion="user">
       {/* THE ONE MESHI — docked chrome. CSS pins the shell to the corner
           (`.meshi-float-shell`); the body never moves. On the Mesh the canvas
           draws this same entity as the user's avatar, so the floating body
           yields there to keep Meshi a strict singleton. */}
-      {!isMeshSurface && (
+      {(!isMeshSurface || view === "speech" || isSearching) && (
       <AnimatePresence>
         <motion.div
           data-meshi-float="true"
@@ -878,13 +853,13 @@ export function MeshiFloat() {
           data-meshi-owned="true"
           data-on-flow={onFlowRoute ? "true" : undefined}
           className="meshi-float-shell fixed z-40"
-          initial={{ opacity: 0, scale: 0.5 }}
+          initial={reducedMotion ? false : { opacity: 0, scale: 0.92 }}
           animate={{
-            opacity: isFullscreenVideo ? 0.46 : 1,
+            opacity: isFullscreenVideo ? 0.46 : ghost ? 0.55 : 1,
             scale: isFullscreenVideo ? 0.56 : 1,
           }}
-          exit={{ opacity: 0, scale: 0.5 }}
-          transition={{ duration: 0.5, ease: "easeInOut" }}>
+          exit={{ opacity: 0, scale: reducedMotion ? 1 : 0.92 }}
+          transition={{ duration: reducedMotion ? 0 : 0.2, ease: "easeOut" }}>
             {isSearching && (
               <motion.div
                 initial={{ opacity: 0, y: 8, scale: 0.94 }}
@@ -893,15 +868,7 @@ export function MeshiFloat() {
                 className="absolute bottom-full right-0 mb-2 min-w-[11rem] rounded-[var(--r-md)] border border-[var(--border-primary)] bg-[var(--bg-elevated)] px-3 py-2 text-xs font-medium text-[var(--text-primary)] shadow-lg"
               >
                 <span className="block">{searchingText || "Working…"}</span>
-                {isExploring && explorationProgress > 0 && (
-                  <span className="mt-2 block h-1.5 overflow-hidden rounded-full bg-[var(--bg-tertiary)]">
-                    <motion.span
-                      className="block h-full rounded-full bg-[var(--accent)]"
-                      animate={{ width: `${explorationProgress}%` }}
-                      transition={{ duration: 0.5 }}
-                    />
-                  </span>
-                )}
+
               </motion.div>
             )}
             {/* Speech bubbles above Meshi — this IS its opened panel. */}
@@ -977,25 +944,20 @@ export function MeshiFloat() {
             )}
 
             {/* MESHI ENTITY — a stationary 44px button. */}
-            <motion.div
+            {!isMeshSurface && (<motion.button
+              type="button"
               onClick={handleMeshiClick}
-              className="relative cursor-pointer select-none rounded-full"
+              className="relative cursor-pointer select-none rounded-full focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--accent)]"
               style={{ width: MESHI_SIZE, height: MESHI_SIZE }}
               data-meshi-primary="true"
-              role="button"
-              aria-label="Open Meshi"
-              tabIndex={0}
-              onKeyDown={(event) => {
-                if (event.key === "Enter" || event.key === " ") {
-                  event.preventDefault();
-                  handleMeshiClick();
-                }
-              }}
+              aria-label={`Your Meshi: ${activity}${ghost ? ". Ghost Mode on" : ""}`}
+              aria-haspopup="dialog"
+              aria-expanded={view === "actions"}
               animate={tapSquashControls}
             >
               <MeshiMascot
                 size={MESHI_SIZE}
-                mood={isFullscreenVideo ? "learning" : isSearching ? "searching" as MeshiMood : mood}
+                mood={visibleMood}
                 color={meshiColor}
                 hat={meshiHat}
                 face={meshiFace}
@@ -1005,18 +967,21 @@ export function MeshiFloat() {
                 eyeStyle={meshiEye}
                 badge={meshiBadge}
                 showGlow={view !== "closed" || isSearching || isFullscreenVideo}
-                interactive
+                animate={!reducedMotion && !isHidden}
+                interactive={!reducedMotion && !isHidden}
                 prop={activeHeldProp}
               />
-            </motion.div>
+              {ghost && <span className="absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-[var(--bg-elevated)] text-[var(--text-secondary)]"><Ghost aria-hidden="true" className="h-3 w-3" /></span>}
+            </motion.button>)}
           </motion.div>
       </AnimatePresence>
       )}
 
-      {/* Actions Menu — hidden on mesh page */}
+      {/* Presence controls are available on every surface, including the Mesh. */}
       <AnimatePresence>
         {view === "actions" && (
           <MeshiActionsMenu
+            activity={activity}
             meshiColor={meshiColor}
             meshiHat={meshiHat}
             onClose={closeAll}
@@ -1040,6 +1005,6 @@ export function MeshiFloat() {
         meshEntities={meshEntities}
         focusedContent={focusedContent || undefined}
       />
-    </>
+    </MotionConfig>
   );
 }

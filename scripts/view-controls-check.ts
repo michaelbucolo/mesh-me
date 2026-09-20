@@ -168,10 +168,16 @@ const explore = strip(read(EXPLORE));
   if (/filter\.id\s*!==\s*"text"/.test(explore)) {
     fail("6 explore", "a control is withdrawing another control's option again; mutually exclusive values belong to one control, not two");
   } else ok();
-  // One writer for the content type, one for the order.
-  const writers = [...explore.matchAll(/setMediaFilter\(/g)].length;
-  if (writers > 2) {
-    fail("6 explore", `setMediaFilter is called ${writers} times; the content type should have exactly one control writing it`);
+  // A removable active-filter chip and Clear all both reset to "all".
+  // Only the content-type control may choose a narrower value.
+  const countSelectionWriters = (source: string) => [...source.matchAll(/setMediaFilter\(([^)]*)\)/g)]
+    .filter((match) => !/^["']all["']$/.test(match[1].trim())).length;
+  const writers = countSelectionWriters(explore);
+  if (writers !== 1) {
+    fail("6 explore", `setMediaFilter has ${writers} selection writers; only the content-type control should choose a narrower value`);
+  } else ok();
+  if (countSelectionWriters(`${explore}\nsetMediaFilter("photos");`) !== writers + 1) {
+    fail("6 explore", "the writer check no longer catches a second selection control");
   } else ok();
 }
 

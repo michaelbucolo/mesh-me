@@ -132,24 +132,3 @@ export function indexMeshData(
     totalExplorations: current.totalExplorations + 1,
   };
 }
-
-/** Query the knowledge system - returns matching entries */
-
-/** Answer a mesh question using indexed knowledge */
-
-/** Get Meshi's knowledge level description */
-export function getKnowledgeLevelDescription(level: number): string {
-  const descriptions: Record<number, string> = {
-    1: "Just getting started",
-    2: "Learning the basics",
-    3: "Getting familiar",
-    4: "Building connections",
-    5: "Well-informed",
-    6: "Expert navigator",
-    7: "Mesh master",
-    8: "All-seeing",
-    9: "Omniscient",
-    10: "Legendary explorer",
-  };
-  return descriptions[level] || "Exploring...";
-}

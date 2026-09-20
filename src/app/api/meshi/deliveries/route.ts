@@ -42,6 +42,7 @@ export async function GET() {
               select: {
                 colorTheme: true,
                 hatStyle: true,
+                faceStyle: true,
                 hairStyle: true,
                 hairColor: true,
                 accessoryStyle: true,
@@ -113,6 +114,7 @@ export async function GET() {
         unwrapDeliverySummary(parseDeliveryNotificationMessage(n.message).text),
       meshiColor: n.actor?.meshiPreference?.colorTheme || "blue",
       meshiHat: n.actor?.meshiPreference?.hatStyle || "none",
+      meshiFace: n.actor?.meshiPreference?.faceStyle,
       meshiHair: n.actor?.meshiPreference?.hairStyle || "none",
       meshiHairColor: n.actor?.meshiPreference?.hairColor || "inherit",
       meshiAccessory: n.actor?.meshiPreference?.accessoryStyle || "none",

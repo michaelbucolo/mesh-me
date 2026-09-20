@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 import { motion, useAnimationControls, useReducedMotion } from "framer-motion";
 import { SPRING_PANEL } from "@/lib/motion";
@@ -44,41 +44,36 @@ function MobileNavItem({
   }, [isActive, iconControls, reduceMotion]);
 
   return (
-    /* A FLAT tab bar, not a row of keys. The previous pass made each tab a
-       `.key` — five boxed faces with edge rings in a row, which photographs
-       as a keyboard, not as navigation; no native tab bar (iOS, X, Instagram)
-       boxes its tabs. The bar's own top hairline and mat are the boundary;
-       WITHIN it, tabs are icon + label, and the active one is stated by ink
-       (--accent-text, the contrast-measured ink for the mat) on both icon
-       and label plus aria-current — never by a filled box. Labels are back
-       because icon-only navigation makes people guess: every native tab bar
-       ships ~10px labels under the glyphs. */
+    /* Labels stay visible; the shared indicator and aria-current identify the
+       active destination without relying on color alone. */
     <Link
       href={resolvedHref}
       data-feedback="navigate"
       aria-current={isActive ? "page" : undefined}
+      aria-label={badgeCount > 0 ? `${item.label}, ${badgeCount} unread ${item.badgeKey}` : item.label}
       className={cn(
-        "relative flex min-h-[52px] flex-col items-center justify-center gap-0.5 px-1",
+        "mesh-mobile-nav-item relative flex min-h-[52px] flex-col items-center justify-center gap-0.5 rounded-xl px-1",
         isActive ? "text-[var(--accent-text)]" : "text-[var(--text-muted)]",
       )}
     >
-      {isActive && <motion.span layoutId="mobile-nav-indicator" transition={SPRING_PANEL} className="mesh-mobile-active" aria-hidden="true" />}
+      {isActive && <motion.span layoutId="mobile-nav-indicator" transition={reduceMotion ? { duration: 0 } : SPRING_PANEL} className="mesh-mobile-active" aria-hidden="true" />}
       <motion.span animate={iconControls} className="relative flex">
         <item.icon className="h-[23px] w-[23px]" aria-hidden="true" />
         {badgeCount > 0 && (
           <motion.span
             key={badgeCount}
-            initial={{ scale: 0.4 }}
+            initial={reduceMotion ? false : { scale: 0.4 }}
             animate={{ scale: 1 }}
-            transition={{ type: "spring", stiffness: 520, damping: 18 }}
+            transition={reduceMotion ? { duration: 0 } : { type: "spring", stiffness: 520, damping: 18 }}
             /* --accent-ink is the pinned ink for an --accent fill (tokens.css). */
             className="absolute -right-2.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--accent)] px-1 text-micro font-semibold text-[var(--accent-ink)]"
+            aria-hidden="true"
           >
             {badgeCount > 99 ? "99+" : badgeCount}
           </motion.span>
         )}
       </motion.span>
-      <span className="relative text-[0.625rem] font-medium leading-none">{item.label}</span>
+      <span className="relative text-micro font-medium leading-none">{item.label}</span>
     </Link>
   );
 }
@@ -87,19 +82,15 @@ export function MobileNav({ unreadNotifications = 0, unreadMessages = 0, usernam
   const pathname = usePathname();
   const { isKeyboardVisible } = useKeyboard();
 
-  const navClass = useMemo(
-    () =>
-      cn(
-        "safe-area-bottom mobile-bottom-nav fixed bottom-0 left-0 right-0 z-50 w-full border-t border-[var(--mesh-border)] transition-[color,background-color,border-color,box-shadow,transform,opacity] duration-200 md:hidden",
-        isKeyboardVisible && "pointer-events-none translate-y-24 opacity-0"
-      ),
-    [isKeyboardVisible],
+  const navClass = cn(
+    "safe-area-bottom mobile-bottom-nav fixed bottom-0 left-0 right-0 z-50 w-full border-t border-[var(--mesh-border)] transition-[color,background-color,border-color,box-shadow,transform,opacity] duration-200 motion-reduce:transition-none md:hidden",
+    isKeyboardVisible && "pointer-events-none translate-y-24 opacity-0",
   );
 
   // The FAB keeps its class rather than gaining `.key` — `.mobile-compose-fab`
   // is pinned by `!important` blocks in globals.css that `.key` cannot outrank.
   const composeClass = cn(
-    "mobile-compose-fab mesh-fab-enter fixed bottom-[calc(5.45rem+env(safe-area-inset-bottom))] right-4 z-50 flex h-14 w-14 items-center justify-center rounded-full transition-[color,background-color,border-color,box-shadow,transform,opacity] duration-200 md:hidden",
+    "mobile-compose-fab mesh-fab-enter fixed bottom-[calc(5.45rem+env(safe-area-inset-bottom))] right-4 z-50 flex h-14 w-14 items-center justify-center rounded-full transition-[color,background-color,border-color,box-shadow,transform,opacity] duration-200 motion-reduce:transition-none md:hidden",
     isKeyboardVisible && "pointer-events-none translate-y-24 opacity-0",
   );
 
@@ -131,12 +122,14 @@ export function MobileNav({ unreadNotifications = 0, unreadMessages = 0, usernam
           data-feedback="navigate"
           className={composeClass}
           aria-label="Create post"
+          aria-hidden={isKeyboardVisible || undefined}
+          tabIndex={isKeyboardVisible ? -1 : undefined}
           title="Create post"
         >
           <PlusSquare className="h-[24px] w-[24px]" aria-hidden="true" />
         </Link>
       )}
-      <nav className={navClass} aria-label="Primary mobile navigation">
+      <nav className={navClass} aria-label="Primary mobile navigation" inert={isKeyboardVisible} aria-hidden={isKeyboardVisible || undefined}>
         <div className="grid grid-cols-5 items-center">
           {primaryNavItems.map((item) => {
             const isActive = isNavItemActive(pathname, item.href, username);

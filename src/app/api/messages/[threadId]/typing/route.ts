@@ -11,7 +11,7 @@ type RouteContext = {
 
 async function isThreadMember(threadId: string, userId: string) {
   const membership = await prisma.threadMember.findFirst({
-    where: { threadId, userId },
+    where: { threadId, userId, user: { isSuspended: false } },
     select: { id: true },
   });
   return Boolean(membership);
@@ -28,7 +28,7 @@ export async function GET(_request: NextRequest, context: RouteContext) {
     return NextResponse.json({ error: "Thread not found" }, { status: 404 });
   }
 
-  return NextResponse.json({ typingUsers: getMeChatTypingUsers(threadId, user.id) });
+  return NextResponse.json({ typingUsers: await getMeChatTypingUsers(threadId, user.id) });
 }
 
 export async function POST(request: NextRequest, context: RouteContext) {
@@ -54,7 +54,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
   // — loaded once here so the typing branch can't leak presence past the toggle.
   const self = await prisma.user.findUnique({
     where: { id: user.id },
-    select: { readReceipts: true, hideActivityStatus: true, ghostMode: true },
+    select: { readReceipts: true, hideActivityStatus: true, ghostMode: true, isSuspended: true },
   });
   // Ghost Mode is the strongest hide — mesh presence drops a ghosted member's
   // heartbeat outright (mesh-presence-store: `if (entry.ghostMode) continue`).
@@ -62,8 +62,10 @@ export async function POST(request: NextRequest, context: RouteContext) {
   // signal on a different surface, so Ghost Mode has to suppress it too; without
   // this line, going invisible hid you on the mesh while your keystrokes still
   // lit you up in every open DM.
-  const activityVisible = Boolean(self?.readReceipts && !self.hideActivityStatus && !self.ghostMode);
-  if (body.typing === false && body.viewing === true) {
+  const activityVisible = Boolean(self?.readReceipts && !self.hideActivityStatus && !self.ghostMode && !self.isSuspended);
+  if (!activityVisible) {
+    clearMeChatTyping(threadId, user.id);
+  } else if (body.typing === false && body.viewing === true) {
     // Viewing heartbeat: the thread is open and visible, Bitmoji-style
     // presence — the member's Meshi sits quietly in the chat. Honors the
     // same per-user "Read receipts" toggle as readBy (opting out of "seen"
@@ -96,5 +98,5 @@ export async function POST(request: NextRequest, context: RouteContext) {
     clearMeChatTyping(threadId, user.id);
   }
 
-  return NextResponse.json({ typingUsers: getMeChatTypingUsers(threadId, user.id) });
+  return NextResponse.json({ typingUsers: await getMeChatTypingUsers(threadId, user.id) });
 }
