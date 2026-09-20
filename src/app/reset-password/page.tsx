@@ -50,11 +50,12 @@ function ResetPasswordForm() {
 
     setError("");
     startTransition(async () => {
-      const result = await resetPassword(token, password);
-      if (result?.error) {
-        setError(result.error);
-      } else {
-        setSuccess(true);
+      try {
+        const result = await resetPassword(token, password);
+        if (result?.error) setError(result.error);
+        else setSuccess(true);
+      } catch {
+        setError("We couldn't update your password. Please try again.");
       }
     });
   };
@@ -156,6 +157,7 @@ function ResetPasswordForm() {
           <motion.div
             initial={{ opacity: 0, y: -5 }}
             animate={{ opacity: 1, y: 0 }}
+            role="alert"
             className="px-4 py-2 rounded-xl text-xs text-[var(--danger)] bg-red-500/10 border border-red-500/20"
           >
             {error}
@@ -167,6 +169,9 @@ function ResetPasswordForm() {
               type={showPassword ? "text" : "password"}
               value={password}
               placeholder="New password"
+              aria-label="New password"
+              required
+              minLength={12}
               autoComplete="new-password"
               className="w-full px-4 py-3.5 rounded-xl bg-transparent text-sm outline-none placeholder:text-[var(--text-muted)] pr-10 text-center"
               style={{ border: "1px solid var(--border-primary)", color: "var(--text-primary)" }}
@@ -175,6 +180,8 @@ function ResetPasswordForm() {
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
+              aria-label={showPassword ? "Hide passwords" : "Show passwords"}
+              aria-pressed={showPassword}
               className="absolute right-3 top-1/2 -translate-y-1/2"
               style={{ color: "var(--text-muted)" }}
             >
@@ -185,6 +192,9 @@ function ResetPasswordForm() {
             type={showPassword ? "text" : "password"}
             value={confirmPassword}
             placeholder="Confirm new password"
+            aria-label="Confirm new password"
+            required
+            minLength={12}
             autoComplete="new-password"
             className="w-full px-4 py-3.5 rounded-xl bg-transparent text-sm outline-none placeholder:text-[var(--text-muted)] text-center"
             style={{ border: "1px solid var(--border-primary)", color: "var(--text-primary)" }}

@@ -525,6 +525,25 @@ const ACCESSORIES: Record<string, React.ReactNode> = {
 
 const BADGES: Record<string, React.ReactNode> = {
   none: null,
+  "first-light": (
+    <g transform="translate(11, 11)">
+      <circle r="4.4" fill="rgba(255,255,255,0.9)" stroke="currentColor" strokeWidth="1.2" />
+      <path d="M-2.6 1.4 H2.6 M-1.6 0.7 A1.7 1.7 0 0 1 1.6 0.7 M0 -2.5 V-1.8 M-2.4 -1.3 L-1.9 -0.8 M2.4 -1.3 L1.9 -0.8" fill="none" stroke="currentColor" strokeWidth="0.9" strokeLinecap="round" />
+    </g>
+  ),
+  kindred: (
+    <g transform="translate(11, 11)">
+      <circle r="4.4" fill="rgba(255,255,255,0.9)" stroke="currentColor" strokeWidth="1.2" />
+      <circle cx="-1.1" cy="0" r="1.7" fill="none" stroke="currentColor" strokeWidth="0.9" />
+      <circle cx="1.1" cy="0" r="1.7" fill="none" stroke="currentColor" strokeWidth="0.9" />
+    </g>
+  ),
+  maker: (
+    <g transform="translate(11, 11)">
+      <circle r="4.4" fill="rgba(255,255,255,0.9)" stroke="currentColor" strokeWidth="1.2" />
+      <path d="M-2.3 2.3 L-1.8 0.3 L1.2 -2.7 L2.7 -1.2 L-0.3 1.8 Z M0.5 -2 L2 -0.5" fill="none" stroke="currentColor" strokeWidth="0.9" strokeLinejoin="round" />
+    </g>
+  ),
   spark: (
     <g transform="translate(11, 11)">
       <circle cx="0" cy="0" r="4.2" fill="rgba(255,255,255,0.78)" stroke="currentColor" strokeWidth="1.3" />

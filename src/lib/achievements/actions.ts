@@ -12,7 +12,7 @@ import { revalidatePath } from "next/cache";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { ACHIEVEMENTS, earnedSlugs } from "./catalogue";
-import { awardAchievements, measureAchievementCounts } from "./award";
+import { awardAchievements, getEarnedAchievementBadges, measureAchievementCounts } from "./award";
 
 /**
  * Record any milestone the counts have passed. Called when the board is opened,
@@ -26,11 +26,15 @@ import { awardAchievements, measureAchievementCounts } from "./award";
  */
 export async function recordAchievements() {
   const user = await getCurrentUser();
-  if (!user) return { awarded: [] as string[] };
+  if (!user) return { awarded: [] as string[], badges: [] as string[], error: "Sign in to save your milestones." };
   try {
-    return { awarded: await awardAchievements(user.id) };
+    const awarded = await awardAchievements(user.id);
+    const badges = await getEarnedAchievementBadges(user.id);
+    revalidatePath("/settings");
+    revalidatePath("/profile");
+    return { awarded, badges };
   } catch {
-    return { awarded: [] as string[] };
+    return { awarded: [] as string[], badges: [] as string[], error: "Your milestones could not be saved. Try again." };
   }
 }
 
@@ -51,6 +55,11 @@ export async function setActiveTitle(title: string | null) {
 
   const counts = await measureAchievementCounts(user.id);
   const earned = new Set(earnedSlugs(counts));
+  const recorded = await prisma.userAchievement.findMany({
+    where: { userId: user.id },
+    select: { achievement: { select: { slug: true } } },
+  });
+  for (const row of recorded) earned.add(row.achievement.slug);
   const allowed = ACHIEVEMENTS.some((a) => a.title === title && earned.has(a.slug));
   if (!allowed) {
     // Deliberately not "you have not earned this yet" with a progress hint —

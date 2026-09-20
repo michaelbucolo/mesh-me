@@ -4,9 +4,11 @@ import { unstable_cache } from "next/cache";
 import { safeLinkHref } from "@/lib/profile-links";
 import { hasMeshPro } from "@/lib/mesh-pro";
 import { meshiItemLabel } from "@/lib/meshi-wardrobe";
+import { getAchievementRewardBadges } from "@/lib/achievements/rewards";
 import { resolveWornGiftLabels, type WornGiftLabel } from "@/lib/meshi-provenance";
 import { prisma } from "./prisma";
 import { getCurrentUser } from "./auth";
+import { readMeshiMeshContext } from "./meshi-context";
 import { parseMeChatMetadata } from "./mechat-metadata";
 import { getGlobalMeshSelfPreviewCore, type GlobalMeshSelfPreview } from "./global-mesh";
 import { canViewNsfw, nsfwHiddenWhere } from "./content-safety";
@@ -1736,7 +1738,10 @@ export async function getUserSettings() {
     charterHolder: user.charterNumber != null,
     // The RECORD, not standing — a lapsed patron keeps the pin.
     patronRecord: user.patronSince != null,
-    ownedMeshiItems: ownedMeshiRows.map((row) => `${row.category}:${row.value}`),
+    ownedMeshiItems: [
+      ...ownedMeshiRows.map((row) => `${row.category}:${row.value}`),
+      ...getAchievementRewardBadges(achievements.map((row) => row.achievement.slug)).map((badge) => `badges:${badge}`),
+    ],
     // The owner's own wardrobe history — the ONLY surface that ever names a
     // gifter or shows a note. Self-purchases read as isGift: false; a deleted
     // purchaser degrades to a gift with no name (never a tombstone).
@@ -1758,107 +1763,10 @@ export async function getUserSettings() {
 
 // ─── Mesh Graph Data (for Meshi awareness) ─────────────────
 
-export interface MeshGraphEntity {
-  id: string;
-  type: "user" | "community" | "tag" | "platform";
-  label: string;
-  sublabel?: string;
-  isMutual?: boolean;
-  followerCount?: number;
-  memberCount?: number;
-  sharedInterests?: string[];
-}
+export type { MeshGraphEntity } from "./meshi-context";
 
-export async function getMeshGraphData(): Promise<{
-  entities: MeshGraphEntity[];
-  stats: { followers: number; following: number; posts: number; communities: number; platforms: number };
-}> {
-  const user = await getCurrentUser();
-  if (!user) return { entities: [], stats: { followers: 0, following: 0, posts: 0, communities: 0, platforms: 0 } };
-  const safetyWhere = nsfwHiddenWhere(user);
-
-  const [following, followers, communities, interests, connectedAccounts, postCount] = await Promise.all([
-    prisma.follow.findMany({
-      where: { followerId: user.id },
-      include: {
-        following: {
-          select: { id: true, username: true, displayName: true, _count: { select: { followers: true } } },
-        },
-      },
-    }),
-    prisma.follow.findMany({
-      where: { followingId: user.id },
-      select: { followerId: true },
-    }),
-    prisma.communityMember.findMany({
-      where: { userId: user.id },
-      include: {
-        community: {
-          select: { id: true, name: true, slug: true, _count: { select: { members: true } } },
-        },
-      },
-    }),
-    prisma.userInterest.findMany({ where: { userId: user.id } }),
-    prisma.connectedAccount.findMany({ where: { userId: user.id, isActive: true } }),
-    prisma.post.count({ where: { ...safetyWhere, authorId: user.id } }),
-  ]);
-
-  const followerIds = new Set(followers.map((f) => f.followerId));
-
-  const entities: MeshGraphEntity[] = [];
-
-  // Add people (following)
-  for (const f of following) {
-    entities.push({
-      id: f.following.id,
-      type: "user",
-      label: f.following.displayName,
-      sublabel: `@${f.following.username}`,
-      isMutual: followerIds.has(f.following.id),
-      followerCount: f.following._count.followers,
-    });
-  }
-
-  // Add communities
-  for (const cm of communities) {
-    entities.push({
-      id: cm.community.id,
-      type: "community",
-      label: cm.community.name,
-      sublabel: cm.community.slug,
-      memberCount: cm.community._count.members,
-    });
-  }
-
-  // Add interests
-  for (const interest of interests) {
-    entities.push({
-      id: `interest-${interest.tag}`,
-      type: "tag",
-      label: interest.tag,
-    });
-  }
-
-  // Add platforms
-  for (const account of connectedAccounts) {
-    entities.push({
-      id: account.id,
-      type: "platform",
-      label: account.platform,
-      sublabel: account.platformUsername || undefined,
-    });
-  }
-
-  return {
-    entities,
-    stats: {
-      followers: followers.length,
-      following: following.length,
-      posts: postCount,
-      communities: communities.length,
-      platforms: connectedAccounts.length,
-    },
-  };
+export async function getMeshGraphData() {
+  return readMeshiMeshContext(await getCurrentUser());
 }
 
 // ─── Mesh Privacy Queries ───────────────────────────────────

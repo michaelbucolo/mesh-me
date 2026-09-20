@@ -28,6 +28,8 @@ import { useEffect, useRef, useState } from "react";
 import type { MeshiMood } from "@/components/meshi/meshi-mascot";
 import type { MeshiPreferences } from "@/hooks/use-meshi-preferences";
 import { readGhostMode } from "@/lib/ghost-mode";
+import { readActivityHidden } from "@/lib/presence-account";
+import { readRoomGestures } from "@/hooks/use-room-gestures";
 import { readWhereShare } from "@/lib/where-share";
 import { playSound } from "@/lib/sound";
 import { cameraCenterWorld, projectPoint, unprojectPoint } from "../core/camera";
@@ -36,7 +38,8 @@ import type { LeavingMeshi, MeshRuntimeRef } from "../scene/runtime";
 import { admitRoomAction, createReplayGate, encodeActionEnvelope, pruneReplayGate, sealReplayBaseline } from "./action-bus";
 import { spawnBurst, spawnCosmeticHeart, spawnHeart, spawnReactionTrail } from "./hearts";
 import { applySighting, createSprite } from "./meshi-machine";
-import { deriveBroadcastMood, stepBehaviorMood } from "./mood";
+import { deriveBroadcastMood } from "./mood";
+import { createRoomMomentState, stepRoomMoment } from "./room-moments";
 import { createPresenceClient, type LiveLink } from "./presence-client";
 import { applySightings, PRESENCE_GRACE_MS, resetRoster, sweepRoster, type RemotePresence, type RosterEvents } from "./roster";
 import { stageIncomingStrum } from "./strum-broadcast";
@@ -75,8 +78,7 @@ export function useLivePresence(
   // window so one dropped heartbeat can't blink them out.
   const [ownerLive, setOwnerLive] = useState(false);
   const [leavingMeshis, setLeavingMeshis] = useState<LeavingMeshi[]>([]);
-  // A gentle mood driven by the room: warm when another Meshi is close, a
-  // look-around fidget then a doze when you go quiet. null = resting face.
+  // Brief, opt-in expressions from actual room encounters. null = resting face.
   const [behaviorMood, setBehaviorMood] = useState<MeshiMood | null>(null);
   const [liveLink, setLiveLink] = useState<LiveLink>("idle");
 
@@ -102,49 +104,6 @@ export function useLivePresence(
     return () => mq.removeEventListener?.("change", on);
   }, [rtRef]);
 
-  // Your Meshi's inner life, sampled a few times a second (never per frame):
-  // warmth, fidget, doze — the policy lives pure in live/mood; this ticker
-  // only feeds it observations. Distances are measured between WORLD
-  // positions scaled by the zoom (projection is a uniform scale, so this IS
-  // the screen distance). The chosen mood rides the presence broadcast, so
-  // it only grows where the viewer may broadcast at all — the read-only
-  // Global view grows no behaviours.
-  useEffect(() => {
-    if (!viewer.canBroadcastPresence) return;
-    const rt = rtRef.current;
-    const tick = () => {
-      const now = performance.now();
-      const zoom = Math.max(rt.camera.zoom, 0.05);
-      const selfPlaced = isOwnMesh || rt.cursorWorldTarget.seen;
-      const self = isOwnMesh ? rt.ownerWorldPos : rt.cursorWorldPos;
-      let nearestPx = Infinity;
-      if (selfPlaced) {
-        rt.presence.sprites.forEach((s) => {
-          if (!s.world) return;
-          const d = Math.hypot(s.world.x - self.x, s.world.y - self.y) * zoom;
-          if (d < nearestPx) nearestPx = d;
-        });
-        // The host's Meshi counts as a neighbour when you're visiting them.
-        if (!isOwnMesh && rt.ownerMeshiEl) {
-          const d = Math.hypot(rt.ownerWorldPos.x - self.x, rt.ownerWorldPos.y - self.y) * zoom;
-          if (d < nearestPx) nearestPx = d;
-        }
-      }
-      const idleForMs = rt.lastInputAt ? now - rt.lastInputAt : 0;
-      const next = stepBehaviorMood(rt.presence.behavior, { now, nearestMeshiPx: nearestPx, idleForMs });
-      setBehaviorMood((prev) => (prev === next ? prev : next));
-    };
-    const id = window.setInterval(tick, 700);
-    return () => {
-      window.clearInterval(id);
-      rt.presence.behavior.mood = null;
-      // Reset the STATE too, or a mood set just before leaving (or switching
-      // to the read-only Global view, where this effect early-returns) would
-      // stick to the Meshi's face forever.
-      setBehaviorMood(null);
-    };
-  }, [rtRef, viewer.canBroadcastPresence, isOwnMesh]);
-
   // --- The live room: broadcast where I am, receive everyone else ---
   useEffect(() => {
     // GLOBAL VIEW IS STRICTLY READ-ONLY: never broadcast presence, never poll
@@ -159,6 +118,11 @@ export function useLivePresence(
     if (!viewer.canBroadcastPresence) return;
     const rt = rtRef.current;
     let stopped = false;
+    const moments = createRoomMomentState();
+    const roomStartedAt = performance.now();
+    let currentParticipants: RemotePresence[] = [];
+    let automaticActionAt: number | null = null;
+    const automaticGesturesAllowed = () => prefsRef.current.enabled && readRoomGestures() && !readGhostMode() && !readActivityHidden() && !rt.reducedMotion && document.visibilityState === "visible";
 
     // Fresh room, fresh runtime state: no phantom visitors, stale
     // where-chips, or replayable action stamps carry across a room switch.
@@ -305,6 +269,7 @@ export function useLivePresence(
       const ownerPresence = online.find(
         (p) => p.userId === meshOwner && p.viewingMesh === meshOwner && p.surface === "mesh",
       );
+      currentParticipants = ownerPresence ? [...visible, ownerPresence] : visible;
       if (ownerPresence) {
         rt.presence.ownerSeenAt = nowSeen;
         if (ownerPresence.position) {
@@ -368,19 +333,8 @@ export function useLivePresence(
           spawnBurst(rt, at.x, at.y - 12, ev.verb, 5);
         }
       }
-      // THE OWNER'S OWN STRUMS. The roaming roster deliberately excludes the
-      // mesh owner (they are represented once, by the heart Meshi), and the
-      // replay loop above iterates that roster — so nothing the owner does has
-      // ever replayed to their visitors. For most verbs that is a cosmetic gap;
-      // for this one it is the headline case, because the person most likely to
-      // play a web like an instrument is the person whose web it is, standing
-      // in their own room. A strum needs no sprite, so the owner gets exactly
-      // one lane, for exactly this verb. Other owner verbs still consume their
-      // dedupe slot here and produce nothing — the same graceful silence the
-      // bus gives an unknown verb, and the hook a later owner-heart lane would
-      // slot into. (No self-echo: the server never puts the viewer in their own
-      // payload, so on the owner's own client `ownerPresence` is always
-      // undefined and their strums are never played back at them.)
+      // The owner's real, broadcast gestures must reach their visitors too.
+      // Their heart Meshi is intentionally outside the roaming roster.
       if (ownerPresence) {
         const ownerEv = admitRoomAction(
           rt.presence.actionGate,
@@ -389,6 +343,10 @@ export function useLivePresence(
           nowSeen,
         );
         if (ownerEv?.verb === "strum" && ownerEv.targetId) stageIncomingStrum(rt, ownerEv.targetId);
+        else if (ownerEv && ["wave", "star", "spark", "wow"].includes(ownerEv.verb) && rt.presence.ownerHereWorld) {
+          const at = rt.presence.ownerHereWorld;
+          spawnBurst(rt, at.x, at.y - 12, ownerEv.verb as "wave" | "star" | "spark" | "wow", 2);
+        }
       }
       sealReplayBaseline(rt.presence.actionGate);
 
@@ -440,7 +398,9 @@ export function useLivePresence(
         // A recent world action rides along (versioned envelope; receivers
         // dedupe by its timestamp) until the room has had a chance to see it.
         action:
-          rt.pendingAction && Date.now() - rt.pendingAction.at < ACTION_RIDE_MS
+          rt.pendingAction &&
+          (rt.pendingAction.at !== automaticActionAt || automaticGesturesAllowed()) &&
+          Date.now() - rt.pendingAction.at < ACTION_RIDE_MS
             ? encodeActionEnvelope({
                 kind: rt.pendingAction.kind,
                 targetId: rt.pendingAction.targetId,
@@ -480,26 +440,56 @@ export function useLivePresence(
       applyRosterEvents(sweepRoster(rt.presence.roster, now, lastPayloadAt), now);
     }, 1000);
 
-    // Wave hello on arrival. The mesh data loads asynchronously, so poll
-    // until the room id is known, then greet ONCE per room: your Meshi waves
-    // and the action rides the heartbeat so anyone already here sees you
-    // walk in.
-    const greet = setInterval(() => {
-      const meshOwner = rt.meshOwnerId;
-      if (!meshOwner || rt.presence.greetedRoom === meshOwner) return;
-      if (!prefsRef.current.enabled || document.visibilityState !== "visible") return;
-      rt.presence.greetedRoom = meshOwner;
-      const o = !isOwnMesh ? rt.cursorWorldPos : rt.ownerWorldPos;
-      spawnBurst(rt, o.x, o.y - 20, "wave", 5);
-      rt.pendingAction = { kind: "wave", targetId: "", at: Date.now() };
-      rt.heartbeatNow?.();
-    }, 500);
+    // A room gesture needs a real, authorized person currently on screen.
+    // No static profile node, cached connection, or absent owner's portrait
+    // can trigger it. Manual emotes remain separate, deliberate actions.
+    const momentTimer = window.setInterval(() => {
+      const now = performance.now();
+      const self = isOwnMesh ? rt.ownerWorldPos : rt.cursorWorldPos;
+      const container = rt.containerEl;
+      const peers: Array<{ id: string; distancePx: number }> = [];
+      if (container && (isOwnMesh || rt.cursorWorldTarget.seen)) {
+        for (const person of currentParticipants) {
+          const world = person.userId === rt.meshOwnerId
+            ? rt.presence.ownerHereWorld
+            : rt.presence.sprites.get(person.userId)?.world;
+          if (!world) continue;
+          const point = projectPoint(rt.camera, container.clientWidth, container.clientHeight, world.x, world.y);
+          if (point.x < 0 || point.y < 0 || point.x > container.clientWidth || point.y > container.clientHeight) continue;
+          peers.push({ id: person.userId, distancePx: Math.hypot(world.x - self.x, world.y - self.y) * rt.camera.zoom });
+        }
+      }
+      const recentAction = Boolean(rt.pendingAction && Date.now() - rt.pendingAction.at < ACTION_RIDE_MS);
+      const result = stepRoomMoment(moments, {
+        now,
+        roomId: rt.meshOwnerId,
+        enabled: prefsRef.current.enabled && readRoomGestures(),
+        visible: document.visibilityState === "visible",
+        ghost: readGhostMode(),
+        activityHidden: readActivityHidden(),
+        reducedMotion: rt.reducedMotion,
+        busy: rt.drag.active || rt.composing || Boolean(rt.selectedId) || Boolean(document.body.dataset.meshiPanel) || recentAction,
+        idleForMs: now - (rt.lastInputAt || roomStartedAt),
+        peers,
+      });
+      rt.presence.behavior.mood = result.mood;
+      setBehaviorMood((previous) => previous === result.mood ? previous : result.mood);
+      if (result.wave) {
+        spawnBurst(rt, self.x, self.y - 20, "wave", 2);
+        automaticActionAt = Date.now();
+        rt.pendingAction = { kind: "wave", targetId: "", at: automaticActionAt };
+        rt.heartbeatNow?.();
+      }
+      if (!automaticGesturesAllowed() && rt.pendingAction?.at === automaticActionAt) rt.pendingAction = null;
+    }, 700);
 
     return () => {
       stopped = true;
       rt.heartbeatNow = null;
       clearInterval(sweep);
-      clearInterval(greet);
+      window.clearInterval(momentTimer);
+      rt.presence.behavior.mood = null;
+      setBehaviorMood(null);
       client.stop();
       // Never leak this room's roster or chips into the next view (the
       // read-only Global view must not inherit a stale info map, and a room

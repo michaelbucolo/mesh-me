@@ -62,6 +62,7 @@ import { useGhostMode } from "@/hooks/use-ghost-mode";
 import { broadcastWhereShare, readWhereShare, WHERE_SHARE_EVENT } from "@/lib/where-share";
 import { MESH_PAPERS } from "@/components/mesh/paint/papers";
 import { isFreeMeshiOption } from "@/lib/mesh-pro";
+import { ACHIEVEMENT_MESHI_REWARDS, achievementRewardForBadge } from "@/lib/achievements/rewards";
 import { getDisplayNameForAnyPlatform } from "@/lib/platform-capabilities";
 import { publishMeshiCause } from "@/lib/meshi-bus";
 
@@ -220,6 +221,7 @@ function previewWithSlot(stored: string, slot: string, value: string): string {
 }
 
 function optionLabel(group: string, value: string): string {
+  if (group === "badges") return achievementRewardForBadge(value)?.label ?? value;
   if (group === "faces") return MESHI_FACE_LABELS[value as MeshiFace] ?? value;
   if (group === "eyes") return MESHI_LASH_LABELS[value as MeshiLash] ?? value;
   if (group === "hairs") return MESHI_HAIR_LABELS[value] ?? value;
@@ -678,6 +680,7 @@ export function SettingsControlCenter({
     // gates the cosmetic axes (colours, hats, badges), not where on the face an
     // accessory sits. Locking them silently would be a paywall nobody decided.
     if (group.startsWith("slot:")) return false;
+    if (group === "badges" && achievementRewardForBadge(value)) return !settings.ownedMeshiItems.includes(`badges:${value}`);
     // The charter pin is owned outright (only holders ever see the option),
     // so the Pro wardrobe lock does not apply to it. The patron pin is the
     // same shape: a record, not a Pro cosmetic.
@@ -2008,7 +2011,8 @@ function MeshiSection({
   // asserts that exact string); the patron pin stacks on top, record-holders
   // only — non-patrons never see a locked tease.
   const baseBadges = charterHolder ? [...badges, "charter"] : badges;
-  const shownBadges = patronRecord ? [...baseBadges, "patron"] : baseBadges;
+  const earnedRewards = ACHIEVEMENT_MESHI_REWARDS.filter((reward) => ownedMeshiItems.includes(`badges:${reward.badge}`));
+  const shownBadges = [...(patronRecord ? [...baseBadges, "patron"] : baseBadges), ...earnedRewards.map((reward) => reward.badge)];
   return (
     <form onSubmit={saveMeshi} className="settings-section-stack">
       <SettingsCard title="Customize Meshi" icon={Sparkles}>
@@ -2106,6 +2110,10 @@ function MeshiSection({
           {/* The charter pin renders ONLY for seat holders — never as a locked
               tease to anyone else, Pro or free. */}
           <MeshiOptionGroup title="Badges" group="badges" values={shownBadges} current={meshiState.badgeStyle} meshiState={meshiState} locked={meshiLocked} onPick={(value) => setMeshiState((current) => ({ ...current, badgeStyle: value }))} />
+          <p className="text-xs leading-relaxed text-[var(--text-muted)]">
+            {earnedRewards.length > 0 ? `Earned for your Meshi: ${earnedRewards.map((reward) => reward.label).join(", ")}. Yours to keep, with or without MeshPro. ` : "Milestones can unlock badges for your Meshi, with or without MeshPro. "}
+            <Link href="/profile?tab=milestones" className="inline-flex min-h-11 items-center font-semibold text-[var(--accent-text)]">View milestones</Link>
+          </p>
         </div>
         <SaveButton label="Save Meshi" pending={isPending} />
         {/* The shelves live INSIDE the form's card stack but write nothing to

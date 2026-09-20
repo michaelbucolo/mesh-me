@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useCallback, useEffect, useState, useTransition } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Check, Lock } from "lucide-react";
 import type { AchievementView } from "@/lib/achievements/award";
 import { recordAchievements, setActiveTitle } from "@/lib/achievements/actions";
@@ -45,16 +47,33 @@ export function MilestonesBoard({
   currentTitle: string | null;
 }) {
   const [title, setTitle] = useState(currentTitle);
+  const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState("");
+  const [rewardStatus, setRewardStatus] = useState<"saving" | "saved" | "error">("saving");
+  const [rewardError, setRewardError] = useState("");
+  const [savedBadges, setSavedBadges] = useState<string[]>([]);
 
-  // Record the crossing on the way in. What is DISPLAYED comes from live counts
-  // on the server, so this changes nothing on screen — it writes down when each
-  // milestone was reached, which is the only thing a UserAchievement row adds.
-  // Failure is silent because a missing timestamp is not worth an error message.
+  const saveMilestones = useCallback(async () => {
+    setRewardStatus("saving");
+    setRewardError("");
+    try {
+      const result = await recordAchievements();
+      if (result.error) throw new Error(result.error);
+      setSavedBadges(result.badges);
+      setRewardStatus("saved");
+      router.refresh();
+    } catch {
+      setRewardStatus("error");
+      setRewardError("Your milestones could not be saved. Retry to add newly earned badges to your wardrobe.");
+    }
+  }, [router]);
+
+  // Persist the real crossing before claiming a new reward is in the wardrobe.
+  // Durable records keep both the milestone and badge after counts fall.
   useEffect(() => {
-    void recordAchievements();
-  }, []);
+    void saveMilestones();
+  }, [saveMilestones]);
 
   const earned = achievements.filter((a) => a.earned);
   // Only a milestone you have actually earned can be worn, and the server
@@ -83,9 +102,13 @@ export function MilestonesBoard({
           random, and nothing expires if you take a week off.
         </p>
         <p className="mt-1 text-xs text-[var(--mesh-text-secondary)]">
-          Only you can see this list. A title you choose to wear is the one part other people see.
+          Only you can see this list. Other people see only the title or Meshi badge you choose to wear.
         </p>
+        <p className="mt-1 text-xs text-[var(--mesh-text-secondary)]">Badge rewards are free to earn and yours to keep. They never equip themselves.</p>
       </header>
+
+      {rewardStatus === "saving" && <p role="status" className="text-xs text-[var(--mesh-text-secondary)]">Saving your milestones…</p>}
+      {rewardStatus === "error" && <div role="alert" className="rounded-xl border border-[var(--mesh-border)] p-3 text-sm text-[var(--mesh-text)]"><p>{rewardError}</p><button type="button" onClick={() => { void saveMilestones(); }} className="ds-focus-ring mt-1 min-h-11 font-semibold text-[var(--accent-text)]">Try again</button></div>}
 
       {wearable.length > 0 && (
         <section className="rounded-2xl border border-[var(--mesh-border)] p-4">
@@ -148,7 +171,7 @@ export function MilestonesBoard({
                 <p className="mt-0.5 text-xs text-[var(--mesh-text-secondary)]">{a.description}</p>
                 {a.earned ? (
                   <p className="mt-2 text-xs font-semibold text-[var(--accent-text)]">
-                    Reached{a.unlockedAt ? ` ${new Date(a.unlockedAt).toLocaleDateString()}` : ""}
+                    Reached{a.unlockedAt ? ` ${new Date(a.unlockedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" })}` : ""}
                   </p>
                 ) : (
                   <>
@@ -157,6 +180,14 @@ export function MilestonesBoard({
                       {a.have} of {a.threshold}
                     </p>
                   </>
+                )}
+                {a.reward && (
+                  <div className="mt-3 border-t border-[var(--mesh-border)] pt-3 text-xs text-[var(--mesh-text-secondary)]">
+                    <p><span className="font-semibold text-[var(--mesh-text)]">Meshi reward:</span> {a.reward.label}</p>
+                    {a.earned && (a.unlockedAt || savedBadges.includes(a.reward.badge)) ? (
+                      <Link href="/settings#meshi" className="ds-focus-ring mt-1 inline-flex min-h-11 items-center font-semibold text-[var(--accent-text)]">Choose in your wardrobe</Link>
+                    ) : <p className="mt-1">{a.earned ? "Available after your milestone is saved." : "Unlocks when you reach this milestone."}</p>}
+                  </div>
                 )}
               </div>
             </div>

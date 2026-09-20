@@ -69,6 +69,9 @@ import {
   deriveBroadcastMood,
   stepBehaviorMood,
 } from "../src/components/mesh/live/mood";
+import { readRoomGestures, updateRoomGestures } from "../src/hooks/use-room-gestures";
+import { initializePresenceAccount } from "../src/lib/presence-account";
+import { createRoomMomentState, stepRoomMoment } from "../src/components/mesh/live/room-moments";
 import {
   createPresenceClient,
   HEARTBEAT_MIN_GAP_MS,
@@ -1040,11 +1043,95 @@ function socialStrumWiringChecks() {
   );
 }
 
+function roomMomentChecks() {
+  const base = { now: 1000, roomId: "room-one", enabled: true, visible: true, ghost: false, activityHidden: false, reducedMotion: false, busy: false, idleForMs: 0, peers: [{ id: "real-visible-peer", distancePx: 90 }] };
+  const state = createRoomMomentState();
+  ok(!stepRoomMoment(state, base).wave, "room greeting waits for stable real presence");
+  ok(stepRoomMoment(state, { ...base, now: 2300 }).wave, "a visible participant permits one restrained arrival greeting");
+  ok(!stepRoomMoment(state, { ...base, now: 6000 }).wave, "a stationary room never repeats the arrival greeting");
+  ok(stepRoomMoment(state, { ...base, now: 14000, idleForMs: 13000 }).mood === "wink", "settling near a real participant permits one idle expression");
+  ok(stepRoomMoment(state, { ...base, now: 19000, idleForMs: 18000 }).mood === null, "idle expression settles instead of cycling");
+  ok(stepRoomMoment(state, { ...base, now: 24000, idleForMs: 23000 }).mood === null, "continued inactivity does not manufacture more play");
+  ok(stepRoomMoment(state, { ...base, now: 47000, idleForMs: 46000 }).mood === "sleepy", "long inactivity becomes rest");
+  stepRoomMoment(state, { ...base, now: 48000, idleForMs: 0 });
+  ok(stepRoomMoment(state, { ...base, now: 61000, idleForMs: 13000 }).mood === "wink", "real resumed activity permits a later idle moment");
+
+  for (const blocked of [ { enabled: false }, { ghost: true }, { activityHidden: true }, { visible: false }, { reducedMotion: true }, { busy: true }, { roomId: null } ]) {
+    const blockedState = createRoomMomentState();
+    stepRoomMoment(blockedState, { ...base, ...blocked });
+    const result = stepRoomMoment(blockedState, { ...base, now: 15000, idleForMs: 14000, ...blocked });
+    ok(!result.wave && result.mood === null, `automatic gestures respect ${Object.keys(blocked)[0]}`);
+  }
+  const alone = createRoomMomentState();
+  stepRoomMoment(alone, { ...base, peers: [] });
+  const aloneResult = stepRoomMoment(alone, { ...base, now: 15000, idleForMs: 14000, peers: [] });
+  ok(!aloneResult.wave && aloneResult.mood === null, "empty rooms never invent company or interactions");
+  const withdrawn = stepRoomMoment(state, { ...base, now: 62000, idleForMs: 14000, peers: [] });
+  ok(!withdrawn.wave && withdrawn.mood === null, "removed presence cancels the current expression immediately");
+  const nextRoom = stepRoomMoment(state, { ...base, roomId: "room-two", now: 63000 });
+  ok(!nextRoom.wave, "a room switch starts fresh instead of replaying an earlier greeting");
+  ok(stepRoomMoment(state, { ...base, roomId: "room-two", now: 64300 }).wave, "a new authorized room can receive its own greeting");
+  const far = createRoomMomentState();
+  stepRoomMoment(far, { ...base, peers: [{ id: "distant-peer", distancePx: 600 }] });
+  stepRoomMoment(far, { ...base, now: 2400, peers: [{ id: "distant-peer", distancePx: 600 }] });
+  ok(stepRoomMoment(far, { ...base, now: 18000, idleForMs: 17000, peers: [{ id: "distant-peer", distancePx: 600 }] }).mood === null, "idle play does not pretend a distant person is nearby");
+  const invalid = createRoomMomentState();
+  stepRoomMoment(invalid, { ...base, peers: [{ id: "", distancePx: 20 }, { id: "bad-point", distancePx: NaN }] });
+  ok(!stepRoomMoment(invalid, { ...base, now: 2400, peers: [{ id: "", distancePx: 20 }, { id: "bad-point", distancePx: NaN }] }).wave, "invalid identities and positions cannot authorize a greeting");
+}
+
+async function roomGesturePreferenceChecks() {
+  const previousWindow = Object.getOwnPropertyDescriptor(globalThis, "window");
+  const storage = new Map<string, string>();
+  const events = new EventTarget();
+  let failWrite = false;
+  let notifications = 0;
+  events.addEventListener("meshRoomGesturesChanged", () => { notifications += 1; });
+  Object.defineProperty(globalThis, "window", { configurable: true, value: {
+    localStorage: {
+      getItem: (key: string) => storage.get(key) ?? null,
+      setItem: (key: string, value: string) => {
+        if (failWrite) throw new Error("Storage unavailable");
+        storage.set(key, value);
+      },
+    },
+    dispatchEvent: (event: Event) => events.dispatchEvent(event),
+  } });
+  try {
+    initializePresenceAccount("gesture-account-one", false);
+    ok(!readRoomGestures(), "room gestures are off without an account-specific opt-in");
+    updateRoomGestures(true);
+    ok(readRoomGestures(), "room gesture opt-in persists for its own account");
+    failWrite = true;
+    updateRoomGestures(false);
+    ok(storage.get("meshRoomGestures:gesture-account-one") === "true", "blocked-write fixture retains the stale stored opt-in");
+    ok(!readRoomGestures(), "an explicit opt-out wins over stale readable storage after a failed write");
+    ok(notifications === 2, "failed persistence still notifies visible controls immediately");
+    initializePresenceAccount("gesture-account-two", false);
+    ok(!readRoomGestures(), "account switching does not inherit another account's gesture choice");
+    storage.set("meshRoomGestures:gesture-account-two", "true");
+    ok(readRoomGestures(), "another account can keep its own persisted choice");
+    initializePresenceAccount("gesture-account-one", false);
+    ok(!readRoomGestures(), "returning to the first account preserves its failed-write opt-out");
+    failWrite = false;
+    updateRoomGestures(true);
+    ok(readRoomGestures(), "a later successful explicit choice replaces the memory fallback");
+  } finally {
+    // Presence-account change notifications are queued; deliver them before
+    // restoring the process's original browser-free environment.
+    await Promise.resolve();
+    if (previousWindow) Object.defineProperty(globalThis, "window", previousWindow);
+    else Reflect.deleteProperty(globalThis, "window");
+  }
+}
+
+roomMomentChecks();
 streamLifetimeChecks();
 socialStrumWiringChecks();
 
 transportChecks()
-  .then(() => {
+  .then(async () => {
+    await roomGesturePreferenceChecks();
     console.log(`mesh-live-contract: ${checks} checks passed`);
   })
   .catch((error) => {

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
-import { hasMeshiConsent, meshiDeniedUserIds } from "@/lib/consent";
+import { hasMeshiConsent } from "@/lib/consent";
 import {
   detectJournalIntent,
   forgetEntry,
@@ -12,8 +12,9 @@ import {
   setNickname,
   withdrawMeshiJournal,
 } from "@/lib/meshi-memory";
-import { prisma } from "@/lib/prisma";
+import { buildMeshiChatContext, normalizeMeshiHistory } from "@/lib/meshi-chat-context";
 import { meshiQuery } from "@/lib/meshi-engine";
+import { parseMeshiMessageIntent } from "@/lib/meshi-message-intent";
 import { callMeshiReasoning } from "@/lib/meshi-reasoning";
 import { isSameOriginRequest, readJsonObject } from "@/lib/request-guard";
 import { rateLimit } from "@/lib/security";
@@ -326,6 +327,7 @@ function reason(query: string, context?: ChatRequest["context"]): ReasonResult {
     const primeMatch = q.match(/is\s+(\d+)\s+(?:a\s+)?prime/i);
     if (primeMatch) {
       const n = parseInt(primeMatch[1]);
+      if (!Number.isSafeInteger(n) || n > 1_000_000_000_000) return { content: "That number is too large for my local prime check. I can check whole numbers up to one trillion.", mood: "thinking" };
       if (n < 2) return { content: `No, ${n} is not prime. Prime numbers must be greater than 1.`, mood: "thinking" };
       let isPrime = true;
       for (let i = 2; i <= Math.sqrt(n); i++) {
@@ -338,6 +340,7 @@ function reason(query: string, context?: ChatRequest["context"]): ReasonResult {
     const evenOddMatch = q.match(/is\s+(\d+)\s+(?:an?\s+)?(even|odd)/i);
     if (evenOddMatch) {
       const n = parseInt(evenOddMatch[1]);
+      if (!Number.isSafeInteger(n)) return { content: "That number is too large for an exact local integer calculation.", mood: "thinking" };
       const type = evenOddMatch[2].toLowerCase();
       const isEven = n % 2 === 0;
       const answer = type === "even" ? isEven : !isEven;
@@ -556,12 +559,7 @@ export async function POST(req: Request) {
     const { message, context } = body;
     // Cap conversation history (count + per-item size) so attacker-controlled
     // history can't inflate the upstream prompt beyond the message bound above.
-    const history = Array.isArray(body.history)
-      ? body.history
-          .slice(-8)
-          .filter((item): item is MeshiHistoryMessage => Boolean(item) && typeof item.content === "string")
-          .map((item) => ({ role: item.role, content: item.content.slice(0, MAX_MESHI_MESSAGE_LENGTH) }))
-      : undefined;
+    const history = normalizeMeshiHistory(body.history);
 
     if (!message || typeof message !== "string") {
       return NextResponse.json({ error: "Message is required" }, { status: 400 });
@@ -635,75 +633,30 @@ export async function POST(req: Request) {
       }
     }
 
+    // Direct delivery is authorized only by this exact latest user command.
+    // The server action rechecks consent, the exact recipient and blocks. Its
+    // actual outcome is returned unchanged, without provider interpretation.
+    if (parseMeshiMessageIntent(message)) {
+      const result = await meshiQuery(message);
+      return NextResponse.json(createMeshiResponse({
+        content: result.content,
+        mood: result.mood,
+        action: result.action,
+        source: "database",
+        engineReady: false,
+        grounded: true,
+      }));
+    }
+
     // The caller's own "Meshi memory" rule. When it is switched off, Meshi must
     // not read their mesh (no grounding query) and must not ship their mesh
     // context upstream — the reasoning provider is off-device, so the context
     // object is the actual egress. Resolved server-side: the client supplies
     // `context`, so a client-side check would gate nothing.
     const meshiMayUseCallerData = await hasMeshiConsent(user.id);
-    let groundedContext = meshiMayUseCallerData
-      ? context
-      : (context?.currentPage ? { currentPage: context.currentPage } : undefined);
-
-    // `meshEntities` is the one Meshi input the server does not read itself: the
-    // mesh graph is loaded for the mesh UI, handed to the client, and posted
-    // back here — carrying other people's display names, handles and follower
-    // counts straight into the reasoning provider's prompt. The caller's own
-    // consent does not speak for them, so resolve theirs, here at the egress.
-    if (groundedContext?.meshEntities?.length) {
-      const peopleIds = groundedContext.meshEntities
-        .filter((entity) => entity.type === "user" && entity.id)
-        .map((entity) => entity.id as string);
-      const denied = await meshiDeniedUserIds(peopleIds);
-      if (denied.size > 0) {
-        groundedContext = {
-          ...groundedContext,
-          meshEntities: groundedContext.meshEntities.filter(
-            (entity) => entity.type !== "user" || !entity.id || !denied.has(entity.id),
-          ),
-        };
-      }
-    }
-
-    // `focusedContent` is the post the caller is currently looking at, scraped
-    // from the card in the DOM — and it carries that post's AUTHOR HANDLE and
-    // its FULL TEXT. Usually someone else's.
-    //
-    // The gate directly above resolves consent for `meshEntities` (names,
-    // handles, follower counts) and states the principle plainly: "The caller's
-    // own consent does not speak for them, so resolve theirs, here at the
-    // egress." That principle was never applied to this field, which ships
-    // strictly more of a third party than meshEntities does — the post body
-    // itself, not just a display name.
-    //
-    // Resolved by POST ID rather than by the author string: `author` is a
-    // display name or handle, and matching a person by fuzzy name is exactly
-    // how you strip the wrong record or quietly fail to strip the right one.
-    // Only native posts are gated — content mirrored from another platform has
-    // no mesh account whose consent we hold, and the caller is already looking
-    // at it.
-    if (groundedContext?.focusedContent?.id && (groundedContext.focusedContent.platform ?? "meshme") === "meshme") {
-      const post = await prisma.post.findUnique({
-        where: { id: groundedContext.focusedContent.id },
-        select: { authorId: true },
-      });
-      if (post && post.authorId !== user.id) {
-        const denied = await meshiDeniedUserIds([post.authorId]);
-        if (denied.has(post.authorId)) {
-          // Keep the non-identifying signals — media types, rating, provenance
-          // cues — so "is this video real?" still works. Drop who wrote it and
-          // what they said.
-          groundedContext = {
-            ...groundedContext,
-            focusedContent: {
-              ...groundedContext.focusedContent,
-              author: undefined,
-              text: undefined,
-            },
-          };
-        }
-      }
-    }
+    // Client labels, stats, author claims, and platform labels are never
+    // authoritative. Rehydrate against current access and subject consent.
+    const groundedContext = await buildMeshiChatContext(user, context);
 
     // The journal joins the prompt ONLY here — server-populated, computed per
     // request (never cached), and recallJournalDigest itself re-checks the
@@ -755,11 +708,11 @@ export async function POST(req: Request) {
         memoryDigest: memoryDigest
           ? { nickname: memoryDigest.nickname, keepsakes: memoryDigest.keepsakes, thread: memoryDigest.thread }
           : undefined,
-        user: {
+        user: meshiMayUseCallerData ? {
           username: user.username,
           displayName: user.displayName,
           isMeshPro: user.isMeshPro,
-        },
+        } : undefined,
       });
       if (engineResult) {
         // The open thread: a verbatim tail of the USER'S OWN message — never

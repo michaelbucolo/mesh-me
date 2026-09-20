@@ -17,6 +17,7 @@ import {
   parseBranchOverrides,
 } from "./privacy-policy";
 import { rateLimit } from "./security";
+import { parseMeshiMessageIntent } from "./meshi-message-intent";
 
 /**
  * Meshi Query Engine
@@ -65,25 +66,8 @@ function detectIntent(query: string): QueryIntent {
   const q = query.toLowerCase().trim().replace(/[?!.]+$/, "");
   const original = query.trim();
 
-  // ── Send message intent ──
-  // Require explicit messaging syntax: "send @user: message", "dm user that message", "message user: text"
-  // Exclude common false positives like "tell me about", "send me a", "let me know"
-  // Match against lowercased string for detection, but extract message from original to preserve casing
-  const SELF_WORDS = ["me", "my", "i", "myself"];
-  const msgMatchLower = q.match(/(?:send|message|dm)\s+@?(\w+)\s*[:]\s*(.+)/i)
-    || q.match(/(?:let|tell)\s+(\w+)\s+(?:know|that)\s+(.+)/i)
-    || q.match(/(?:send|message|dm)\s+@?(\w+)\s+that\s+(.+)/i);
-  if (msgMatchLower && msgMatchLower[1] && msgMatchLower[2] && msgMatchLower[2].length > 2) {
-    const recipientWord = msgMatchLower[1].toLowerCase();
-    if (!SELF_WORDS.includes(recipientWord)) {
-      // Re-match against original string to preserve casing and punctuation
-      const msgMatchOriginal = original.match(/(?:send|message|dm)\s+@?(\w+)\s*[:]\s*(.+)/i)
-        || original.match(/(?:let|tell)\s+(\w+)\s+(?:know|that)\s+(.+)/i)
-        || original.match(/(?:send|message|dm)\s+@?(\w+)\s+that\s+(.+)/i);
-      const preservedMessage = msgMatchOriginal?.[2] || msgMatchLower[2];
-      return { type: "send_message", recipient: msgMatchLower[1], message: preservedMessage };
-    }
-  }
+  const directMessage = parseMeshiMessageIntent(original);
+  if (directMessage) return { type: "send_message", ...directMessage };
 
   // ── Person platform creation date ──
   const personPlatformCreatedMatch =

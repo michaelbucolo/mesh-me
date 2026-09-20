@@ -4,6 +4,7 @@ import { prisma } from "./prisma";
 import bcrypt from "bcryptjs";
 import { randomBytes } from "crypto";
 import { cookies } from "next/headers";
+import { createPasswordSessionRecord } from "./auth-token-store";
 
 const SESSION_COOKIE = "__Host-mesh_session";
 const LEGACY_SESSION_COOKIE = "mesh_session";
@@ -37,18 +38,20 @@ export async function verifyPassword(password: string, hash: string): Promise<bo
   return bcrypt.compare(password, hash);
 }
 
-export async function createSession(userId: string): Promise<string> {
+export function createSession(userId: string): Promise<string>;
+export function createSession(userId: string, expectedPasswordHash: string): Promise<string | null>;
+export async function createSession(userId: string, expectedPasswordHash?: string): Promise<string | null> {
   const sessionId = randomBytes(32).toString("hex");
   const expiresAt = new Date(Date.now() + SESSION_MAX_AGE);
 
-  // Store session in database (works on serverless/Vercel)
-  await prisma.session.create({
-    data: {
-      id: sessionId,
-      userId,
-      expiresAt,
-    },
-  });
+  if (expectedPasswordHash !== undefined) {
+    // One conditional write closes the gap between password verification and
+    // session creation, including a concurrent password reset or suspension.
+    if (!await createPasswordSessionRecord(userId, expectedPasswordHash, sessionId, expiresAt)) return null;
+  } else {
+    // Federated sign-in and initial signup use their own identity proof.
+    await prisma.session.create({ data: { id: sessionId, userId, expiresAt } });
+  }
 
   const cookieStore = await cookies();
   const cookieName = activeSessionCookieName();

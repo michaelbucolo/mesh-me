@@ -3,9 +3,10 @@
 import { useRef } from "react";
 import { useRouter } from "next/navigation";
 import * as Dialog from "@radix-ui/react-dialog";
-import { X, Sparkles, MessageCircle, Compass, Palette, Ghost, ArrowRight, Loader2 } from "lucide-react";
+import { X, Sparkles, MessageCircle, Compass, Palette, Ghost, ArrowRight, Loader2, Hand } from "lucide-react";
 import { UserMeshi } from "@/components/meshi/user-meshi";
 import { useGhostMode, usePresencePrivacy } from "@/hooks/use-ghost-mode";
+import { useRoomGestures } from "@/hooks/use-room-gestures";
 import type { MeshiColor, MeshiHat } from "./meshi-mascot";
 
 interface MeshiActionsMenuProps {
@@ -22,6 +23,7 @@ export function MeshiActionsMenu({ activity, onClose, onAskMeshi, onSearchMesh, 
   const router = useRouter();
   const { ghost, pending, error, update } = useGhostMode();
   const { hideActivityStatus, shareWhere } = usePresencePrivacy();
+  const roomGestures = useRoomGestures();
   const returnFocus = useRef<HTMLElement | null>(typeof document === "undefined" ? null : document.activeElement as HTMLElement);
   const navigate = (path: string) => { onClose(); router.push(path); };
   const visibility = ghost
@@ -74,11 +76,21 @@ export function MeshiActionsMenu({ activity, onClose, onAskMeshi, onSearchMesh, 
             </div>
             <div aria-live="polite" className="text-xs text-[var(--text-secondary)]">{pending && <p className="mt-2">Saving your presence preference…</p>}</div>
             {error && <div role="alert" className="mt-2 rounded-lg bg-[var(--bg-secondary)] p-3 text-xs text-[var(--text-primary)]"><p>{error}</p><button type="button" onClick={() => { void update(error ? true : !ghost); }} className="mt-1 min-h-11 font-semibold text-[var(--accent-text)]">Try again</button></div>}
+            <div className="mt-3 flex items-start gap-3 border-t border-[var(--border-primary)] pt-3">
+              <Hand aria-hidden="true" className="mt-3 h-4 w-4 shrink-0 text-[var(--text-secondary)]" />
+              <div className="min-w-0 flex-1 py-1.5">
+                <p id="meshi-room-gestures-label" className="text-sm font-medium text-[var(--text-primary)]">Room gestures</p>
+                <p id="meshi-room-gestures-description" className="mt-1 text-xs leading-relaxed text-[var(--text-muted)]">A small hello when people are here, a little expression when you settle nearby. On this device, while your presence is visible. Respects reduced motion.</p>
+              </div>
+              <button type="button" role="switch" aria-checked={roomGestures.enabled} aria-labelledby="meshi-room-gestures-label" aria-describedby="meshi-room-gestures-description" onClick={() => roomGestures.update(!roomGestures.enabled)} className="flex h-11 w-12 shrink-0 items-center justify-center rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]">
+                <span aria-hidden="true" className={`relative flex h-6 w-11 items-center rounded-full transition-colors ${roomGestures.enabled ? "bg-[var(--accent)]" : "bg-[var(--border-primary)]"}`}><span className={`h-5 w-5 rounded-full bg-white shadow-sm transition-transform motion-reduce:transition-none ${roomGestures.enabled ? "translate-x-[22px]" : "translate-x-0.5"}`} /></span>
+              </button>
+            </div>
             <div className="mt-4 grid grid-cols-2 gap-2">
               <button type="button" onClick={() => navigate("/mesh")} className="flex min-h-20 flex-col items-center justify-center gap-2 rounded-xl bg-[var(--bg-secondary)] px-3 text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--bg-hover)]"><Compass aria-hidden="true" className="h-5 w-5" />Your Mesh</button>
-              <button type="button" onClick={() => navigate("/settings?tab=meshi")} className="flex min-h-20 flex-col items-center justify-center gap-2 rounded-xl bg-[var(--bg-secondary)] px-3 text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--bg-hover)]"><Palette aria-hidden="true" className="h-5 w-5" />Customize</button>
+              <button type="button" onClick={() => navigate("/settings#meshi")} className="flex min-h-20 flex-col items-center justify-center gap-2 rounded-xl bg-[var(--bg-secondary)] px-3 text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--bg-hover)]"><Palette aria-hidden="true" className="h-5 w-5" />Customize</button>
             </div>
-            <button type="button" onClick={() => navigate("/settings?tab=privacy")} className="mt-2 flex min-h-11 w-full items-center justify-between rounded-lg px-1 text-xs text-[var(--text-secondary)]">Privacy controls<ArrowRight aria-hidden="true" className="h-3.5 w-3.5" /></button>
+            <button type="button" onClick={() => navigate("/settings#privacy")} className="mt-2 flex min-h-11 w-full items-center justify-between rounded-lg px-1 text-xs text-[var(--text-secondary)]">Privacy controls<ArrowRight aria-hidden="true" className="h-3.5 w-3.5" /></button>
             <details className="mt-2 border-t border-[var(--border-primary)] pt-2">
               <summary className="min-h-11 cursor-pointer py-3 text-xs font-medium text-[var(--text-muted)]">Optional AI help</summary>
               <p className="pb-3 text-xs leading-relaxed text-[var(--text-secondary)]">{"Meshi's replies are generated by a third-party AI provider. What Meshi may send is governed by your Meshi memory rule in Privacy controls."}</p>

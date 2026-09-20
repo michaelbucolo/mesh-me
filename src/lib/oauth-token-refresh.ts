@@ -45,10 +45,17 @@ export async function refreshConnectedAccountToken(accountId: string): Promise<R
     }
 
     const config = OAUTH_CONFIGS[account.platform];
+    let refreshToken: string | null = null;
+    try {
+      refreshToken = decryptSecret(account.refreshToken);
+    } catch {
+      // Preserve unreadable historical ciphertext. Its presence must not
+      // prevent refreshing a usable access token after a successful reconnect.
+    }
 
     // Meta platforms issue long-lived tokens instead of refresh tokens;
     // extend them by re-running the long-lived token exchange.
-    if (!account.refreshToken && config.longLivedTokenExchange) {
+    if (!refreshToken && config.longLivedTokenExchange) {
       const accessToken = decryptSecret(account.accessToken);
       if (!accessToken) {
         await markNeedsReconnect(account.id);
@@ -76,7 +83,6 @@ export async function refreshConnectedAccountToken(accountId: string): Promise<R
       return "not_applicable";
     }
 
-    const refreshToken = decryptSecret(account.refreshToken);
     if (!refreshToken || !getOAuthClientId(config) || !getOAuthClientSecret(config)) {
       await markNeedsReconnect(account.id);
       return "needs_reconnect";
