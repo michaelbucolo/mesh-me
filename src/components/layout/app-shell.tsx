@@ -484,35 +484,45 @@ export function AppShell({ children, user }: AppShellProps) {
 
   useEffect(() => {
     let cancelled = false;
+    let inFlight = false;
+    const controller = new AbortController();
 
     async function loadUnreadCounts() {
-      const response = await fetch("/api/layout/unread-counts", {
-        credentials: "same-origin",
-        cache: "no-store",
-      }).catch(() => null);
+      if (cancelled || inFlight || document.visibilityState !== "visible") return;
+      inFlight = true;
+      try {
+        const response = await fetch("/api/layout/unread-counts", {
+          credentials: "same-origin",
+          cache: "no-store",
+          signal: controller.signal,
+        }).catch(() => null);
+        if (!response?.ok || cancelled) return;
+        const payload = await response.json().catch(() => null);
+        if (!payload || cancelled) return;
 
-      if (!response?.ok || cancelled) return;
-
-      const payload = await response.json().catch(() => null);
-      if (!payload || cancelled) return;
-
-      const needsYou = Number(payload.needsYou ?? 0);
-      setUnreadCounts({
-        unreadNotifications: Number(payload.unreadNotifications ?? 0),
-        unreadMessages: Number(payload.unreadMessages ?? 0),
-        needsYou,
-      });
-
-      // Badging API, feature-detected: the installed PWA's icon numbers
-      // OBLIGATIONS only (see UnreadCounts.needsYou). Never fed arithmetic
-      // over the other counts — a like is not an obligation.
-      if ("setAppBadge" in navigator) {
-        const badging = navigator as Navigator & {
-          setAppBadge?: (contents?: number) => Promise<void>;
-          clearAppBadge?: () => Promise<void>;
+        const needsYou = Number(payload.needsYou ?? 0);
+        const next = {
+          unreadNotifications: Number(payload.unreadNotifications ?? 0),
+          unreadMessages: Number(payload.unreadMessages ?? 0),
+          needsYou,
         };
-        if (needsYou > 0) void badging.setAppBadge?.(needsYou).catch(() => {});
-        else void badging.clearAppBadge?.().catch(() => {});
+        setUnreadCounts((previous) =>
+          previous.unreadNotifications === next.unreadNotifications &&
+          previous.unreadMessages === next.unreadMessages && previous.needsYou === next.needsYou
+            ? previous : next,
+        );
+
+        // Installed-app badging reflects real obligations, never likes/follows.
+        if ("setAppBadge" in navigator) {
+          const badging = navigator as Navigator & {
+            setAppBadge?: (contents?: number) => Promise<void>;
+            clearAppBadge?: () => Promise<void>;
+          };
+          if (needsYou > 0) void badging.setAppBadge?.(needsYou).catch(() => {});
+          else void badging.clearAppBadge?.().catch(() => {});
+        }
+      } finally {
+        inFlight = false;
       }
     }
 
@@ -522,14 +532,13 @@ export function AppShell({ children, user }: AppShellProps) {
       if (document.visibilityState === "visible") void loadUnreadCounts();
     };
     document.addEventListener("visibilitychange", onVisible);
-
     return () => {
       cancelled = true;
+      controller.abort();
       window.clearInterval(intervalId);
       document.removeEventListener("visibilitychange", onVisible);
     };
-    // Re-run on route change too, so the nav badges refresh the instant you
-    // read notifications/messages instead of lagging up to the 60s interval.
+    // Reading a new route refreshes badges immediately, without waiting a minute.
   }, [pathname]);
 
   // Presence heartbeat from every surface: your Meshi represents you across

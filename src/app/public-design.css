@@ -282,3 +282,50 @@
 }
 @media (max-width: 420px) { .public-feature-grid, .public-feature-mode-list { grid-template-columns: 1fr; } }
 @media (prefers-reduced-motion: reduce) { .public-feature-tile { transition: none; } .public-feature-tile:hover { translate: none; } }
+
+/* Keep the first useful controls reachable on narrow and shallow viewports. */
+.mesh-experience .entry-studio-card { justify-content: flex-start; overscroll-behavior: contain; scroll-padding-block: 1rem; }
+.mesh-experience .entry-studio-card > :is(form, section) { min-width: 0; }
+.mesh-experience .public-document, .public-editorial-hero > *, .public-site-nav > *, .public-footer-intro, .legal-document-layout > * { min-width: 0; }
+.mesh-experience .public-document :is(p, h1, h2, h3, li, a), .legal-document-section { overflow-wrap: anywhere; }
+.mesh-experience .public-document pre { overflow-wrap: normal; }
+.mesh-experience .public-help-workspace .help-filter-panel { max-height: calc(100dvh - 10.5rem); overflow-y: auto; }
+.public-help-category-list { min-width: 0; }
+
+@media (max-width: 1023px) {
+  .mesh-experience .public-help-workspace .help-filter-panel { position: static; max-height: none; overflow: visible; }
+  .public-help-category-list { display: flex; gap: .5rem; overflow-x: auto; overscroll-behavior-inline: contain; padding-bottom: .4rem; scrollbar-width: thin; }
+  .public-help-category-list > button { flex-shrink: 0; gap: .6rem; min-height: 44px; }
+}
+@media (max-width: 767px) {
+  .mesh-experience :is(.public-support-form, .auth-studio-card) :is(input, textarea, select),
+  .mesh-experience .public-help-workspace input { font-size: 1rem; }
+  .mesh-experience .public-site-nav { display: grid; grid-template-columns: minmax(0, 1fr) auto; }
+  .mesh-experience .public-primary-nav { grid-column: 1 / -1; }
+  .mesh-experience .public-site-nav .mesh-brand-wordmark-wrap > span + span { display: none; }
+  .mesh-experience .legal-document-index nav { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(10rem, 1fr); grid-template-columns: none; overflow-x: auto; overscroll-behavior-inline: contain; scrollbar-width: thin; padding-bottom: .5rem; }
+  .mesh-experience .legal-document-index nav a { min-height: 44px; padding: .6rem; background: var(--paper-2); }
+  .mesh-experience .public-document { padding-inline: max(1rem, env(safe-area-inset-left)); }
+}
+@media (max-width: 380px) {
+  .mesh-experience .public-site-nav { gap: .35rem; padding-inline: .7rem; }
+  .mesh-experience .public-account-nav .public-join-link { padding-inline: .6rem; }
+  .mesh-experience .public-account-nav .public-login-link { padding-inline: .4rem; font-size: .75rem; }
+  .mesh-experience .entry-studio-body { padding-inline: .75rem; }
+  .mesh-experience .entry-studio-card { padding-inline: 1.1rem; }
+  .mesh-experience .entry-studio .mesh-gate-inline { gap: .65rem; flex-wrap: wrap; justify-content: center; }
+}
+@media (max-height: 620px) {
+  .mesh-experience .entry-studio .mesh-gate-brandbar { padding-block: max(.5rem, env(safe-area-inset-top)) .25rem; }
+  .mesh-experience .entry-studio-body { display: flex; flex-direction: column; justify-content: center; padding-block: .5rem; }
+  .mesh-experience .entry-studio-story { display: none; }
+  .mesh-experience .entry-studio-card { flex: initial; width: min(100%, 460px); max-height: 100%; padding-block: 1rem; gap: 1rem; }
+  .mesh-experience .entry-studio .entry-stage-label { padding-bottom: .65rem; }
+  .mesh-experience .entry-studio .mesh-gate-foot { padding-block: .25rem max(.5rem, env(safe-area-inset-bottom)); }
+  .mesh-experience .entry-studio .mesh-gate-shield { display: none; }
+  .mesh-experience .auth-studio-header { padding-block: .5rem; }
+  .mesh-experience .auth-studio-grid { align-items: start; }
+  .mesh-experience .auth-studio-footer { padding-block: .25rem; }
+  .mesh-experience .public-studio-header { padding-top: max(.4rem, env(safe-area-inset-top)); }
+  .mesh-experience .public-site-nav { padding-block: .4rem; }
+}

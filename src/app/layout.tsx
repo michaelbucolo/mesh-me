@@ -18,6 +18,7 @@ import "./social-design.css";
 import "./personal-design.css";
 import "./public-design.css";
 import "./presence-design.css";
+import "./adaptive.css";
 
 const siteUrl = getSiteUrl();
 
@@ -53,6 +54,7 @@ const plexMono = IBM_Plex_Mono({
   subsets: ["latin"],
   weight: ["400", "500"],
   display: "swap",
+  preload: false,
   variable: "--font-mono-loaded",
 });
 
@@ -268,6 +270,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
+  interactiveWidget: "resizes-content",
   colorScheme: "light dark",
   // A single media-less value (matching the forced-dark first-visit default)
   // rather than a prefers-color-scheme array, so the theme provider can update

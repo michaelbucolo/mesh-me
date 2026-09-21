@@ -264,7 +264,7 @@ function PlatformRow({ account, index }: { account: AnalyticsDashboardData["plat
 function TopContentRow({ post, rank }: { post: AnalyticsDashboardData["bestContent"][number]; rank: number }) {
   const tone = toneFor(post.platform);
   const inner = (
-    <div className="plate flex min-w-0 items-center gap-3 p-3 transition hover:border-[var(--accent)]/40">
+    <div className="adaptive-content-row plate flex min-w-0 items-center gap-3 p-3 transition hover:border-[var(--accent)]/40">
       <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${rank === 1 ? "bg-gradient-to-br from-amber-300 to-amber-500 text-[var(--chip-ink)]" : "bg-[var(--bg-primary)]/70 text-[var(--text-secondary)]"}`}>
         {rank}
       </span>

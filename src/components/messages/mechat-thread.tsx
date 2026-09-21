@@ -1,11 +1,12 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { ArrowDown, Check, CheckCheck, Copy, Flame, Heart, Image as ImageIcon, Laugh, Link2, MessageCircleReply, Paperclip, Pencil, Search, Send, SmilePlus, ThumbsUp, Undo2, Users, X, type LucideIcon } from "lucide-react";
 import { publishMeshiCause } from "@/lib/meshi-bus";
-import { CoBrowseRoom } from "@/components/mechat/co-browse-room";
+
 import { PaperWait } from "@/components/loading/paper-wait";
 import { Avatar } from "@/components/ui/avatar";
 import { NativeAspectMedia } from "@/components/ui/native-aspect-media";
@@ -25,6 +26,10 @@ import {
   type MeChatMessageMetadata,
 } from "@/lib/mechat-metadata";
 import styles from "./message-motion.module.css";
+
+const CoBrowseRoom = dynamic(() => import("@/components/mechat/co-browse-room").then((module) => module.CoBrowseRoom), {
+  loading: () => <div className="rounded-xl border border-[var(--rule)] p-4"><PaperWait label="Opening the shared room" /></div>,
+});
 
 type Person = {
   id: string;
@@ -477,10 +482,11 @@ export function MeChatThread({
 
   const searchCount = searchQuery.trim() ? visibleMessages.length : 0;
 
-  const loadThread = useCallback(async (threadId: string) => {
+  const loadThread = useCallback(async (threadId: string, signal?: AbortSignal) => {
     const response = await fetch(`/api/messages/${threadId}`, {
       cache: "no-store",
       credentials: "same-origin",
+      signal,
     });
     const data = await safeFetchJson<{
       messages?: MeChatSerializedMessage[];
@@ -488,6 +494,7 @@ export function MeChatThread({
       error?: string;
     }>(response);
     if (!response.ok) throw new Error(data.error || "Could not load messages");
+    if (signal?.aborted) return;
     // Polling identical data every few seconds shouldn't re-render the
     // thread — only apply state when something actually changed. The payload
     // is folded through mergeThreadMessages so paged-in history survives
@@ -553,17 +560,27 @@ export function MeChatThread({
 
   useEffect(() => {
     if (!activeThreadId) return;
-    void loadThread(activeThreadId).catch(() => {});
-    const interval = window.setInterval(() => {
-      // Don't poll a tab nobody is looking at.
-      if (document.visibilityState !== "visible") return;
-      void loadThread(activeThreadId).catch(() => {});
-    }, 5000);
+    const controller = new AbortController();
+    let inFlight = false;
+    const refresh = async () => {
+      if (inFlight || controller.signal.aborted || document.visibilityState !== "visible") return;
+      inFlight = true;
+      try {
+        await loadThread(activeThreadId, controller.signal);
+      } catch {
+        // The next visible tick retries without overlapping a slow request.
+      } finally {
+        inFlight = false;
+      }
+    };
+    void refresh();
+    const interval = window.setInterval(refresh, 5000);
     const onVisible = () => {
-      if (document.visibilityState === "visible") void loadThread(activeThreadId).catch(() => {});
+      if (document.visibilityState === "visible") void refresh();
     };
     document.addEventListener("visibilitychange", onVisible);
     return () => {
+      controller.abort();
       window.clearInterval(interval);
       document.removeEventListener("visibilitychange", onVisible);
     };
@@ -1810,19 +1827,20 @@ export function MeChatThread({
 
 function AttachmentPreview({ attachment, isMine }: { attachment: MeChatAttachment; isMine: boolean }) {
   // Image/video bubbles get a stable width and a reserved aspect-ratio frame
-  // (native ratio clamped 4:5–16:9, extremes letterboxed over a blurred
-  // self-fill) so the thread never reflows as media loads.
+  // using stored dimensions or a fixed fallback) so decoding never moves
+  // the reading position. Full view shows every pixel without leaving Mesh.
   if (attachment.type === "image") {
     return (
-      <a href={attachment.url} target="_blank" rel="noreferrer" className="block w-fit overflow-hidden rounded-xl border border-black/10">
+      <div className="block w-fit overflow-hidden rounded-xl border border-black/10">
         <NativeAspectMedia
           media={{ url: attachment.url, type: "image" }}
           alt={attachment.name || "Shared image"}
+          expandable
           sizes="320px"
           defaultRatio={4 / 3}
           className="w-[min(20rem,70vw)]"
         />
-      </a>
+      </div>
     );
   }
 
@@ -1831,6 +1849,8 @@ function AttachmentPreview({ attachment, isMine }: { attachment: MeChatAttachmen
       <NativeAspectMedia
         media={{ url: attachment.url, type: "video" }}
         videoMode="controls"
+        expandable
+        alt={attachment.name || "Shared video"}
         defaultRatio={16 / 9}
         className="w-[min(20rem,70vw)] rounded-xl border border-black/10 bg-black"
       />
@@ -1842,7 +1862,7 @@ function AttachmentPreview({ attachment, isMine }: { attachment: MeChatAttachmen
       // Loudness-leveled on first play (never preload); CORS-unsafe sources
       // keep their native audio path. Video attachments get the same treatment
       // inside NativeAspectMedia's controls player.
-      <audio src={attachment.url} controls onPlay={(event) => attachNormalizer(event.currentTarget)} className="w-full" />
+      <audio src={attachment.url} controls preload="none" onPlay={(event) => attachNormalizer(event.currentTarget)} className="w-full" />
     );
   }
 

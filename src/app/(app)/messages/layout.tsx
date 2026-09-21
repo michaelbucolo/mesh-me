@@ -56,40 +56,11 @@ async function MessagesShell({ children }: MessagesLayoutProps) {
   if (!user) redirect("/login?next=/messages");
   if (!user.onboarded) redirect("/onboarding");
 
-  const [threadMemberRows, blockedIds] = await Promise.all([
-    prisma.threadMember.findMany({
-      where: { thread: { members: { some: { userId: user.id } } } },
-      select: { userId: true },
-    }),
-    getBlockedUserIdSet(user.id),
-  ]);
-  // Mirror GET /api/mechat/notes: notes must not cross a block in either
-  // direction, and the viewer's own note (never suspended) always stays.
-  const noteAudienceIds = Array.from(
-    new Set([user.id, ...threadMemberRows.map((row) => row.userId).filter((id) => !blockedIds.has(id))]),
-  );
-
+  // The thread list is independent of the notes audience. Start both paths
+  // together so opening MeChat does not wait through an extra database stage.
   const [threads, activeNotes] = await Promise.all([
     getMessageThreads(),
-    prisma.meChatNote
-      .findMany({
-        where: {
-          userId: { in: noteAudienceIds },
-          expiresAt: { gt: new Date() },
-          // Suspended accounts are locked to owner + admin.
-          user: { isSuspended: false },
-        },
-        include: {
-          user: {
-            select: { id: true, username: true, displayName: true, avatarUrl: true },
-          },
-        },
-        orderBy: { createdAt: "desc" },
-      })
-      .catch((error) => {
-        console.error("Failed to load MeChat notes", error);
-        return [];
-      }),
+    getActiveNotes(user.id),
   ]);
 
   const seenNoteUsers = new Set<string>();
@@ -176,4 +147,39 @@ async function MessagesShell({ children }: MessagesLayoutProps) {
       </div>
     </MessagesDataProvider>
   );
+}
+
+async function getActiveNotes(userId: string) {
+  const [threadMemberRows, blockedIds] = await Promise.all([
+    prisma.threadMember.findMany({
+      where: { thread: { members: { some: { userId } } } },
+      select: { userId: true },
+    }),
+    getBlockedUserIdSet(userId),
+  ]);
+  // Mirror GET /api/mechat/notes: notes must not cross a block in either
+  // direction, and the viewer's own note (never suspended) always stays.
+  const noteAudienceIds = Array.from(
+    new Set([userId, ...threadMemberRows.map((row) => row.userId).filter((id) => !blockedIds.has(id))]),
+  );
+
+  return prisma.meChatNote
+    .findMany({
+      where: {
+        userId: { in: noteAudienceIds },
+        expiresAt: { gt: new Date() },
+        // Suspended accounts are locked to owner + admin.
+        user: { isSuspended: false },
+      },
+      include: {
+        user: {
+          select: { id: true, username: true, displayName: true, avatarUrl: true },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    })
+    .catch((error) => {
+      console.error("Failed to load MeChat notes", error);
+      return [];
+    });
 }

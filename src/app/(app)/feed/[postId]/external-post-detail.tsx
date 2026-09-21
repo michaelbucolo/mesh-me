@@ -51,7 +51,7 @@ export function ExternalPostDetail({ post }: { post: FeedCardPost }) {
             out-of-range media letterboxes over a blurred self-fill, and the
             frame reserves 16:9 before metadata arrives so nothing jumps. */}
         {video ? (
-          <NativeAspectMedia media={video} defaultRatio={16 / 9} className="bg-black" />
+          <NativeAspectMedia media={video} defaultRatio={16 / 9} className="bg-black" videoMode="controls" expandable eager />
         ) : embedUrl ? (
           <div className="aspect-video w-full bg-black">
             <iframe
@@ -68,7 +68,9 @@ export function ExternalPostDetail({ post }: { post: FeedCardPost }) {
         ) : image ? (
           <NativeAspectMedia
             media={image}
-            alt=""
+            alt={post.content.trim().slice(0, 160) || `Post by ${author.name}`}
+            expandable
+            eager
             defaultRatio={16 / 9}
             sizes="(max-width: 768px) 100vw, 672px"
             className="max-h-[60vh] bg-black"

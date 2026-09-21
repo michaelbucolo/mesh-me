@@ -45,7 +45,7 @@ export function MeshiActionsMenu({ activity, onClose, onAskMeshi, onSearchMesh, 
             event.preventDefault();
             if (returnFocus.current?.isConnected) returnFocus.current.focus();
           }}
-          className="presence-meshi-dashboard fixed bottom-[calc(var(--mobile-nav-h)+env(safe-area-inset-bottom)+1rem)] right-4 z-50 flex max-h-[min(75dvh,40rem)] w-[320px] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-2xl glass-dropdown shadow-2xl outline-none md:bottom-[76px]"
+          className="presence-meshi-dashboard fixed bottom-[calc(var(--mobile-nav-h)+env(safe-area-inset-bottom)+1rem)] right-4 z-50 flex max-h-[min(40rem,calc(100dvh-var(--mobile-nav-h)-env(safe-area-inset-bottom)-2rem))] w-[320px] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-2xl glass-dropdown shadow-2xl outline-none md:bottom-[76px] md:max-h-[calc(100dvh-92px)]"
         >
           <div className="presence-meshi-identity flex shrink-0 items-center gap-3 border-b border-[var(--border-primary)] px-4 py-3">
             <div className={ghost ? "opacity-50" : undefined}><UserMeshi size={64} /></div>

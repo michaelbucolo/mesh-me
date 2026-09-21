@@ -1,73 +1,90 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Volume2, VolumeX } from "lucide-react";
+import { Pause, Play, Volume2, VolumeX } from "lucide-react";
 import { attachNormalizer, detachSafe } from "@/lib/audio-normalize";
 
-/**
- * Native video everywhere: plays automatically (muted) the moment it scrolls
- * into view and pauses when it leaves, exactly like the big feeds — no matter
- * which platform the file originally came from. Tap the badge for sound.
- */
-export function AutoplayVideo({
-  src,
-  poster,
-  className,
-  onAspectRatio,
-}: {
+/** Muted in-view playback; hidden, distant, reduced-motion and data-saving views stay quiet. */
+export function AutoplayVideo({ src, poster, className, suspended = false }: {
   src: string;
   poster?: string;
   className?: string;
-  /** Reports the natural width/height ratio once metadata (or the poster fallback) loads. */
-  onAspectRatio?: (ratio: number) => void;
+  suspended?: boolean;
+}) {
+  return <VideoPlayer key={src} src={src} poster={poster} className={className} suspended={suspended} />;
+}
+
+function VideoPlayer({ src, poster, className, suspended }: {
+  src: string;
+  poster?: string;
+  className?: string;
+  suspended: boolean;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const manualPause = useRef(false);
   const [muted, setMuted] = useState(true);
   const [failed, setFailed] = useState(false);
+  const [playing, setPlaying] = useState(false);
 
   useEffect(() => {
-    const el = videoRef.current;
-    if (!el) return;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        // Honor reduced-motion: don't autoplay for motion-sensitive users (the
-        // <video> has no autoPlay attr, so this JS path is the only gate). Tap
-        // to play still works below.
-        const reduce =
-          typeof window !== "undefined" &&
-          window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-        for (const entry of entries) {
-          if (entry.isIntersecting && entry.intersectionRatio >= 0.5 && !reduce) {
-            void el.play().catch(() => {});
-          } else {
-            el.pause();
-          }
-        }
-      },
-      { threshold: [0, 0.5] },
-    );
-    observer.observe(el);
-    return () => {
-      observer.disconnect();
-      // Normalizer graphs are element-lifetime — this is the documented no-op
-      // that says so; the element and its nodes are GC'd together.
-      detachSafe(el);
+    const video = videoRef.current;
+    if (!video || failed) return;
+    let visible = false;
+    let disposed = false;
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const connection = (navigator as Navigator & { connection?: EventTarget & { saveData?: boolean } }).connection;
+    const syncPlayback = () => {
+      if (disposed) return;
+      if (visible && !document.hidden && !suspended && !reduce.matches && !connection?.saveData && !manualPause.current) {
+        void video.play().then(() => {
+          if (disposed || document.hidden || suspended || !visible || reduce.matches || connection?.saveData || manualPause.current) video.pause();
+        }).catch(() => {});
+      } else video.pause();
     };
-  }, []);
+    const observer = new IntersectionObserver((entries) => {
+      visible = entries.some((entry) => entry.isIntersecting && entry.intersectionRatio >= 0.5);
+      syncPlayback();
+    }, { threshold: [0, 0.5] });
+    const prepare = new IntersectionObserver((entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) {
+        if (!connection?.saveData) video.preload = "metadata";
+        prepare.disconnect();
+      }
+    }, { rootMargin: "300px" });
+    observer.observe(video);
+    prepare.observe(video);
+    document.addEventListener("visibilitychange", syncPlayback);
+    reduce.addEventListener("change", syncPlayback);
+    connection?.addEventListener("change", syncPlayback);
+    return () => {
+      disposed = true;
+      observer.disconnect();
+      prepare.disconnect();
+      document.removeEventListener("visibilitychange", syncPlayback);
+      reduce.removeEventListener("change", syncPlayback);
+      connection?.removeEventListener("change", syncPlayback);
+      video.pause();
+      detachSafe(video);
+    };
+  }, [suspended, failed]);
 
-  if (failed && poster) {
-    return (
+  const togglePlayback = () => {
+    const video = videoRef.current;
+    if (!video) return;
+    if (video.paused) {
+      manualPause.current = false;
+      void video.play().catch(() => {});
+    } else {
+      manualPause.current = true;
+      video.pause();
+    }
+  };
+
+  if (failed) {
+    return poster ? (
       // eslint-disable-next-line @next/next/no-img-element
-      <img
-        src={poster}
-        alt=""
-        onLoad={(e) => {
-          const el = e.currentTarget;
-          if (el.naturalWidth && el.naturalHeight) onAspectRatio?.(el.naturalWidth / el.naturalHeight);
-        }}
-        className={className}
-      />
-    );
+      <img src={poster} alt="Video preview; playback unavailable" loading="lazy" decoding="async" className={className} />
+    ) : <span className="flex h-full items-center justify-center px-4 text-center text-sm text-[var(--text-secondary)]">Video unavailable</span>;
   }
 
   return (
@@ -79,42 +96,18 @@ export function AutoplayVideo({
         loop
         muted={muted}
         playsInline
-        preload="metadata"
-        // Level cross-platform loudness once playback starts (never on
-        // preload) so unmuting lands at one considered level. CORS-unsafe
-        // sources keep their native audio path.
-        onPlay={(e) => attachNormalizer(e.currentTarget)}
+        preload="none"
+        onPlay={(event) => { attachNormalizer(event.currentTarget); setPlaying(true); }}
+        onPause={() => setPlaying(false)}
         onError={() => setFailed(true)}
-        onLoadedMetadata={(e) => {
-          const el = e.currentTarget;
-          if (el.videoWidth && el.videoHeight) onAspectRatio?.(el.videoWidth / el.videoHeight);
-        }}
-        onClick={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          const el = videoRef.current;
-          if (!el) return;
-          if (el.paused) void el.play().catch(() => {});
-          else el.pause();
-        }}
+        onClick={(event) => { event.preventDefault(); event.stopPropagation(); togglePlayback(); }}
         className={className}
       />
-      <button
-        type="button"
-        aria-label={muted ? "Unmute" : "Mute"}
-        onClick={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          setMuted((m) => !m);
-        }}
-        // Was `bg-black/60 … text-white/90 backdrop-blur … active:scale-90`:
-        // translucent, blurred, and shrinking away from the finger. The chip is
-        // opaque now (--media-chip, with --media-ink pinned at 16.76:1 on it)
-        // and the press conserves height — wall to zero, face down by exactly
-        // that wall — so the bottom edge does not move.
-        className="absolute bottom-2 right-2 grid h-11 w-11 place-items-center rounded-full bg-[var(--media-chip)] text-[var(--media-ink)] shadow-[0_var(--plinth-h-chip)_0_0_var(--media-chip-plinth)] transition-[translate,box-shadow] duration-[var(--dur-press)] ease-[var(--ease-give)] active:translate-y-[var(--plinth-h-chip)] active:shadow-[0_0_0_0_var(--media-chip-plinth)]"
-      >
-        {muted ? <VolumeX size={14} /> : <Volume2 size={14} />}
+      <button type="button" aria-label={playing ? "Pause video" : "Play video"} onClick={(event) => { event.preventDefault(); event.stopPropagation(); togglePlayback(); }} className="absolute bottom-2 left-2 grid h-11 w-11 place-items-center rounded-full bg-[var(--media-chip)] text-[var(--media-ink)]">
+        {playing ? <Pause size={15} aria-hidden="true" /> : <Play size={15} aria-hidden="true" />}
+      </button>
+      <button type="button" aria-label={muted ? "Unmute" : "Mute"} onClick={(event) => { event.preventDefault(); event.stopPropagation(); setMuted((value) => !value); }} className="absolute bottom-2 right-2 grid h-11 w-11 place-items-center rounded-full bg-[var(--media-chip)] text-[var(--media-ink)]">
+        {muted ? <VolumeX size={15} aria-hidden="true" /> : <Volume2 size={15} aria-hidden="true" />}
       </button>
     </span>
   );

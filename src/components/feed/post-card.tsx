@@ -8,8 +8,6 @@ import { cn, formatRelativeTime, formatCount, safeHref } from "@/lib/utils";
 import { Heart, MessageCircle, Bookmark, MoreHorizontal, Share2, Flag, Trash2, Pin, Copy, ExternalLink, Link2, Globe, Lock, Users, BadgeCheck, Ban, FileText, ShieldCheck, ScanSearch } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
-import { AutoplayVideo } from "@/components/feed/autoplay-video";
 import { NativeAspectMedia } from "@/components/ui/native-aspect-media";
 import { useState, useTransition, useRef, useEffect, useId, memo, type ReactNode } from "react";
 import { toggleReaction, toggleSavePost, repost, deletePost, reportPost } from "@/lib/actions";
@@ -58,7 +56,7 @@ interface PostCardProps {
       isVerified: boolean;
     };
     community?: { id: string; name: string; slug: string } | null;
-    media: { id: string; url: string; type: string; posterUrl?: string }[];
+    media: { id: string; url: string; type: string; posterUrl?: string; width?: number | null; height?: number | null }[];
     tags: { id: string; tag: string }[];
     _count: { comments: number; reactions: number; reposts: number };
     reactions?: { id: string }[];
@@ -830,64 +828,29 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
         )}
 
         {!cardEmbedUrl && visualMedia.length === 1 && (
-          <Link
-            href={postHref}
-            className="feed-media-frame feed-media-single relative block overflow-hidden bg-[var(--bg-secondary)]"
-            aria-label="Open post"
-          >
-            {/* Single media shows at its NATIVE ratio (clamped 4:5–16:9, extreme
-                ratios letterbox over a blurred self-fill) with space reserved
-                up front — no stretch, no hard crop, no layout jump. */}
+          <div className="feed-media-frame feed-media-single relative block overflow-hidden bg-[var(--bg-secondary)]">
             <NativeAspectMedia
               media={visualMedia[0]}
               alt={postMediaAlt}
               eager={Boolean(eager)}
+              expandable
               sizes="(max-width: 640px) 100vw, (max-width: 1024px) 640px, 624px"
               className="[max-height:inherit]"
-              imageClassName="transition-transform duration-300 group-hover:scale-[1.015]"
             />
-          </Link>
+          </div>
         )}
 
         {!cardEmbedUrl && visualMedia.length >= 2 && (
-          <Link
-            href={postHref}
-            className="feed-media-frame feed-media-grid grid grid-cols-2 gap-px overflow-hidden bg-[var(--bg-secondary)]"
-            aria-label="Open post"
-          >
+          <div className="feed-media-frame feed-media-grid grid grid-cols-2 gap-px overflow-hidden bg-[var(--bg-secondary)]">
             {visualMedia.slice(0, 4).map((media, idx) => (
-              <div
-                key={media.id}
-                className={cn(
-                  "relative overflow-hidden",
-                  visualMedia.length === 3 && idx === 0 ? "row-span-2 aspect-auto" : "aspect-square",
-                )}
-              >
-                {media.type.toLowerCase() === "video" ? (
-                  <AutoplayVideo src={media.url} poster={media.posterUrl} className="h-full w-full object-cover" />
-                ) : media.url.startsWith("data:") || media.url.startsWith("blob:") ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={media.url} alt={postMediaAlt} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.015]" />
-                ) : (
-                  <Image
-                    src={media.url}
-                    alt={postMediaAlt}
-                    fill
-                    sizes="(max-width: 640px) 50vw, 320px"
-                    priority={Boolean(eager && idx === 0)}
-                    loading={eager && idx === 0 ? undefined : "lazy"}
-                    decoding="async"
-                    className="object-cover transition-transform duration-300 group-hover:scale-[1.015]"
-                  />
-                )}
+              <div key={media.id} className={cn("relative overflow-hidden", visualMedia.length === 3 && idx === 0 ? "row-span-2 aspect-auto" : "aspect-square")}>
+                <NativeAspectMedia media={media} alt={postMediaAlt} eager={Boolean(eager && idx === 0)} expandable fillFrame sizes="(max-width: 640px) 50vw, 320px" />
                 {idx === 3 && visualMedia.length > 4 && (
-                  <div className="absolute inset-0 flex items-center justify-center [background:var(--media-scrim)]">
-                    <span className="rounded-[var(--radius-md)] bg-[var(--media-chip)] px-2.5 py-1 text-lg font-semibold text-[var(--media-ink)]">+{visualMedia.length - 4}</span>
-                  </div>
+                  <Link href={postHref} className="absolute bottom-2 left-2 z-10 inline-flex min-h-11 items-center rounded-full bg-[var(--media-chip)] px-3 text-sm font-semibold text-[var(--media-ink)]" aria-label={`View all ${visualMedia.length} attachments`}>+{visualMedia.length - 4} more</Link>
                 )}
               </div>
             ))}
-          </Link>
+          </div>
         )}
 
         {linkMedia.length > 0 && (

@@ -94,7 +94,7 @@ export type FeedCardPost = {
     isVerified: boolean;
   };
   community?: { id: string; name: string; slug: string } | null;
-  media: { id: string; url: string; type: string; posterUrl?: string }[];
+  media: { id: string; url: string; type: string; posterUrl?: string; width?: number | null; height?: number | null }[];
   tags: { id: string; tag: string }[];
   _count: { comments: number; reactions: number; reposts: number };
   reactions?: { id: string }[];
@@ -196,7 +196,7 @@ export function toFeedCardPost(post: NativeFeedPost): FeedCardPost {
   return {
     ...post,
     durationSeconds: nativeVideoDuration(post.media),
-    media: post.media.map((item) => ({ id: item.id, url: item.url, type: item.type })),
+    media: post.media.map((item) => ({ id: item.id, url: item.url, type: item.type, width: item.width, height: item.height })),
     platform: "meshme",
   };
 }

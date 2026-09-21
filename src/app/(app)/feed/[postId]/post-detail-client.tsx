@@ -6,10 +6,8 @@ import { Button } from "@/components/ui/button";
 import { cn, formatRelativeTime, formatCount, safeHref } from "@/lib/utils";
 import { Heart, MessageCircle, Repeat2, Bookmark, ArrowLeft, Send, Copy, Link2, ExternalLink, Globe, Lock, Users } from "lucide-react";
 import Link from "next/link";
-import Image from "next/image";
 import { NativeAspectMedia } from "@/components/ui/native-aspect-media";
 import { useState, useTransition, useRef } from "react";
-import { attachNormalizer } from "@/lib/audio-normalize";
 import { toggleReaction, toggleSavePost, repost, createComment } from "@/lib/actions";
 import { useRouter } from "next/navigation";
 
@@ -51,7 +49,7 @@ interface PostDetailClientProps {
       bio?: string | null;
     };
     community?: { id: string; name: string; slug: string } | null;
-    media: { id: string; url: string; type: string }[];
+    media: { id: string; url: string; type: string; width?: number | null; height?: number | null }[];
     tags: { id: string; tag: string }[];
     comments: Comment[];
     _count: { comments: number; reactions: number; reposts: number };
@@ -238,8 +236,10 @@ export function PostDetailClient({ post, currentUserId }: PostDetailClientProps)
           <div className="rounded-xl overflow-hidden mb-4 bg-[var(--bg-secondary)]">
             <NativeAspectMedia
               media={visualMedia[0]}
-              alt=""
+              alt={post.content.trim().slice(0, 160) || `Post by ${post.author.displayName}`}
               videoMode="controls"
+              expandable
+              eager
               sizes="(max-width: 768px) 100vw, 672px"
               className="max-h-[min(70dvh,560px)]"
             />
@@ -255,14 +255,7 @@ export function PostDetailClient({ post, currentUserId }: PostDetailClientProps)
                   visualMedia.length === 3 && idx === 0 ? "row-span-2 aspect-auto" : "aspect-square",
                 )}
               >
-                {media.type.toLowerCase() === "video" ? (
-                  <video src={media.url} className="h-full w-full object-cover" controls preload="metadata" playsInline onPlay={(event) => attachNormalizer(event.currentTarget)} />
-                ) : media.url.startsWith("data:") || media.url.startsWith("blob:") ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={media.url} alt="" className="h-full w-full object-cover" />
-                ) : (
-                  <Image src={media.url} alt="" fill sizes="(max-width: 768px) 50vw, 336px" className="object-cover" />
-                )}
+                <NativeAspectMedia media={media} alt={post.content.trim().slice(0, 160) || `Attachment ${idx + 1} from ${post.author.displayName}`} videoMode="controls" expandable fillFrame sizes="(max-width: 768px) 50vw, 336px" />
               </div>
             ))}
           </div>

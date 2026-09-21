@@ -15,6 +15,7 @@ export function useKeyboard() {
 
   useEffect(() => {
     let cleanup: (() => void) | null = null;
+    let disposed = false;
 
     onKeyboardChange(
       (info) => {
@@ -26,10 +27,12 @@ export function useKeyboard() {
         setIsKeyboardVisible(false);
       }
     ).then((fn) => {
-      cleanup = fn;
+      if (disposed) fn?.();
+      else cleanup = fn;
     });
 
     return () => {
+      disposed = true;
       cleanup?.();
     };
   }, []);

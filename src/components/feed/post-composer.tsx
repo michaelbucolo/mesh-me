@@ -572,10 +572,10 @@ export function PostComposer({ user, communityId, communityIsPublic = true, star
               {mediaFiles.map((item) => (
                 <div key={item.id} className="feed-composer-media-preview">
                   {item.type === "video" ? (
-                    <video src={item.url} className="h-full w-full object-cover" controls muted playsInline preload="metadata" aria-label={`Preview ${item.file.name}`} />
+                    <video src={item.url} className="h-full w-full object-contain" controls muted playsInline preload="metadata" aria-label={`Preview ${item.file.name}`} />
                   ) : (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={item.url} alt={`Preview of ${item.file.name}`} className="h-full w-full object-cover" />
+                    <img src={item.url} alt={`Preview of ${item.file.name}`} decoding="async" className="h-full w-full object-contain" />
                   )}
                   <button type="button" onClick={() => removeMediaFile(item.id)} aria-label="Remove media" className="feed-composer-remove-media">
                     <X className="h-3.5 w-3.5" />

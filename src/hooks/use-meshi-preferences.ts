@@ -30,6 +30,10 @@ export interface MeshiPreferences {
 
 export const MESHI_PREFERENCES_EVENT = "meshi:preferences-updated";
 
+let serverSeeded = false;
+let seedVersion = 0;
+let hydrationInFlight: Promise<MeshiPreferences> | null = null;
+
 const STORAGE_KEYS = {
   color: "meshiColor",
   hat: "meshiHat",
@@ -115,6 +119,7 @@ function broadcastMeshiPreferences(prefs: MeshiPreferences) {
 }
 
 export function updateMeshiLocalPreferences(patch: Partial<MeshiPreferences>) {
+  seedVersion += 1;
   const next = {
     ...readMeshiPreferencesFromStorage(),
     ...patch,
@@ -135,6 +140,8 @@ export type ServerMeshiPreference = Awaited<ReturnType<typeof getMeshiPreference
  */
 export function applyServerMeshiPreferences(serverPref: ServerMeshiPreference): MeshiPreferences {
   const local = readMeshiPreferencesFromStorage();
+  serverSeeded = true;
+  seedVersion += 1;
 
   if (!serverPref) return local;
 
@@ -156,8 +163,16 @@ export function applyServerMeshiPreferences(serverPref: ServerMeshiPreference): 
 }
 
 async function hydrateMeshiPreferencesFromServer() {
-  const serverPref = await getMeshiPreference();
-  return applyServerMeshiPreferences(serverPref);
+  if (hydrationInFlight) return hydrationInFlight;
+  const version = seedVersion;
+  hydrationInFlight = getMeshiPreference().then((serverPref) => {
+    // A newer server bootstrap or local preference save wins a racing request.
+    if (version !== seedVersion) return readMeshiPreferencesFromStorage();
+    return applyServerMeshiPreferences(serverPref);
+  }).finally(() => {
+    hydrationInFlight = null;
+  });
+  return hydrationInFlight;
 }
 
 /**
@@ -178,6 +193,7 @@ export function useMeshiPreferences(): MeshiPreferences & { refresh: () => void 
   }, []);
 
   useEffect(() => {
+    if (serverSeeded) return;
     let mounted = true;
 
     hydrateMeshiPreferencesFromServer()

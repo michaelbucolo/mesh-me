@@ -3,6 +3,8 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence, useAnimationControls, useReducedMotion, MotionConfig } from "framer-motion";
 import { usePathname } from "next/navigation";
+import dynamic from "next/dynamic";
+import { PaperWait } from "@/components/loading/paper-wait";
 import { Send, Ghost } from "lucide-react";
 import {
   MeshiMascot,
@@ -16,13 +18,12 @@ import {
   type MeshiProp,
   PAGE_PROPS,
 } from "./meshi-mascot";
-import { MeshiChat } from "./meshi-chat";
-import { MeshiActionsMenu } from "./meshi-actions-menu";
+
+
 import { useCanvasHasMeshi } from "@/components/mesh/live/meshi-presence";
 import { askMeshi, runMeshiAction } from "@/lib/meshi-client";
 import type { MeshiAction, MeshiContext, MeshiHistoryMessage } from "@/lib/meshi-shared";
 import { getMeshGraphData, type MeshGraphEntity } from "@/lib/queries";
-import { getMeshiPreference } from "@/lib/actions";
 import { clearLegacyMeshiContext } from "@/lib/meshi-knowledge";
 import {
   areFocusedContentEqual,
@@ -40,7 +41,7 @@ import {
 import { reactionFor, subscribeMeshiCause } from "@/lib/meshi-bus";
 import { shouldHideGlobalMeshi } from "@/lib/meshi-routes";
 import { useGhostMode } from "@/hooks/use-ghost-mode";
-import { MESHI_PREFERENCES_EVENT, type MeshiPreferences } from "@/hooks/use-meshi-preferences";
+import { MESHI_PREFERENCES_EVENT, useMeshiPreferences, type MeshiPreferences } from "@/hooks/use-meshi-preferences";
 import { PRESENCE_ACCOUNT_EVENT, readPresenceAccount } from "@/lib/presence-account";
 
 // One living Meshi represents the user across surfaces. CSS docks the body
@@ -82,6 +83,15 @@ const MESHI_INSTANCE_ID_KEY = "meshi-instance-id";
 // v1 blobs (which did) fail the version check and are discarded cleanly.
 const MESHI_CONTINUITY_STATE_VERSION = 2 as const;
 const MESHI_CONTINUITY_MAX_AGE_MS = 10 * 60 * 1000;
+const MeshiChat = dynamic(() => import("./meshi-chat").then((module) => module.MeshiChat), {
+  ssr: false,
+  loading: () => <div className="fixed bottom-24 right-4 z-50 rounded-xl border border-[var(--rule)] bg-[var(--paper-1)] p-4"><PaperWait label="Opening Meshi chat" /></div>,
+});
+const MeshiActionsMenu = dynamic(() => import("./meshi-actions-menu").then((module) => module.MeshiActionsMenu), {
+  ssr: false,
+  loading: () => <div className="fixed bottom-24 right-4 z-50 rounded-xl border border-[var(--rule)] bg-[var(--paper-1)] p-4"><PaperWait label="Opening Meshi controls" /></div>,
+});
+
 const MESHI_VIEW_VALUES = new Set<MeshiView>(["closed", "actions", "speech", "chat"]);
 
 type MeshiContinuityState = {
@@ -146,6 +156,8 @@ function writeMeshiContinuityState(state: MeshiContinuityState) {
 }
 
 export function MeshiFloat() {
+  // Public pages have no server bootstrap; share the same deduplicated fallback.
+  useMeshiPreferences();
   const [initialContinuity] = useState<MeshiContinuityState | null>(() => readMeshiContinuityState());
   const [instanceId] = useState(() => getOrCreateMeshiInstanceId());
 
@@ -155,6 +167,11 @@ export function MeshiFloat() {
     try { return localStorage.getItem("meshiEnabled") !== "false"; } catch { return true; }
   });
   const [view, setView] = useState<MeshiView>(() => initialContinuity?.view ?? "closed");
+  const [chatActivated, setChatActivated] = useState(initialContinuity?.view === "chat");
+  useEffect(() => {
+    if (view === "chat") setChatActivated(true);
+  }, [view]);
+
 
   const [mood, setMood] = useState<MeshiMood>(() => {
     if (initialContinuity?.mood) return initialContinuity.mood;
@@ -399,7 +416,7 @@ export function MeshiFloat() {
     };
 
     const scheduleUpdate = () => {
-      if (frame !== null) return;
+      if (frame !== null || document.visibilityState !== "visible") return;
       frame = window.requestAnimationFrame(updateFocusedContent);
     };
 
@@ -407,33 +424,17 @@ export function MeshiFloat() {
     const interval = window.setInterval(scheduleUpdate, 2200);
     window.addEventListener("scroll", scheduleUpdate, { passive: true });
     window.addEventListener("resize", scheduleUpdate);
+    document.addEventListener("visibilitychange", scheduleUpdate);
 
     return () => {
       if (frame !== null) window.cancelAnimationFrame(frame);
       window.clearInterval(interval);
       window.removeEventListener("scroll", scheduleUpdate);
       window.removeEventListener("resize", scheduleUpdate);
+      document.removeEventListener("visibilitychange", scheduleUpdate);
     };
   }, [meshiEnabled, pathname, view]);
 
-  useEffect(() => {
-    if (!meshiEnabled) return;
-    const timer = window.setTimeout(() => {
-      getMeshiPreference().then((pref) => {
-        if (pref) {
-          if (pref.faceStyle) setMeshiFace(pref.faceStyle);
-          if (pref.colorTheme) setMeshiColor(pref.colorTheme as MeshiColor);
-          if (pref.hatStyle) setMeshiHat(pref.hatStyle as MeshiHat);
-          if (pref.hairStyle) setMeshiHair(pref.hairStyle as MeshiHair);
-          if (pref.hairColor) setMeshiHairColor(pref.hairColor);
-          if (pref.accessoryStyle) setMeshiAccessory(pref.accessoryStyle as MeshiAccessory);
-          if (pref.eyeStyle) setMeshiEye(pref.eyeStyle as MeshiEyeStyle);
-          if (pref.badgeStyle) setMeshiBadge(pref.badgeStyle as MeshiBadge);
-        }
-      }).catch(() => {});
-    }, 900);
-    return () => window.clearTimeout(timer);
-  }, [meshiEnabled]);
 
   useEffect(() => {
     const applyPrefs = (prefs: Partial<MeshiPreferences>) => {
@@ -1026,7 +1027,7 @@ export function MeshiFloat() {
       </AnimatePresence>
 
       {/* Full Meshi Chat */}
-      <MeshiChat
+      {(view === "chat" || chatActivated) && <MeshiChat
         key={contextSession}
         isOpen={view === "chat"}
         onClose={closeAll}
@@ -1038,7 +1039,7 @@ export function MeshiFloat() {
         meshData={meshStats}
         meshEntities={meshEntities}
         focusedContent={focusedContent || undefined}
-      />
+      />}
     </MotionConfig>
   );
 }

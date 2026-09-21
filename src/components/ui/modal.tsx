@@ -1,7 +1,7 @@
 "use client";
 
 import * as Dialog from "@radix-ui/react-dialog";
-import type { RefObject } from "react";
+import { type RefObject, useEffect, useRef } from "react";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "./button";
@@ -18,11 +18,42 @@ interface ModalProps {
 }
 
 export function Modal({ open, onClose, children, className, title, description, initialFocusRef, returnFocusRef }: ModalProps) {
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  // Mobile browsers can pan and shrink the visual viewport independently of
+  // CSS's layout viewport. Keep the complete dialog above the software keyboard.
+  useEffect(() => {
+    if (!open) return;
+    const viewport = window.visualViewport;
+    let frame = 0;
+    const measure = () => {
+      const content = contentRef.current;
+      if (!content) return;
+      content.style.setProperty("--dialog-viewport-height", `${viewport?.height ?? window.innerHeight}px`);
+      content.style.setProperty("--dialog-viewport-top", `${viewport?.offsetTop ?? 0}px`);
+    };
+    const scheduleMeasure = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(measure);
+    };
+    scheduleMeasure();
+    viewport?.addEventListener("resize", scheduleMeasure);
+    viewport?.addEventListener("scroll", scheduleMeasure);
+    window.addEventListener("resize", scheduleMeasure);
+    return () => {
+      cancelAnimationFrame(frame);
+      viewport?.removeEventListener("resize", scheduleMeasure);
+      viewport?.removeEventListener("scroll", scheduleMeasure);
+      window.removeEventListener("resize", scheduleMeasure);
+    };
+  }, [open]);
+
   return (
     <Dialog.Root open={open} onOpenChange={(nextOpen) => (!nextOpen ? onClose() : undefined)}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-[var(--bg-overlay)] backdrop-blur-sm data-[state=open]:animate-fade-in data-[state=closed]:animate-[fadeOut_0.16s_var(--mesh-ease-press)_both]" />
         <Dialog.Content
+          ref={contentRef}
           {...(description ? {} : { "aria-describedby": undefined })}
           onCloseAutoFocus={(event) => {
             const target = returnFocusRef?.current;
