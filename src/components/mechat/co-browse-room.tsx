@@ -25,7 +25,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Check, Loader2, Plus, SkipForward, Users } from "lucide-react";
+import { Check, Plus, SkipForward, Users } from "lucide-react";
+import { PaperWait } from "@/components/loading/paper-wait";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { PlatformLogo } from "@/components/platform/platform-logo";
@@ -163,7 +164,7 @@ export function CoBrowseRoom({
   if (!room) {
     return (
       <div className="flex items-center gap-2 rounded-[var(--ds-radius-lg)] border border-[var(--ds-border)] bg-[var(--ds-surface)] p-4 text-sm text-[var(--text-muted)]">
-        <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+        <PaperWait size="sm" />
         Opening the room…
       </div>
     );
@@ -173,7 +174,7 @@ export function CoBrowseRoom({
   const queue = room.items.filter((i) => i.id !== room.currentItemId);
 
   return (
-    <section className="grid gap-3 rounded-[var(--ds-radius-lg)] border border-[var(--ds-border)] bg-[var(--ds-surface)] p-4">
+    <section className="presence-watch-room grid gap-3 rounded-[var(--ds-radius-lg)] border border-[var(--ds-border)] bg-[var(--ds-surface)] p-4">
       <header className="flex items-center gap-2">
         <Users className="size-4 shrink-0 text-[var(--accent-text)]" aria-hidden="true" />
         <h2 className="min-w-0 flex-1 truncate text-sm font-semibold text-[var(--text-primary)]">{room.title}</h2>

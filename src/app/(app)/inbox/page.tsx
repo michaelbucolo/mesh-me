@@ -30,7 +30,7 @@ export default async function InboxPage({
     // min-h-full, not h-full: the shell's scroll container sizes to content,
     // so h-full collapsed to the height of the list and left a slab of the
     // shell's own background showing underneath.
-    <div className="h-full min-h-full w-full" style={{ background: "#070b14" }}>
+    <div className="h-full min-h-full w-full" style={{ background: "var(--paper-0)" }}>
       <InboxView initial={inbox} initialTab={initialTab} />
     </div>
   );

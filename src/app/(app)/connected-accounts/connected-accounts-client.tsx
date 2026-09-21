@@ -442,12 +442,13 @@ export function ConnectedAccountsClient({
        the screen. `minmax(0, 1fr)` caps the column at the container. */
     <main
       data-testid="connected-accounts-center"
-      className="ds-page-shell grid grid-cols-[minmax(0,1fr)] gap-6"
+      className="personal-studio personal-connections ds-page-shell grid grid-cols-[minmax(0,1fr)] gap-6"
     >
       {/* One line, and it stays one line. This wrapped on a phone — a promise
           and a button stacked into two rows of chrome above a page whose whole
           point is the grid underneath. */}
-      <header className="flex items-center justify-between gap-3">
+      <div className="personal-page-heading"><p className="personal-overline">One identity. Every connection.</p><h2 className="personal-display-title">Bring your worlds together.</h2><p className="personal-page-description">Choose what belongs in your Mesh. You stay in control of every connection.</p></div>
+      <header className="personal-connection-toolbar flex items-center justify-between gap-3">
         <p className="inline-flex min-w-0 items-center gap-1.5 text-xs font-semibold text-[var(--text-muted)]">
           <ShieldCheck className="size-4 shrink-0 text-[var(--accent-text)]" aria-hidden="true" />
           {/* `min-w-0` on BOTH the row and the text. The text is a flex item of
@@ -496,7 +497,7 @@ export function ConnectedAccountsClient({
 
       {/* The One Mesh — your mesh.me identity at the center, every merged
           platform threading home to it. */}
-      <section className="grid gap-3 rounded-[var(--ds-radius-lg)] border border-[var(--ds-border)] bg-[var(--ds-surface)] p-4 sm:p-5">
+      <section className="personal-identity-orbit grid gap-3 rounded-[var(--ds-radius-lg)] border border-[var(--ds-border)] bg-[var(--ds-surface)] p-4 sm:p-5">
         <OneMeshHub identity={identity} accounts={hubAccounts} justConnectedPlatform={justConnected} />
         {/* The handle lives HERE, not under the avatar inside the ring. Text
             stacked below the centre point grows down into the band the lower

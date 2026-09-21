@@ -23,8 +23,8 @@ export function LegalDocumentPage({
   sections: LegalSection[];
 }) {
   return (
-    <PublicSiteShell maxWidth="max-w-6xl">
-      <section className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr] lg:items-end">
+    <PublicSiteShell sectionLabel={eyebrow} maxWidth="max-w-6xl">
+      <section className="public-editorial-hero legal-document-hero grid gap-6 lg:grid-cols-[0.9fr_1.1fr] lg:items-end">
         <div>
           <p className="mesh-kicker mb-4">{eyebrow}</p>
           <h1 className="mesh-title text-4xl leading-tight md:text-6xl">{title}</h1>
@@ -35,31 +35,31 @@ export function LegalDocumentPage({
         </div>
       </section>
 
-      <section className="mt-10 grid gap-6 lg:grid-cols-[16rem_1fr]">
-        <aside className="h-fit rounded-2xl border border-[var(--glass-card-border)] bg-[var(--glass-card-bg)] p-4 lg:sticky lg:top-24">
+      <section className="legal-document-layout">
+        <aside className="legal-document-index">
           <div className="mb-4 flex items-center gap-2">
             <FileCheck2 className="h-4 w-4 text-[var(--accent-text)]" />
             <p className="text-sm font-semibold text-[var(--text-primary)]">On this page</p>
           </div>
-          <nav className="grid gap-1.5">
+          <nav aria-label="Document sections" className="grid gap-1.5">
             {sections.map((section, index) => (
               <a
                 key={section.id}
                 href={`#${section.id}`}
                 className="rounded-lg px-3 py-2 text-sm text-[var(--text-secondary)] transition hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
               >
-                {index + 1}. {section.title}
+                <span className="legal-index-number" aria-hidden="true">{String(index + 1).padStart(2, "0")}</span><span>{section.title}</span>
               </a>
             ))}
           </nav>
         </aside>
 
-        <div className="grid gap-4">
+        <div className="legal-document-body">
           {sections.map((section, index) => (
             <section
               key={section.id}
               id={section.id}
-              className="rounded-2xl border border-[var(--glass-card-border)] bg-[var(--glass-card-bg)] p-5 md:p-6"
+              className="legal-document-section"
             >
               <p className="text-xs font-semibold mesh-eyebrow text-[var(--text-muted)]">Section {index + 1}</p>
               <h2 className="mt-2 text-xl font-semibold text-[var(--text-primary)]">{section.title}</h2>
@@ -69,7 +69,7 @@ export function LegalDocumentPage({
         </div>
       </section>
 
-      <section className="mt-10 grid gap-4 md:grid-cols-[1fr_auto] md:items-center rounded-2xl border border-[var(--glass-card-border)] bg-[var(--glass-card-bg)] p-5">
+      <section className="public-panel legal-document-actions mt-10 grid gap-4 md:grid-cols-[1fr_auto] md:items-center p-5">
         <div className="flex items-start gap-3">
           <ShieldCheck className="mt-1 h-5 w-5 text-emerald-400" />
           <div>

@@ -79,7 +79,7 @@ function ServiceCard({ check }: { check: SystemStatusCheck }) {
   const style = statusStyles[check.status];
 
   return (
-    <article className="rounded-2xl border border-[var(--glass-card-border)] bg-[var(--glass-card-bg)] p-4 shadow-[var(--shadow-sm)]">
+    <article className="public-panel rounded-2xl border border-[var(--glass-card-border)] bg-[var(--glass-card-bg)] p-4 shadow-[var(--shadow-sm)]">
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3">
           <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-[var(--border-primary)] bg-[var(--bg-primary)]">
@@ -107,13 +107,13 @@ export default async function StatusPage() {
   const overallStyle = statusStyles[status.overallStatus];
 
   return (
-    <PublicSiteShell maxWidth="max-w-6xl">
-      <section className="grid gap-5 lg:grid-cols-[0.9fr_1.1fr] lg:items-end">
+    <PublicSiteShell sectionLabel="Live system health" maxWidth="max-w-6xl">
+      <section className="public-editorial-hero grid gap-5 lg:grid-cols-[0.9fr_1.1fr] lg:items-end">
         <div>
           <p className="mesh-kicker mb-3">System status</p>
           <h1 className="mesh-title text-4xl leading-tight md:text-6xl">Mesh.me status is public by default.</h1>
         </div>
-        <div className="rounded-3xl border border-[var(--glass-card-border)] bg-[var(--glass-card-bg)] p-5">
+        <div className="public-panel rounded-3xl border border-[var(--glass-card-border)] bg-[var(--glass-card-bg)] p-5">
           <div className="flex flex-wrap items-center gap-3">
             <span className={`h-3 w-3 rounded-full ${overallStyle.dotClassName}`} aria-hidden="true" />
             <StatusBadge status={status.overallStatus} />

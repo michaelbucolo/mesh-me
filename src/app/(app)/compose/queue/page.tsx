@@ -64,14 +64,14 @@ export default async function QueuePage() {
   }));
 
   return (
-    <div className="h-full min-h-full w-full overflow-y-auto" style={{ background: "#070b14" }}>
-      <div className="mx-auto w-full max-w-2xl px-4 py-6 sm:px-6">
-        <div className="flex items-baseline gap-2">
-          <Link href="/compose" className="text-2xl font-semibold underline-offset-4 hover:underline" style={{ color: "#8b93a7" }}>
+    <div className="h-full min-h-full w-full overflow-y-auto" style={{ background: "var(--paper-0)" }}>
+      <div className="studio-queue-page mx-auto w-full max-w-3xl px-4 py-6 sm:px-6">
+        <div className="studio-compose-heading flex items-baseline gap-2">
+          <Link href="/compose" className="text-2xl font-semibold underline-offset-4 hover:underline" style={{ color: "var(--text-secondary)" }}>
             Compose
           </Link>
-          <span className="text-2xl font-semibold" style={{ color: "#8b93a7" }}>·</span>
-          <h1 className="text-2xl font-semibold" style={{ color: "#f2f4f8" }}>
+          <span className="text-2xl font-semibold" style={{ color: "var(--text-secondary)" }}>·</span>
+          <h1 className="text-2xl font-semibold" style={{ color: "var(--text-primary)" }}>
             Queue{queueRows.filter((r) => r.status === "queued" || r.status === "retrying").length > 0
               ? ` (${queueRows.filter((r) => r.status === "queued" || r.status === "retrying").length})`
               : ""}

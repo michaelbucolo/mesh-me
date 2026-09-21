@@ -14,12 +14,13 @@
 
 import { useMemo, useState } from "react";
 import Image from "next/image";
+import { Inbox, ArrowUpRight } from "lucide-react";
 import { PlatformLogo } from "@/components/platform/platform-logo";
 import type { InboxEntry, InboxRead } from "@/lib/inbox/read-inbox";
 
-const INK = "#f2f4f8";
-const INK_DIM = "#8b93a7";
-const OWED = "#60a5fa";
+const INK = "var(--text-primary)";
+const INK_DIM = "var(--text-secondary)";
+const OWED = "var(--accent-text)";
 
 type Tab = "needs-you" | "all" | "messages";
 
@@ -39,20 +40,18 @@ export function InboxView({ initial, initialTab = "needs-you" }: { initial: Inbo
   }, [initial.entries, tab, platform]);
 
   return (
-    <div className="mx-auto flex h-full w-full max-w-3xl flex-col" data-testid="inbox">
+    <div className="presence-inbox mx-auto flex h-full w-full max-w-3xl flex-col" data-testid="inbox">
       <header className="px-4 pt-5 sm:px-6">
         <div className="flex items-center justify-between gap-3">
-          <h1 className="text-2xl font-semibold" style={{ color: INK }}>
-            Inbox
-          </h1>
+          <div><p className="presence-kicker">All your conversations</p><h1 className="presence-page-title" style={{ color: INK }}>Inbox</h1></div>
           {/* The other half of one place for everything: what reaches you, and
               what you send out. Putting them on the same screen is the point. */}
           <a
             href="/compose"
-            className="shrink-0 rounded-full px-3.5 py-1.5 font-semibold"
-            style={{ background: OWED, color: "#04060c", fontSize: 13.5 }}
+            className="presence-primary-link shrink-0 rounded-full px-3.5 py-1.5 font-semibold"
+            style={{ background: "var(--accent)", color: "var(--accent-ink)", fontSize: 13.5 }}
           >
-            Post everywhere
+            Post everywhere <ArrowUpRight size={15} aria-hidden="true" />
           </a>
         </div>
         <p className="mt-1 text-sm" style={{ color: INK_DIM }}>
@@ -119,7 +118,7 @@ function Row({ entry, nowMs }: { entry: InboxEntry; nowMs: number }) {
       data-testid="inbox-entry"
       data-owed={entry.awaitingYou ? "1" : "0"}
       data-platform={entry.platform}
-      className="flex items-start gap-3 rounded-xl px-3 py-3 transition-colors hover:bg-white/[0.04] focus:bg-white/[0.06] focus:outline-none"
+      className="presence-inbox-row flex items-start gap-3 rounded-xl px-3 py-3 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
       style={{
         // A left rule rather than a filled row: the thing you owe should be
         // findable at a glance without the list turning into stripes.
@@ -129,7 +128,7 @@ function Row({ entry, nowMs }: { entry: InboxEntry; nowMs: number }) {
       <span className="relative shrink-0">
         <span
           className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full"
-          style={{ background: "#0e1626", border: "1px solid #ffffff14" }}
+          style={{ background: "var(--paper-2)", border: "1px solid var(--rule)" }}
         >
           {entry.who?.avatarUrl ? (
             <Image
@@ -150,7 +149,7 @@ function Row({ entry, nowMs }: { entry: InboxEntry; nowMs: number }) {
         {/* Which platform it came from — the whole reason this inbox exists. */}
         <span
           className="absolute -bottom-0.5 -right-0.5 flex h-[18px] w-[18px] items-center justify-center rounded-full"
-          style={{ background: "#0b1220", border: "1px solid #ffffff1f" }}
+          style={{ background: "var(--paper-1)", border: "1px solid var(--rule)" }}
         >
           <PlatformLogo platform={entry.platform} size={11} />
         </span>
@@ -174,7 +173,7 @@ function Row({ entry, nowMs }: { entry: InboxEntry; nowMs: number }) {
         </span>
 
         {entry.awaitingYou && (
-          <span className="mt-1 inline-block rounded-full px-2 py-0.5 font-semibold" style={{ background: `${OWED}22`, color: OWED, fontSize: 11 }}>
+          <span className="mt-1 inline-block rounded-full px-2 py-0.5 font-semibold" style={{ background: "color-mix(in srgb, var(--accent) 12%, transparent)", color: OWED, fontSize: 11 }}>
             {entry.kind === "message" ? "Reply" : "Waiting on you"}
           </span>
         )}
@@ -202,8 +201,8 @@ function Chip({
       onClick={onClick}
       className="min-h-11 rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors"
       style={{
-        background: active ? OWED : "#ffffff0d",
-        color: active ? "#04060c" : INK,
+        background: active ? "var(--text-primary)" : "var(--paper-2)",
+        color: active ? "var(--paper-0)" : INK,
       }}
     >
       {label}
@@ -235,9 +234,9 @@ function PlatformChip({
       aria-pressed={active}
       className="flex items-center rounded-full px-2.5 py-1 text-xs font-medium transition-colors"
       style={{
-        background: active ? "#ffffff1a" : "transparent",
+        background: active ? "var(--paper-3)" : "transparent",
         color: active ? INK : INK_DIM,
-        border: `1px solid ${active ? "#ffffff26" : "#ffffff12"}`,
+        border: "1px solid var(--rule)",
       }}
     >
       {children}
@@ -249,18 +248,19 @@ function PlatformChip({
 function Empty({ tab }: { tab: Tab }) {
   const text =
     tab === "needs-you"
-      ? "Nothing is waiting on you. That is the good state."
+      ? "You’re all caught up."
       : tab === "messages"
         ? "No messages yet."
         : "Nothing has reached you yet.";
   return (
-    <div className="flex flex-col items-center justify-center py-20 text-center">
+    <div className="presence-inbox-empty flex flex-col items-center justify-center py-20 text-center">
+      <span className="presence-empty-symbol"><Inbox size={26} aria-hidden="true" /></span>
       <p style={{ color: INK, fontSize: 15, fontWeight: 500 }}>{text}</p>
       {tab === "needs-you" && (
         <a
           href="/connected-accounts"
           className="mt-3 rounded-full px-3.5 py-1.5 text-sm font-semibold"
-          style={{ background: `${OWED}22`, color: OWED }}
+          style={{ background: "color-mix(in srgb, var(--accent) 12%, transparent)", color: OWED }}
         >
           Connect another platform
         </a>

@@ -1,7 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { AlertTriangle, Bug, CheckCircle2, Send, X } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Send } from "lucide-react";
+import { Modal } from "@/components/ui/modal";
+import { PaperWait } from "@/components/loading/paper-wait";
 import { meshAppVersion } from "@/lib/app-info";
 
 type Diagnostics = {
@@ -119,24 +121,7 @@ export function BugReportWidget() {
   const details = diagnostics ?? (typeof window !== "undefined" ? collectDiagnostics() : null);
 
   return (
-    <div className="bug-report-widget pointer-events-none fixed z-[90] flex flex-col items-end gap-3">
-      {open && (
-        <section className="plate plate-raised pointer-events-auto w-[min(24rem,calc(100vw-1.5rem))] p-4 text-[var(--text-primary)]" aria-label="Report a bug">
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <span className="grid h-9 w-9 place-items-center rounded-2xl bg-[var(--accent)] text-[var(--accent-contrast)]">
-                <Bug className="h-4 w-4" aria-hidden="true" />
-              </span>
-              <div>
-                <h2 className="text-base font-semibold">Report a bug</h2>
-                <p className="text-xs text-[var(--text-muted)]">Diagnostics are attached automatically.</p>
-              </div>
-            </div>
-            <button type="button" onClick={() => setOpen(false)} className="rounded-full p-2 text-[var(--text-muted)] transition hover:bg-[var(--bg-primary)] hover:text-[var(--text-primary)]" aria-label="Close bug report">
-              <X className="h-4 w-4" aria-hidden="true" />
-            </button>
-          </div>
-
+    <Modal open={open} onClose={() => setOpen(false)} title="Report a bug" description="Tell us what happened. Page and device details help us investigate." className="studio-bug-report">
           <form onSubmit={submitBugReport} className="mt-4 space-y-3">
             <label className="grid gap-2 text-sm font-semibold">
               What happened?
@@ -147,7 +132,7 @@ export function BugReportWidget() {
                 minLength={8}
                 maxLength={2000}
                 rows={4}
-                className="resize-none rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-primary)] px-3 py-2 text-sm font-semibold leading-6 outline-none transition focus:border-[var(--accent)]"
+                className="mesh-field resize-none rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-primary)] px-3 py-2 text-sm font-semibold leading-6 outline-none transition focus:border-[var(--accent)]"
                 placeholder="Briefly describe the broken behavior."
               />
             </label>
@@ -159,13 +144,15 @@ export function BugReportWidget() {
                 onChange={(event) => setContactEmail(event.currentTarget.value)}
                 type="email"
                 autoComplete="email"
-                className="min-h-11 rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-primary)] px-3 text-sm font-semibold outline-none transition focus:border-[var(--accent)]"
+                className="mesh-field min-h-11 rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-primary)] px-3 text-sm font-semibold outline-none transition focus:border-[var(--accent)]"
                 placeholder="you@example.com"
               />
             </label>
 
             {details && (
-              <dl className="grid gap-1 rounded-2xl border border-[var(--border-primary)] bg-[var(--bg-primary)]/62 p-3 text-xs leading-5 text-[var(--text-secondary)]">
+              <details className="studio-report-details">
+                <summary>Page and device details</summary>
+              <dl className="grid gap-1 rounded-2xl border border-[var(--border-primary)] bg-[var(--paper-0)] p-3 text-xs leading-5 text-[var(--text-secondary)]">
                 <div className="flex justify-between gap-3">
                   <dt className="font-semibold text-[var(--text-primary)]">Page</dt>
                   <dd className="truncate text-right">{details.pageUrl}</dd>
@@ -187,6 +174,7 @@ export function BugReportWidget() {
                   <dd>{details.appVersion}</dd>
                 </div>
               </dl>
+              </details>
             )}
 
             {submitState.status === "error" && (
@@ -204,12 +192,10 @@ export function BugReportWidget() {
             )}
 
             <button type="submit" disabled={submitState.status === "submitting"} className="mesh-action mesh-action-primary w-full justify-center px-4 text-sm">
-              <Send className="h-4 w-4" aria-hidden="true" />
+              {submitState.status === "submitting" ? <PaperWait size="sm" /> : <Send className="h-4 w-4" aria-hidden="true" />}
               {submitState.status === "submitting" ? "Sending..." : "Send report"}
             </button>
           </form>
-        </section>
-      )}
-    </div>
+    </Modal>
   );
 }

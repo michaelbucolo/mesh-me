@@ -9,7 +9,7 @@
 
 import type { LifetimePayload } from "@/lib/analytics-eras";
 
-const CARD = "rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] p-5";
+const CARD = "personal-insight-card rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] p-5";
 
 function monthLabel(key: string): string {
   const [year, month] = key.split("-").map(Number);

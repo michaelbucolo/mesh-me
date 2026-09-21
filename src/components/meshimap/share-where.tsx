@@ -107,7 +107,7 @@ export function ShareWhere({ initiallySharing }: { initiallySharing: boolean }) 
   const sharing = state.kind === "sharing" || (initiallySharing && state.kind === "idle");
 
   return (
-    <div className="absolute bottom-3 left-3">
+    <div className="presence-map-sharing absolute bottom-3 left-3">
       {!open && (
         <button
           type="button"
@@ -115,8 +115,8 @@ export function ShareWhere({ initiallySharing }: { initiallySharing: boolean }) 
           onClick={() => (sharing ? void stop() : setOpen(true))}
           className="rounded-full px-3.5 py-2"
           style={{
-            background: sharing ? "#182642" : "#60a5fa",
-            color: sharing ? "#dce4f5" : "#04060c",
+            background: sharing ? "var(--paper-2)" : "var(--accent)",
+            color: sharing ? "var(--text-primary)" : "var(--accent-ink)",
             fontSize: 13,
             fontWeight: 600,
           }}
@@ -128,11 +128,11 @@ export function ShareWhere({ initiallySharing }: { initiallySharing: boolean }) 
       {open && (
         <div
           data-testid="share-where-panel"
-          className="w-[min(20rem,calc(100vw-1.5rem))] rounded-2xl p-3.5"
-          style={{ background: "#0d1730", border: "1px solid #ffffff1f" }}
+          className="presence-map-share-panel w-[min(20rem,calc(100vw-1.5rem))] rounded-2xl p-3.5"
+          style={{ background: "var(--paper-1)", border: "1px solid var(--rule)" }}
         >
-          <div style={{ color: "#e8edf8", fontSize: 14, fontWeight: 600 }}>Who can see roughly where you are?</div>
-          <p className="mt-1" style={{ color: "#93a0bb", fontSize: 11.5 }}>
+          <div style={{ color: "var(--text-primary)", fontSize: 14, fontWeight: 600 }}>Who can see roughly where you are?</div>
+          <p className="mt-1" style={{ color: "var(--text-secondary)", fontSize: 11.5 }}>
             You appear at the centre of an area, never at your address. It disappears on its own
             after an hour.
           </p>
@@ -143,14 +143,15 @@ export function ShareWhere({ initiallySharing }: { initiallySharing: boolean }) 
                 key={p.value}
                 type="button"
                 onClick={() => setPrecision(p.value)}
-                className="flex items-center justify-between rounded-lg px-2.5 py-1.5 text-left"
+                aria-pressed={precision === p.value}
+                className="flex min-h-11 items-center justify-between rounded-lg px-2.5 py-1.5 text-left"
                 style={{
-                  background: precision === p.value ? "#1d3358" : "#111d33",
-                  border: `1px solid ${precision === p.value ? "#60a5fa" : "#ffffff14"}`,
+                  background: precision === p.value ? "var(--paper-3)" : "var(--paper-2)",
+                  border: `1px solid ${precision === p.value ? "var(--accent)" : "var(--rule)"}`,
                 }}
               >
-                <span style={{ color: "#dce4f5", fontSize: 12.5 }}>{p.label}</span>
-                <span style={{ color: "#6d7c99", fontSize: 11 }}>{p.detail}</span>
+                <span style={{ color: "var(--text-primary)", fontSize: 12.5 }}>{p.label}</span>
+                <span style={{ color: "var(--text-secondary)", fontSize: 11 }}>{p.detail}</span>
               </button>
             ))}
           </div>
@@ -162,11 +163,11 @@ export function ShareWhere({ initiallySharing }: { initiallySharing: boolean }) 
                 type="button"
                 data-testid={`share-where-${a.value}`}
                 onClick={() => void share(a.value)}
-                className="flex items-center justify-between rounded-lg px-2.5 py-2 text-left"
-                style={{ background: "#182642" }}
+                className="flex min-h-11 items-center justify-between rounded-lg px-2.5 py-2 text-left"
+                style={{ background: "var(--paper-2)" }}
               >
-                <span style={{ color: "#e8edf8", fontSize: 13 }}>{a.label}</span>
-                <span style={{ color: "#6d7c99", fontSize: 11 }}>{a.detail}</span>
+                <span style={{ color: "var(--text-primary)", fontSize: 13 }}>{a.label}</span>
+                <span style={{ color: "var(--text-secondary)", fontSize: 11 }}>{a.detail}</span>
               </button>
             ))}
           </div>
@@ -175,23 +176,23 @@ export function ShareWhere({ initiallySharing }: { initiallySharing: boolean }) 
             type="button"
             onClick={() => setOpen(false)}
             className="mt-2.5 w-full rounded-lg py-1.5"
-            style={{ color: "#93a0bb", fontSize: 12.5 }}
+            style={{ color: "var(--text-secondary)", fontSize: 12.5 }}
           >
             Not now
           </button>
 
           {state.kind === "asking" && (
-            <p className="mt-2" style={{ color: "#93a0bb", fontSize: 11.5 }}>
+            <p className="mt-2" style={{ color: "var(--text-secondary)", fontSize: 11.5 }}>
               Waiting for your device…
             </p>
           )}
           {state.kind === "denied" && (
-            <p className="mt-2" style={{ color: "#f0a3a3", fontSize: 11.5 }}>
+            <p className="mt-2" style={{ color: "var(--danger)", fontSize: 11.5 }}>
               Your device didn&apos;t share a location. Nothing was sent.
             </p>
           )}
           {state.kind === "error" && (
-            <p className="mt-2" style={{ color: "#f0a3a3", fontSize: 11.5 }}>
+            <p className="mt-2" style={{ color: "var(--danger)", fontSize: 11.5 }}>
               {state.message}
             </p>
           )}

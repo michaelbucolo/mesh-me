@@ -719,8 +719,9 @@ export function SettingsControlCenter({
   }
 
   return (
-    <div className="settings-traditional flex flex-col">
+    <div className="personal-studio settings-studio settings-traditional flex flex-col">
       <header className="settings-traditional-header plate shrink-0 p-4 md:p-5">
+        <div className="personal-heading-line"><span className="personal-overline">Your personal studio</span><span className="personal-heading-note">Your world, your way</span></div>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-3">
             <MeshiMascot
@@ -785,7 +786,7 @@ export function SettingsControlCenter({
             </form>
           </div>
         </div>
-        <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="settings-studio-summary mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
           <SummaryPill label="Email" value={settings.emailVerified ? "Verified" : "Needs review"} icon={MailCheck} />
           <SummaryPill label="Platforms" value={`${connectedCount} connected`} icon={PlugZap} />
           {/* Reads the EFFECTIVE gate, not the raw isPublic column.
@@ -894,6 +895,7 @@ export function SettingsControlCenter({
                 <ChevronLeft size={16} aria-hidden="true" />
                 Settings
               </button>
+              <p className="personal-overline settings-section-caption">{activeSection === "appearance" || activeSection === "meshi" ? "Make it yours" : activeSection === "privacy" || activeSection === "security" ? "Peace of mind" : activeSection === "billing" || activeSection === "data" ? "Yours to manage" : "A little more you"}</p>
               <h2 ref={panelHeadingRef} tabIndex={-1} className="text-lg font-semibold text-[var(--text-primary)]">{activeSectionMeta.label}</h2>
               <p className="mt-0.5 text-xs text-[var(--text-muted)]">
                 {activeSectionMeta.description}
@@ -1732,7 +1734,7 @@ function RecoveryMethods() {
       </div>
       {message && <p className="mt-3 rounded-lg border border-[var(--border-primary)] bg-[var(--bg-primary)] px-3 py-2 text-xs font-semibold text-[var(--text-secondary)]">{message}</p>}
       <div className="settings-list mt-3">
-        {loading ? <p className="text-sm text-[var(--text-muted)]">Loading recovery methods...</p> : null}
+        {loading ? <p role="status" className="personal-inline-wait text-sm text-[var(--text-muted)]"><PaperWait size="sm" />Loading recovery methods…</p> : null}
         {[...emails.map((item) => ({ ...item, kind: "email" as const, label: item.email })), ...phones.map((item) => ({ ...item, kind: "phone" as const, label: item.phone }))].map((item) => (
           <div key={`${item.kind}-${item.id}`} className="settings-row leaf">
             <span className="flex min-w-0 items-center gap-2.5">
@@ -1846,7 +1848,7 @@ function TwoFactorMethods() {
       </div>
       {message && <p className="mt-3 rounded-lg border border-[var(--border-primary)] bg-[var(--bg-primary)] px-3 py-2 text-xs font-semibold text-[var(--text-secondary)]">{message}</p>}
       <div className="settings-list mt-3">
-        {loading ? <p className="text-sm text-[var(--text-muted)]">Loading 2FA methods...</p> : null}
+        {loading ? <p role="status" className="personal-inline-wait text-sm text-[var(--text-muted)]"><PaperWait size="sm" />Loading 2FA methods…</p> : null}
         {methods.length > 0 ? methods.map((item) => (
           <div key={item.id} className="settings-row leaf">
             <span className="flex min-w-0 items-center gap-2.5">

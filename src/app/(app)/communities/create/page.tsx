@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 
 export default function CreateCommunityPage() {
   return (
-    <main className="mx-auto w-full max-w-3xl px-3 py-4 sm:px-6">
+    <main className="social-page social-community-create mx-auto w-full max-w-3xl px-3 py-4 sm:px-6">
       <Button asChild variant="ghost" size="sm" className="mb-4">
         <Link href="/communities">
           <ArrowLeft className="h-4 w-4" />

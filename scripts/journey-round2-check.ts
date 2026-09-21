@@ -117,7 +117,7 @@ const tokensPanel = strip(read("src/components/privacy/api-tokens-panel.tsx"));
   if (!/const draftEmpty = !text\.trim\(\) && !title\.trim\(\)/.test(composerView)) {
     fail("7 compose", "the empty-draft neutral state is gone — first paint shows a red Blocked refusal again");
   } else ok();
-  if (!/draftEmpty \? "#ffffff1f"/.test(composerView) || !/Waiting for words/.test(composerView)) {
+  if (!/draftEmpty \? "var\(--edge\)"/.test(composerView) || !/Waiting for words/.test(composerView)) {
     fail("7 compose", "the empty draft renders the WARN treatment again");
   } else ok();
   if (!/on && !\(draftEmpty && !verdict\?\.ok\)/.test(composerView)) {
@@ -127,8 +127,12 @@ const tokensPanel = strip(read("src/components/privacy/api-tokens-panel.tsx"));
 
 // ── 8. Every control meets the floor ─────────────────────────────────────────
 {
-  const datetimeFloors = (read("src/components/compose/composer-view.tsx").match(/colorScheme: "dark", minHeight: 44/g) || []).length
-    + (read("src/components/compose/queue-view.tsx").match(/colorScheme: "dark", minHeight: 44/g) || []).length;
+  // The studio uses the active theme; control size must not depend on forcing
+  // a dark native picker. Check each datetime input's own touch target.
+  const datetimeInputs = [...composerView.matchAll(/<input\b[\s\S]*?\/>/g), ...queueView.matchAll(/<input\b[\s\S]*?\/>/g)]
+    .map(([element]) => element)
+    .filter((element) => /type="datetime-local"/.test(element));
+  const datetimeFloors = datetimeInputs.filter((element) => /minHeight: 44/.test(element)).length;
   if (datetimeFloors < 3) {
     fail("8 floors", `only ${datetimeFloors}/3 schedule datetime inputs carry the 44px floor`);
   } else ok();

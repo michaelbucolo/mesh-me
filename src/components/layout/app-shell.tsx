@@ -13,6 +13,9 @@ import {
   ChevronDown,
   ChevronRight,
   CreditCard,
+  Command,
+  Newspaper,
+  Users,
   Link2,
   LogOut,
   Moon,
@@ -286,7 +289,8 @@ function ShellTopBar({
           details[open] > .mesh-account-panel { animation: none; }
         }
       `}</style>
-      <div className="min-w-0 flex-1 lg:flex-none">
+      <div className="mesh-location min-w-0 flex-1 lg:flex-none">
+        <span className="mesh-location-context" aria-hidden="true">mesh.me /</span>
         <div className="flex min-w-0 items-center gap-2">
           <motion.h1
             key={routeInfo.title}
@@ -583,7 +587,7 @@ export function AppShell({ children, user }: AppShellProps) {
       {/* Sidebar */}
       <aside className="mesh-sidebar hidden h-dvh flex-col border-r border-[var(--mesh-border)] bg-[var(--mesh-bg)] md:flex">
         {/* Brand */}
-        <div className="px-5 pt-5 pb-6">
+        <div className="mesh-sidebar-brand px-5 pt-5 pb-6">
           <MeshiBrandLockup
             href="/mesh"
             size={30}
@@ -592,8 +596,20 @@ export function AppShell({ children, user }: AppShellProps) {
           />
         </div>
 
+        <button
+          type="button"
+          className="mesh-quick-jump"
+          onClick={() => window.dispatchEvent(new CustomEvent("mesh:open-command-palette"))}
+          aria-label="Open command palette"
+        >
+          <Command className="h-4 w-4" aria-hidden="true" />
+          <span>Jump anywhere</span>
+          <kbd aria-hidden="true">⌘ / Ctrl K</kbd>
+        </button>
+
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto px-3" aria-label="Primary navigation">
+          <p className="mesh-navigation-label">Your world</p>
           <div className="space-y-0.5">
             {primaryNavItems.map((item) => {
               const href = resolveNavHref(item.href, user.username);
@@ -602,6 +618,12 @@ export function AppShell({ children, user }: AppShellProps) {
 
               return <SidebarNavItem key={item.href} item={item} href={href} active={active} badgeCount={badgeCount} />;
             })}
+          </div>
+          <div className="mesh-library-navigation">
+            <p className="mesh-navigation-label">Your collection</p>
+            <Link href="/feed" aria-current={isFeedSurface ? "page" : undefined} data-feedback="navigate"><Newspaper aria-hidden="true" /><span>Feed</span></Link>
+            <Link href="/saved" aria-current={pathname === "/saved" ? "page" : undefined} data-feedback="navigate"><Bookmark aria-hidden="true" /><span>Saved</span></Link>
+            <Link href="/communities" aria-current={pathname.startsWith("/communities") ? "page" : undefined} data-feedback="navigate"><Users aria-hidden="true" /><span>Communities</span></Link>
           </div>
         </nav>
 

@@ -3,7 +3,7 @@
 
 "use client";
 
-import { ArrowLeft, UserRound } from "lucide-react";
+import { ArrowLeft, Globe2, Orbit, UserRound } from "lucide-react";
 import Link from "next/link";
 
 export function MeshModeTabs({
@@ -23,14 +23,16 @@ export function MeshModeTabs({
   // URL-driven (router.push, not local state) so the load keys off the prop,
   // the prefetch keeps URL parity, and back/refresh behave.
   return (
-    <div className="mesh-glass absolute left-1/2 top-20 z-30 flex -translate-x-1/2 items-center gap-1 rounded-full p-1">
+    <div className="presence-world-mode absolute left-1/2 top-20 z-30 -translate-x-1/2">
+      <p className="presence-kicker">{isGlobal ? "An interconnected world" : "Your world, your way"}</p>
+      <div className="presence-world-switch mesh-glass flex items-center gap-1 rounded-full p-1" role="group" aria-label="Choose a mesh">
       <button
         type="button"
         onClick={onMesh}
         aria-pressed={!isGlobal}
         className={`mesh-ctl ds-focus-ring rounded-full border border-transparent px-4 py-2 text-xs font-semibold ${!isGlobal ? "mesh-ctl-active" : ""}`}
       >
-        Mesh
+        <Orbit size={15} aria-hidden="true" /> Mesh
       </button>
       <button
         type="button"
@@ -38,8 +40,9 @@ export function MeshModeTabs({
         aria-pressed={isGlobal}
         className={`mesh-ctl ds-focus-ring rounded-full border border-transparent px-4 py-2 text-xs font-semibold ${isGlobal ? "mesh-ctl-active" : ""}`}
       >
-        Global
+        <Globe2 size={15} aria-hidden="true" /> Global
       </button>
+      </div>
     </div>
   );
 }
@@ -53,7 +56,7 @@ export function MeshVisitingHeader({
 }) {
   if (!viewedUser) return null;
   return (
-    <div className="absolute left-3 top-20 z-30 flex items-center gap-2">
+    <div className="presence-world-visiting absolute left-3 top-20 z-30 flex items-center gap-2">
       <button
         type="button"
         onClick={onBack}

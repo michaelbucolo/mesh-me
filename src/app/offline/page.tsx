@@ -10,18 +10,13 @@ export const metadata: Metadata = {
 // network. Static, tiny, and dependency-free so it always renders.
 export default function OfflinePage() {
   return (
-    <main className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-[var(--paper-0)] px-6 text-center">
-      <span className="text-2xl font-semibold tracking-tight text-white">mesh.me</span>
-      <p className="max-w-xs text-sm leading-6 text-white/60">
-        You&apos;re offline. Your mesh is still out there — reconnect and pick up right
-        where you left off.
-      </p>
-      <Link
-        href="/mesh"
-        className="rounded-full border border-white/20 px-5 py-2 text-sm font-semibold text-white transition hover:bg-white/10"
-      >
-        Try again
-      </Link>
+    <main className="public-offline">
+      <div className="offline-orbit" aria-hidden="true"><span className="offline-meshi"><i /><i /></span><span className="offline-satellite" /></div>
+      <p className="public-kicker">mesh.me</p>
+      <h1>A quiet moment.</h1>
+      <p className="offline-copy">You&apos;re offline. Reconnect and pick up right where you left off.</p>
+      <Link href="/mesh" className="public-join-link">Try again <span aria-hidden="true">↗</span></Link>
+      <p className="offline-caption">Your world is worth coming back to.</p>
     </main>
   );
 }

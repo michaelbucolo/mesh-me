@@ -46,13 +46,13 @@ export default async function PrivacyControlsPage() {
       <PrivacyControlCenter data={data} />
       {/* Beside the Meshi memory READ rule above: what Meshi may KEEP. Two
           different promises, each with its own honest switch. */}
-      <div className="mx-auto w-full max-w-5xl px-4 pb-4 sm:px-6">
+      <div className="personal-controls-shelf mx-auto w-full max-w-5xl px-4 pb-4 sm:px-6">
         <MeshiJournalPanel />
       </div>
       {/* And beside the export controls: the export surface made
           programmatic. A standing grant instrument lives with the other
           standing grants, not in a settings drawer. */}
-      <div className="mx-auto w-full max-w-5xl px-4 pb-8 sm:px-6">
+      <div className="personal-controls-shelf mx-auto w-full max-w-5xl px-4 pb-8 sm:px-6">
         <ApiTokensPanel initialTokens={tokenRows} />
       </div>
     </>

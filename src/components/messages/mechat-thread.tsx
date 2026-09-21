@@ -938,8 +938,8 @@ export function MeChatThread({
   }
 
   return (
-    <div data-testid="mechat-thread" className="grid h-full min-h-0 grid-cols-[minmax(0,1fr)] grid-rows-[auto_1fr_auto]">
-      <div className="border-b border-[var(--border-primary)] px-3 py-2">
+    <div data-testid="mechat-thread" className="presence-thread grid h-full min-h-0 grid-cols-[minmax(0,1fr)] grid-rows-[auto_1fr_auto]">
+      <div className="presence-thread-tools border-b border-[var(--border-primary)] px-3 py-2">
         <label className="flex items-center gap-2 rounded-full bg-[var(--bg-secondary)]/60 px-3.5 py-2 text-sm transition focus-within:bg-[var(--bg-secondary)]">
           <Search size={14} className="text-[var(--text-muted)]" aria-hidden="true" />
           <input
@@ -1056,7 +1056,7 @@ export function MeChatThread({
         // (the side-floating bars once did, even idle; journey audit). The
         // phone-width bottom padding scrolls the newest message's meta line
         // clear of the floating Meshi assistant that parks bottom-right.
-        className="min-h-0 overflow-y-auto overflow-x-clip px-3 pt-4 pb-20 md:px-4 md:pb-4"
+        className="presence-message-stream min-h-0 overflow-y-auto overflow-x-clip px-3 pt-4 pb-20 md:px-4 md:pb-4"
       >
         {visibleMessages.length > 0 ? (
           <div className="grid">
@@ -1484,7 +1484,7 @@ export function MeChatThread({
             <p className="mt-1.5 max-w-xs text-sm leading-6 text-[var(--text-secondary)]">
               {searchQuery
                 ? "Try another search term."
-                : "This is the very beginning of your conversation. Meshi is holding the first message — send it."}
+                : "A new conversation, a little possibility. Send the first message."}
             </p>
           </div>
         )}
@@ -1615,7 +1615,7 @@ export function MeChatThread({
           event.preventDefault();
           sendCurrentMessage();
         }}
-        className="border-t border-[var(--border-primary)] bg-[var(--bg-primary)]/70 p-3 pb-[max(env(safe-area-inset-bottom),0.75rem)] md:pb-3"
+        className="presence-message-composer border-t border-[var(--border-primary)] bg-[var(--bg-primary)]/70 p-3 pb-[max(env(safe-area-inset-bottom),0.75rem)] md:pb-3"
       >
         {isExternalThread && (
           <p className="mb-2 flex items-center gap-1.5 text-micro font-semibold text-[var(--text-muted)]">

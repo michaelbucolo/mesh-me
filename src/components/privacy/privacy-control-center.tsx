@@ -317,15 +317,15 @@ export function PrivacyControlCenter({ data }: { data: ControlData }) {
   const isBusy = isPending || Boolean(pendingKey);
 
   return (
-    <main className="simple-page grid gap-5">
-      <header className="mesh-surface mesh-pop-in rounded-lg p-4 md:p-5">
+    <main className="personal-studio personal-controls simple-page grid gap-5">
+      <header className="personal-page-heading mesh-surface mesh-pop-in rounded-lg p-4 md:p-5">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <Badge variant="accent" className="gap-2">
               <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
               Privacy control center
             </Badge>
-            <h1 className="mt-3 text-2xl font-semibold leading-tight text-[var(--text-primary)]">
+            <h1 className="personal-display-title mt-3 text-2xl font-semibold leading-tight text-[var(--text-primary)]">
               Own every copy of your world.
             </h1>
             <p className="mt-3 max-w-2xl text-sm leading-6 text-[var(--text-secondary)] md:text-base">
@@ -362,7 +362,7 @@ export function PrivacyControlCenter({ data }: { data: ControlData }) {
         </div>
       )}
 
-      <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+      <section className="personal-metrics grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         <MetricCard icon={Server} label="Connected accounts" value={formatCount(accounts.length)} detail={`${formatCount(accounts.filter((account) => account.isActive).length)} active`} />
         <MetricCard icon={Database} label="Imported records" value={formatCount(data.storedData.totals.imported)} detail="Synced copies on Mesh.me" />
         <MetricCard icon={LockKeyhole} label="Native records" value={formatCount(data.storedData.totals.native)} detail="Created inside Mesh.me" />

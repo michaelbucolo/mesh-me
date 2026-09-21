@@ -161,7 +161,7 @@ export function NotificationsClient({ initialPayload }: { initialPayload: Notifi
   }, []);
 
   return (
-    <main data-testid="notification-center" data-meshi-zone="notifications" className="simple-page grid gap-5">
+    <main data-testid="notification-center" data-meshi-zone="notifications" className="presence-notifications simple-page grid gap-5">
       <style>{`
         .mesh-priority-ring { position: relative; }
         .mesh-priority-ring::after {
@@ -173,11 +173,9 @@ export function NotificationsClient({ initialPayload }: { initialPayload: Notifi
           box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 50%, transparent);
         }
       `}</style>
-      {/* The topbar states "Notifications" and the bell badge counts unread —
-          this header used to restate both (a 48px title, a "2 new" pill, and a
-          generated summary sentence) before the reader reached a single
-          notification. Actions only. */}
-      <header className="flex flex-wrap items-center justify-end gap-2">
+      <header className="presence-activity-header">
+        <div className="presence-activity-title"><p className="presence-kicker">In your world</p><h1>Activity</h1><p>{payload.unreadCount > 0 ? `${payload.unreadCount} unread ${payload.unreadCount === 1 ? "update" : "updates"} to catch up on.` : "You’re all caught up. See what’s been happening."}</p></div>
+        <div className="presence-activity-actions flex flex-wrap items-center gap-2">
         {/* On a phone the two secondary actions are icon keys — spelled out,
             this row wrapped to two 44px lines before the first notification. */}
         <Link href="/settings" className="mesh-action mesh-action-secondary px-3 text-sm" aria-label="Notification settings" title="Notification settings">
@@ -202,10 +200,11 @@ export function NotificationsClient({ initialPayload }: { initialPayload: Notifi
           <Check size={15} aria-hidden="true" />
           Mark all read
         </button>
+        </div>
       </header>
 
       <section className="grid gap-4">
-          <div className="mesh-surface rounded-lg p-3 md:p-4">
+          <div className="presence-activity-filters mesh-surface rounded-lg p-3 md:p-4">
             {/* The "Unread only" toggle is GONE: it was the second spelling of
                 the Unread category pill directly below it — filteredGroups
                 applied both to the same fact (lines 55/57 were identical
@@ -214,6 +213,7 @@ export function NotificationsClient({ initialPayload }: { initialPayload: Notifi
             <label className="flex h-11 items-center gap-2 rounded-md border border-[var(--border-primary)] bg-[var(--bg-primary)]/70 px-3 text-sm transition focus-within:border-[var(--accent)]/50">
               <Search size={15} className="text-[var(--text-muted)]" aria-hidden="true" />
               <input
+                aria-label="Search notifications"
                 data-testid="notification-search"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
@@ -277,7 +277,7 @@ export function NotificationsClient({ initialPayload }: { initialPayload: Notifi
           )}
 
           {filteredGroups.length > 0 ? (
-            <div className="grid gap-3" data-testid="notification-group-list">
+            <div className="presence-activity-list grid gap-3" data-testid="notification-group-list">
               <AnimatePresence initial={false} mode="popLayout">
               {filteredGroups.map((group, idx) => (
                 <motion.div
@@ -401,7 +401,7 @@ group.priority === "high" ? "bg-[var(--mould-crimson)] text-[var(--mould-crimson
 
   return (
     <article
-      className={`${socialMotion.notice} mesh-surface rounded-lg p-4 transition ${group.priority === "high" ? "mesh-priority-ring" : ""}`}
+      className={`${socialMotion.notice} presence-activity-card mesh-surface rounded-lg p-4 transition ${group.priority === "high" ? "mesh-priority-ring" : ""}`}
       data-testid="notification-group"
     >
       <div className="flex items-start gap-2">

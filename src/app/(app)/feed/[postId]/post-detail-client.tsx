@@ -176,7 +176,7 @@ export function PostDetailClient({ post, currentUserId }: PostDetailClientProps)
   };
 
   return (
-    <div data-meshi-zone="post-detail" className="max-w-2xl mx-auto px-4 py-6">
+    <div data-meshi-zone="post-detail" className="social-page social-post-detail max-w-2xl mx-auto px-4 py-6">
       {/* Back button */}
       <button
         onClick={() => router.back()}

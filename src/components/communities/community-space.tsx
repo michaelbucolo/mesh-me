@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { SignatureArt } from "@/components/ui/signature-art";
 import Link from "next/link";
 import { Flag, MessageCircle, Pin, Send, Shield, Trash2, UserMinus, UserPlus, Users } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
@@ -33,15 +34,12 @@ function CommunityHero({ data }: { data: CommunityReadyData }) {
   const { community, membership } = data;
 
   return (
-    <section className="mesh-surface overflow-hidden rounded-[28px] border border-[var(--ds-border)] shadow-[var(--shadow-soft)]">
-      <div className="relative h-36 bg-[linear-gradient(135deg,var(--accent-subtle),var(--ds-surface-muted))] sm:h-48">
+    <section className="social-community-hero mesh-surface overflow-hidden rounded-[28px] border border-[var(--ds-border)] shadow-[var(--shadow-soft)]">
+      <div className="social-community-cover relative h-36 sm:h-48">
         {community.bannerUrl ? (
           <Image src={community.bannerUrl} alt="" fill sizes="100vw" className="object-cover" priority />
         ) : (
-          <div className="absolute inset-0 opacity-70">
-            <div className="absolute left-8 top-8 h-24 w-24 rounded-full bg-[var(--accent-subtle)] blur-2xl" />
-            <div className="absolute bottom-8 right-8 h-20 w-44 rounded-full bg-[var(--ds-surface-glass)] blur-xl" />
-          </div>
+          <SignatureArt className="social-community-art" />
         )}
       </div>
       <div className="px-4 pb-5 sm:px-6">
@@ -105,7 +103,7 @@ function CommunityComposer({ data }: { data: CommunityReadyData }) {
 
 function CommunityChat({ data }: { data: CommunityReadyData }) {
   return (
-    <section className="mesh-surface rounded-[24px] border border-[var(--ds-border)] p-4">
+    <section id="community-chat" className="mesh-surface rounded-[24px] border border-[var(--ds-border)] p-4">
       <h2 className="flex items-center gap-2 text-lg font-semibold text-[var(--text-primary)]">
         <MessageCircle className="h-5 w-5 text-[var(--accent-text)]" />
         Community chat
@@ -152,7 +150,7 @@ function CommunityChat({ data }: { data: CommunityReadyData }) {
 
 function MembersPanel({ data }: { data: CommunityReadyData }) {
   return (
-    <section className="mesh-surface rounded-[24px] border border-[var(--ds-border)] p-4">
+    <section id="community-members" className="mesh-surface rounded-[24px] border border-[var(--ds-border)] p-4">
       <h2 className="flex items-center gap-2 text-lg font-semibold text-[var(--text-primary)]">
         <Users className="h-5 w-5 text-[var(--accent-text)]" />
         Members
@@ -283,12 +281,12 @@ function SettingsPanel({ data }: { data: CommunityReadyData }) {
 
 export function CommunitySpace({ data }: { data: CommunityReadyData }) {
   return (
-    <main className="mx-auto grid w-full max-w-6xl gap-5 px-3 py-4 sm:px-6 lg:grid-cols-[minmax(0,1fr)_340px]">
+    <main className="social-page social-community-space mx-auto grid w-full max-w-6xl gap-5 px-3 py-4 sm:px-6 lg:grid-cols-[minmax(0,1fr)_340px]">
       <section className="min-w-0 space-y-4">
         <CommunityHero data={data} />
         <CommunityComposer data={data} />
 
-        <section className="space-y-3">
+        <section id="community-posts" className="space-y-3">
           <h2 className="text-xl font-semibold text-[var(--text-primary)]">Posts</h2>
           {data.posts.length ? (
             data.posts.map((post) => (
@@ -339,7 +337,7 @@ export function CommunitySpace({ data }: { data: CommunityReadyData }) {
       </section>
 
       <aside className="space-y-4 lg:sticky lg:top-24 lg:self-start">
-        <section className="mesh-surface rounded-[24px] border border-[var(--ds-border)] p-4">
+        <section id="community-rules" className="mesh-surface rounded-[24px] border border-[var(--ds-border)] p-4">
           <h2 className="text-lg font-semibold text-[var(--text-primary)]">Rules</h2>
           <ol className="mt-4 space-y-3">
             {rulesList(data.community.rules).map((rule, index) => (

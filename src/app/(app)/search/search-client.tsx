@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { PageIntro } from "@/components/ui/signature-art";
 import Link from "next/link";
 import { type CSSProperties, type FormEvent, type ReactNode, useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -263,7 +264,8 @@ export function SearchClient({ initialQuery }: { initialQuery: string }) {
   const showWeb = activeTab === "top" || activeTab === "web";
 
   return (
-    <main className="search-index-page mx-auto grid w-full max-w-[62rem] grid-cols-[minmax(0,1fr)] gap-3">
+    <main className="social-page social-search search-index-page mx-auto grid w-full max-w-[62rem] grid-cols-[minmax(0,1fr)] gap-3">
+      <PageIntro className="social-page-intro" heading="h1" eyebrow="Across your world" title="Find it here." description="Search people, posts, conversations, and connected accounts." />
       <style>{`
         .search-row-magnetic { position: relative; }
         .search-row-magnetic::before {
@@ -291,8 +293,8 @@ export function SearchClient({ initialQuery }: { initialQuery: string }) {
           .search-row-magnetic::before { transition: none; }
         }
       `}</style>
-      <header className="sticky top-0 z-20 bg-[var(--bg-primary)]/92 pb-2 pt-1 backdrop-blur md:top-3">
-        <form onSubmit={submit} className="flex min-h-12 items-center gap-3 rounded-xl border border-[var(--border-primary)] bg-[var(--bg-input)] px-4">
+      <header className="social-search-tools sticky top-0 z-20 pb-2 pt-1 md:top-3">
+        <form onSubmit={submit} className="social-search-field flex min-h-12 items-center gap-3 rounded-xl border border-[var(--border-primary)] bg-[var(--bg-input)] px-4">
           <Search className="h-5 w-5 shrink-0 text-[var(--accent-text)]" aria-hidden="true" />
           <label htmlFor="mesh-search-input" className="sr-only">Search Mesh.me</label>
           <input
@@ -310,14 +312,7 @@ export function SearchClient({ initialQuery }: { initialQuery: string }) {
             Search
           </button>
         </form>
-        <div className="mt-2 flex flex-wrap items-center gap-2 px-1 text-xs font-medium text-[var(--text-muted)]">
-          <span>Search across</span>
-          {["Posts", "People", "Your connected accounts", "MeChat", "Wikipedia"].map((source) => (
-            <span key={source} className="rounded-full border border-[var(--border-primary)] bg-[var(--bg-secondary)] px-2 py-1">
-              {source}
-            </span>
-          ))}
-        </div>
+        <p className="social-search-caption">Your Mesh, connected accounts, MeChat, and Wikipedia.</p>
 
         <nav className="mt-3 flex gap-1 overflow-x-auto border-b border-[var(--border-primary)]" aria-label="Search filters">
           {tabs.map((tab) => {

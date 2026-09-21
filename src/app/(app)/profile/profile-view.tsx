@@ -141,7 +141,7 @@ export async function InstagramProfileView({ username, tab, giftSent }: { userna
   const achievements = isOwnProfile && activeTab === "milestones" ? await getAchievementBoard(profile.id) : null;
 
   return (
-    <div className="profile-layout mx-auto grid w-full max-w-6xl gap-6 px-4 py-6 lg:grid-cols-[minmax(0,1fr)_340px]">
+    <div className="social-page social-profile profile-layout mx-auto grid w-full max-w-6xl gap-6 px-4 py-6 lg:grid-cols-[minmax(0,1fr)_340px]">
       {/* Main column */}
       <div className="min-w-0 space-y-6">
         {giftSent && !isOwnProfile && (
@@ -153,7 +153,7 @@ export async function InstagramProfileView({ username, tab, giftSent }: { userna
         {/* Profile header */}
         <section className={`${socialMotion.profileHero} profile-header-card rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] overflow-hidden`}>
           {/* Banner */}
-          <div className="profile-banner relative h-36 sm:h-44 bg-gradient-to-br from-[var(--mesh-bg-deep)] via-[var(--mesh-bg-elevated)] to-[var(--mesh-bg)]">
+          <div className="profile-banner relative h-36 sm:h-44">
             {profile.bannerUrl ? (
               <Image src={profile.bannerUrl} alt={profile.bio?.trim() || `${profile.displayName}'s profile banner`} fill sizes="(max-width: 768px) 100vw, 900px" className="object-cover opacity-80" />
             ) : (
@@ -173,8 +173,8 @@ export async function InstagramProfileView({ username, tab, giftSent }: { userna
           {/* Profile info */}
           <div className="profile-info relative px-6 pb-6">
             {/* Avatar — ringed like a node on the mesh */}
-            <div className="-mt-16 mb-4 flex items-end gap-6">
-              <div className="shrink-0 rounded-full bg-gradient-to-tr from-[var(--accent)] via-[color-mix(in_srgb,var(--accent)_50%,#ffffff)] to-[var(--mesh-cyan)] p-[3px] shadow-[0_0_40px_color-mix(in_srgb,var(--accent)_25%,transparent)]">
+            <div className="social-profile-portrait -mt-16 mb-4 flex items-end gap-6">
+              <div className="social-avatar-frame shrink-0 rounded-full p-[3px]">
                 <Avatar
                   src={profile.avatarUrl}
                   alt={profile.displayName}
@@ -199,7 +199,7 @@ export async function InstagramProfileView({ username, tab, giftSent }: { userna
               <div className="min-w-0 flex-1">
                 {/* Name row */}
                 <div className="flex flex-wrap items-center gap-2.5">
-                  <h2 className="profile-name min-w-0 break-words text-2xl font-semibold text-[var(--mesh-text)]">{profile.displayName}</h2>
+                  <h1 className="profile-name min-w-0 break-words text-2xl font-semibold text-[var(--mesh-text)]">{profile.displayName}</h1>
                   {/* The only public part of the milestone board, and only
                       because wearing it is a choice. The board itself is
                       private: "connected six platforms" is a fact about
@@ -254,7 +254,7 @@ export async function InstagramProfileView({ username, tab, giftSent }: { userna
                     Followers/Following open the connections list when the viewer
                     is allowed to see who this person connects with. */}
                 {profile.sectionVisibility.stats && (
-                  <div className="mt-3 flex items-center gap-6">
+                  <div className="social-profile-stats mt-3 flex flex-wrap items-center gap-6">
                     <span className="text-sm text-[var(--mesh-text-secondary)]">
                       <span className="font-semibold text-[var(--mesh-text)]">{profile._count.posts}</span> posts
                     </span>
@@ -687,7 +687,7 @@ export async function InstagramProfileView({ username, tab, giftSent }: { userna
       </div>
 
       {/* Right sidebar */}
-      <aside className="hidden space-y-5 lg:block">
+      <aside className="social-profile-aside hidden space-y-5 lg:block">
         {/* Communities */}
         <section className="rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] p-5">
           <div className="flex items-center justify-between mb-4">

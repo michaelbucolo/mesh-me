@@ -23,16 +23,17 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { PaperWait } from "@/components/loading/paper-wait";
 import { PlatformLogo } from "@/components/platform/platform-logo";
 import { planPublish, ruleFor, tightestLimit } from "@/lib/compose/plan";
 import { publishEverywhere } from "@/lib/compose/publish-action";
 import { reportLines } from "@/lib/compose/report-lines";
 import { schedulePost } from "@/lib/compose/schedule-actions";
 
-const INK = "#f2f4f8";
-const INK_DIM = "#8b93a7";
-const BRAND = "#3b82f6";
-const WARN = "#f87171";
+const INK = "var(--text-primary)";
+const INK_DIM = "var(--text-secondary)";
+const BRAND = "var(--accent)";
+const WARN = "var(--danger)";
 
 export type ComposerTarget = {
   platform: string;
@@ -139,8 +140,8 @@ export function ComposerView({ targets, queueCount = 0 }: { targets: ComposerTar
   }
 
   return (
-    <div className="mx-auto flex h-full w-full max-w-2xl flex-col px-4 py-6 sm:px-6" data-testid="composer">
-      <div className="flex items-baseline justify-between gap-3">
+    <div className="studio-composer mx-auto flex w-full max-w-3xl flex-col px-4 py-6 sm:px-6" data-testid="composer">
+      <div className="studio-compose-heading flex items-baseline justify-between gap-3">
         <h1 className="text-2xl font-semibold" style={{ color: INK }}>
           Post everywhere
         </h1>
@@ -158,21 +159,23 @@ export function ComposerView({ targets, queueCount = 0 }: { targets: ComposerTar
         <input
           value={title}
           onChange={(e) => setTitle(e.target.value)}
+          aria-label="Post title"
           placeholder="Title"
           data-testid="composer-title"
           className="mt-5 w-full rounded-xl px-3.5 py-2.5 outline-none"
-          style={{ background: "#0e1626", border: "1px solid #ffffff14", color: INK, fontSize: 15 }}
+          style={{ background: "var(--paper-1)", border: "1px solid var(--edge)", color: INK, fontSize: 15 }}
         />
       )}
 
       <textarea
         value={text}
         onChange={(e) => setText(e.target.value)}
+        aria-label="Post text"
         placeholder="What's happening?"
         rows={6}
         data-testid="composer-text"
         className="mt-3 w-full resize-y rounded-xl px-3.5 py-3 outline-none"
-        style={{ background: "#0e1626", border: "1px solid #ffffff14", color: INK, fontSize: 15.5, lineHeight: 1.5 }}
+        style={{ background: "var(--paper-1)", border: "1px solid var(--edge)", color: INK, fontSize: 15.5, lineHeight: 1.5 }}
       />
 
       <div className="mt-2 flex items-center justify-between">
@@ -191,7 +194,7 @@ export function ComposerView({ targets, queueCount = 0 }: { targets: ComposerTar
         Where it goes
       </h2>
 
-      <ul className="mt-2 flex flex-col gap-1.5">
+      <ul className="studio-compose-targets mt-2 flex flex-col gap-1.5">
         {targets.map((t) => {
           const rule = ruleFor(t.platform);
           const on = selected.includes(t.platform);
@@ -217,8 +220,8 @@ export function ComposerView({ targets, queueCount = 0 }: { targets: ComposerTar
                 data-ok={verdict ? (verdict.ok ? "1" : "0") : ""}
                 className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors disabled:cursor-not-allowed"
                 style={{
-                  background: on ? "#ffffff0f" : "transparent",
-                  border: `1px solid ${on ? (verdict?.ok ? `${BRAND}66` : draftEmpty ? "#ffffff1f" : `${WARN}66`) : "#ffffff12"}`,
+                  background: on ? "var(--paper-2)" : "transparent",
+                  border: `1px solid ${on ? (verdict?.ok ? "var(--accent-text)" : draftEmpty ? "var(--edge)" : WARN) : "var(--rule)"}`,
                   opacity: selectable ? 1 : 0.5,
                 }}
               >
@@ -259,9 +262,9 @@ export function ComposerView({ targets, queueCount = 0 }: { targets: ComposerTar
                   <span
                     className="shrink-0 rounded-full px-2 py-0.5 font-semibold"
                     style={{
-                      background: verdict?.ok ? `${BRAND}22` : `${WARN}22`,
-                      color: verdict?.ok ? BRAND : WARN,
-                      fontSize: 11,
+                      background: verdict?.ok ? "var(--ds-accent-bg)" : "var(--ds-danger-bg)",
+                      color: verdict?.ok ? "var(--accent-text)" : WARN,
+                      fontSize: 12,
                     }}
                   >
                     {verdict?.ok ? "Ready" : "Blocked"}
@@ -280,8 +283,9 @@ export function ComposerView({ targets, queueCount = 0 }: { targets: ComposerTar
           disabled={!plan.canPublish || sending}
           data-testid="composer-publish"
           className="rounded-full px-5 py-2.5 font-semibold disabled:cursor-not-allowed disabled:opacity-40"
-          style={{ background: BRAND, color: "#04060c", fontSize: 14.5 }}
+          style={{ background: BRAND, color: "var(--accent-ink)", fontSize: 14.5 }}
         >
+          {sending && <PaperWait size="sm" />}
           {sending ? "Posting…" : plan.ready.length <= 1 ? "Post" : `Post to ${plan.ready.length}`}
         </button>
 
@@ -292,7 +296,7 @@ export function ComposerView({ targets, queueCount = 0 }: { targets: ComposerTar
           data-testid="composer-schedule-toggle"
           aria-expanded={scheduling}
           className="rounded-full px-4 py-2.5 font-semibold disabled:cursor-not-allowed disabled:opacity-40"
-          style={{ background: "#ffffff0f", border: "1px solid #ffffff14", color: INK, fontSize: 14 }}
+          style={{ background: "var(--paper-2)", border: "1px solid var(--edge)", color: INK, fontSize: 14 }}
         >
           Schedule
         </button>
@@ -307,13 +311,13 @@ export function ComposerView({ targets, queueCount = 0 }: { targets: ComposerTar
       </div>
 
       {scheduling && (
-        <div className="mt-3 rounded-xl px-3.5 py-3" data-testid="composer-schedule-panel" style={{ background: "#0e1626", border: "1px solid #ffffff14" }}>
+        <div className="mt-3 rounded-xl px-3.5 py-3" data-testid="composer-schedule-panel" style={{ background: "var(--paper-1)", border: "1px solid var(--edge)" }}>
           <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
               onClick={() => setWhenLocal(presetLocal(0, 19))}
               className="rounded-full px-3 py-1.5 font-medium"
-              style={{ background: "#ffffff0f", color: INK, fontSize: 12.5 }}
+              style={{ background: "var(--paper-2)", color: INK, fontSize: 12.5 }}
             >
               This evening 7:00 PM
             </button>
@@ -321,7 +325,7 @@ export function ComposerView({ targets, queueCount = 0 }: { targets: ComposerTar
               type="button"
               onClick={() => setWhenLocal(presetLocal(1, 9))}
               className="rounded-full px-3 py-1.5 font-medium"
-              style={{ background: "#ffffff0f", color: INK, fontSize: 12.5 }}
+              style={{ background: "var(--paper-2)", color: INK, fontSize: 12.5 }}
             >
               Tomorrow 9:00 AM
             </button>
@@ -332,7 +336,7 @@ export function ComposerView({ targets, queueCount = 0 }: { targets: ComposerTar
               aria-label="Pick a time"
               data-testid="composer-schedule-when"
               className="rounded-lg px-2.5 py-1.5 outline-none"
-              style={{ background: "#070b14", border: "1px solid #ffffff14", color: INK, fontSize: 13, colorScheme: "dark", minHeight: 44 }}
+              style={{ background: "var(--paper-0)", border: "1px solid var(--edge)", color: INK, fontSize: 13, minHeight: 44 }}
             />
           </div>
           <div className="mt-2.5 flex items-center gap-3">
@@ -342,7 +346,7 @@ export function ComposerView({ targets, queueCount = 0 }: { targets: ComposerTar
               disabled={!whenLocal || sending}
               data-testid="composer-schedule-confirm"
               className="rounded-full px-4 py-2 font-semibold disabled:cursor-not-allowed disabled:opacity-40"
-              style={{ background: BRAND, color: "#04060c", fontSize: 13.5 }}
+              style={{ background: BRAND, color: "var(--accent-ink)", fontSize: 13.5 }}
             >
               Queue it
             </button>
@@ -356,14 +360,14 @@ export function ComposerView({ targets, queueCount = 0 }: { targets: ComposerTar
       {queued && (
         <p className="mt-3 text-sm" data-testid="composer-queued" style={{ color: INK }}>
           {queued}{" "}
-          <Link href="/compose/queue" className="underline underline-offset-4" style={{ color: BRAND }}>
+          <Link href="/compose/queue" className="underline underline-offset-4" style={{ color: "var(--accent-text)" }}>
             See the queue
           </Link>
         </p>
       )}
 
       {report && (
-        <div className="mt-5 rounded-xl px-3.5 py-3" data-testid="composer-report" style={{ background: "#0e1626", border: "1px solid #ffffff14" }}>
+        <div className="mt-5 rounded-xl px-3.5 py-3" data-testid="composer-report" style={{ background: "var(--paper-1)", border: "1px solid var(--edge)" }}>
           <p className="font-medium" style={{ color: INK, fontSize: 14 }}>
             {report.summary}
           </p>

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { motion, useReducedMotion } from "framer-motion";
-import { ArrowRight, Compass, Eye, EyeOff, ShieldCheck } from "lucide-react";
+import { ArrowRight, Compass, Eye, EyeOff, ShieldCheck, Waypoints, MessageCircle } from "lucide-react";
 import { PaperWait } from "@/components/loading/paper-wait";
 import { requestPasswordReset, resolveEntryIdentity, signInForEntry } from "@/lib/actions";
 import {
@@ -330,7 +330,7 @@ export function MeshEntryExperience({ initialStage = "identity", nextPath, oauth
 
   return (
     <div
-      className={`mesh-gate${success ? " mesh-gate-done" : ""}`}
+      className={`mesh-gate entry-studio${success ? " mesh-gate-done" : ""}`}
       data-entry-ready={hydrated ? "true" : undefined}
       data-stage={stage}
     >
@@ -375,8 +375,25 @@ export function MeshEntryExperience({ initialStage = "identity", nextPath, oauth
         />
       )}
 
+      <div className="entry-studio-body">
+        <aside className="entry-studio-story" aria-label="Welcome to Mesh.me">
+          <p className="public-kicker"><span aria-hidden="true" /> Your World, Your Way</p>
+          <h2>Your corner<br />of the internet.</h2>
+          <p>A home for your people, your interests, and everything that makes you, you.</p>
+          <div className="entry-world" aria-hidden="true">
+            <span className="entry-world-orbit entry-world-orbit-outer" />
+            <span className="entry-world-orbit entry-world-orbit-inner" />
+            <span className="entry-world-center"><Waypoints size={44} strokeWidth={1.2} /></span>
+            <span className="entry-world-node entry-world-node-one"><Waypoints size={19} /></span>
+            <span className="entry-world-node entry-world-node-two"><MessageCircle size={19} /></span>
+            <span className="entry-world-node entry-world-node-three"><Compass size={19} /></span>
+            <span className="entry-world-dot entry-world-dot-one" />
+            <span className="entry-world-dot entry-world-dot-two" />
+          </div>
+          <div className="entry-studio-note"><ShieldCheck size={16} aria-hidden="true" /><span>Private by default. Yours to shape.</span></div>
+        </aside>
       <motion.main
-        className="mesh-gate-core"
+        className="mesh-gate-core entry-studio-card"
         animate={
           success && !reduceMotion
             ? { scale: [1, 0.955, 1.04], opacity: [1, 1, 0.72] }
@@ -384,6 +401,10 @@ export function MeshEntryExperience({ initialStage = "identity", nextPath, oauth
         }
         transition={{ duration: 0.85, ease: EASE_OUT, times: [0, 0.2, 1] }}
       >
+        <div className="entry-stage-label" aria-hidden="true">
+          <span>{stage === "signup" ? "Make yourself at home" : stage === "reset" ? "A fresh start" : "Welcome to your world"}</span>
+          <span className="entry-stage-dots"><i className="is-active" /><i className={stage === "password" || stage === "signup" ? "is-active" : ""} /></span>
+        </div>
         {/* IDENTITY — a blank page and a single question */}
         {stage === "identity" && (
           <form
@@ -631,6 +652,7 @@ export function MeshEntryExperience({ initialStage = "identity", nextPath, oauth
           </form>
         )}
       </motion.main>
+      </div>
 
       <footer className="mesh-gate-foot">
         <div className="mesh-gate-shield">

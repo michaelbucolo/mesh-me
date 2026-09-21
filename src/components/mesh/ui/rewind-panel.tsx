@@ -32,7 +32,7 @@ export function MeshRewindPanel({
       )}
       <div className="absolute inset-x-0 bottom-5 z-30 flex justify-center px-4">
       <div
-        className="mesh-glass w-full max-w-xl animate-[bubbleIn_.32s_cubic-bezier(0.22,1,0.36,1)] rounded-2xl px-4 py-3"
+        className="presence-world-rewind mesh-glass w-full max-w-xl animate-[bubbleIn_.32s_cubic-bezier(0.22,1,0.36,1)] rounded-2xl px-4 py-3"
         onPointerDown={(e) => e.stopPropagation()}
       >
         <div className="mb-1.5 flex items-center justify-between gap-2">

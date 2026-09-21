@@ -12,6 +12,12 @@ import { getBrandTitle, getSiteUrl, meshBrand } from "@/lib/brand";
 import "./globals.css";
 import "./experience.css";
 import "./motion.css";
+import "./studio.css";
+import "./loading-design.css";
+import "./social-design.css";
+import "./personal-design.css";
+import "./public-design.css";
+import "./presence-design.css";
 
 const siteUrl = getSiteUrl();
 

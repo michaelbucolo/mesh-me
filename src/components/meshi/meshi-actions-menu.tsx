@@ -3,7 +3,8 @@
 import { useRef } from "react";
 import { useRouter } from "next/navigation";
 import * as Dialog from "@radix-ui/react-dialog";
-import { X, Sparkles, MessageCircle, Compass, Palette, Ghost, ArrowRight, Loader2, Hand } from "lucide-react";
+import { X, Sparkles, MessageCircle, Compass, Palette, Ghost, ArrowRight, Hand } from "lucide-react";
+import { PaperWait } from "@/components/loading/paper-wait";
 import { UserMeshi } from "@/components/meshi/user-meshi";
 import { useGhostMode, usePresencePrivacy } from "@/hooks/use-ghost-mode";
 import { useRoomGestures } from "@/hooks/use-room-gestures";
@@ -44,12 +45,12 @@ export function MeshiActionsMenu({ activity, onClose, onAskMeshi, onSearchMesh, 
             event.preventDefault();
             if (returnFocus.current?.isConnected) returnFocus.current.focus();
           }}
-          className="fixed bottom-[calc(var(--mobile-nav-h)+env(safe-area-inset-bottom)+1rem)] right-4 z-50 flex max-h-[min(75dvh,40rem)] w-[320px] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-2xl glass-dropdown shadow-2xl outline-none md:bottom-[76px]"
+          className="presence-meshi-dashboard fixed bottom-[calc(var(--mobile-nav-h)+env(safe-area-inset-bottom)+1rem)] right-4 z-50 flex max-h-[min(75dvh,40rem)] w-[320px] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-2xl glass-dropdown shadow-2xl outline-none md:bottom-[76px]"
         >
-          <div className="flex shrink-0 items-center gap-3 border-b border-[var(--border-primary)] px-4 py-3">
-            <div className={ghost ? "opacity-50" : undefined}><UserMeshi size={36} /></div>
+          <div className="presence-meshi-identity flex shrink-0 items-center gap-3 border-b border-[var(--border-primary)] px-4 py-3">
+            <div className={ghost ? "opacity-50" : undefined}><UserMeshi size={64} /></div>
             <div className="min-w-0 flex-1">
-              <Dialog.Title className="text-sm font-semibold text-[var(--text-primary)]">Your Meshi</Dialog.Title>
+              <p className="presence-kicker">A little you</p><Dialog.Title className="text-xl font-semibold text-[var(--text-primary)]">Your Meshi</Dialog.Title>
               <Dialog.Description className="mt-0.5 text-xs text-[var(--text-muted)]">Your presence, your way.</Dialog.Description>
             </div>
             <Dialog.Close asChild>
@@ -57,7 +58,7 @@ export function MeshiActionsMenu({ activity, onClose, onAskMeshi, onSearchMesh, 
             </Dialog.Close>
           </div>
           <div className="min-h-0 overflow-y-auto overscroll-contain p-4">
-            <div className="rounded-xl bg-[var(--bg-secondary)] p-3">
+            <div className="presence-meshi-state rounded-xl bg-[var(--bg-secondary)] p-3">
               <p className="text-xs text-[var(--text-muted)]">On this device</p>
               <p className="mt-1 text-sm font-medium text-[var(--text-primary)]">{activity}</p>
               <p className="mt-2 text-xs leading-relaxed text-[var(--text-secondary)]">{visibility}</p>
@@ -70,7 +71,7 @@ export function MeshiActionsMenu({ activity, onClose, onAskMeshi, onSearchMesh, 
               </div>
               <button type="button" role="switch" aria-checked={ghost} aria-labelledby="meshi-ghost-label" aria-describedby="meshi-ghost-description" disabled={pending} onClick={() => { void update(error ? true : !ghost); }} className="flex h-11 w-12 shrink-0 items-center justify-center rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)] disabled:cursor-wait">
                 <span aria-hidden="true" className={`relative flex h-6 w-11 items-center rounded-full transition-colors ${ghost ? "bg-[var(--accent)]" : "bg-[var(--border-primary)]"}`}>
-                  <span className={`flex h-5 w-5 items-center justify-center rounded-full bg-white shadow-sm transition-transform motion-reduce:transition-none ${ghost ? "translate-x-[22px]" : "translate-x-0.5"}`}>{pending && <Loader2 className="h-3 w-3 animate-spin text-black motion-reduce:animate-none" />}</span>
+                  <span className={`flex h-5 w-5 items-center justify-center rounded-full bg-white shadow-sm transition-transform motion-reduce:transition-none ${ghost ? "translate-x-[22px]" : "translate-x-0.5"}`}>{pending && <PaperWait size="sm" className="text-black" />}</span>
                 </span>
               </button>
             </div>
@@ -86,7 +87,7 @@ export function MeshiActionsMenu({ activity, onClose, onAskMeshi, onSearchMesh, 
                 <span aria-hidden="true" className={`relative flex h-6 w-11 items-center rounded-full transition-colors ${roomGestures.enabled ? "bg-[var(--accent)]" : "bg-[var(--border-primary)]"}`}><span className={`h-5 w-5 rounded-full bg-white shadow-sm transition-transform motion-reduce:transition-none ${roomGestures.enabled ? "translate-x-[22px]" : "translate-x-0.5"}`} /></span>
               </button>
             </div>
-            <div className="mt-4 grid grid-cols-2 gap-2">
+            <div className="presence-meshi-destinations mt-4 grid grid-cols-2 gap-2">
               <button type="button" onClick={() => navigate("/mesh")} className="flex min-h-20 flex-col items-center justify-center gap-2 rounded-xl bg-[var(--bg-secondary)] px-3 text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--bg-hover)]"><Compass aria-hidden="true" className="h-5 w-5" />Your Mesh</button>
               <button type="button" onClick={() => navigate("/settings#meshi")} className="flex min-h-20 flex-col items-center justify-center gap-2 rounded-xl bg-[var(--bg-secondary)] px-3 text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--bg-hover)]"><Palette aria-hidden="true" className="h-5 w-5" />Customize</button>
             </div>

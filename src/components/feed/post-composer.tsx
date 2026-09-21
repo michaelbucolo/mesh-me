@@ -468,7 +468,7 @@ export function PostComposer({ user, communityId, communityIsPublic = true, star
     // colour already claimed it was — and `glass-card` only pulled it into the
     // `.feed-x-layout .glass-card !important` block at globals.css:4031, which
     // is what forced the outward shadow onto a well in the first place.
-    <fieldset disabled={submitting || isPending} className={`feed-composer-card min-w-0 p-3 sm:p-4 ${socialMotion.composer}`} aria-busy={submitting || isPending}>
+    <fieldset disabled={submitting || isPending} className={`social-composer feed-composer-card min-w-0 p-3 sm:p-4 ${socialMotion.composer}`} aria-busy={submitting || isPending}>
       <legend className="sr-only">Create a post</legend>
       {(successMessage || errorMessage) && (
         <div className={`tray mb-3 px-3 py-2 text-xs font-semibold ${successMessage ? "text-[var(--success)]" : "text-[var(--danger)]"}`} role={errorMessage ? "alert" : "status"}>

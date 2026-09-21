@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { ArrowLeft, BadgeCheck, LockKeyhole, Users } from "lucide-react";
 import { ActiveNow } from "@/components/messages/active-now";
 import { Avatar } from "@/components/ui/avatar";
+import { ConversationDetails } from "@/components/messages/conversation-details";
 import { MeChatInfoRail } from "@/components/messages/mechat-info-rail";
 import { MeChatMuteToggle } from "@/components/messages/mechat-mute-toggle";
 import { MeChatThread, type MeChatSerializedMessage } from "@/components/messages/mechat-thread";
@@ -446,12 +447,10 @@ export default async function ThreadDetailPage({ params, searchParams }: ThreadP
     <div className="h-full min-h-0 overflow-hidden text-[var(--mesh-text)]">
       {/* minmax(0,1fr) on the single-column tier too: an implicit `auto` track
           takes the thread's min-content width, which ran past narrow phones. */}
-      {/* Detail rail at xl, not lg: the messages layout already spends 360px
-          on the conversation rail from lg, so a 380px detail rail at lg left
-          the thread itself ~250px at exactly 1024 (iPad Pro 12.9 portrait). */}
-      <div className="grid h-full min-h-0 grid-cols-[minmax(0,1fr)] gap-0 px-0 py-0 md:gap-4 md:px-5 md:py-6 xl:grid-cols-[minmax(0,1fr)_380px]">
-        <section className="mesh-surface mesh-pop-in flex min-h-0 flex-col overflow-hidden rounded-none border-0 md:rounded-[32px] md:border md:border-[var(--mesh-border)] md:shadow-[var(--shadow-lg)]">
-          <header className="border-b border-[var(--mesh-border)] px-2 py-2 md:px-5 md:py-4">
+      {/* Details open on demand at every viewport, leaving the reading column roomy. */}
+      <div className="presence-thread-workspace grid h-full min-h-0 grid-cols-[minmax(0,1fr)]">
+        <section className="presence-thread-surface flex min-h-0 flex-col overflow-hidden">
+          <header className="presence-thread-header border-b border-[var(--mesh-border)] px-2 py-2 md:px-5 md:py-4">
             <div className="flex items-center gap-2 md:gap-4">
               <Link
                 href="/messages"
@@ -511,9 +510,7 @@ export default async function ThreadDetailPage({ params, searchParams }: ThreadP
                 )}
               </div>
 
-              {/* The one control every daily driver reaches for first: mute.
-                  It lives in the header because the header is visible at
-                  every breakpoint — the info rail only exists at xl. */}
+              {/* Mute stays within reach without opening conversation details. */}
               {activeThreadId && (
                 <MeChatMuteToggle
                   threadId={activeThreadId}
@@ -522,18 +519,40 @@ export default async function ThreadDetailPage({ params, searchParams }: ThreadP
                   )}
                 />
               )}
+              <ConversationDetails>
+                <MeChatInfoRail
+                  title={conversationTitle}
+                  subtitle={conversationSubtitle}
+                  avatarUrl={conversationAvatar}
+                  isGroupThread={isGroupThread}
+                  isVerified={!isGroupThread ? recipient?.isVerified : undefined}
+                  createdAt={threadCreatedAt}
+                  createdBy={threadCreatedBy}
+                  description={
+                    isGroupThread
+                      ? `Private group conversation with ${memberCount} members.`
+                      : recipient
+                        ? `Private direct message with @${recipient.username}.`
+                        : "Private conversation."
+                  }
+                  members={conversationMembers}
+                  sourceSummaries={threadInsights.sourceSummaries}
+                  mediaCount={threadInsights.mediaCount}
+                  fileCount={threadInsights.fileCount}
+                />
+              </ConversationDetails>
               {/* Calls arrive when the real infrastructure exists — until then
                   no dead buttons pretend the capability is live. */}
             </div>
           </header>
 
-          <div className="hidden border-b border-[var(--mesh-border)] px-4 py-3 text-sm text-[var(--mesh-text-secondary)] md:block">
+          <div className="presence-thread-privacy hidden border-b border-[var(--mesh-border)] px-4 py-3 text-sm text-[var(--mesh-text-secondary)] md:block">
             <div className="flex items-center gap-2">
               <LockKeyhole size={15} aria-hidden="true" className="text-[var(--accent-text)]" />
               <span>
                 {isExternalThread
                   ? `This conversation lives on ${sourceLabel(threadPlatform)}. Replies you send here deliver there through your connected account.`
-                  : "Messages stay tied to your private account session. Block and membership checks run on every send."}
+                  : "A private conversation for the people in this chat."}
               </span>
             </div>
           </div>
@@ -561,29 +580,6 @@ export default async function ThreadDetailPage({ params, searchParams }: ThreadP
             />
           </div>
         </section>
-
-        <div className="hidden min-h-0 xl:block">
-          <MeChatInfoRail
-            title={conversationTitle}
-            subtitle={conversationSubtitle}
-            avatarUrl={conversationAvatar}
-            isGroupThread={isGroupThread}
-            isVerified={!isGroupThread ? recipient?.isVerified : undefined}
-            createdAt={threadCreatedAt}
-            createdBy={threadCreatedBy}
-            description={
-              isGroupThread
-                ? `Private group conversation with ${memberCount} members.`
-                : recipient
-                  ? `Private direct message with @${recipient.username}.`
-                  : "Private conversation."
-            }
-            members={conversationMembers}
-            sourceSummaries={threadInsights.sourceSummaries}
-            mediaCount={threadInsights.mediaCount}
-            fileCount={threadInsights.fileCount}
-          />
-        </div>
       </div>
     </div>
   );

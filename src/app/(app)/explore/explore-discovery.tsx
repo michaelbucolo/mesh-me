@@ -295,8 +295,8 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
   };
 
   return (
-    <div className="mesh-explore-page mx-auto w-full max-w-6xl px-4 pb-24 pt-6 sm:px-6">
-      <PageIntro className="mesh-explore-intro" heading="h1" eyebrow="Explore" title={<>Find your next <em>spark.</em></>} description="People, ideas, and moments worth finding."
+    <div className="social-page social-explore mesh-explore-page mx-auto w-full max-w-6xl px-4 pb-24 pt-6 sm:px-6">
+      <PageIntro className="mesh-explore-intro social-page-intro" heading="h1" eyebrow="Find your people" title="Explore." description="Follow a curiosity. See where it takes you."
         action={<Link href="/flow" data-feedback="navigate" className="mesh-action px-4 text-sm"><Play size={15} aria-hidden="true" /> Step into Flow <ArrowUpRight size={14} aria-hidden="true" /></Link>} />
       <div className="mesh-explore-controls sticky top-0 z-20 space-y-3">
         <motion.form
@@ -304,7 +304,7 @@ export function ExploreDiscovery({ currentUserId, posts, trendingTags, suggested
           initial={reduce ? false : { opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={spring}
-          className="glass-card flex items-center gap-3 rounded-2xl px-4 py-3"
+          className="social-search-field glass-card flex items-center gap-3 rounded-2xl px-4 py-3"
         >
           <Search className="h-4.5 w-4.5 shrink-0 text-[var(--text-muted)]" aria-hidden />
           <input

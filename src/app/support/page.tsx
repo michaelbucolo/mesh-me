@@ -13,9 +13,9 @@ export const metadata: Metadata = {
 
 export default function SupportPage() {
   return (
-    <PublicSiteShell maxWidth="max-w-6xl">
-      <section className="grid min-h-full gap-5 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
-        <div className="rounded-3xl border border-[var(--glass-card-border)] bg-[var(--glass-card-bg)] p-5 shadow-[var(--shadow-sm)]">
+    <PublicSiteShell sectionLabel="A helping hand" maxWidth="max-w-6xl">
+      <section className="public-editorial-hero grid min-h-full gap-5 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
+        <div className="public-panel rounded-3xl border border-[var(--glass-card-border)] bg-[var(--glass-card-bg)] p-5 shadow-[var(--shadow-sm)]">
           <div className="flex items-center gap-3">
             <MeshiLogo size={56} color="blue" mood="thinking" />
             <div>

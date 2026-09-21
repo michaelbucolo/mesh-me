@@ -86,7 +86,7 @@ export function SavedList({ initial }: { initial: SavedRow[] }) {
   }
 
   return (
-    <ul className="flex flex-col gap-3">
+    <ul className="social-saved-list flex flex-col gap-3">
       {rows.map((row) => {
         const open = row.kind === "external" ? safeHref(row.url) : `/feed/${row.postId}`;
         return (

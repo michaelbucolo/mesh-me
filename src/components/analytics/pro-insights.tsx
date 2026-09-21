@@ -18,7 +18,7 @@ import type { FormatFinding, ProAnalytics, TimingFinding } from "@/lib/pro-analy
 import { EASE_OUT } from "@/lib/motion";
 
 const CARD =
-  "rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] p-4";
+  "personal-insight-card rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] p-4";
 
 /** Rows fade in one after another rather than all at once. */
 const stagger = (i: number) => ({

@@ -42,12 +42,14 @@ export default async function BillingPage() {
   const isPro = billing.isMeshPro;
 
   return (
-    <main className="simple-page grid gap-5">
-      <header className="mesh-surface rounded-lg p-4 md:p-6">
+    <main className="personal-studio personal-billing simple-page grid gap-5">
+      <header className="personal-page-heading mesh-surface rounded-lg p-4 md:p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             {/* The topbar states "Billing" — this header used to repeat the
                 word at 48px. The plan badge is the information. */}
+            <p className="personal-overline">Your membership</p>
+            <h2 className="personal-display-title">Room to make it yours.</h2>
             <Badge variant={isPro ? "success" : "secondary"}>{isPro ? "MeshPro active" : "Free plan"}</Badge>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--text-secondary)]">
               Manage MeshPro payments through Stripe. Mesh.me does not store card numbers and never sells user data.
@@ -72,7 +74,7 @@ export default async function BillingPage() {
         </section>
       )}
 
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <section className="personal-metrics grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <BillingStat icon={Crown} label="Plan" value={isPro ? "MeshPro" : "Free"} detail={isPro ? "Premium features enabled" : "Core features enabled"} />
         <BillingStat icon={CreditCard} label="Price" value={formatAmount(billing.amount, billing.currency)} detail={billing.planInterval ? `per ${billing.planInterval}` : "Checkout selects plan"} />
         <BillingStat icon={CalendarClock} label={billing.cancelAtPeriodEnd ? "Access ends" : "Next renewal"} value={formatDate(billing.currentPeriodEnd)} detail={billing.status} />

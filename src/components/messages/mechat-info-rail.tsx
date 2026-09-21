@@ -56,7 +56,7 @@ export function MeChatInfoRail({
   const memberPreview = members.slice(0, 5);
 
   return (
-    <aside className="flex h-full min-h-0 flex-col gap-4 overflow-y-auto bg-[var(--mesh-bg)] px-4 py-4 lg:px-5">
+    <aside className="presence-conversation-info flex min-h-0 flex-col gap-4">
       <section className="mesh-surface mesh-pop-in rounded-[28px] border border-[var(--mesh-border)] p-5 shadow-[var(--shadow-lg)]">
         <div className="flex flex-col items-center text-center">
           <div className="relative">

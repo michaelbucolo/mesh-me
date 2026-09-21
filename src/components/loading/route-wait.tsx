@@ -1,31 +1,4 @@
-/**
- * What a route shows while it is arriving.
- *
- * The old system put a full-screen animated mascot over every navigation. That
- * reads as "something is wrong" rather than "this is nearly here", because a
- * character with a personality line is a bigger event than the 200ms wait it
- * covers. This renders the page's own furniture instead — the same columns,
- * cards and rails the real page has, drawn empty. The layout does not move when
- * the content lands, which is the entire point.
- *
- * Three rules hold this together:
- *
- *   1. No visible text. A wait under a second that announces itself is louder
- *      than the wait. Screen readers still get a label via `aria-label`.
- *   2. No indicator below 600ms. `.paper-well` shimmers on a 600ms
- *      `animation-delay`, so a fast route paints flat blocks and is gone before
- *      anything starts moving. That delay is pure CSS — no timers, no state.
- *   3. Server component. This is the fallback for a streaming boundary; giving
- *      it a client boundary would ship a chunk that must load before the
- *      loading state can show.
- *
- * Meshi is deliberately absent. Meshi appears in waits that are genuinely long
- * AND can report a true number — the mesh weave and account import — where a
- * character with something real to say is welcome. Everywhere else Meshi
- * showing up for 200ms is noise, and noise is what made the product feel busy
- * instead of alive.
- */
-
+/** Server-rendered, page-shaped loading furniture. No timers or invented progress. */
 type WaitShape =
   | "feed"
   | "flow"
@@ -37,36 +10,23 @@ type WaitShape =
   | "rail-list"
   | "search"
   | "canvas"
+  | "analytics"
+  | "composer"
+  | "connections"
+  | "communities"
   | "page";
 
-/** A single empty block. `w`/`h` are any CSS length. */
-function Well({
-  w,
-  h,
-  radius,
-  className = "",
-}: {
-  w?: string;
-  h: string;
-  radius?: string;
-  className?: string;
-}) {
-  return (
-    <span
-      aria-hidden="true"
-      className={`paper-well ${className}`.trim()}
-      style={{ width: w ?? "100%", height: h, borderRadius: radius }}
-    />
-  );
+function Well({ w, h, radius, className = "" }: { w?: string; h: string; radius?: string; className?: string }) {
+  return <span className={`paper-well ${className}`.trim()} style={{ width: w ?? "100%", height: h, borderRadius: radius }} />;
 }
 
 function AvatarRow({ lines = 2 }: { lines?: number }) {
   return (
-    <div className="flex items-center gap-3">
-      <Well w="2.5rem" h="2.5rem" radius="999px" />
-      <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-        <Well w="38%" h="0.7rem" />
-        {lines > 1 ? <Well w="22%" h="0.6rem" /> : null}
+    <div className="wait-identity">
+      <Well w="2.75rem" h="2.75rem" radius="50%" />
+      <div className="wait-lines">
+        <Well w="42%" h="0.65rem" />
+        {lines > 1 ? <Well w="26%" h="0.45rem" /> : null}
       </div>
     </div>
   );
@@ -74,212 +34,58 @@ function AvatarRow({ lines = 2 }: { lines?: number }) {
 
 function FeedCard({ media }: { media: boolean }) {
   return (
-    <article className="paper-wait-card flex flex-col gap-3">
+    <div className="paper-wait-card wait-feed-card">
       <AvatarRow />
-      <div className="flex flex-col gap-2">
-        <Well h="0.7rem" />
-        <Well w="72%" h="0.7rem" />
-      </div>
-      {media ? <Well h="18rem" radius="var(--radius-lg, 1rem)" /> : null}
-      <div className="flex gap-2 pt-1">
-        <Well w="3.5rem" h="1.5rem" radius="999px" />
-        <Well w="3.5rem" h="1.5rem" radius="999px" />
-        <Well w="3.5rem" h="1.5rem" radius="999px" />
-      </div>
-    </article>
+      <div className="wait-lines"><Well w="90%" h="0.65rem" /><Well w="62%" h="0.65rem" /></div>
+      {media ? <Well h="clamp(12rem, 30vw, 23rem)" radius="1rem" className="wait-media" /> : null}
+      <div className="wait-action-row"><Well w="3rem" h="1.35rem" radius="999px" /><Well w="3rem" h="1.35rem" radius="999px" /><Well w="1.35rem" h="1.35rem" radius="50%" /></div>
+    </div>
   );
+}
+
+function Rows({ count = 5 }: { count?: number }) {
+  return <div className="wait-row-list">{Array.from({ length: count }, (_, i) => <div key={i} className="paper-wait-row"><AvatarRow lines={i % 3 === 0 ? 1 : 2} /><Well w="1.5rem" h="0.45rem" /></div>)}</div>;
 }
 
 function ShapeBody({ shape }: { shape: WaitShape }) {
   switch (shape) {
     case "feed":
-      return (
-        <div className="paper-wait-column flex flex-col gap-4">
-          <FeedCard media />
-          <FeedCard media={false} />
-          <FeedCard media />
-        </div>
-      );
-
+      return <div className="wait-feed"><div className="paper-wait-card wait-compose-strip"><AvatarRow lines={1} /><Well w="5rem" h="2rem" radius="999px" /></div><FeedCard media /><FeedCard media={false} /></div>;
     case "flow":
-      // Flow is one full-bleed piece of media at a time; anything else would
-      // shift the moment the real item mounts.
-      return (
-        <div className="flex h-full min-h-[70vh] w-full flex-col justify-end gap-3 p-4">
-          <Well w="45%" h="0.75rem" />
-          <Well w="30%" h="0.65rem" />
-        </div>
-      );
-
+      return <div className="wait-flow"><div className="wait-flow-caption"><AvatarRow /><Well w="74%" h="0.7rem" /><Well w="50%" h="0.55rem" /></div><div className="wait-flow-rail">{[0, 1, 2].map(i => <Well key={i} w="2.75rem" h="2.75rem" radius="50%" />)}</div></div>;
     case "grid":
-      return (
-        <div className="paper-wait-column grid grid-cols-2 gap-2 sm:grid-cols-3">
-          {Array.from({ length: 9 }).map((_, i) => (
-            <Well key={i} h="0" className="paper-well-tile" />
-          ))}
-        </div>
-      );
-
+    case "communities":
+      return <div className="wait-discovery-grid">{Array.from({ length: 6 }, (_, i) => <div className="paper-wait-card wait-tile-card" key={i}><Well h="0" className="paper-well-tile" /><Well w={i % 2 ? "68%" : "48%"} h="0.75rem" /><Well w="82%" h="0.5rem" /></div>)}</div>;
     case "list":
-      return (
-        <div className="paper-wait-column flex flex-col gap-3">
-          {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="paper-wait-row">
-              <AvatarRow lines={i % 3 === 0 ? 1 : 2} />
-            </div>
-          ))}
-        </div>
-      );
-
-    case "profile":
-      return (
-        <div className="paper-wait-column flex flex-col gap-5">
-          <div className="flex items-center gap-4 sm:gap-6">
-            <Well w="5rem" h="5rem" radius="999px" className="sm:h-28 sm:w-28" />
-            <div className="flex min-w-0 flex-1 flex-col gap-2">
-              <Well w="45%" h="1rem" />
-              <Well w="30%" h="0.7rem" />
-              <div className="flex gap-4 pt-1">
-                <Well w="3rem" h="0.65rem" />
-                <Well w="3rem" h="0.65rem" />
-                <Well w="3rem" h="0.65rem" />
-              </div>
-            </div>
-          </div>
-          <Well w="80%" h="0.7rem" />
-          <div className="flex gap-2 border-b border-[var(--border-primary)] pb-3">
-            <Well w="4.5rem" h="1.4rem" radius="999px" />
-            <Well w="4.5rem" h="1.4rem" radius="999px" />
-            <Well w="4.5rem" h="1.4rem" radius="999px" />
-          </div>
-          <div className="grid grid-cols-3 gap-2">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <Well key={i} h="0" className="paper-well-tile" />
-            ))}
-          </div>
-        </div>
-      );
-
-    case "settings":
-      return (
-        <div className="paper-wait-column flex flex-col gap-6">
-          {Array.from({ length: 3 }).map((_, section) => (
-            <section key={section} className="flex flex-col gap-3">
-              <Well w="30%" h="0.8rem" />
-              <div className="paper-wait-card flex flex-col gap-4">
-                {Array.from({ length: 3 }).map((_, row) => (
-                  <div key={row} className="flex items-center justify-between gap-4">
-                    <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-                      <Well w="40%" h="0.7rem" />
-                      <Well w="65%" h="0.6rem" />
-                    </div>
-                    <Well w="2.6rem" h="1.4rem" radius="999px" />
-                  </div>
-                ))}
-              </div>
-            </section>
-          ))}
-        </div>
-      );
-
-    case "conversation":
-      // Bubbles alternate sides and vary in width, so the shape reads as a
-      // conversation rather than a stack of bars.
-      return (
-        <div className="flex h-full flex-col justify-end gap-3 p-4">
-          {[
-            { mine: false, w: "62%" },
-            { mine: true, w: "44%" },
-            { mine: false, w: "38%" },
-            { mine: true, w: "70%" },
-            { mine: false, w: "52%" },
-          ].map((bubble, i) => (
-            <div key={i} className={`flex ${bubble.mine ? "justify-end" : "justify-start"}`}>
-              <Well w={bubble.w} h="2.4rem" radius="1.25rem" />
-            </div>
-          ))}
-        </div>
-      );
-
     case "rail-list":
-      return (
-        <div className="flex flex-col gap-1 p-3">
-          {Array.from({ length: 10 }).map((_, i) => (
-            <div key={i} className="paper-wait-row">
-              <AvatarRow />
-            </div>
-          ))}
-        </div>
-      );
-
+      return <div className="paper-wait-card wait-list-card"><Rows count={shape === "rail-list" ? 7 : 6} /></div>;
+    case "profile":
+      return <div className="wait-profile"><div className="wait-profile-cover"><Well h="100%" radius="0" /></div><div className="wait-profile-identity"><Well w="6.5rem" h="6.5rem" radius="50%" /><div className="wait-lines"><Well w="45%" h="1.15rem" /><Well w="28%" h="0.6rem" /></div></div><div className="wait-profile-bio"><Well w="72%" h="0.6rem" /><Well w="52%" h="0.6rem" /></div><div className="wait-tab-row">{[0, 1, 2].map(i => <Well key={i} w="5rem" h="1.5rem" radius="999px" />)}</div><div className="wait-profile-grid">{Array.from({ length: 6 }, (_, i) => <Well key={i} h="0" className="paper-well-tile" />)}</div></div>;
+    case "settings":
+      return <div className="wait-settings"><div className="wait-settings-rail"><Well w="60%" h="0.55rem" />{Array.from({ length: 6 }, (_, i) => <Well key={i} h="2.4rem" radius="0.75rem" />)}</div><div className="wait-settings-body">{[0, 1, 2].map(section => <div key={section} className="paper-wait-card wait-setting-card"><Well w="35%" h="0.9rem" />{[0, 1, 2].map(row => <div className="wait-setting-row" key={row}><div className="wait-lines"><Well w="48%" h="0.65rem" /><Well w="75%" h="0.45rem" /></div><Well w="2.5rem" h="1.4rem" radius="999px" /></div>)}</div>)}</div></div>;
+    case "conversation":
+      return <div className="wait-conversation"><div className="wait-conversation-header"><AvatarRow /></div><div className="wait-bubbles">{[{ mine: false, w: "58%" }, { mine: true, w: "40%" }, { mine: false, w: "32%" }, { mine: true, w: "63%" }].map((bubble, i) => <div key={i} className={`wait-bubble ${bubble.mine ? "wait-bubble-mine" : ""}`}><Well w={bubble.w} h={i === 0 ? "4.5rem" : "3rem"} radius="1.25rem" /></div>)}</div><div className="wait-message-input"><Well h="3.25rem" radius="1.2rem" /></div></div>;
     case "search":
-      return (
-        <div className="paper-wait-column flex flex-col gap-4">
-          <Well h="2.75rem" radius="999px" />
-          <div className="flex gap-2">
-            <Well w="4.5rem" h="1.6rem" radius="999px" />
-            <Well w="4.5rem" h="1.6rem" radius="999px" />
-            <Well w="4.5rem" h="1.6rem" radius="999px" />
-          </div>
-          <div className="flex flex-col gap-3">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="paper-wait-row">
-                <AvatarRow lines={2} />
-              </div>
-            ))}
-          </div>
-        </div>
-      );
-
+      return <div className="wait-search"><Well h="3.5rem" radius="1.1rem" /><div className="wait-tab-row">{[0, 1, 2, 3].map(i => <Well key={i} w="4.5rem" h="1.75rem" radius="999px" />)}</div><div className="paper-wait-card wait-list-card"><Rows /></div></div>;
     case "canvas":
-      // The mesh paints its own arrival — the scene weaves itself in behind
-      // Meshi, with a real count. A skeleton on top of that would be a third
-      // loader for one navigation. This exists purely so the segment keeps a
-      // `loading.js` boundary: Next only prefetches as far as the nearest one,
-      // and /mesh is the most-prefetched destination in the product.
-      return null;
-
+      return <div className="wait-canvas"><div className="wait-canvas-orbit" /><div className="wait-canvas-orbit wait-canvas-orbit-outer" />{[0, 1, 2, 3, 4].map(i => <span className={`wait-canvas-node wait-canvas-node-${i}`} key={i} />)}</div>;
+    case "analytics":
+      return <div className="wait-analytics"><div className="wait-stat-grid">{[0, 1, 2].map(i => <div className="paper-wait-card wait-stat" key={i}><Well w="55%" h="0.6rem" /><Well w="40%" h="1.75rem" /><Well w="70%" h="0.4rem" /></div>)}</div><div className="paper-wait-card wait-chart"><Well w="28%" h="0.9rem" /><div className="wait-chart-bars">{[28, 42, 35, 64, 52, 70, 58, 84, 72, 91, 81, 100].map((h, i) => <Well key={i} h={`${h}%`} />)}</div></div></div>;
+    case "composer":
+      return <div className="paper-wait-card wait-composer"><AvatarRow /><div className="wait-lines"><Well w="72%" h="0.8rem" /><Well w="40%" h="0.8rem" /></div><Well h="10rem" radius="1rem" /><div className="wait-compose-strip"><div className="wait-action-row"><Well w="2rem" h="2rem" radius="50%" /><Well w="2rem" h="2rem" radius="50%" /></div><Well w="6rem" h="2.5rem" radius="999px" /></div></div>;
+    case "connections":
+      return <div className="wait-connections">{[0, 1, 2, 3].map(i => <div className="paper-wait-card wait-connected-card" key={i}><Well w="3rem" h="3rem" radius="0.9rem" /><div className="wait-lines"><Well w="58%" h="0.75rem" /><Well w="80%" h="0.5rem" /></div><Well w="4.5rem" h="2rem" radius="999px" /></div>)}</div>;
     case "page":
     default:
-      return (
-        <div className="paper-wait-column flex flex-col gap-4">
-          <Well w="40%" h="1.1rem" />
-          <Well w="65%" h="0.7rem" />
-          <div className="paper-wait-card flex flex-col gap-3">
-            <Well h="0.7rem" />
-            <Well w="85%" h="0.7rem" />
-            <Well w="60%" h="0.7rem" />
-          </div>
-          <div className="paper-wait-card flex flex-col gap-3">
-            <Well h="0.7rem" />
-            <Well w="70%" h="0.7rem" />
-          </div>
-        </div>
-      );
+      return <div className="wait-page"><div className="paper-wait-card wait-page-feature"><Well w="45%" h="1.5rem" /><Well w="70%" h="0.65rem" /><Well w="52%" h="0.65rem" /><Well w="7rem" h="2.5rem" radius="999px" /></div><div className="wait-page-grid">{[0, 1].map(i => <div className="paper-wait-card wait-page-detail" key={i}><Well w="2.5rem" h="2.5rem" radius="0.8rem" /><Well w="60%" h="0.8rem" /><Well h="0.5rem" /><Well w="75%" h="0.5rem" /></div>)}</div></div>;
   }
 }
 
-export function RouteWait({
-  shape = "page",
-  label = "Loading",
-  className = "",
-}: {
-  shape?: WaitShape;
-  /**
-   * Announced to assistive tech only. Never rendered — see rule 1 above.
-   */
-  label?: string;
-  className?: string;
-}) {
+export function RouteWait({ shape = "page", label = "Loading", className = "" }: { shape?: WaitShape; label?: string; className?: string }) {
   return (
-    <div
-      role="status"
-      aria-busy="true"
-      aria-label={label}
-      data-wait-shape={shape}
-      className={`paper-wait-route ${className}`.trim()}
-    >
-      <ShapeBody shape={shape} />
+    <div role="status" aria-busy="true" aria-label={label} data-wait-shape={shape} className={`paper-wait-route ${className}`.trim()}>
+      <div className="wait-route-heading" aria-hidden="true"><span className="wait-route-emblem"><i /><i /></span><span>{label}</span></div>
+      <div className="wait-route-body" aria-hidden="true"><ShapeBody shape={shape} /></div>
     </div>
   );
 }

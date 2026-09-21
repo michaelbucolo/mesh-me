@@ -258,7 +258,7 @@ export function OnboardingFlow({
   }
 
   return (
-    <main className="onboarding-shell h-dvh max-h-dvh min-h-0 overflow-hidden bg-[var(--bg-primary)] text-[var(--text-primary)]">
+    <main className="onboarding-shell onboarding-studio h-dvh max-h-dvh min-h-0 overflow-hidden bg-[var(--bg-primary)] text-[var(--text-primary)]">
       {/* Below lg the two children stack, and without an explicit row template
           the rows fought over a fixed h-full: measured at 390×844, the card row
           compressed onto the aside (85px overlap swallowing its footer) and the
@@ -332,10 +332,12 @@ export function OnboardingFlow({
                     "flex min-h-11 items-center gap-3 rounded-md px-3 text-left text-sm font-semibold transition",
                     index === step ? "bg-[var(--accent-subtle)] text-[var(--text-primary)]" : "text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]",
                   )}
+                  aria-current={index === step ? "step" : undefined}
                   data-testid={`onboarding-step-${item.id}`}
                 >
                   <Icon size={17} aria-hidden="true" />
-                  {item.label}
+                  <span className="flex-1">{item.label}</span>
+                  <span className="onboarding-step-number" aria-hidden="true">{String(index + 1).padStart(2, "0")}</span>
                 </button>
               );
             })}
@@ -345,14 +347,15 @@ export function OnboardingFlow({
           </p>
         </aside>
 
-        <section className="mesh-surface onboarding-card flex min-h-0 flex-col overflow-hidden rounded-lg p-4 md:p-5" data-testid="onboarding-flow">
+        <section className="mesh-surface onboarding-card onboarding-studio-card flex min-h-0 flex-col overflow-hidden rounded-lg p-4 md:p-5" data-testid="onboarding-flow">
           <header className="shrink-0 flex flex-wrap items-start justify-between gap-4 border-b border-[var(--border-primary)] pb-4">
             <div>
               <p className="text-xs font-semibold mesh-eyebrow text-[var(--text-muted)]">Your World, Your Way</p>
               <h1 className="mt-2 text-3xl font-semibold tracking-[0] md:text-4xl">{currentStep.label}</h1>
             </div>
             <div className="rounded-full border border-[var(--border-primary)] bg-[var(--bg-primary)]/70 px-3 py-2 text-xs font-semibold text-[var(--text-secondary)]">
-              {user.email}
+              <span className="onboarding-current-step">Step {step + 1} of {steps.length}</span>
+              <span className="onboarding-account-email">{user.email}</span>
             </div>
           </header>
 

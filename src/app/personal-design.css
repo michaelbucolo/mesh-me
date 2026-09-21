@@ -1,0 +1,485 @@
+/* Personal studio: the same quiet material across controls, insights and membership. */
+.mesh-experience .personal-studio {
+  --personal-line: color-mix(in srgb, var(--text-primary) 10%, transparent);
+  --personal-soft: color-mix(in srgb, var(--accent) 6%, var(--paper-1));
+  width: 100%;
+  max-width: 1200px;
+  margin-inline: auto;
+  padding: clamp(1.25rem, 3vw, 2.5rem);
+}
+
+.personal-overline {
+  color: var(--accent-text);
+  font-size: .7rem;
+  font-weight: 500;
+  line-height: 1.5;
+  letter-spacing: .01em;
+}
+
+.mesh-experience .personal-display-title {
+  margin-block: .45rem .7rem;
+  color: var(--text-primary);
+  font-family: var(--font-display-loaded), Georgia, serif;
+  font-size: clamp(1.65rem, 3vw, 2.6rem);
+  font-weight: 500;
+  line-height: 1.16;
+  letter-spacing: -.035em;
+  text-wrap: balance;
+}
+
+.mesh-experience .personal-page-heading {
+  padding: .5rem 0 1.8rem;
+  border: 0;
+  border-bottom: 1px solid var(--personal-line, var(--rule));
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.personal-page-description {
+  max-width: 38rem;
+  color: var(--text-secondary);
+  font-size: .875rem;
+  line-height: 1.7;
+}
+
+.personal-heading-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.personal-heading-note {
+  color: var(--text-muted);
+  font-size: .7rem;
+}
+
+.personal-inline-wait {
+  display: flex;
+  align-items: center;
+  gap: .65rem;
+  min-height: 3rem;
+}
+
+/* Settings becomes a spacious workspace with one stable navigation rail. */
+.mesh-experience .settings-studio .settings-traditional-header {
+  padding: 1.5rem 1.75rem;
+  border: 1px solid var(--personal-line);
+  border-radius: 1.75rem;
+  background: var(--paper-1);
+  box-shadow: 0 8px 30px color-mix(in srgb, var(--text-primary) 3%, transparent);
+}
+
+.mesh-experience .settings-studio-summary {
+  gap: 0;
+  margin-top: 1.5rem;
+  padding-top: 1.2rem;
+  border-top: 1px solid var(--personal-line);
+}
+
+.mesh-experience .settings-studio .settings-summary-pill {
+  gap: .75rem;
+  min-height: 3rem;
+  padding: .4rem 1rem;
+  border: 0;
+  border-left: 1px solid var(--personal-line);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.mesh-experience .settings-studio .settings-summary-pill:first-child {
+  padding-left: 0;
+  border-left: 0;
+}
+
+.mesh-experience .settings-studio .settings-summary-pill > svg {
+  color: var(--accent-text);
+}
+
+.mesh-experience .settings-studio .settings-traditional-grid {
+  gap: 2.5rem;
+  margin-top: 2.2rem;
+}
+
+.mesh-experience .settings-studio .settings-traditional-nav {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.mesh-experience .settings-studio .settings-search {
+  padding: 0 .25rem .8rem;
+}
+
+.mesh-experience .settings-studio .settings-search input {
+  border-radius: 1rem;
+  background: var(--paper-1);
+  font-size: .8rem;
+}
+
+.mesh-experience .settings-studio .settings-nav-scroll {
+  gap: .35rem;
+  padding: .25rem;
+}
+
+.mesh-experience .settings-studio .settings-nav-item {
+  min-height: 3.7rem;
+  padding: .8rem .85rem;
+  border: 1px solid transparent;
+  border-radius: 1rem;
+  color: var(--text-secondary);
+  background: transparent;
+  box-shadow: none;
+  transition: background 160ms ease, border-color 160ms ease, color 160ms ease;
+}
+
+.mesh-experience .settings-studio .settings-nav-item[aria-current="page"] {
+  border-color: var(--personal-line);
+  color: var(--accent-text);
+  background: var(--paper-1);
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--text-primary) 3%, transparent);
+}
+
+.mesh-experience .settings-studio .settings-nav-item > svg:first-of-type {
+  width: 1.1rem;
+  height: 1.1rem;
+  stroke-width: 1.6;
+}
+
+.mesh-experience .settings-studio .settings-nav-item > svg:last-child {
+  width: .8rem;
+  opacity: .55;
+}
+
+.mesh-experience .settings-studio .settings-panel-heading {
+  padding: .15rem 0 1.5rem;
+  border-color: var(--personal-line);
+}
+
+.settings-section-caption { margin-bottom: .6rem; }
+
+.mesh-experience .settings-studio .settings-panel-heading h2 {
+  font-size: 1.6rem;
+  font-weight: 500;
+  letter-spacing: -.03em;
+}
+
+.mesh-experience .settings-studio .settings-panel-heading p:last-child {
+  margin-top: .45rem;
+  font-size: .8rem;
+  line-height: 1.6;
+}
+
+.mesh-experience .settings-studio .settings-panel-scroll { padding: 1.7rem 0; }
+.mesh-experience .settings-studio .settings-section-stack { gap: 2rem; }
+
+.mesh-experience .settings-studio .settings-card-heading {
+  gap: .5rem;
+  margin: 0 0 .7rem .3rem;
+  color: var(--text-secondary);
+  font-size: .75rem;
+  font-weight: 500;
+}
+
+.mesh-experience .settings-studio .settings-card {
+  --personal-card-padding: 1.3rem;
+  padding: var(--personal-card-padding);
+  border: 1px solid var(--personal-line);
+  border-radius: 1.4rem;
+  background: var(--paper-1);
+  box-shadow: none;
+}
+
+.mesh-experience .settings-studio :is(.settings-muted-box, .settings-toggle) {
+  border-color: var(--personal-line);
+  border-radius: 1rem;
+  background: var(--paper-0);
+  box-shadow: none;
+}
+
+.mesh-experience .settings-studio .settings-toggle { padding: 1rem; }
+.mesh-experience .settings-studio .settings-list { margin-inline: calc(var(--personal-card-padding) * -1); }
+.mesh-experience .settings-studio .settings-row { --leaf-inset: var(--personal-card-padding); padding: .9rem var(--personal-card-padding); }
+.mesh-experience .settings-studio .settings-row:has(.settings-icon-tile) { --leaf-inset: calc(var(--personal-card-padding) + 1.9rem + .625rem); }
+.mesh-experience .settings-studio .settings-action-row { min-height: 3.4rem; border-radius: 1rem; }
+.mesh-experience .settings-studio .settings-icon-tile { border-radius: .7rem; background: var(--personal-soft); }
+.mesh-experience .settings-studio .settings-quick-link { min-height: 2.7rem; border-radius: .85rem; }
+.mesh-experience .settings-studio .simple-input { border-radius: .8rem; }
+
+/* Shared metric cards replace walls of outlined mini-panels with a measured rhythm. */
+.mesh-experience .personal-metrics {
+  gap: .75rem;
+  margin-block: 1.5rem;
+}
+
+.mesh-experience .personal-metrics > * {
+  min-width: 0;
+  padding: 1.35rem;
+  border: 1px solid var(--personal-line, var(--rule));
+  border-radius: 1.2rem;
+  background: var(--paper-1);
+  box-shadow: none;
+}
+
+.mesh-experience .personal-metric > p:nth-child(2),
+.mesh-experience .personal-metrics > section > p:nth-child(2) {
+  margin-top: .8rem;
+  font-size: clamp(1.65rem, 2.5vw, 2.25rem);
+  font-weight: 500;
+  letter-spacing: -.04em;
+  font-variant-numeric: tabular-nums;
+}
+
+.mesh-experience .personal-analytics :is(.plate, .tray),
+.mesh-experience .personal-analytics-page > div > section,
+.mesh-experience .personal-insight-card {
+  border-color: var(--personal-line, var(--rule));
+  border-radius: 1.25rem;
+  background: var(--paper-1);
+  box-shadow: none;
+}
+
+.mesh-experience .personal-platform-row { padding: 1.4rem; }
+.mesh-experience .personal-trend-card { padding: 1.3rem; }
+.mesh-experience .personal-analytics > section:not(.personal-metrics) { margin-top: 2.6rem; }
+.mesh-experience .personal-analytics-page > div:not(.personal-analytics) { max-width: 1200px; padding-inline: clamp(1.25rem, 3vw, 2.5rem); }
+
+/* Operations, privacy and payment details use the same restrained card system. */
+.mesh-experience :is(.personal-admin, .personal-billing, .personal-controls, .personal-account-delete) .mesh-surface:not(.personal-page-heading),
+.mesh-experience .personal-controls-shelf > section {
+  border: 1px solid var(--personal-line, var(--rule));
+  border-radius: 1.4rem;
+  background: var(--paper-1);
+  box-shadow: none;
+}
+
+.mesh-experience .personal-admin .mesh-surface:not(.personal-page-heading),
+.mesh-experience .personal-billing .mesh-surface:not(.personal-page-heading),
+.mesh-experience .personal-controls .mesh-surface:not(.personal-page-heading) {
+  padding: 1.5rem;
+}
+
+.mesh-experience .personal-admin table {
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: .8rem;
+}
+
+.personal-admin thead { background: var(--paper-0); }
+.personal-admin table th { color: var(--text-secondary); font-weight: 500; }
+.personal-admin tbody tr { transition: background 140ms ease; }
+.personal-admin tbody tr:hover { background: var(--paper-0); }
+.personal-admin table :is(td, th) { padding-block: 1rem; }
+.mesh-experience .personal-controls-shelf { max-width: 1200px; padding-inline: clamp(1.25rem, 3vw, 2.5rem); }
+.mesh-experience .personal-account-delete { max-width: 980px; }
+.mesh-experience .personal-account-delete > section { padding: 1.7rem; }
+
+/* Connections live around an identity, with a soft orbital stage and clear tiles. */
+.mesh-experience .personal-connections { gap: 1.7rem; }
+.mesh-experience .personal-connection-toolbar { flex-wrap: wrap; padding-inline: .3rem; }
+
+.mesh-experience .personal-identity-orbit {
+  min-height: 18rem;
+  place-content: center;
+  padding: 2rem;
+  border-color: var(--personal-line);
+  border-radius: 1.8rem;
+  background: radial-gradient(ellipse at 50% 45%, var(--personal-soft), transparent 70%), var(--paper-1);
+}
+
+.mesh-experience .personal-platform-grid { gap: .8rem; }
+.mesh-experience .personal-platform-grid > li { min-height: 9.4rem; aspect-ratio: auto; }
+
+.mesh-experience .personal-platform-tile {
+  padding: 1.3rem .7rem;
+  border-radius: 1.2rem;
+  border-style: solid;
+  background: var(--paper-1);
+  box-shadow: 0 3px 12px color-mix(in srgb, var(--text-primary) 2%, transparent);
+}
+
+.mesh-experience .personal-merge-panel {
+  margin-top: .5rem;
+  padding: 1.5rem;
+  border-radius: 1.4rem;
+  background: var(--paper-1);
+}
+
+.personal-platform-sheet > div:first-child {
+  margin-bottom: .5rem;
+  padding: 1rem;
+  border-radius: 1rem;
+  background: var(--paper-0);
+}
+
+/* Membership has editorial space, tactile feature tiles and simple prices. */
+.mesh-experience .personal-commerce { max-width: 1060px; gap: 2rem; }
+.mesh-experience .personal-commerce-detail { max-width: 700px; }
+
+.personal-commerce-hero {
+  position: relative;
+  padding: 2rem 1rem 2.5rem;
+  border-bottom: 1px solid var(--personal-line);
+}
+
+.personal-commerce-emblem {
+  display: grid;
+  width: 4.25rem;
+  height: 4.25rem;
+  margin: 0 auto 1.25rem;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--accent) 25%, var(--rule));
+  border-radius: 1.5rem;
+  color: var(--accent-text);
+  background: var(--personal-soft);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--accent) 8%, transparent);
+}
+
+.mesh-experience .personal-commerce-hero .personal-display-title {
+  max-width: 39rem;
+  font-size: clamp(2.2rem, 4vw, 3.5rem);
+  line-height: 1.1;
+}
+
+.mesh-experience .personal-commerce-hero > p:not(:first-of-type) { max-width: 33rem; }
+.mesh-experience .personal-pro-features { gap: 1rem; }
+
+.mesh-experience .personal-pro-feature {
+  display: grid;
+  grid-template-columns: 2.7rem minmax(0, 1fr);
+  column-gap: 1rem;
+  align-content: start;
+  padding: 1.5rem;
+  border: 1px solid var(--personal-line);
+  border-radius: 1.4rem;
+  background: var(--paper-1);
+  box-shadow: none;
+}
+
+.mesh-experience .personal-pro-feature > svg {
+  grid-row: span 2;
+  width: 2.7rem;
+  height: 2.7rem;
+  padding: .7rem;
+  border-radius: .9rem;
+  background: var(--personal-soft);
+  stroke-width: 1.7;
+}
+
+.mesh-experience .personal-pro-feature > p { margin-top: 0; }
+.mesh-experience .personal-pro-feature > p:last-child { margin-top: .45rem; font-size: .8rem; line-height: 1.7; }
+
+.mesh-experience .personal-commerce > section > .mesh-choice,
+.mesh-experience .personal-commerce-detail > section.mesh-surface {
+  padding: 1.6rem;
+  border: 1px solid var(--personal-line);
+  border-radius: 1.4rem;
+  background: var(--paper-1);
+  box-shadow: none;
+}
+
+.mesh-experience .personal-pricing { gap: 1rem; scroll-margin-top: 6rem; }
+.mesh-experience .personal-pricing > article {
+  padding: 2rem;
+  border: 1px solid var(--personal-line);
+  border-radius: 1.6rem;
+  background: var(--paper-1);
+  box-shadow: none;
+}
+
+.mesh-experience .personal-pricing > article:last-child {
+  border-color: color-mix(in srgb, var(--accent) 38%, var(--rule));
+  background: var(--personal-soft);
+}
+
+.mesh-experience .personal-pricing > article > p {
+  margin-block: 1.3rem;
+  font-size: 2.8rem;
+  font-weight: 500;
+  letter-spacing: -.045em;
+}
+
+.mesh-experience .personal-gift-modes {
+  padding: .3rem;
+  border: 1px solid var(--personal-line);
+  border-radius: 1.2rem;
+  background: var(--paper-0);
+}
+
+.mesh-experience .personal-gift-modes > button {
+  padding: 1rem;
+  border-color: transparent;
+  border-radius: .9rem;
+  background: transparent;
+  box-shadow: none;
+}
+
+.mesh-experience .personal-gift-modes > button[aria-selected="true"] {
+  border-color: var(--personal-line);
+  background: var(--paper-1);
+  box-shadow: 0 3px 8px color-mix(in srgb, var(--text-primary) 4%, transparent);
+}
+
+/* Trail is a keepsake: generous summary, one uninterrupted illustrated path. */
+.mesh-experience .personal-trail { max-width: 900px; }
+.personal-trail .personal-page-heading { align-items: flex-end; }
+.personal-trail-range { width: fit-content; padding: .3rem; border: 1px solid var(--personal-line); border-radius: 1rem; background: var(--paper-1); }
+.personal-trail-range > a { border-color: transparent; border-radius: .75rem; }
+.personal-trail-stats { gap: .6rem; }
+.personal-trail-stats > span { padding: .85rem 1rem; border-radius: 1rem; background: var(--paper-1); }
+.personal-trail-stats > span > span:first-child { font-size: 1.15rem; font-weight: 500; font-variant-numeric: tabular-nums; }
+.mesh-experience .personal-trail-map { border-radius: 1.75rem; box-shadow: 0 12px 32px color-mix(in srgb, var(--text-primary) 6%, transparent); }
+.personal-share-handoff { min-height: 60dvh; padding: 2rem; }
+.personal-share-handoff-mark { display: grid; width: 5rem; height: 5rem; place-items: center; border: 1px solid var(--rule); border-radius: 1.7rem; background: var(--paper-1); }
+
+@media (hover: hover) {
+  .mesh-experience .settings-studio .settings-nav-item:hover { background: var(--paper-1); }
+  .mesh-experience .personal-pro-feature:hover { border-color: color-mix(in srgb, var(--accent) 35%, var(--rule)); background: var(--personal-soft); }
+}
+
+@media (min-width: 1024px) {
+  .mesh-experience .settings-studio .settings-traditional-grid { grid-template-columns: 15rem minmax(0, 1fr); }
+}
+
+@media (max-width: 1023px) {
+  .mesh-experience .settings-studio .settings-traditional-grid { gap: 1rem; }
+  .mesh-experience .settings-studio .settings-nav-scroll { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .6rem; }
+  .mesh-experience .settings-studio .settings-nav-item { min-height: 4.75rem; border-color: var(--personal-line); background: var(--paper-1); }
+}
+
+@media (max-width: 639px) {
+  .mesh-experience .personal-studio { padding: 1.1rem .9rem 2rem; }
+  .mesh-experience .personal-display-title { font-size: 1.9rem; }
+  .mesh-experience .personal-page-heading { padding-bottom: 1.35rem; }
+  .mesh-experience .settings-studio .settings-traditional-header { padding: 1.15rem !important; border-radius: 1.3rem; }
+  .personal-heading-line { margin-bottom: 1rem; }
+  .personal-heading-note { display: none; }
+  .mesh-experience .settings-studio-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: .5rem; }
+  .mesh-experience .settings-studio .settings-summary-pill { padding: .5rem; }
+  .mesh-experience .settings-studio .settings-summary-pill:nth-child(odd) { padding-left: 0; border-left: 0; }
+  .mesh-experience .settings-studio .settings-nav-item { padding: .8rem; }
+  .mesh-experience .settings-studio .settings-nav-item > span > span:last-child { white-space: normal; font-size: .7rem; line-height: 1.4; }
+  .mesh-experience .settings-studio .settings-nav-item > svg:last-child { display: none; }
+  .mesh-experience .settings-studio .settings-card { --personal-card-padding: 1rem; border-radius: 1.1rem; }
+  .mesh-experience .personal-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .6rem; }
+  .mesh-experience .personal-metrics > * { padding: 1rem; }
+  .mesh-experience .personal-platform-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .mesh-experience .personal-platform-grid > li { min-height: 8.5rem; }
+  .mesh-experience .personal-identity-orbit { min-height: 15rem; padding: 1.1rem; }
+  .mesh-experience .personal-commerce-hero { padding: 1.2rem .1rem 1.8rem; }
+  .mesh-experience .personal-commerce-hero .personal-display-title { font-size: 2.4rem; }
+  .mesh-experience .personal-pro-feature { padding: 1.15rem; }
+  .mesh-experience .personal-commerce-detail > section.mesh-surface { padding: 1.15rem; }
+  .mesh-experience .personal-pricing > article { padding: 1.5rem; }
+  .personal-trail .personal-page-heading { flex-wrap: wrap; }
+  .personal-trail .personal-page-heading > div:first-child > span { display: none; }
+  .personal-trail-stats > span { padding: .7rem .8rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .personal-studio *, .personal-platform-sheet * { scroll-behavior: auto; }
+}

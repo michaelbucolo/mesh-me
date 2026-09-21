@@ -1,0 +1,295 @@
+/* Spatial surfaces: a quiet canvas, a focused conversation, a recognizable Meshi. */
+.mesh-experience .presence-kicker {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  line-height: 1.5;
+  letter-spacing: 0.015em;
+}
+.mesh-experience .presence-page-title {
+  margin-top: 0.3rem;
+  color: var(--text-primary);
+  font-size: clamp(1.75rem, 3vw, 2.5rem);
+  font-weight: 500;
+  line-height: 1.12;
+  letter-spacing: -0.045em;
+}
+.mesh-experience .presence-primary-link {
+  display: inline-flex;
+  min-height: 2.875rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.625rem;
+  padding: 0.75rem 1.125rem;
+  border: 1px solid transparent;
+  border-radius: 1rem;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  box-shadow: none;
+  transition: opacity 160ms, translate 160ms;
+}
+.mesh-experience .presence-primary-link:hover { opacity: 0.9; }
+.mesh-experience .presence-primary-link:active { translate: 0 1px; }
+.mesh-experience .presence-empty-symbol {
+  display: inline-flex;
+  width: 3.5rem;
+  height: 3.5rem;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+  border: 1px solid var(--rule);
+  border-radius: 1.25rem;
+  background: var(--paper-2);
+  color: var(--accent-text);
+}
+
+/* MeChat: dedicated reading room, with details available when they are useful. */
+.mesh-experience .presence-messages-shell { background: var(--paper-0); }
+.mesh-experience .presence-conversations { background: var(--paper-1); }
+.mesh-experience .presence-conversations-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.5rem 1.25rem 0.625rem;
+}
+.mesh-experience .presence-conversations-heading h1 {
+  margin-top: 0.25rem;
+  font-size: 1.4375rem;
+  font-weight: 500;
+  letter-spacing: -0.04em;
+}
+.mesh-experience .presence-count {
+  display: inline-flex;
+  min-width: 2rem;
+  height: 2rem;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--rule);
+  border-radius: 0.75rem;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+.mesh-experience .presence-conversations-search { padding-inline: 1.25rem; }
+.mesh-experience .presence-conversations-search label {
+  min-height: 2.75rem;
+  border-radius: 0.875rem;
+  background: var(--paper-2);
+  border-color: transparent;
+}
+.mesh-experience .presence-conversations-search label:focus-within { border-color: var(--accent); }
+.mesh-experience .presence-conversations [aria-label="Filter conversations"] {
+  gap: 0.1875rem;
+  padding: 0.25rem;
+  border-radius: 0.875rem;
+  background: var(--paper-2);
+}
+.mesh-experience .presence-conversations [aria-label="Filter conversations"] button {
+  min-height: 2.25rem;
+  padding-inline: 0.625rem;
+  border: 0;
+  border-radius: 0.6875rem;
+  background: transparent;
+  box-shadow: none;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+.mesh-experience .presence-conversations [aria-label="Filter conversations"] button[aria-pressed="true"] {
+  background: var(--paper-1);
+  color: var(--text-primary);
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--text-primary) 6%, transparent);
+}
+.mesh-experience .presence-notes { padding: 1rem 0.5rem 1.25rem; }
+.mesh-experience .presence-notes > div { padding-top: 0.375rem; }
+.mesh-experience .presence-conversation-row {
+  min-height: 5.125rem;
+  padding: 0.875rem;
+  border: 1px solid transparent;
+  border-radius: 1.125rem;
+}
+.mesh-experience .presence-conversation-row[aria-current="page"] {
+  border-color: var(--rule);
+  background: var(--paper-2);
+}
+.mesh-experience .presence-conversation-row:hover { background: var(--paper-2); }
+.mesh-experience .presence-conversation-row p { line-height: 1.6; }
+.mesh-experience .presence-message-welcome {
+  position: relative;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding: 2rem;
+  text-align: center;
+}
+.mesh-experience .presence-welcome-stage {
+  position: relative;
+  display: grid;
+  width: 16rem;
+  height: 12rem;
+  place-items: center;
+  margin-bottom: 1rem;
+}
+.mesh-experience .presence-welcome-stage > span {
+  position: absolute;
+  width: 13.5rem;
+  height: 8rem;
+  border: 1px solid var(--rule);
+  border-radius: 50%;
+  rotate: -20deg;
+}
+.mesh-experience .presence-welcome-stage > span:nth-child(2) { width: 17rem; height: 11rem; rotate: 20deg; opacity: 0.55; }
+.mesh-experience .presence-message-welcome h2 {
+  margin-top: 0.75rem;
+  color: var(--text-primary);
+  font-family: var(--font-display-loaded), Georgia, serif;
+  font-size: clamp(2rem, 3vw, 3.125rem);
+  font-weight: 400;
+  line-height: 1.1;
+  letter-spacing: -0.04em;
+}
+.mesh-experience .presence-welcome-copy { max-width: 22rem; margin: 1rem 0 1.5rem; font-size: 0.9375rem; line-height: 1.75; color: var(--text-secondary); }
+.mesh-experience .presence-welcome-footer { display: flex; align-items: center; gap: 0.5rem; margin-top: 3rem; font-size: 0.75rem; color: var(--text-secondary); }
+.mesh-experience .presence-welcome-note { max-width: 22rem; margin-top: 0.5rem; color: var(--text-muted); font-size: 0.6875rem; line-height: 1.65; }
+.mesh-experience .presence-thread-workspace { padding: 0; }
+.mesh-experience .presence-thread-surface { background: var(--paper-0); }
+.mesh-experience .presence-thread-header { background: var(--paper-1); padding: 1rem 1.5rem; }
+.mesh-experience .presence-thread-header h1 { font-size: 1.125rem; font-weight: 600; letter-spacing: -0.02em; }
+.mesh-experience .presence-details-trigger { width: 2.75rem; height: 2.75rem; padding: 0; justify-content: center; border-radius: 50%; }
+.mesh-experience .presence-thread-privacy { background: var(--paper-1); padding: 0.625rem 1.5rem; font-size: 0.6875rem; border-bottom: 0; }
+.mesh-experience .presence-thread-tools { padding: 0.5rem 1.5rem; background: var(--paper-1); }
+.mesh-experience .presence-thread-tools > label { min-height: 2.5rem; border: 1px solid var(--rule); border-radius: 0.875rem; background: var(--paper-0); }
+.mesh-experience .presence-message-stream { padding: 1.5rem clamp(1rem, 3vw, 3rem); }
+.mesh-experience .presence-thread .mechat-bubble-theirs { background: var(--paper-1); color: var(--text-primary); border: 1px solid var(--rule); box-shadow: none; }
+.mesh-experience .presence-thread .mechat-bubble-mine { box-shadow: none; }
+.mesh-experience .presence-thread .mechat-tail::before,
+.mesh-experience .presence-thread .mechat-tail::after { display: none; }
+.mesh-experience .presence-message-composer { margin: 0.5rem 1.25rem 1rem; padding: 0.75rem; border: 1px solid var(--rule); border-radius: 1.5rem; background: var(--paper-1); }
+.mesh-experience .presence-message-composer:focus-within { border-color: color-mix(in srgb, var(--accent) 50%, var(--rule)); }
+.mesh-experience .presence-conversation-info > section { border-radius: 1.25rem; box-shadow: none; background: var(--paper-1); padding: 1.25rem; }
+.mesh-experience .presence-conversation-info > section:first-child { padding-top: 0.5rem; border: 0; background: transparent; }
+.mesh-experience .presence-watch-room { border-radius: 1.125rem; background: var(--paper-2); }
+
+/* Activity and inbox: headers explain the state, rows make the next step obvious. */
+.mesh-experience .presence-notifications { max-width: 68rem; padding-top: 2rem; }
+.mesh-experience .presence-activity-header { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 1.5rem; padding-bottom: 0.5rem; }
+.mesh-experience .presence-activity-title h1 { margin-top: 0.3rem; font-size: clamp(2rem, 4vw, 3rem); font-weight: 500; letter-spacing: -0.045em; line-height: 1.15; }
+.mesh-experience .presence-activity-title > p:last-child { margin-top: 0.75rem; font-size: 0.875rem; color: var(--text-secondary); }
+.mesh-experience .presence-activity-filters { padding: 1rem; border-radius: 1.375rem; box-shadow: none; }
+.mesh-experience .presence-activity-filters > label { border-radius: 0.875rem; background: var(--paper-0); }
+.mesh-experience .presence-activity-filters [data-testid="notification-category-tabs"] { gap: 0.25rem; margin-top: 0.875rem; }
+.mesh-experience .presence-activity-list { gap: 0.75rem; }
+.mesh-experience .presence-activity-card { border-radius: 1.375rem; padding: 1.25rem; box-shadow: none; }
+.mesh-experience .presence-activity-card h2 { font-size: 0.9375rem; }
+.mesh-experience .presence-activity-card:hover { border-color: color-mix(in srgb, var(--text-secondary) 35%, var(--rule)); }
+.mesh-experience .presence-inbox { max-width: 64rem; padding-top: 1rem; }
+.mesh-experience .presence-inbox > header { padding: 1.5rem 2rem; }
+.mesh-experience .presence-inbox [data-testid="inbox-list"] { margin: 0; padding: 0 2rem 7rem; }
+.mesh-experience .presence-inbox [data-testid="inbox-list"] > ul { gap: 0.625rem; }
+.mesh-experience .presence-inbox-row { padding: 1.125rem; border: 1px solid var(--rule); border-radius: 1.25rem; background: var(--paper-1); }
+.mesh-experience .presence-inbox-row:hover { background: var(--paper-2); }
+.mesh-experience .presence-inbox-row > span:last-child > span:nth-child(2) { margin-top: 0.375rem; line-height: 1.65; }
+.mesh-experience .presence-inbox-empty { min-height: 20rem; border: 1px dashed var(--rule); border-radius: 1.5rem; padding-inline: 1.5rem; }
+.mesh-experience .presence-inbox-empty a { min-height: 2.75rem; display: flex; align-items: center; }
+
+/* World controls form one navigable instrument instead of a stack of floating pills. */
+.mesh-experience .presence-world-mode { top: 5rem; text-align: center; }
+.mesh-experience .presence-world-mode > p { margin-bottom: 0.625rem; }
+.mesh-experience .presence-world-switch { padding: 0.3rem; border-radius: 1rem; border: 1px solid var(--rule); background: var(--paper-1); box-shadow: 0 4px 18px color-mix(in srgb, var(--text-primary) 5%, transparent); }
+.mesh-experience .presence-world-switch button { display: inline-flex; min-height: 2.5rem; align-items: center; justify-content: center; gap: 0.5rem; padding-inline: 1.125rem; border-radius: 0.75rem; font-size: 0.8125rem; }
+.mesh-experience .presence-world-switch button[aria-pressed="true"] { background: var(--paper-3); color: var(--text-primary); box-shadow: none; }
+.mesh-experience .presence-world-tools { gap: 0.3125rem; right: 1.125rem; }
+.mesh-experience .presence-world-tools .mesh-rail-btn { min-width: 2.75rem; height: 2.75rem; border-radius: 0.9375rem; background: var(--paper-1); border: 1px solid var(--rule); box-shadow: none; }
+.mesh-experience .presence-world-tools .mesh-rail-btn:hover,
+.mesh-experience .presence-world-tools .mesh-rail-btn:focus-visible { background: var(--paper-2); color: var(--text-primary); }
+.mesh-experience .presence-tool-divider { width: 1.5rem; height: 1px; margin: 0.125rem 0.625rem; background: var(--rule); }
+.mesh-experience .presence-world-visiting { max-width: calc(100% - 5rem); flex-wrap: wrap; }
+.mesh-experience .presence-world-welcome { padding: 1.75rem; border-radius: 1.75rem; }
+.mesh-experience .presence-world-welcome .presence-empty-symbol { margin-bottom: 1rem; }
+.mesh-experience .presence-world-welcome .presence-page-title { font-size: 1.875rem; }
+.mesh-experience .presence-world-gestures { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-top: 1.5rem; }
+.mesh-experience .presence-world-gestures span { display: flex; flex-direction: column; gap: 0.625rem; padding: 1rem; border: 1px solid var(--rule); border-radius: 1rem; font-size: 0.6875rem; color: var(--text-secondary); }
+.mesh-experience .presence-world-welcome > button { min-height: 2.875rem; border-radius: 1rem; font-size: 0.8125rem; }
+.mesh-experience .presence-world-search,
+.mesh-experience .presence-world-shortcuts { padding: 1.25rem; border: 1px solid var(--rule); border-radius: 1.5rem; background: var(--paper-1); }
+.mesh-experience .presence-world-search { max-width: 36rem; }
+.mesh-experience .presence-world-list { border-left: 1px solid var(--rule); background: var(--paper-1); }
+.mesh-experience .presence-world-list > div:first-child { padding: 1.5rem; }
+.mesh-experience .presence-world-list > div:first-child p:first-child { font-size: 1.125rem; }
+.mesh-experience .presence-world-list button { min-height: 2.75rem; }
+.mesh-experience .presence-world-rewind { border-radius: 1.5rem; padding: 1rem 1.25rem; background: var(--paper-1); }
+
+/* Meshi's personal panel makes identity and visibility the first read. */
+.mesh-experience .presence-meshi-dashboard { width: 22rem; border: 1px solid var(--rule); border-radius: 1.75rem; background: var(--paper-1); }
+.mesh-experience .presence-meshi-identity { gap: 1rem; padding: 1.25rem; background: var(--paper-0); }
+.mesh-experience .presence-meshi-identity > div:first-child { display: grid; width: 4.5rem; height: 4.5rem; place-items: center; border: 1px solid var(--rule); border-radius: 1.5rem; background: var(--paper-1); }
+.mesh-experience .presence-meshi-state { padding: 1rem; border: 1px solid var(--rule); border-radius: 1.125rem; background: var(--paper-0); }
+.mesh-experience .presence-meshi-state > p:nth-child(2) { margin-top: 0.25rem; font-size: 0.9375rem; }
+.mesh-experience .presence-meshi-destinations button { min-height: 5.75rem; border: 1px solid var(--rule); border-radius: 1.125rem; background: var(--paper-0); }
+.mesh-experience .presence-meshi-chat { max-width: 25rem; border: 1px solid var(--rule); border-radius: 1.5rem; background: var(--paper-1); }
+.mesh-experience .presence-meshi-chat > div:first-child { padding: 1rem 1.25rem; }
+.mesh-experience .presence-meshi-transcript { padding: 1.25rem; }
+.mesh-experience .presence-meshi-transcript > div > div { font-size: 0.8125rem; line-height: 1.7; }
+.mesh-experience .presence-meshi-composer { margin: 0.5rem; padding: 0.625rem; border: 1px solid var(--rule); border-radius: 1rem; }
+.mesh-experience .presence-meshi-composer input { min-width: 0; min-height: 2.75rem; border: 0; background: transparent; }
+.mesh-experience .presence-meshi-composer button { min-width: 2.75rem; min-height: 2.75rem; display: grid; place-items: center; }
+
+/* The map uses the same porcelain / graphite materials as every other world. */
+.mesh-experience .presence-map { min-height: 24rem; }
+.mesh-experience .presence-map-caption { top: 1.5rem; left: 1.5rem; max-width: min(23rem, calc(100% - 6.5rem)); padding: 1rem 1.25rem; border: 1px solid var(--rule); border-radius: 1.375rem; box-shadow: none; }
+.mesh-experience .presence-map-caption h1 { margin-top: 0.25rem; font-size: 1.625rem; font-weight: 500; letter-spacing: -0.045em; color: var(--text-primary); }
+.mesh-experience .presence-map-caption > p:last-child { margin-top: 0.5rem; max-width: 19rem; font-size: 0.75rem; line-height: 1.6; }
+.mesh-experience .presence-map-zoom { border-radius: 0.875rem; }
+.mesh-experience .presence-map-card { max-width: 26rem; margin-inline: auto; padding: 1.25rem; border-radius: 1.5rem; box-shadow: 0 8px 32px color-mix(in srgb, var(--text-primary) 8%, transparent); }
+.mesh-experience .presence-map-card a { display: inline-flex; min-height: 2.75rem; align-items: center; justify-content: center; border-radius: 0.875rem; }
+.mesh-experience .presence-map-sharing { bottom: 1.5rem; left: 1.5rem; }
+.mesh-experience .presence-map-sharing > button { min-height: 2.875rem; border: 1px solid var(--rule); border-radius: 1rem; }
+.mesh-experience .presence-map-share-panel { padding: 1.25rem; border-radius: 1.5rem; box-shadow: 0 8px 32px color-mix(in srgb, var(--text-primary) 8%, transparent); }
+.mesh-experience .presence-map-share-panel button { min-height: 2.75rem; }
+
+@media (max-width: 767px) {
+  .mesh-experience .presence-conversations-heading { padding-top: 1rem; }
+  .mesh-experience .presence-thread-header { padding: 0.75rem 0.625rem; }
+  .mesh-experience .presence-thread-tools { padding: 0.5rem 0.875rem; }
+  .mesh-experience .presence-message-stream { padding: 1.25rem 0.875rem 5rem; }
+  .mesh-experience .presence-message-composer { margin: 0.375rem 0.625rem max(0.625rem, env(safe-area-inset-bottom)); border-radius: 1.25rem; }
+  .mesh-experience .presence-notifications { padding-top: 1.25rem; }
+  .mesh-experience .presence-activity-header { gap: 1rem; }
+  .mesh-experience .presence-activity-actions { width: 100%; justify-content: flex-end; }
+  .mesh-experience .presence-activity-card { padding: 1rem; }
+  .mesh-experience .presence-inbox { padding-top: 0; }
+  .mesh-experience .presence-inbox > header { padding: 1.25rem 1rem; }
+  .mesh-experience .presence-inbox [data-testid="inbox-list"] { padding-inline: 1rem; }
+  .mesh-experience .presence-world-mode { top: 4.5rem; }
+  .mesh-experience .presence-world-mode > p { display: none; }
+  .mesh-experience .presence-world-switch button { min-height: 2.25rem; padding-inline: 0.875rem; font-size: 0.75rem; }
+  .mesh-experience .presence-world-tools { right: 0.75rem; }
+  .mesh-experience .presence-world-tools .mesh-rail-btn { border-radius: 0.875rem; }
+  .mesh-experience .presence-map-caption { left: 0.75rem; top: 0.75rem; padding: 0.875rem; }
+  .mesh-experience .presence-map-caption h1 { font-size: 1.25rem; }
+  .mesh-experience .presence-map-caption > p:last-child { font-size: 0.6875rem; }
+  .mesh-experience .presence-map-sharing { left: 0.75rem; bottom: 0.75rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mesh-experience .presence-primary-link { transition: none; }
+}
+
+.mesh-experience .presence-doodle-pad { max-width: 42rem; margin-inline: auto; padding: 1rem 1.25rem; border: 1px solid var(--rule); border-radius: 1.5rem 1.5rem 0 0; box-shadow: 0 -8px 32px color-mix(in srgb, var(--text-primary) 6%, transparent); }
+.mesh-experience .presence-doodle-ink { flex-shrink: 0; }
+@media (max-width: 420px) {
+  .mesh-experience .presence-doodle-pad { padding-inline: 0.875rem; }
+  .mesh-experience .presence-doodle-pad > div:nth-of-type(3) { gap: 0.25rem; }
+  .mesh-experience .presence-doodle-ink { width: 2.5rem; height: 2.75rem; }
+}
+
+.mesh-experience .presence-world-detail { padding: 1.25rem; border: 1px solid var(--rule); border-radius: 1.5rem; background: var(--paper-1); }
+.mesh-experience .presence-world-detail button,
+.mesh-experience .presence-world-detail a { min-height: 2.75rem; border-radius: 0.875rem; }
+.mesh-experience .presence-world-lens { border: 1px solid var(--rule); border-radius: 1.75rem; background: var(--paper-1); }
+.mesh-experience .presence-world-lens > div:not(:first-child) { gap: 1rem; }
+.mesh-experience .presence-world-lens button:not([aria-label^="Catch-up"]) { min-height: 2.75rem; }
+.mesh-experience .presence-world-compose { border-radius: 1.75rem; }

@@ -1,0 +1,230 @@
+/* Social spaces share a quiet frame; people and their content carry the color. */
+.mesh-experience .social-page {
+  --social-space: clamp(1rem, 2.6vw, 2rem);
+  padding: var(--social-space);
+  min-width: 0;
+}
+.mesh-experience .social-page-intro { margin-bottom: 1.5rem; }
+.social-section-heading,
+.social-form-heading {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  color: var(--text-primary);
+}
+.social-section-heading {
+  justify-content: space-between;
+  margin-bottom: .85rem;
+  padding-inline: .2rem;
+  font-size: .8125rem;
+}
+.social-section-heading > span:first-child { display: inline-flex; align-items: center; gap: .5rem; font-weight: 600; }
+.social-section-heading > span:last-child { color: var(--text-muted); font-size: .75rem; }
+.social-form-heading { margin-bottom: 1.25rem; font-size: .9375rem; font-weight: 600; }
+.social-step { display: grid; place-items: center; width: 1.75rem; height: 1.75rem; border: 1px solid var(--rule); border-radius: 50%; color: var(--text-muted); font-size: .75rem; }
+
+/* Feed actions live in the page heading above a single readable column. */
+.mesh-experience .social-feed { width: 100%; max-width: 54rem; margin-inline: auto; grid-template-columns: minmax(0, 1fr); }
+.mesh-experience .social-feed .mesh-feed-intro { flex-shrink: 0; margin-bottom: .75rem; }
+.mesh-experience .social-feed .feed-topbar-actions { margin: 0; gap: .3rem; }
+.mesh-experience .social-feed .feed-x-tabs { padding: .3rem; gap: .3rem; border: 1px solid var(--rule); border-radius: 1rem; background: var(--paper-1) !important; }
+.mesh-experience .social-feed .feed-x-tabs > a { min-height: 2.75rem; border: 0; border-radius: .7rem; font-size: .8125rem; }
+.mesh-experience .social-feed .feed-x-tabs > a[aria-current="page"] { color: var(--text-primary); background: var(--paper-3); box-shadow: none; }
+.mesh-experience .social-feed .feed-x-tabs > a::after { display: none; }
+.mesh-experience .social-feed .feed-control-strip { padding: .65rem 0; border: 0; background: transparent; }
+.mesh-experience .social-feed .feed-mode-strip { gap: .35rem; }
+.mesh-experience .social-feed .feed-mode-button { border-radius: .7rem; min-height: 2.5rem; box-shadow: none; background: transparent; font-size: .75rem; }
+.mesh-experience .social-feed .feed-mode-button-active { background: var(--accent-subtle); color: var(--accent-text); }
+.mesh-experience .social-feed .feed-consumption-stack { padding: .25rem .15rem 2rem; }
+.mesh-experience .social-feed .feed-inline-composer { margin-bottom: 1rem; }
+.mesh-experience .social-feed .feed-post-list { gap: 1rem; }
+
+/* A single card treatment travels with a post wherever it appears. */
+.mesh-experience .social-post.insta-post-card,
+.mesh-experience .feed-x-layout .social-post.insta-post-card {
+  margin-block: 0;
+  border: 1px solid var(--rule) !important;
+  border-radius: 1.4rem !important;
+  background: var(--paper-1) !important;
+  box-shadow: none !important;
+}
+.mesh-experience .social-post.insta-post-card:hover,
+.mesh-experience .feed-x-layout .social-post.insta-post-card:hover {
+  background: var(--paper-1) !important;
+  border-color: var(--rule-strong) !important;
+  box-shadow: none !important;
+}
+.mesh-experience .social-post .social-post-heading { padding: 1.1rem 1.2rem .8rem; }
+.mesh-experience .social-post .feed-media-copy { margin-left: 0; padding: .1rem 1.2rem 1rem; }
+.mesh-experience .social-post .insta-text-post { margin: 0; padding: .5rem 1.2rem 1rem; min-height: 0; }
+.mesh-experience .social-post .feed-post-copy { font-size: .9375rem; line-height: 1.65; }
+.mesh-experience .social-feed .social-post.insta-post-card > .social-post-footer,
+.mesh-experience .social-post .social-post-footer { padding: .65rem 1rem .9rem; }
+.mesh-experience .social-post .insta-post-action { min-width: 2.75rem; min-height: 2.75rem; border-radius: .8rem; }
+.mesh-experience .social-post .insta-post-action[aria-pressed="true"] { background: var(--accent-subtle); }
+.mesh-experience .social-post .feed-media-frame { margin-inline: .55rem; border-radius: 1rem; }
+.mesh-experience .social-post .glass-dropdown { padding: .45rem; border-radius: 1rem; box-shadow: var(--shadow-raised); }
+.mesh-experience .social-post .glass-dropdown > :is(a, button) { border-radius: .65rem; }
+.mesh-experience .social-composer.feed-composer-card,
+.mesh-experience .feed-x-layout .social-composer.feed-composer-card {
+  padding: 1rem;
+  background: var(--paper-1) !important;
+  border: 1px solid var(--rule) !important;
+  border-radius: 1.4rem !important;
+  box-shadow: none !important;
+}
+.mesh-experience .social-composer:focus-within { border-color: var(--accent-text) !important; }
+.mesh-experience .social-composer .feed-composer-trigger { min-height: 3rem; border: 0; border-radius: .85rem; box-shadow: none; background: var(--paper-2); font-weight: 400; }
+.mesh-experience .social-composer textarea { padding: .6rem .2rem; font-size: 1rem; line-height: 1.65; }
+.mesh-experience .social-composer .mesh-composer-toolbar { gap: .7rem; padding-top: .85rem; }
+.mesh-experience .social-composer .mesh-composer-toolbar .key { border-radius: .75rem; }
+.mesh-experience .social-post-detail { max-width: 49rem; }
+.mesh-experience .social-post-detail > button:first-child,
+.mesh-experience .social-external-detail > a:first-child { display: inline-flex; min-height: 2.75rem; padding: .65rem 1rem; margin-bottom: 1rem; border: 1px solid var(--rule); border-radius: .9rem; background: var(--paper-1); }
+.mesh-experience .social-post-detail > article { border-radius: 1.5rem; box-shadow: none; padding: clamp(1rem, 2.5vw, 1.75rem); }
+.mesh-experience .social-external-detail > article { padding: 0; }
+.mesh-experience .social-post-detail > article > p { font-size: 1.05rem; line-height: 1.75; }
+
+/* Discovery feels like browsing a gallery, with the controls in one place. */
+.mesh-experience .social-explore { max-width: 76rem; }
+.mesh-experience .social-explore .mesh-explore-controls { padding: .25rem 0 .8rem; background: var(--paper-0); }
+.mesh-experience .social-search-field { min-height: 3.5rem; padding-inline: 1.1rem; border: 1px solid var(--rule); border-radius: 1.15rem; background: var(--paper-1); box-shadow: none; }
+.mesh-experience .social-search-field:focus-within { border-color: var(--accent-text); box-shadow: 0 0 0 3px var(--accent-subtle); }
+.mesh-experience .social-explore .mesh-explore-tabs { padding: .25rem; border: 1px solid var(--rule); border-radius: .95rem; background: var(--paper-1); }
+.mesh-experience .social-explore .mesh-explore-tab { border-radius: .7rem; min-height: 2.7rem; padding-inline: 1rem; }
+.mesh-experience .social-explore .mesh-explore-selection { border-radius: .7rem; background: var(--paper-3); box-shadow: none; }
+.mesh-experience .social-explore .mesh-discovery-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.1rem; }
+.mesh-experience .social-explore .mesh-explore-tile { height: 100%; border-radius: 1.3rem; box-shadow: none; }
+.mesh-experience .social-explore .mesh-discovery-note { min-height: 15rem; padding: 1.35rem; }
+.mesh-experience .social-explore .mesh-discovery-note > p { line-height: 1.7; }
+.mesh-experience .social-explore .mesh-discovery-footer { border-top: 1px solid var(--rule); padding-top: .85rem; margin-top: 1.4rem; }
+.mesh-experience .social-explore [role="tabpanel"] > div:first-child { margin-block: .15rem 1rem; }
+.mesh-experience .social-explore [role="tabpanel"] .glass-card { box-shadow: none; }
+.mesh-experience .social-search { max-width: 65rem; gap: .75rem; }
+.mesh-experience .social-search-tools { background: var(--paper-0); padding-bottom: .75rem; }
+.social-search-caption { margin: .65rem .2rem .1rem; color: var(--text-muted); font-size: .75rem; line-height: 1.6; }
+.mesh-experience .social-search-tools nav { border: 0; gap: .2rem; margin-top: .75rem; }
+.mesh-experience .social-search-tools nav button { min-height: 2.75rem; border-radius: .8rem; }
+.mesh-experience .social-search-tools nav button[aria-pressed="true"] { background: var(--paper-2); }
+.mesh-experience .social-search-tools nav button > span:last-child[aria-hidden] { height: 2px; background: var(--accent); box-shadow: none; }
+.mesh-experience .social-search .search-result-row { padding: 1.1rem; border-radius: .9rem; background: var(--paper-1); box-shadow: none; }
+.mesh-experience .social-search .search-result-row:hover,
+.mesh-experience .social-search .search-result-row:focus-visible { transform: none !important; background: var(--paper-2); }
+.mesh-experience .social-search .search-row-magnetic::before { background: var(--accent); }
+.mesh-experience .social-saved { max-width: 57rem; }
+.mesh-experience .social-saved-list { gap: 0; border: 1px solid var(--rule); border-radius: 1.4rem; background: var(--paper-1); overflow: hidden; }
+.mesh-experience .social-saved-list > li { border: 0; border-radius: 0; padding: 1.3rem; background: transparent; }
+.mesh-experience .social-saved-list > li + li { border-top: 1px solid var(--rule); }
+.mesh-experience .social-saved-list > li:hover { background: var(--paper-hover); }
+
+/* Community discovery and spaces share real navigation and calm detail panels. */
+.mesh-experience .social-community-hub { max-width: 78rem; gap: 2rem; }
+.mesh-experience .social-community-hub h2 { font-size: 1rem; }
+.mesh-experience .social-community-hub .social-community-feature { border-radius: 1.25rem; box-shadow: none; min-width: min(245px, 78vw); }
+.mesh-experience .social-community-feature > div:first-child { height: 8rem; background: var(--paper-2); }
+.mesh-experience .social-community-hub aside section { border-radius: 1.3rem; box-shadow: none; background: var(--paper-1); }
+.social-community-directory-row { display: flex; align-items: stretch; gap: .35rem; min-width: 0; border-bottom: 1px solid var(--rule); padding-block: .25rem; }
+.social-community-directory-row .social-community-row { flex: 1; min-width: 0; }
+.social-community-open { display: grid; place-items: center; flex: 0 0 2.75rem; margin-block: .2rem; border-radius: .85rem; color: var(--text-secondary); transition: background-color 160ms var(--mesh-ease-out), color 160ms var(--mesh-ease-out); }
+.social-community-open:hover { background: var(--paper-2); color: var(--accent-text); }
+.social-community-preview { display: none; }
+.social-community-shortcuts { display: flex; gap: .25rem; padding: .65rem; border-top: 1px solid var(--rule); }
+.social-community-shortcuts a { display: grid; place-items: center; flex: 1; min-height: 2.75rem; border-radius: .75rem; color: var(--text-secondary); font-size: .75rem; }
+.social-community-shortcuts a:hover { background: var(--paper-2); color: var(--text-primary); }
+.mesh-experience .social-community-space { max-width: 78rem; gap: 1.5rem; }
+.mesh-experience .social-community-space :is(.mesh-surface, .social-community-hero) { border: 1px solid var(--rule); border-radius: 1.4rem; background: var(--paper-1); box-shadow: none; }
+.mesh-experience .social-community-cover { height: 10rem; background: var(--paper-2); overflow: hidden; }
+.social-community-art { width: 100%; height: 100%; color: var(--accent); opacity: .38; }
+.social-community-space [id^="community-"], #community-directory { scroll-margin-top: 1.5rem; }
+.mesh-experience .social-community-space aside { position: static; }
+.mesh-experience .social-community-space aside .mesh-surface { padding: 1.25rem; }
+.mesh-experience .social-community-space aside h2 { font-size: .9375rem; }
+.mesh-experience .social-community-create { max-width: 55rem; }
+.mesh-experience .social-community-form > section { border-radius: 1.4rem; padding: clamp(1rem, 3vw, 1.75rem); box-shadow: none; }
+.mesh-experience .social-community-form .simple-input { border-radius: .85rem; background: var(--paper-0); min-height: 3rem; }
+.mesh-experience .social-community-form button[aria-pressed] { border-radius: 1rem; box-shadow: none; }
+
+/* Profiles put identity first; content and personal details are one level below. */
+.mesh-experience .social-profile { max-width: 78rem; gap: 2rem; grid-template-columns: minmax(0, 1fr); }
+.mesh-experience .social-profile .profile-header-card { border: 1px solid var(--rule); border-radius: 1.5rem; box-shadow: none; background: var(--paper-1); }
+.mesh-experience .social-profile .profile-banner { height: 10rem; background: var(--paper-2); }
+.mesh-experience .social-profile .mesh-profile-art { opacity: .5; }
+.mesh-experience .social-profile .profile-info { padding: 0 clamp(1.15rem, 3vw, 1.8rem) 1.7rem; }
+.mesh-experience .social-profile .social-profile-portrait { margin-top: -3rem; gap: 1rem; }
+.social-avatar-frame { position: relative; background: var(--paper-1); border: 1px solid var(--rule); box-shadow: none; }
+.mesh-experience .social-profile .profile-avatar { width: 6.5rem; height: 6.5rem; border-width: 3px; }
+.mesh-experience .social-profile .profile-name { font-size: clamp(1.6rem, 3vw, 2rem); line-height: 1.2; font-weight: 600; }
+.mesh-experience .social-profile .social-profile-stats { gap: 1.5rem; padding-block: .65rem; }
+.mesh-experience .social-profile .profile-actions { gap: .6rem; margin-top: 1.25rem; }
+.mesh-experience .social-profile .profile-tabs-nav { padding: .3rem; border: 1px solid var(--rule); border-radius: 1rem; background: var(--paper-1); gap: .2rem; }
+.mesh-experience .social-profile .profile-tabs-nav > a { min-height: 2.75rem; border: 0; border-radius: .75rem; padding-inline: .9rem; white-space: nowrap; font-size: .8125rem; }
+.mesh-experience .social-profile .profile-tabs-nav > a[aria-current="page"] { background: var(--paper-3); color: var(--text-primary); }
+.mesh-experience .social-profile .profile-tabs-nav > a::before { display: none; }
+.mesh-experience .social-profile-aside { display: none; }
+.mesh-experience .social-profile-aside > section { background: var(--paper-1); border-color: var(--rule); border-radius: 1.25rem; box-shadow: none; }
+.mesh-experience .social-profile-editor { border: 1px solid var(--rule); border-radius: 1.3rem; background: var(--paper-1); padding: 1.5rem; }
+.mesh-experience .social-profile-editor input,
+.mesh-experience .social-profile-editor textarea,
+.mesh-experience .social-profile-editor select { border-radius: .8rem; min-height: 2.75rem; }
+.mesh-experience .social-connections { max-width: 51rem; }
+.social-connections-heading { padding-top: .25rem; }
+.mesh-experience .social-connections-heading h1 { font-size: 1.55rem; }
+.social-connections-caption { margin: .65rem 0 1.4rem; font-size: .875rem; color: var(--text-secondary); }
+.mesh-experience .social-connections > nav { border: 1px solid var(--rule); border-radius: 1rem; background: var(--paper-1); padding: .3rem; }
+.mesh-experience .social-connections > nav > a { border: 0; border-radius: .75rem; }
+.mesh-experience .social-connections > nav > a[aria-current="page"] { background: var(--paper-3); }
+.mesh-experience .social-connections > ul { border: 1px solid var(--rule); border-radius: 1.3rem; overflow: hidden; background: var(--paper-1); }
+.mesh-experience .social-connections > ul > li { margin: 0; }
+.mesh-experience .social-connections > ul > li + li { border-top: 1px solid var(--rule); }
+.mesh-experience .social-connections > ul > li > div { border: 0; border-radius: 0; background: transparent; padding: 1.1rem; }
+.mesh-experience .social-milestones > header { padding: 1.3rem; border: 1px solid var(--rule); border-radius: 1.25rem; background: var(--paper-1); }
+.mesh-experience .social-milestones > ul > li { border-radius: 1.15rem; background: var(--paper-1); padding: 1.25rem; }
+
+/* Video stays cinematic. Its controls are a compact floating instrument panel. */
+.social-flow { isolation: isolate; }
+.social-flow > button { min-height: 2.75rem; border: 1px solid color-mix(in srgb, var(--media-ink) 16%, transparent); }
+.social-flow-actions { gap: .85rem; padding: .65rem .15rem; border-radius: 1.6rem; }
+.social-flow-actions button { border: 1px solid color-mix(in srgb, var(--media-ink) 15%, transparent); background: color-mix(in srgb, var(--media-chip) 65%, transparent); }
+.social-flow-ranking { max-height: min(90dvh, 46rem); overflow: hidden; overscroll-behavior: contain; border-radius: 1.5rem; box-shadow: var(--shadow-raised); }
+.social-flow-empty > div:first-child { max-width: 29rem; padding: 2rem 1.5rem; border: 1px solid color-mix(in srgb, var(--media-ink) 14%, transparent); border-radius: 1.6rem; }
+.social-flow-empty > div:first-child > p:first-child { font-size: clamp(1.6rem, 4vw, 2rem); line-height: 1.2; margin-bottom: .85rem; }
+.social-flow-ranking button { min-height: 2.75rem; }
+.flow-loading-status .paper-wait { color: inherit; }
+
+@media (min-width: 1280px) {
+  .social-community-preview { display: grid; }
+  .mesh-experience .social-profile { grid-template-columns: minmax(0, 1fr) 17rem; }
+  .mesh-experience .social-profile-aside { display: block; padding-top: .2rem; }
+}
+@media (max-width: 1100px) {
+  .mesh-experience .social-explore .mesh-discovery-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 767px) {
+  .mesh-experience .social-page { padding: 1rem .85rem 1.5rem; }
+  .mesh-experience .social-page-intro { margin-bottom: 1.1rem; }
+  .mesh-experience .social-feed { padding-top: .9rem; }
+  .mesh-experience .social-feed .feed-topbar-actions { gap: .2rem; }
+  .mesh-experience .social-post .social-post-heading { padding: .95rem 1rem .65rem; }
+  .mesh-experience .social-post .feed-media-copy,
+  .mesh-experience .social-post .insta-text-post { padding-inline: 1rem; }
+  .mesh-experience .social-profile .profile-banner { height: 8rem; }
+  .mesh-experience .social-profile .profile-info { padding-inline: 1rem; }
+  .mesh-experience .social-profile .profile-avatar { height: 5.5rem; width: 5.5rem; }
+  .mesh-experience .social-profile .social-profile-stats { gap: 1rem; }
+  .mesh-experience .social-explore .mesh-explore-tab { padding-inline: .8rem; }
+  .mesh-experience .social-saved-list > li { padding: 1rem; }
+  .mesh-experience .social-saved-list > li > div > div > div:first-child { flex-wrap: wrap; gap: .25rem .5rem; }
+}
+@media (max-width: 580px) {
+  .mesh-experience .social-explore .mesh-discovery-grid { grid-template-columns: minmax(0, 1fr); }
+  .mesh-experience .social-explore .mesh-discovery-note { min-height: 12rem; }
+  .social-flow-ranking { border-radius: 1.5rem; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .social-community-open svg { transition: translate 180ms var(--mesh-ease-out); }
+  .social-community-open:hover svg { translate: 2px 0; }
+  .social-community-open:active svg { translate: 3px 0; }
+}
+@media (forced-colors: active) {
+  .social-page :is([aria-current="page"], [aria-pressed="true"], [aria-selected="true"]) { outline: 2px solid Highlight; outline-offset: -3px; }
+}

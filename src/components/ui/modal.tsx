@@ -34,7 +34,7 @@ export function Modal({ open, onClose, children, className, title, description, 
             className
           )}
         >
-          <div className="flex min-h-14 shrink-0 items-start justify-between gap-3 border-b border-[var(--ds-border)] px-5 py-4">
+          <div className="mesh-dialog-header flex min-h-14 shrink-0 items-start justify-between gap-3 border-b border-[var(--ds-border)] px-5 py-4">
             <div className="min-w-0">
               <Dialog.Title className={cn("text-base font-semibold leading-tight", !title && "sr-only")}>
                 {title || "Dialog"}
@@ -51,7 +51,7 @@ export function Modal({ open, onClose, children, className, title, description, 
               </Button>
             </Dialog.Close>
           </div>
-          <div className="min-h-0 overflow-y-auto overscroll-contain p-5 ds-scrollbar">{children}</div>
+          <div className="mesh-dialog-body min-h-0 overflow-y-auto overscroll-contain p-5 ds-scrollbar">{children}</div>
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>
