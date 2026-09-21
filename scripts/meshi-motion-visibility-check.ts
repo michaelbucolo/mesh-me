@@ -8,12 +8,12 @@ doc.visibilityState = "visible";
 const media = new EventTarget() as EventTarget & { matches: boolean };
 media.matches = false;
 let observersCreated = 0;
-let activeObserver: FakeObserver;
+const observerInstances: FakeObserver[] = [];
 class FakeObserver {
   targets = new Set<Element>();
   disconnected = false;
   constructor(readonly callback: IntersectionObserverCallback) {
-    activeObserver = this;
+    observerInstances.push(this);
     observersCreated += 1;
   }
   observe(target: Element) { this.targets.add(target); }
@@ -33,7 +33,7 @@ const second = {} as Element;
 const eventsA: boolean[] = [];
 const eventsB: boolean[] = [];
 const stopA = observeMeshiMotion(first, (active) => eventsA.push(active));
-const observer = activeObserver!;
+const observer = observerInstances[0];
 const stopB = observeMeshiMotion(second, (active) => eventsB.push(active));
 assert.equal(observersCreated, 1, "All characters share one viewport observer");
 assert.deepEqual(eventsA, [false], "Subscription resets any previously retained visible state");
