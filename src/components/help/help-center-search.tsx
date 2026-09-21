@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useDeferredValue, useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, Search, X } from "lucide-react";
 import { helpCategories, helpCategoryMeta, type HelpArticle, type HelpCategory } from "@/lib/help-center";
@@ -15,9 +15,7 @@ function normalize(value: string) {
   return value.trim().toLowerCase();
 }
 
-function articleMatches(article: HelpArticle, query: string) {
-  if (!query) return true;
-
+function articleSearchText(article: HelpArticle) {
   const category = helpCategoryMeta[article.category];
   const searchableText = [
     article.title,
@@ -28,20 +26,22 @@ function articleMatches(article: HelpArticle, query: string) {
     ...article.relatedLinks.map((link) => link.label),
   ].join(" ");
 
-  return normalize(searchableText).includes(query);
+  return normalize(searchableText);
 }
 
 export function HelpCenterSearch({ articles }: HelpCenterSearchProps) {
   const [query, setQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState<ActiveCategory>("all");
-  const normalizedQuery = normalize(query);
+  const deferredQuery = useDeferredValue(query);
+  const normalizedQuery = normalize(deferredQuery);
+  const searchIndex = useMemo(() => articles.map((article) => ({ article, text: articleSearchText(article) })), [articles]);
 
   const filteredArticles = useMemo(() => {
-    return articles.filter((article) => {
+    return searchIndex.filter(({ article, text }) => {
       const categoryMatches = activeCategory === "all" || article.category === activeCategory;
-      return categoryMatches && articleMatches(article, normalizedQuery);
-    });
-  }, [activeCategory, articles, normalizedQuery]);
+      return categoryMatches && (!normalizedQuery || text.includes(normalizedQuery));
+    }).map(({ article }) => article);
+  }, [activeCategory, searchIndex, normalizedQuery]);
 
   const categoryCounts = useMemo(() => {
     return helpCategories.reduce<Record<HelpCategory, number>>((acc, category) => {
@@ -72,13 +72,13 @@ export function HelpCenterSearch({ articles }: HelpCenterSearchProps) {
             type="search"
           />
           {query && (
-            <button type="button" onClick={() => setQuery("")} className="text-[var(--text-muted)] hover:text-[var(--text-primary)]" aria-label="Clear search">
+            <button type="button" onClick={() => setQuery("")} className="inline-flex min-h-11 min-w-11 items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-primary)]" aria-label="Clear search">
               <X className="h-4 w-4" aria-hidden="true" />
             </button>
           )}
         </div>
 
-        <div className="mt-4 grid gap-2" aria-label="Help categories">
+        <div className="public-help-category-list mt-4 grid gap-2" aria-label="Help categories">
           <button
             type="button"
             onClick={() => setActiveCategory("all")}
@@ -112,7 +112,7 @@ export function HelpCenterSearch({ articles }: HelpCenterSearchProps) {
         </div>
       </aside>
 
-      <section className="min-w-0">
+      <section className="min-w-0" aria-busy={query !== deferredQuery}>
         <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-sm font-semibold text-[var(--text-primary)]">

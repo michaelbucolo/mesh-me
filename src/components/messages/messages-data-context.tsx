@@ -75,29 +75,43 @@ export function MessagesDataProvider({
 
   useEffect(() => {
     let stopped = false;
+    let refreshInFlight = false;
+    let syncInFlight = false;
+    const controller = new AbortController();
     const refresh = async () => {
-      if (document.visibilityState !== "visible") return;
+      if (stopped || refreshInFlight || document.visibilityState !== "visible") return;
+      refreshInFlight = true;
+      const baseline = baselineRef.current;
       try {
-        const res = await fetch("/api/messages", { cache: "no-store", credentials: "same-origin" });
+        const res = await fetch("/api/messages", { cache: "no-store", credentials: "same-origin", signal: controller.signal });
         if (!res.ok) return;
         const data = await res.json().catch(() => null);
-        if (!stopped && data && Array.isArray(data.threads)) {
-          setPolled({ baseline: baselineRef.current, threads: data.threads });
+        if (!stopped && baseline === baselineRef.current && data && Array.isArray(data.threads)) {
+          const fingerprint = JSON.stringify(data.threads);
+          setPolled((previous) => {
+            const current = previous?.baseline === baseline ? previous.threads : baseline;
+            return JSON.stringify(current) === fingerprint ? previous : { baseline, threads: data.threads };
+          });
         }
       } catch {
         // Best-effort — the next tick retries.
+      } finally {
+        refreshInFlight = false;
       }
     };
     const interval = window.setInterval(refresh, 10000);
     // Pull connected-account conversations into the unified inbox while the
     // tab is open, then refresh the thread list with anything new.
     const syncExternal = async () => {
-      if (document.visibilityState !== "visible") return;
+      if (stopped || syncInFlight || document.visibilityState !== "visible") return;
+      syncInFlight = true;
       try {
-        await fetch("/api/mechat/sync", { method: "POST", credentials: "same-origin" });
+        await fetch("/api/mechat/sync", { method: "POST", credentials: "same-origin", signal: controller.signal });
         await refresh();
       } catch {
         // Best-effort — the next cycle retries.
+      } finally {
+        syncInFlight = false;
       }
     };
     void syncExternal();
@@ -108,6 +122,7 @@ export function MessagesDataProvider({
     document.addEventListener("visibilitychange", onVisible);
     return () => {
       stopped = true;
+      controller.abort();
       window.clearInterval(interval);
       window.clearInterval(syncInterval);
       document.removeEventListener("visibilitychange", onVisible);

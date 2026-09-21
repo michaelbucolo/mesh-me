@@ -47,7 +47,7 @@ export default function HelpCenterPage() {
         </div>
       </section>
 
-      <section className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4" aria-label="Help topics">
+      <section className="mt-5 hidden gap-3 xl:grid xl:grid-cols-4" aria-label="Help topics">
         {helpCategories.map((category) => {
           const meta = helpCategoryMeta[category];
           const Icon = meta.icon;

@@ -121,10 +121,17 @@ export function MeshBorderConstellation({
     let pointerY = 0;
     let raf = 0;
     let running = true;
+    let paintTimer: number | undefined;
+    let lastPaint = 0;
+    let canvasBounds: DOMRect | null = null;
+    let anchorX = 0;
+    let anchorY = 0;
+    let lastAnchorMeasure = -Infinity;
+    let measuredAnchor: HTMLElement | null = null;
 
     const onPointer = (event: PointerEvent) => {
-      const cr = canvas.getBoundingClientRect();
-      if (cr.width <= 0 || cr.height <= 0) return;
+      const cr = canvasBounds;
+      if (!cr || cr.width <= 0 || cr.height <= 0) return;
       pointerX = ((event.clientX - cr.left) / cr.width - 0.5) * 2;
       pointerY = ((event.clientY - cr.top) / cr.height - 0.5) * 2;
     };
@@ -135,15 +142,15 @@ export function MeshBorderConstellation({
     // center (where the form sits) sparse and open.
     const build = () => {
       const rect = canvas.getBoundingClientRect();
+      canvasBounds = rect;
+      lastAnchorMeasure = -Infinity;
       width = rect.width;
       height = rect.height;
       canvas.width = Math.round(width * dpr);
       canvas.height = Math.round(height * dpr);
-      canvas.style.width = `${width}px`;
-      canvas.style.height = `${height}px`;
 
       const area = width * height;
-      const count = Math.max(46, Math.min(96, Math.round(area / 20000)));
+      const count = Math.max(32, Math.min(72, Math.round(area / 24000)));
       const cx = width / 2;
       const cy = height / 2;
       // Keep-clear ellipse around the centered card.
@@ -203,10 +210,12 @@ export function MeshBorderConstellation({
     ro.observe(canvas);
 
     const draw = (time: number) => {
-      if (!running) return;
+      if (!running || document.hidden) return;
       const s = state.current || { energy: 0, stage: "identity" as EntryStage, phase: "idle" as EntryPhase };
-      // Ease displayed energy down each frame; the parent bumps it on keystroke.
-      s.energy = Math.max(0, s.energy - 0.012);
+      // Keep timing stable across paint budgets: idle at 15fps, interaction at 30fps.
+      const frameScale = lastPaint ? Math.min(6, (time - lastPaint) / (1000 / 60)) : 1;
+      lastPaint = time;
+      s.energy = Math.max(0, s.energy - 0.012 * frameScale);
       const energy = Math.min(1, s.energy);
       const success = s.phase === "success";
       // "forming" = the field is morphing into Meshi: the whole perimeter reels
@@ -226,11 +235,18 @@ export function MeshBorderConstellation({
       let ax = cx;
       let ay = cy;
       const anchor = anchorRef.current;
-      if (anchor) {
-        const r = anchor.getBoundingClientRect();
-        const cr = canvas.getBoundingClientRect();
-        ax = r.left + r.width / 2 - cr.left;
-        ay = r.top + r.height / 2 - cr.top;
+      // Calm frames draw only the perimeter. Measure the form only while a
+      // reach strand needs it, and at most every 120ms during an interaction.
+      if (anchor && canvasBounds && (energy > 0.02 || converge || sparks.length)) {
+        if (anchor !== measuredAnchor || time - lastAnchorMeasure >= 120) {
+          const r = anchor.getBoundingClientRect();
+          anchorX = r.left + r.width / 2 - canvasBounds.left;
+          anchorY = r.top + r.height / 2 - canvasBounds.top;
+          measuredAnchor = anchor;
+          lastAnchorMeasure = time;
+        }
+        ax = anchorX;
+        ay = anchorY;
       }
 
       // Update node positions (gentle drift + parallax opposite the pointer).
@@ -264,10 +280,10 @@ export function MeshBorderConstellation({
       // Perimeter web.
       const webBase = 0.05 + energy * 0.10;
       const hot = success ? 1 : energy;
+      const webColor = success ? COLORS.success : strandColor(hot);
       for (const [i, j, w] of edges) {
         const a = webBase * (0.4 + w * 0.9);
-        const col = success ? COLORS.success : strandColor(hot);
-        ctx.strokeStyle = rgba(col, a * (success ? 2.4 : 1));
+        ctx.strokeStyle = rgba(webColor, a * (success ? 2.4 : 1));
         ctx.lineWidth = 1;
         ctx.beginPath();
         ctx.moveTo(nodes[i].x, nodes[i].y);
@@ -307,7 +323,7 @@ export function MeshBorderConstellation({
 
       // Caret sparks racing anchor → node along the reach curve.
       if (sparks.length > 0) {
-        for (const sp of sparks) sp.t += 0.055;
+        for (const sp of sparks) sp.t += 0.055 * frameScale;
         sparks = sparks.filter((sp) => sp.t < 1 && sp.idx < nodes.length);
         for (const sp of sparks) {
           const n = nodes[sp.idx];
@@ -331,10 +347,10 @@ export function MeshBorderConstellation({
         }
       }
 
-      // Nodes.
+      // Theme interpolation is shared by every node in this frame.
+      const core = success ? COLORS.success : mixColor(COLORS.node, COLORS.strandAurora, energy * 0.5);
       for (const n of nodes) {
         const glow = (0.35 + energy * 0.4 + (success ? 0.5 : 0)) * (n.depth === 1 ? 1.12 : 0.9);
-        const core = success ? COLORS.success : mixColor(COLORS.node, COLORS.strandAurora, energy * 0.5);
         const g = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, n.r * 4);
         g.addColorStop(0, rgba(core, glow));
         g.addColorStop(1, rgba(COLORS.node, 0));
@@ -351,7 +367,8 @@ export function MeshBorderConstellation({
       ctx.globalCompositeOperation = "source-over";
 
       if (reducedMotion && !success) return; // single static frame when calm
-      raf = requestAnimationFrame(draw);
+      const interval = energy > 0.02 || converge || sparks.length ? 1000 / 30 : 1000 / 15;
+      paintTimer = window.setTimeout(() => { raf = requestAnimationFrame(draw); }, interval);
     };
 
     raf = requestAnimationFrame(draw);
@@ -359,6 +376,7 @@ export function MeshBorderConstellation({
     return () => {
       running = false;
       cancelAnimationFrame(raf);
+      if (paintTimer !== undefined) window.clearTimeout(paintTimer);
       ro.disconnect();
       if (!reducedMotion) window.removeEventListener("pointermove", onPointer);
     };

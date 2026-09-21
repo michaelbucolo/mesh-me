@@ -1,0 +1,201 @@
+/* Layout safeguards shared by authenticated surfaces. Keep intrinsic content
+   inside its column instead of hiding horizontal overflow at the page edge. */
+.mesh-experience .mesh-content,
+.mesh-experience .mesh-route-slot,
+.mesh-experience :is(.personal-studio, .social-page, .studio-composer, .studio-queue),
+.mesh-experience :is(.personal-admin, .personal-controls, .personal-billing) > section > *,
+.mesh-experience :is(.settings-panel, .settings-group, .settings-card) {
+  min-width: 0;
+}
+
+.mesh-experience .mesh-content {
+  min-height: 0;
+  scroll-padding-block: 1rem max(1rem, env(safe-area-inset-bottom));
+}
+
+/* Restore notch insets after the visual skin's padding shorthand. */
+.mesh-experience .mesh-topbar {
+  padding-left: max(1rem, env(safe-area-inset-left));
+  padding-right: max(1rem, env(safe-area-inset-right));
+  padding-top: max(.5rem, env(safe-area-inset-top));
+}
+
+.mesh-experience .mesh-account-panel {
+  max-width: calc(100vw - 1.5rem - env(safe-area-inset-left) - env(safe-area-inset-right));
+  max-height: calc(100dvh - var(--mesh-topbar-h) - 2rem - env(safe-area-inset-bottom));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* VisualViewport values are scoped to each open Radix dialog. The scrollable
+   body keeps its footer/actions reachable even with a keyboard or short screen. */
+.mesh-experience .mesh-dialog {
+  --dialog-edge: 16px;
+  top: calc(var(--dialog-viewport-top, 0px) + var(--dialog-viewport-height, 100dvh) / 2);
+  width: calc(100vw - var(--dialog-edge) * 2 - env(safe-area-inset-left) - env(safe-area-inset-right));
+  max-height: min(42rem, calc(var(--dialog-viewport-height, 100dvh) - var(--dialog-edge) * 2 - env(safe-area-inset-top) - env(safe-area-inset-bottom)));
+}
+
+.mesh-experience .mesh-dialog-header {
+  max-height: min(12rem, calc(var(--dialog-viewport-height, 100dvh) * .4));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.mesh-experience .mesh-dialog-header > button {
+  position: sticky;
+  top: 0;
+  min-width: 44px;
+  min-height: 44px;
+}
+
+.mesh-experience .mesh-dialog-body {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  scroll-padding-block: 1rem;
+}
+
+.mesh-experience .mesh-dialog-body :is(input, textarea, select) {
+  max-width: 100%;
+  min-width: 0;
+  scroll-margin-block: 1rem;
+}
+
+/* Wide tables own their horizontal scroller; neither grid columns nor the
+   entire admin page should inherit the table's min-content width. */
+.mesh-experience .personal-admin .overflow-x-auto {
+  max-width: 100%;
+  overscroll-behavior-x: contain;
+}
+
+.mesh-experience .personal-admin :is(article, section) { overflow-wrap: anywhere; }
+.mesh-experience .personal-admin :is(td, th) { overflow-wrap: normal; }
+.mesh-experience .personal-studio .mesh-button { white-space: normal; }
+.mesh-experience .personal-controls .adaptive-account-actions > div:first-child { flex: 1; }
+
+/* Profile identity can contain long names, URLs and unbroken bios. */
+.mesh-experience .social-profile .profile-info { overflow-wrap: anywhere; }
+.mesh-experience .social-profile .profile-actions { flex-wrap: wrap; }
+.mesh-experience .social-profile .profile-tabs-nav {
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-padding-inline: .4rem;
+}
+.mesh-experience .social-profile .profile-tabs-nav > a { flex-shrink: 0; }
+.mesh-experience .social-profile :is(input, textarea, select) { min-width: 0; max-width: 100%; }
+.mesh-experience .social-community-space .social-community-hero h1 { white-space: normal; overflow-wrap: anywhere; }
+.mesh-experience .studio-composer input[type="datetime-local"] { min-width: 0; max-width: 100%; }
+.mesh-experience .studio-composer [data-testid="composer-schedule-panel"] > div:last-child { flex-wrap: wrap; }
+
+/* Reuse the analytics container rather than assuming its viewport is its
+   content width: the same dashboard also lives inside profile tabs. */
+@container (max-width: 44rem) {
+  .mesh-experience .personal-platform-row > div:nth-child(2) { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .9rem; }
+  .mesh-experience .adaptive-content-row {
+    display: grid;
+    grid-template-columns: 28px 48px minmax(0, 1fr);
+    column-gap: .65rem;
+    row-gap: .6rem;
+  }
+  .mesh-experience .adaptive-content-row > :nth-child(2) { width: 48px; height: 36px; }
+  .mesh-experience .adaptive-content-row > :last-child { grid-column: 2 / -1; flex-wrap: wrap; min-width: 0; }
+}
+
+@container (max-width: 25rem) {
+  .mesh-experience .personal-platform-row > div:nth-child(2) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 1279px) {
+  .mesh-experience .social-community-space { grid-template-columns: minmax(0, 1fr); }
+  .mesh-experience .adaptive-controls-heading,
+  .mesh-experience .adaptive-account-actions { flex-direction: column; align-items: stretch; }
+  .mesh-experience .adaptive-controls-heading > div:last-child,
+  .mesh-experience .adaptive-account-actions > div:last-child { min-width: 0; width: 100%; }
+}
+
+@media (min-width: 1024px) and (max-width: 1199px) {
+  .mesh-experience .settings-studio .settings-traditional-grid { grid-template-columns: 13rem minmax(0, 1fr); gap: 1.25rem; }
+  .mesh-experience .settings-studio .settings-panel .grid[class~="md:grid-cols-2"] { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* A pixel floor survives compact-cover displays' smaller rem base. This only
+   changes interactive UI; inline article links and media geometry stay intact. */
+@media (pointer: coarse), (max-width: 767px) {
+  .mesh-experience :is(.mesh-shell, .mesh-dialog, .mesh-account-panel) :is(.mesh-button, .key, .mesh-dropdown-item, .mesh-topbar-owner, .mesh-mobile-nav-item),
+  .mesh-experience :is(.personal-studio, .social-community-space, .social-community-form, .studio-composer, .studio-queue) button {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  .mesh-experience :is(.mesh-shell, .mesh-dialog) :is(input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="range"]):not([type="color"]), textarea, select, [contenteditable="true"]) {
+    font-size: max(16px, 1rem);
+  }
+
+  .mesh-experience :is(.personal-studio, .social-profile-editor, .social-community-form) :is(input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]), select) {
+    min-height: 44px;
+  }
+}
+
+@media (max-width: 767px) {
+  .mesh-experience .mesh-topbar { gap: .4rem; }
+  .mesh-experience .mesh-topbar-icon { min-width: 44px; min-height: 44px; }
+  .mesh-experience .mesh-topbar-owner > span:nth-child(2) { display: none; }
+  .mesh-experience .mobile-bottom-nav { padding-bottom: max(.35rem, env(safe-area-inset-bottom)); }
+  .mesh-experience:has(.mobile-bottom-nav[aria-hidden="true"]) .mesh-main { padding-bottom: 0; }
+  .mesh-experience .mesh-dialog { --dialog-edge: 10px; }
+  .mesh-experience .mesh-dialog > .mesh-dialog-header { padding: 1rem; gap: .5rem; }
+  .mesh-experience .mesh-dialog > .mesh-dialog-body { padding: 1rem; }
+  .mesh-experience .personal-admin .mesh-surface:not(.personal-page-heading) { padding: 1rem; }
+  .mesh-experience .social-profile .profile-actions > * { max-width: 100%; }
+  .mesh-experience .social-profile .social-profile-stats { gap: .75rem 1rem; }
+  .mesh-experience .social-profile .social-profile-stats > a { margin-block: 0; }
+  .mesh-experience .social-community-hero > div:last-child { padding-inline: 1rem; }
+}
+
+@media (max-width: 380px) {
+  .mesh-experience .settings-studio .settings-nav-scroll { grid-template-columns: minmax(0, 1fr); }
+  .mesh-experience .settings-studio .settings-nav-item { min-height: 64px; }
+  .mesh-experience .settings-studio .settings-panel-heading { padding-inline: 0 !important; }
+  .mesh-experience .settings-studio .settings-panel-scroll { padding-inline: 0 !important; }
+  .mesh-experience .personal-metrics { grid-template-columns: minmax(0, 1fr); }
+  .mesh-experience .personal-commerce-detail .personal-gift-modes { grid-template-columns: minmax(0, 1fr); }
+  .mesh-experience .social-profile .profile-info { padding-inline: 1rem; }
+  .mesh-experience .personal-pro-feature { grid-template-columns: 2.3rem minmax(0, 1fr); column-gap: .75rem; }
+  .mesh-experience .personal-pro-feature > svg { width: 2.3rem; height: 2.3rem; padding: .5rem; }
+  .mesh-experience .personal-admin .personal-page-heading > div > div:first-child { gap: .75rem; }
+  .mesh-experience .personal-admin .personal-page-heading > div > div:first-child > div:first-child { display: none; }
+}
+
+/* Short landscape needs useful scrolling space, not a second bottom gutter.
+   The mobile shell already reserves navigation height exactly once. */
+@media (orientation: landscape) and (max-height: 500px) {
+  .mesh-experience .mesh-content { padding-bottom: 0 !important; }
+  .mesh-experience .mesh-topbar { min-height: 44px; padding-block: 0; }
+  .mesh-experience .mesh-dialog { --dialog-edge: 8px; }
+  .mesh-experience .mesh-dialog > .mesh-dialog-header { padding-block: .6rem; }
+  .mesh-experience .mesh-dialog > .mesh-dialog-body { padding-block: .75rem; }
+  .mesh-experience .mesh-mobile-nav-item { min-height: 44px; }
+  .mesh-experience .settings-studio .settings-traditional-header { display: block; }
+  .mesh-experience .settings-studio .settings-studio-summary,
+  .mesh-experience .settings-studio .personal-heading-line { display: none; }
+}
+
+/* Preserve the existing two-screen placement when a device exposes segments. */
+@media (horizontal-viewport-segments: 2) {
+  .mesh-experience .mesh-dialog {
+    left: calc(env(viewport-segment-left 1 0, 0px) + env(viewport-segment-width 1 0, 100vw) / 2);
+    right: auto;
+    margin-right: 0;
+    width: calc(env(viewport-segment-width 1 0, 100vw) - 2rem);
+    max-width: min(32rem, calc(env(viewport-segment-width 1 0, 100vw) - 2rem));
+    translate: -50% -50%;
+  }
+}
+@media (vertical-viewport-segments: 2) {
+  .mesh-experience .mesh-dialog {
+    --dialog-segment-height: max(0px, min(calc(env(viewport-segment-height 0 0, 100dvh) - var(--dialog-viewport-top, 0px)), var(--dialog-viewport-height, 100dvh)));
+    top: calc(var(--dialog-viewport-top, 0px) + var(--dialog-segment-height) / 2);
+    max-height: min(42rem, calc(var(--dialog-segment-height) - 1.5rem));
+  }
+}

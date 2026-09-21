@@ -28,6 +28,7 @@ import {
   Sparkles,
   X,
 } from "lucide-react";
+import { NativeAspectMedia } from "@/components/ui/native-aspect-media";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { toggleReaction } from "@/lib/actions";
 import { openMeshi } from "@/lib/meshi-events";
@@ -98,7 +99,18 @@ export function ContentLens({
     const el = lensVideoRef.current;
     if (!el) return;
     el.muted = true;
-    void el.play().catch(() => {});
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)");
+    let disposed = false;
+    const syncPlayback = () => {
+      if (!document.hidden && !reduce.matches) {
+        void el.play().then(() => { if (disposed || document.hidden || reduce.matches) el.pause(); }).catch(() => {});
+      } else el.pause();
+    };
+    syncPlayback();
+    const pauseHidden = () => { if (document.hidden || reduce.matches) el.pause(); };
+    document.addEventListener("visibilitychange", pauseHidden);
+    reduce.addEventListener("change", pauseHidden);
+    return () => { disposed = true; document.removeEventListener("visibilitychange", pauseHidden); reduce.removeEventListener("change", pauseHidden); el.pause(); };
   }, [node.videoUrl]);
 
   // Fullscreen happens INSIDE mesh.me — like the Flow, we request it on OUR
@@ -147,7 +159,7 @@ export function ContentLens({
       // Typing elsewhere — like the Meshi chat opened from this lens — must
       // not browse the lens under the caret.
       const target = e.target as HTMLElement | null;
-      if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)) return;
+      if (target && (target.closest("[role=dialog], input, textarea, select, button") || target.isContentEditable)) return;
       if (e.key === "ArrowRight") onNavigate(1);
       else if (e.key === "ArrowLeft") onNavigate(-1);
     };
@@ -254,10 +266,10 @@ export function ContentLens({
                 src={node.videoUrl}
                 poster={node.imageUrl ?? undefined}
                 controls
-                autoPlay
+                preload="metadata"
                 muted
                 playsInline
-                className={`w-full bg-black object-contain ${isLensFullscreen ? "h-full max-h-full" : "max-h-[46vh]"}`}
+                className={`w-full bg-black object-contain ${isLensFullscreen ? "h-full max-h-full" : "h-[min(46dvh,32rem)]"}`}
               />
             ) : lensEmbedUrl ? (
               <div className={`w-full bg-black ${isLensFullscreen ? "flex h-full items-center justify-center" : "aspect-video"}`}>
@@ -271,12 +283,7 @@ export function ContentLens({
                 />
               </div>
             ) : node.imageUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={node.imageUrl}
-                alt=""
-                className={`w-full ${isLensFullscreen ? "h-full max-h-full object-contain" : "max-h-[46vh] object-cover"}`}
-              />
+              <NativeAspectMedia media={{ url: node.imageUrl, type: "image" }} alt={(node.content || node.label).slice(0, 160)} defaultRatio={4 / 3} expandable eager className="max-h-[46dvh]" />
             ) : null}
             {/* In-app fullscreen (video/embed): fills the screen with the player
                 still inside mesh.me. The source only opens via the provenance
@@ -299,7 +306,7 @@ export function ContentLens({
           <div className="flex items-center gap-3">
             {node.avatarUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={node.avatarUrl} alt="" className="h-9 w-9 shrink-0 rounded-full object-cover" />
+              <img src={node.avatarUrl} alt="" loading="lazy" decoding="async" className="h-9 w-9 shrink-0 rounded-full object-cover" />
             ) : node.sublabel && !node.sublabel.startsWith("@") ? (
               <PlatformLogo platform={node.sublabel} size={36} className="shrink-0 rounded-xl" />
             ) : (

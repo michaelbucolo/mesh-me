@@ -19,12 +19,11 @@ import {
 import { IdentityProviderButtons } from "@/components/auth/identity-provider-buttons";
 import type { IdentityProvider } from "@/lib/identity-auth";
 import { SignupForm } from "@/components/auth/signup-form";
-import { SignatureArt } from "@/components/ui/signature-art";
+import { EntryAtmosphere } from "@/components/auth/entry-atmosphere";
 import { EASE_OUT } from "@/lib/motion";
-import {
-  MeshBorderConstellation,
-  type ConstellationState,
-  type EntryStage,
+import type {
+  ConstellationState,
+  EntryStage,
 } from "@/components/auth/mesh-border-constellation";
 
 type MeshEntryExperienceProps = {
@@ -334,8 +333,7 @@ export function MeshEntryExperience({ initialStage = "identity", nextPath, oauth
       data-entry-ready={hydrated ? "true" : undefined}
       data-stage={stage}
     >
-      <MeshBorderConstellation state={fx} anchorRef={anchorRef} reducedMotion={Boolean(reduceMotion)} />
-      <SignatureArt className="mesh-entry-orbits" />
+      <EntryAtmosphere state={fx} anchorRef={anchorRef} reducedMotion={Boolean(reduceMotion)} />
       <div className="mesh-gate-halo" aria-hidden="true" style={haloStyle} />
       <header className="mesh-gate-brandbar">
         <Link href="/" aria-label="Mesh.me home" className="brand-wordmark text-xl">

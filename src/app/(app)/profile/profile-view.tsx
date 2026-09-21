@@ -70,13 +70,15 @@ export async function InstagramProfileView({ username, tab, giftSent }: { userna
   // memberships are fetched alongside but rendered only when the profile's
   // visibility settings allow it.
   const isSelf = currentUser.username.toLowerCase() === username.toLowerCase();
+  const tabs = ["posts", "about", "communities", ...(isSelf ? ["collections", "milestones"] : []), "links"];
+  const activeTab = tabs.includes(tab ?? "") ? (tab as string) : "posts";
   // Real presence — the same live signal that animates Meshi on the mesh and
   // "Active now" in MeChat, not a decorative badge. It needs the profile's id,
   // so it chains off the profile promise but overlaps with the other queries.
   const profilePromise = getUserProfile(username);
   const [profile, posts, allMemberships, [savedPosts, savedPostCount], savedFlowItems, isLiveNow] = await Promise.all([
     profilePromise,
-    getUserPosts(username, 1, 24),
+    activeTab === "posts" ? getUserPosts(username, 1, 24) : Promise.resolve([]),
     getUserCommunities(username),
     isSelf
       ? Promise.all([getSavedPosts(1, 24), getSavedPostCount()])
@@ -130,14 +132,6 @@ export async function InstagramProfileView({ username, tab, giftSent }: { userna
   // Milestones is yours alone. "Connected six platforms" is a fact about
   // somebody's other accounts, so the board is not offered on anyone else's
   // profile — the title they chose to wear is the only part that travels.
-  const tabs = [
-    "posts",
-    "about",
-    "communities",
-    ...(isOwnProfile ? ["collections", "milestones"] : []),
-    "links",
-  ];
-  const activeTab = tabs.includes(tab ?? "") ? (tab as string) : "posts";
   const achievements = isOwnProfile && activeTab === "milestones" ? await getAchievementBoard(profile.id) : null;
 
   return (

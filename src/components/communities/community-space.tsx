@@ -281,7 +281,7 @@ function SettingsPanel({ data }: { data: CommunityReadyData }) {
 
 export function CommunitySpace({ data }: { data: CommunityReadyData }) {
   return (
-    <main className="social-page social-community-space mx-auto grid w-full max-w-6xl gap-5 px-3 py-4 sm:px-6 lg:grid-cols-[minmax(0,1fr)_340px]">
+    <main className="social-page social-community-space mx-auto grid w-full max-w-6xl gap-5 px-3 py-4 sm:px-6 xl:grid-cols-[minmax(0,1fr)_340px]">
       <section className="min-w-0 space-y-4">
         <CommunityHero data={data} />
         <CommunityComposer data={data} />

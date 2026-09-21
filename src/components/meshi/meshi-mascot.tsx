@@ -13,6 +13,7 @@ import {
 } from "./meshi-face";
 import { HAIR_COLOR_TABLE, HAT_BRIM_Y, renderMeshiHair, resolveHair, resolveHairColor, type MeshiHair } from "./meshi-hair";
 import { parseAccessories, SLOTS, STACKING_SLOTS } from "./meshi-slots";
+import { observeMeshiMotion } from "./observe-meshi-motion";
 
 const FLOWER_POSITIONS = [0, 60, 120, 180, 240, 300].map((deg) => ({
   deg,
@@ -774,6 +775,15 @@ export function MeshiMascot({
   const badgeElement = BADGES[badge] || null;
   const containerRef = useRef<HTMLDivElement>(null);
   const uniqueId = useId();
+  const [motionVisible, setMotionVisible] = useState(false);
+  const motionActive = animate && motionVisible;
+
+  useEffect(() => {
+    const element = containerRef.current;
+    if ((!animate && !interactive) || !element) return;
+    return observeMeshiMotion(element, setMotionVisible);
+  }, [animate, interactive]);
+
 
   // Physics-based jiggle springs
   const squishX = useSpring(1, { stiffness: 600, damping: 12, mass: 0.3 });
@@ -795,7 +805,7 @@ export function MeshiMascot({
   const travelScaleY = useTransform(travelSquash, (v) => 1 - v * 0.8);
 
   useEffect(() => {
-    if (!animate) return;
+    if (!motionActive) return;
     if (typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
     const clamp = (v: number, limit: number) => Math.max(-limit, Math.min(limit, v));
     let raf = 0;
@@ -834,8 +844,15 @@ export function MeshiMascot({
       lastT = t;
     };
     raf = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(raf);
-  }, [animate, hatSway, hatLift, hairSway, dangleSway, travelSquash]);
+    return () => {
+      cancelAnimationFrame(raf);
+      hatSway.jump(0);
+      hatLift.jump(0);
+      hairSway.jump(0);
+      dangleSway.jump(0);
+      travelSquash.jump(0);
+    };
+  }, [motionActive, hatSway, hatLift, hairSway, dangleSway, travelSquash]);
 
   // Smooth eye tracking via spring-based motion values
   const eyeOffsetX = useMotionValue(0);
@@ -858,14 +875,14 @@ export function MeshiMascot({
 
   // Smooth blinking at random intervals (2-6 seconds)
   useEffect(() => {
-    if (!animate) return;
+    if (!motionActive) return;
     let cancelled = false;
     const scheduleBlink = () => {
       const delay = 2000 + Math.random() * 4000;
       blinkTimerRef.current = setTimeout(() => {
         if (cancelled) return;
         setIsBlinking(true);
-        setTimeout(() => {
+        blinkTimerRef.current = setTimeout(() => {
           if (cancelled) return;
           setIsBlinking(false);
           scheduleBlink();
@@ -873,32 +890,43 @@ export function MeshiMascot({
       }, delay);
     };
     scheduleBlink();
-    return () => { cancelled = true; if (blinkTimerRef.current) clearTimeout(blinkTimerRef.current); };
-  }, [animate]);
+    return () => { cancelled = true; if (blinkTimerRef.current) clearTimeout(blinkTimerRef.current); setIsBlinking(false); };
+  }, [motionActive]);
 
   // Global mouse tracking for smooth eye follow
   useEffect(() => {
-    if (!interactive && !animate) return;
-    const handleGlobalMouse = (e: MouseEvent) => {
-      if (!containerRef.current) return;
+    if (!motionVisible || (!interactive && !animate)) return;
+    let frame = 0;
+    let pointerX = 0;
+    let pointerY = 0;
+    const updateEyes = () => {
+      frame = 0;
+      if (!containerRef.current || document.visibilityState !== "visible") return;
       const rect = containerRef.current.getBoundingClientRect();
-      const centerX = rect.left + rect.width / 2;
-      const centerY = rect.top + rect.height / 2;
-      const dx = e.clientX - centerX;
-      const dy = e.clientY - centerY;
+      const dx = pointerX - (rect.left + rect.width / 2);
+      const dy = pointerY - (rect.top + rect.height / 2);
       const dist = Math.sqrt(dx * dx + dy * dy);
-      const maxOffset = 2.5;
       const factor = Math.min(dist / 300, 1);
-      eyeOffsetX.set((dx / (dist || 1)) * maxOffset * factor);
-      eyeOffsetY.set((dy / (dist || 1)) * maxOffset * factor);
+      eyeOffsetX.set((dx / (dist || 1)) * 2.5 * factor);
+      eyeOffsetY.set((dy / (dist || 1)) * 2.5 * factor);
+    };
+    const handleGlobalMouse = (event: MouseEvent) => {
+      pointerX = event.clientX;
+      pointerY = event.clientY;
+      if (!frame) frame = requestAnimationFrame(updateEyes);
     };
     window.addEventListener("mousemove", handleGlobalMouse, { passive: true });
-    return () => window.removeEventListener("mousemove", handleGlobalMouse);
-  }, [interactive, animate, eyeOffsetX, eyeOffsetY]);
+    return () => {
+      window.removeEventListener("mousemove", handleGlobalMouse);
+      if (frame) cancelAnimationFrame(frame);
+      eyeOffsetX.set(0);
+      eyeOffsetY.set(0);
+    };
+  }, [interactive, animate, motionVisible, eyeOffsetX, eyeOffsetY]);
 
   // Mouse enter — initial shy reaction + gentle jiggle
   const handleMouseEnter = useCallback(() => {
-    if (!interactive) return;
+    if (!interactive || !motionVisible) return;
     squishX.set(1.12);
     squishY.set(0.9);
     wobbleRotate.set(3);
@@ -908,11 +936,11 @@ export function MeshiMascot({
     onMoodChange?.("shy");
     if (petTimer.current) clearTimeout(petTimer.current);
     petTimer.current = setTimeout(() => { setLocalMood(null); petCount.current = 0; }, 2000);
-  }, [interactive, squishX, squishY, wobbleRotate, onMoodChange]);
+  }, [interactive, motionVisible, squishX, squishY, wobbleRotate, onMoodChange]);
 
   // Mouse move over Meshi — "petting" effect
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    if (!interactive) return;
+    if (!interactive || !motionVisible) return;
     const now = Date.now();
     const dx = e.clientX - lastMouseX.current;
     const dt = now - lastMouseTime.current;
@@ -933,16 +961,16 @@ export function MeshiMascot({
         petTimer.current = setTimeout(() => { setLocalMood(null); petCount.current = 0; }, 2000);
       }
     }
-  }, [interactive, squishX, squishY, wobbleRotate, onMoodChange]);
+  }, [interactive, motionVisible, squishX, squishY, wobbleRotate, onMoodChange]);
 
   // Mouse leave — bounce back
   const handleMouseLeave = useCallback(() => {
-    if (!interactive) return;
+    if (!interactive || !motionVisible) return;
     squishX.set(0.92); squishY.set(1.1); wobbleRotate.set(0);
     setTimeout(() => { squishX.set(1); squishY.set(1); }, 150);
     if (petTimer.current) clearTimeout(petTimer.current);
     petTimer.current = setTimeout(() => { setLocalMood(null); petCount.current = 0; }, 1200);
-  }, [interactive, squishX, squishY, wobbleRotate]);
+  }, [interactive, motionVisible, squishX, squishY, wobbleRotate]);
 
   useEffect(() => { return () => { if (petTimer.current) clearTimeout(petTimer.current); }; }, []);
 
@@ -951,7 +979,7 @@ export function MeshiMascot({
   // Purely physical (springs + a brief glance), never touching the mood system,
   // so it never fights petting or speaking states.
   useEffect(() => {
-    if (!interactive || !animate || speaking) return;
+    if (!interactive || !motionActive || speaking) return;
     let cancelled = false;
     const settleTimers: ReturnType<typeof setTimeout>[] = [];
     const schedule = () => {
@@ -999,7 +1027,7 @@ export function MeshiMascot({
         idleGestureActive.current = false;
       }
     };
-  }, [interactive, animate, speaking, eyeOffsetX, eyeOffsetY, squishX, squishY, wobbleRotate]);
+  }, [interactive, motionActive, speaking, eyeOffsetX, eyeOffsetY, squishX, squishY, wobbleRotate]);
 
   // Determine prop SVG. Hands follow visible held objects only.
   const propSvg = prop && prop !== "none" && PROP_SVGS[prop] ? PROP_SVGS[prop](theme.primary) : null;
@@ -1011,7 +1039,7 @@ export function MeshiMascot({
 
   // Determine current mood (with blinking override)
   const getCurrentMood = (): MeshiMood => {
-    if (isBlinking && !speaking) return "blinking";
+    if (isBlinking && motionActive && !speaking) return "blinking";
     return interactive ? (localMood || mood) : mood;
   };
 
@@ -1039,8 +1067,8 @@ export function MeshiMascot({
       onMouseEnter={handleMouseEnter}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
-      whileHover={!interactive && animate ? { scale: 1.1 } : undefined}
-      whileTap={animate ? { scale: 0.9 } : undefined}
+      whileHover={!interactive && motionActive ? { scale: 1.1 } : undefined}
+      whileTap={motionActive ? { scale: 0.9 } : undefined}
     >
       <svg width={size} height={size} viewBox="-24 -24 48 48">
         {/* Clip to perfect circle — unique ID per instance */}
@@ -1065,7 +1093,7 @@ export function MeshiMascot({
 
 
         {/* Speaking pulse rings — triple layered for rich effect */}
-        {speaking && (
+        {speaking && motionActive && (
           <>
             <motion.circle cx="0" cy="0" r="18" fill="none" stroke={theme.primary} strokeWidth="1.5"
               initial={{ scale: 1, opacity: 0.6 }} animate={{ scale: 1.4, opacity: 0 }}
@@ -1089,15 +1117,15 @@ export function MeshiMascot({
         <g clipPath={`url(#${uniqueId}-clip)`}>
           {/* Body — glossy circle with smooth breathing animation */}
           <motion.circle cx="0" cy="0" r="16" fill={`url(#${uniqueId}-body)`} stroke={theme.primary} strokeWidth="2"
-            animate={animate ? (bouncy
+            animate={motionActive ? (bouncy
               ? { y: [0, -2.5, 0, -1, 0], scaleX: [1, 0.97, 1.02, 0.99, 1], scaleY: [1, 1.04, 0.97, 1.01, 1] }
               : {
                   scaleX: [1, 1.015, 1, 0.985, 1],
                   scaleY: [1, 0.985, 1, 1.015, 1],
                   y: [0, -0.5, 0, 0.3, 0],
                 }
-            ) : undefined}
-            transition={bouncy
+            ) : { scaleX: 1, scaleY: 1, y: 0 }}
+            transition={!motionActive ? { duration: 0 } : bouncy
               ? { duration: 2, repeat: Infinity, ease: "easeInOut" }
               : { duration: 3.5, repeat: Infinity, ease: "easeInOut" }
             }
@@ -1181,12 +1209,12 @@ export function MeshiMascot({
             {holdingHands.map((hand, index) => (
               <motion.g
                 key={`${hand.side}-holding-hand`}
-                animate={animate ? {
+                animate={motionActive ? {
                   x: hand.side === "right" ? [0, 0.7, 0.2, 0] : [0, -0.7, -0.2, 0],
                   y: [0, -1.1, -0.2, 0],
                   scale: [1, 1.09, 1.01, 1],
-                } : undefined}
-                transition={{
+                } : { x: 0, y: 0, scale: 1 }}
+                transition={!motionActive ? { duration: 0 } : {
                   duration: speaking ? 0.85 : 1.2,
                   repeat: Infinity,
                   ease: "easeInOut",

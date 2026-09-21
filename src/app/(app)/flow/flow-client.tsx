@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, useTransition } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Bookmark, Check, ChevronLeft, ChevronRight, Heart, Info, Link2, Maximize2, MessageCircle, Minimize2, Music2, Play, Send, SlidersHorizontal, Sparkles, VolumeX, Volume2, X } from "lucide-react";
@@ -112,6 +112,13 @@ const laneStageVariants = {
 };
 const laneStageTransition = SPRING_PANEL;
 
+const subscribePageVisibility = (listener: () => void) => {
+  document.addEventListener("visibilitychange", listener);
+  return () => document.removeEventListener("visibilitychange", listener);
+};
+const pageVisible = () => !document.hidden;
+const visibleOnServer = () => true;
+
 // One full-screen reel: video autoplays in view, images fill the frame, and
 // text-only posts become a typographic card — any content type, same stage.
 // Playback state lives in the parent so taps and double-taps can share it.
@@ -137,14 +144,13 @@ function ReelMedia({
   onProgress?: (completion: number) => void;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const reduce = useReducedMotion();
+  const visible = useSyncExternalStore(subscribePageVisibility, pageVisible, visibleOnServer);
   const wrapRef = useRef<HTMLDivElement>(null);
   const progressRef = useRef<HTMLDivElement>(null);
   const [videoFailed, setVideoFailed] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  // Portrait / near-square media fills the reel (object-cover); clearly
-  // landscape media is shown whole (object-contain) over a blurred fill of its
-  // own poster, so the real aspect ratio is preserved instead of hard-cropped.
-  const [videoFit, setVideoFit] = useState<"cover" | "contain">("cover");
   // Type-aware media selection — any media type gets a stage that fits it:
   // video plays, audio gets a player, every image in a gallery shows (not just
   // the first), links/documents get the caption card with a way out. GIFs are
@@ -166,9 +172,19 @@ function ReelMedia({
     // gates on the muted PROPERTY — so a JSX `muted={…}` alone leaves play()
     // blocked as "unmuted" and the reel silently never starts. Set it here.
     el.muted = muted;
-    if (active && !paused) void el.play().catch(() => {});
-    else el.pause();
-  }, [active, paused, muted]);
+    let disposed = false;
+    if (active && !paused && visible && !reduce) {
+      void el.play().then(() => { if (disposed || document.hidden) el.pause(); }).catch(() => {});
+    } else el.pause();
+    return () => { disposed = true; el.pause(); };
+  }, [active, paused, muted, visible, reduce, video?.url, nearActive]);
+
+  useEffect(() => {
+    const el = audioRef.current;
+    if (!el) return;
+    if (!active || !visible) el.pause();
+    return () => el.pause();
+  }, [active, visible, audio?.url, nearActive]);
 
   // Fullscreen happens INSIDE mesh.me — we request it on our own wrapper, never
   // navigate to the source. Keep a local flag in sync so the icon can flip.
@@ -186,14 +202,11 @@ function ReelMedia({
     else void el.requestFullscreen?.().catch(() => {});
   };
 
+  if (!active && !nearActive) return <div className="h-full w-full bg-black" />;
+
   if (video) {
-    const contain = videoFit === "contain";
     return (
       <div ref={wrapRef} className="relative flex h-full w-full items-center justify-center bg-black">
-        {contain && video.posterUrl && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={video.posterUrl} alt="" aria-hidden loading="lazy" decoding="async" className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-40 blur-2xl scale-110" />
-        )}
         <video
           ref={videoRef}
           src={video.url}
@@ -201,16 +214,12 @@ function ReelMedia({
           loop
           muted={muted}
           playsInline
-          preload={nearActive ? "auto" : "metadata"}
+          preload={active && visible && !reduce ? "auto" : nearActive ? "metadata" : "none"}
+          controls={Boolean(reduce)}
+          onClick={(event) => { if (reduce) event.stopPropagation(); }}
           // Level cross-platform loudness the moment playback starts (never on
           // preload). CORS-unsafe sources are left on their native audio path.
           onPlay={(event) => attachNormalizer(event.currentTarget)}
-          onLoadedMetadata={(event) => {
-            const el = event.currentTarget;
-            if (el.videoWidth > 0 && el.videoHeight > 0) {
-              setVideoFit(el.videoWidth / el.videoHeight > 1.05 ? "contain" : "cover");
-            }
-          }}
           onError={() => setVideoFailed(true)}
           onTimeUpdate={(event) => {
             const el = event.currentTarget;
@@ -221,7 +230,7 @@ function ReelMedia({
               if (active) onProgress?.(el.currentTime / el.duration);
             }
           }}
-          className={`relative h-full w-full ${contain ? "object-contain" : "object-cover"}`}
+          className="relative h-full w-full object-contain"
         />
         {paused && (
           <span className="pointer-events-none absolute inset-0 flex items-center justify-center">
@@ -272,8 +281,8 @@ function ReelMedia({
   // No playable file, but the post links to a video page (YouTube, Vimeo,
   // Twitch): play it natively via its embed player the moment this reel owns
   // the screen. Off-screen reels keep the cheap thumbnail.
-  const embedUrl = getVideoEmbedUrl(sourceUrl(post), { autoplay: true, muted, loop: true });
-  if (embedUrl && active) {
+  const embedUrl = getVideoEmbedUrl(sourceUrl(post), { autoplay: !paused && !reduce, muted, loop: true });
+  if (embedUrl && active && visible) {
     return (
       <div ref={wrapRef} className="relative flex h-full w-full items-center justify-center bg-black" onClick={(e) => e.stopPropagation()}>
         {/* A 16:9 player is centered at its true aspect (letterboxed) rather
@@ -317,13 +326,13 @@ function ReelMedia({
         <div className="relative z-10 flex w-full max-w-sm flex-col items-center gap-5 px-8">
           {image ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={image.url} alt="" loading="lazy" decoding="async" className="h-44 w-44 rounded-2xl object-cover shadow-2xl" />
+            <img src={image.url} alt="" loading="lazy" decoding="async" className="h-44 w-44 rounded-2xl object-contain shadow-2xl" />
           ) : (
             <span className="flex h-44 w-44 items-center justify-center rounded-2xl bg-white/10">
               <Music2 size={56} className="text-white/80" />
             </span>
           )}
-          <audio src={audio.url} controls preload="metadata" onPlay={(event) => attachNormalizer(event.currentTarget)} className="w-full" />
+          <audio ref={audioRef} src={audio.url} controls preload={active ? "metadata" : "none"} onPlay={(event) => attachNormalizer(event.currentTarget)} className="w-full" />
         </div>
       </div>
     );
@@ -335,9 +344,7 @@ function ReelMedia({
     return (
       <div className="relative h-full w-full">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={shown.url} alt="" loading="lazy" decoding="async" className="absolute inset-0 h-full w-full object-cover opacity-40 blur-2xl scale-110" aria-hidden />
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={shown.url} alt="" loading="lazy" decoding="async" className="relative h-full w-full object-contain" />
+        <img src={shown.url} alt={post.content.trim().slice(0, 160) || `Post by ${post.author.displayName}`} loading={active ? "eager" : "lazy"} decoding="async" className="relative h-full w-full object-contain" />
         {embedUrl && (
           <span className="absolute inset-0 flex items-center justify-center">
             <Play size={64} className="text-white/85 drop-shadow-lg" fill="currentColor" />

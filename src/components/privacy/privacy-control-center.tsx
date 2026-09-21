@@ -319,7 +319,7 @@ export function PrivacyControlCenter({ data }: { data: ControlData }) {
   return (
     <main className="personal-studio personal-controls simple-page grid gap-5">
       <header className="personal-page-heading mesh-surface mesh-pop-in rounded-lg p-4 md:p-5">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div className="adaptive-controls-heading flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <Badge variant="accent" className="gap-2">
               <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
@@ -874,7 +874,7 @@ function AccountCard({
 
   return (
     <article className="rounded-lg border border-[var(--border-primary)] bg-[var(--bg-primary)]/55 p-3">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+      <div className="adaptive-account-actions flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <h3 className="truncate text-base font-semibold text-[var(--text-primary)]">{account.platformName}</h3>
