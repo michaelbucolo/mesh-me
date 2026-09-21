@@ -603,8 +603,8 @@ export function AppShell({ children, user }: AppShellProps) {
           aria-label="Open command palette"
         >
           <Command className="h-4 w-4" aria-hidden="true" />
-          <span>Jump anywhere</span>
-          <kbd aria-hidden="true">⌘ / Ctrl K</kbd>
+          <span>Jump to…</span>
+          <kbd aria-hidden="true">Ctrl K</kbd>
         </button>
 
         {/* Navigation */}

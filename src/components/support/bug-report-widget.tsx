@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { AlertTriangle, CheckCircle2, Send } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
 import { PaperWait } from "@/components/loading/paper-wait";
@@ -58,12 +58,16 @@ function collectDiagnostics(): Diagnostics {
 
 export function BugReportWidget() {
   const [open, setOpen] = useState(false);
+  const returnFocusRef = useRef<HTMLElement | null>(null);
   const [message, setMessage] = useState("");
   const [contactEmail, setContactEmail] = useState("");
   const [diagnostics, setDiagnostics] = useState<Diagnostics | null>(null);
   const [submitState, setSubmitState] = useState<SubmitState>({ status: "idle" });
 
   const openWidget = useCallback(() => {
+    const active = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    // The account menu closes after dispatch, so return to its visible summary.
+    returnFocusRef.current = active?.closest("details")?.querySelector<HTMLElement>("summary") ?? active;
     setDiagnostics(collectDiagnostics());
     setSubmitState({ status: "idle" });
     setOpen(true);
@@ -121,7 +125,7 @@ export function BugReportWidget() {
   const details = diagnostics ?? (typeof window !== "undefined" ? collectDiagnostics() : null);
 
   return (
-    <Modal open={open} onClose={() => setOpen(false)} title="Report a bug" description="Tell us what happened. Page and device details help us investigate." className="studio-bug-report">
+    <Modal open={open} onClose={() => setOpen(false)} returnFocusRef={returnFocusRef} title="Report a bug" description="Tell us what happened. Page and device details help us investigate." className="studio-bug-report">
           <form onSubmit={submitBugReport} className="mt-4 space-y-3">
             <label className="grid gap-2 text-sm font-semibold">
               What happened?

@@ -43,8 +43,8 @@
   cursor: pointer;
   transition: background-color 160ms var(--mesh-ease-out), border-color 160ms var(--mesh-ease-out);
 }
-.mesh-quick-jump span { flex: 1; }
-.mesh-quick-jump kbd { font: inherit; font-size: .6875rem; color: var(--text-muted); white-space: nowrap; }
+.mesh-quick-jump span { flex: 1; white-space: nowrap; }
+.mesh-quick-jump kbd { display: grid; place-items: center; min-width: 42px; height: 22px; border: 1px solid var(--rule); border-radius: 5px; font: inherit; font-size: .6875rem; color: var(--text-muted); }
 .mesh-quick-jump:hover { background: var(--paper-2); }
 .mesh-quick-jump:focus-visible { outline: 2px solid var(--rule-focus); outline-offset: 3px; }
 .mesh-experience .mesh-nav-item {
