@@ -542,7 +542,7 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
       data-meshi-content-rating={post.contentRating || (post.isNsfw ? "adult" : "general")}
       data-meshi-content-media-signals={mediaSignals.join("|")}
       className={cn(
-        "insta-post-card group relative overflow-visible",
+        "social-post insta-post-card group relative overflow-visible",
         (showMenu || showShareMenu) && "z-20",
         post.isPinned && "ring-1 ring-[var(--accent-muted)]",
         isOptimistic && "feed-post-pending",
@@ -558,7 +558,7 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
         }
       }}
     >
-      <div className={cn("px-3 pt-3 pb-2 sm:px-4", compact && "p-3")}>
+      <div className={cn("social-post-heading px-3 pt-3 pb-2 sm:px-4", compact && "p-3")}>
         {post.isPinned && (
           <div className="mb-2 flex items-center gap-1.5 text-xs" style={{ color: "var(--accent-text)" }}>
             <Pin className="h-3 w-3" />
@@ -929,7 +929,7 @@ export const PostCard = memo(function PostCard({ post, currentUserId, connectedP
           </div>
         )}
 
-      <div className="px-3 py-2.5 sm:px-4">
+      <div className="social-post-footer px-3 py-2.5 sm:px-4">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-0.5">
             <button

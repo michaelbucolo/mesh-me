@@ -180,7 +180,7 @@ export function AccountMergePanel({
   }
 
   return (
-    <section className="grid gap-3 rounded-[var(--ds-radius-lg)] border border-[var(--ds-border)] bg-[var(--ds-surface)] p-5">
+    <section className="personal-merge-panel grid gap-3 rounded-[var(--ds-radius-lg)] border border-[var(--ds-border)] bg-[var(--ds-surface)] p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="max-w-2xl">
           <h2 className="inline-flex items-center gap-2 text-lg font-semibold">

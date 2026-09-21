@@ -49,7 +49,7 @@ export function ContentInventoryCard({ inventory }: { inventory: ContentInventor
   ];
 
   return (
-    <section className="rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] p-5 sm:p-6">
+    <section className="personal-insight-card rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] p-5 sm:p-6">
       <h2 className="text-base font-semibold text-[var(--mesh-text)]">Everything you&apos;ve made</h2>
       <p className="mt-1 text-sm text-[var(--mesh-text-secondary)]">
         {total > 0

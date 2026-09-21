@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { ConnectionSnappedError } from "@/components/errors/connection-snapped-error";
 import "./globals.css";
+import "./loading-design.css";
 
 // Applied from an effect rather than an inline <script>: raw inline tags
 // carry no nonce, so the production script-src policy would block them.

@@ -222,9 +222,9 @@ export default function ResetPasswordPage() {
     >
       <Suspense
         fallback={
-          <div className="text-center">
-            <MeshiMascot size={56} mood="thinking" animate />
-            <p className="mt-4 text-sm text-[var(--text-muted)]">Loading...</p>
+          <div className="auth-reset-wait" role="status" aria-label="Preparing your secure reset form">
+            <PaperWait size="sm" />
+            <p>Preparing your reset form</p>
           </div>
         }
       >

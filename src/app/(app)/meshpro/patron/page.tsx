@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { HandHeart } from "lucide-react";
 import { PatronCheckoutButton } from "@/components/meshpro/patron-checkout-button";
 import { getCurrentUser } from "@/lib/auth";
 import { getActivePatronStint, syncPatronCheckoutSessionForUser } from "@/lib/patron";
@@ -44,7 +45,7 @@ export default async function PatronPage({ searchParams }: PatronPageProps) {
     : null;
 
   return (
-    <main className="simple-page mx-auto grid w-full max-w-lg gap-8 pb-16">
+    <main className="personal-studio personal-commerce personal-commerce-detail simple-page mx-auto grid w-full max-w-lg gap-8 pb-16">
       {syncResult && (
         <section className={`rounded-lg border px-4 py-3 text-sm font-semibold ${
           syncResult.ok
@@ -61,9 +62,10 @@ export default async function PatronPage({ searchParams }: PatronPageProps) {
         </section>
       )}
 
-      <header className="pt-4 text-center">
+      <header className="personal-commerce-hero pt-4 text-center">
+        <span className="personal-commerce-emblem" aria-hidden="true"><HandHeart size={28} strokeWidth={1.4} /></span>
         <p className="text-xs font-semibold mesh-eyebrow text-[var(--accent-text)]">Patron</p>
-        <h1 className="mx-auto mt-3 max-w-md text-3xl font-semibold leading-tight">
+        <h1 className="personal-display-title mx-auto mt-3 max-w-md text-3xl font-semibold leading-tight">
           Keep it independent
         </h1>
         <p className="mx-auto mt-3 max-w-sm text-sm leading-6 text-[var(--text-secondary)]">

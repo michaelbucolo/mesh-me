@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { motion, useReducedMotion } from "framer-motion";
 import { ArrowRight, Lock, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { PageIntro } from "@/components/ui/signature-art";
 import { COMMUNITY_SPACE_TYPES } from "@/lib/community-constants";
 import { createCommunity } from "@/lib/actions";
 import { cn } from "@/lib/utils";
@@ -26,7 +26,7 @@ export function CommunityCreateForm() {
   return (
     <form
       ref={formRef}
-      className="space-y-5"
+      className="social-community-form space-y-5"
       onSubmit={(event) => {
         event.preventDefault();
         const form = formRef.current;
@@ -55,14 +55,9 @@ export function CommunityCreateForm() {
         });
       }}
     >
+      <PageIntro className="social-page-intro" heading="h1" eyebrow="Make room for your people" title="Start a community." description="Give your shared interest a home. You choose who comes in." />
       <section className="mesh-surface rounded-[28px] border border-[var(--ds-border)] p-4 shadow-[var(--shadow-soft)] sm:p-6">
-        <div className="mb-5 flex items-center justify-between gap-3">
-          <div>
-            <p className="text-sm font-semibold text-[var(--accent-text)]">New space</p>
-            <h1 className="text-2xl font-semibold tracking-[0] text-[var(--text-primary)]">Create a community</h1>
-          </div>
-          <Badge variant="accent">Private by design</Badge>
-        </div>
+        <div className="social-form-heading"><span className="social-step">1</span><h2>Choose your kind of space</h2></div>
 
         <div className="grid gap-3 sm:grid-cols-2">
           {COMMUNITY_SPACE_TYPES.map((type, index) => {
@@ -95,6 +90,7 @@ export function CommunityCreateForm() {
       </section>
 
       <section className="mesh-surface rounded-[28px] border border-[var(--ds-border)] p-4 shadow-[var(--shadow-soft)] sm:p-6">
+        <div className="social-form-heading"><span className="social-step">2</span><h2>Make it yours</h2></div>
         <div className="grid gap-4">
           <label className="grid gap-2">
             <span className="text-sm font-semibold text-[var(--text-primary)]">Name</span>

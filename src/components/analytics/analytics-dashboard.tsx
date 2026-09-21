@@ -174,7 +174,7 @@ function Stat({
 }) {
   return (
     <div
-      className="plate p-4"
+      className="personal-metric plate p-4"
       style={index !== undefined ? ({ "--i": index } as CSSProperties) : undefined}
     >
       <p className="flex items-center gap-1.5 text-micro font-semibold mesh-eyebrow text-[var(--text-muted)]">
@@ -224,7 +224,7 @@ function PlatformRow({ account, index }: { account: AnalyticsDashboardData["plat
   ];
   return (
     <div
-      className="plate p-4"
+      className="personal-platform-row plate p-4"
       style={index !== undefined ? ({ "--i": index } as CSSProperties) : undefined}
     >
       <div className="flex flex-wrap items-center gap-2">
@@ -311,7 +311,7 @@ function TrendCard({ title, points, tone, index }: { title: string; points: Char
   const total = points.reduce((t, p) => t + p.value, 0);
   return (
     <div
-      className="plate p-4"
+      className="personal-trend-card plate p-4"
       style={index !== undefined ? ({ "--i": index } as CSSProperties) : undefined}
     >
       <div className="flex items-baseline justify-between">
@@ -504,10 +504,11 @@ export function AnalyticsDashboard({ data, embedded = false }: { data: Analytics
     // @container so grids track this column's width, not the viewport — the
     // dashboard now renders inside the (narrower) profile column as well as the
     // full-width standalone route.
-    <Container className={embedded ? "@container w-full" : "@container mx-auto w-full max-w-7xl px-4 py-6 sm:px-6"}>
+    <Container className={embedded ? "personal-analytics @container w-full" : "personal-studio personal-analytics @container mx-auto w-full max-w-7xl px-4 py-6 sm:px-6"}>
       {/* Header — quiet, product-like */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="personal-page-heading flex flex-wrap items-center justify-between gap-3">
         <div>
+          {!embedded && <><p className="personal-overline">Your perspective</p><h2 className="personal-display-title">A clearer view of your world.</h2></>}
           {embedded && <h2 className="text-2xl font-semibold text-[var(--text-primary)]">Analytics</h2>}
           <p className="mt-0.5 text-sm text-[var(--text-secondary)]">
             Every platform you&apos;ve connected, measured in one place.
@@ -529,7 +530,7 @@ export function AnalyticsDashboard({ data, embedded = false }: { data: Analytics
       </div>
 
       {/* The numbers that matter, with their 14-day pulse */}
-      <section className="mesh-cascade mt-5 grid grid-cols-1 gap-3 @sm:grid-cols-2 @2xl:grid-cols-3 @5xl:grid-cols-6" aria-label="Overview">
+      <section className="personal-metrics mesh-cascade mt-5 grid grid-cols-1 gap-3 @sm:grid-cols-2 @2xl:grid-cols-3 @5xl:grid-cols-6" aria-label="Overview">
         <Stat index={0} icon={Users} label="Audience" value={compact(data.overview.totalFollowers)} rawValue={data.overview.totalFollowers} format={compact} sub={`${data.overview.connectedAccounts} ${data.overview.connectedAccounts === 1 ? "platform" : "platforms"} connected`} points={data.charts.followerGrowth} tone="#34d399" />
         <Stat index={1} icon={Eye} label="Views" value={compact(data.overview.totalViews)} rawValue={data.overview.totalViews} format={compact} sub="across synced content" />
         <Stat index={2} icon={Heart} label="Engagement" value={compact(data.overview.totalEngagement)} rawValue={data.overview.totalEngagement} format={compact} sub="likes · comments · shares" points={data.charts.engagement} tone="#2f7cff" />

@@ -24,7 +24,7 @@ export function MeshComposeModal({
       onClose={onClose}
       title="Create on your mesh"
       description="Share a thought, a photo, or something worth finding."
-      className="max-w-xl"
+      className="presence-world-compose max-w-xl"
     >
       <PostComposer key={meshUser.id} user={meshUser} startExpanded onPostCreated={onPostCreated} />
     </Modal>

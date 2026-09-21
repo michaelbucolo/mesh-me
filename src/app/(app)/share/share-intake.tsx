@@ -26,8 +26,9 @@ export function ShareIntake({ body }: { body: string }) {
   }, [body, router]);
 
   return (
-    <div className="flex min-h-64 items-center justify-center">
-      <PaperWait size="md" />
+    <div className="personal-share-handoff flex min-h-64 flex-col items-center justify-center gap-4" role="status">
+      <span className="personal-share-handoff-mark"><PaperWait size="md" /></span>
+      <p className="text-sm text-[var(--text-secondary)]">Bringing this into your Mesh…</p>
     </div>
   );
 }

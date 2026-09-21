@@ -308,20 +308,24 @@ export function MeChatConversationList({
   const rootClassName =
     variant === "rail"
       ? "flex h-full min-h-0 w-full flex-col overflow-hidden bg-[var(--mesh-panel)]"
-      : "flex h-[calc(100dvh-3.5rem)] min-h-0 w-full flex-col overflow-hidden bg-[var(--mesh-bg)] pb-[env(safe-area-inset-bottom)]";
+      : "flex h-full min-h-0 w-full flex-col overflow-hidden bg-[var(--mesh-bg)] pb-[env(safe-area-inset-bottom)]";
 
   return (
-    <div className={`${rootClassName} ${className || ""}`}>
-      {/* One calm row: find a conversation or start one. The top bar already
-          names the surface — no need to say "MeChat" twice. */}
-      <div className="flex items-center gap-2 px-3 pb-2 pt-3">
+    <div className={`presence-conversations ${rootClassName} ${className || ""}`}>
+      <header className="presence-conversations-heading">
+        <div><p className="presence-kicker">Your people</p><h1>Conversations</h1></div>
+        <span className="presence-count" aria-label={`${threads.length} conversations`}>{threads.length}</span>
+      </header>
+      {/* Search and compose share a compact row beneath the conversation heading. */}
+      <div className="presence-conversations-search flex items-center gap-2 px-3 pb-2 pt-3">
         <label className="flex min-w-0 flex-1 items-center gap-2 rounded-full border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] px-3.5 py-2.5 text-sm transition focus-within:border-[var(--accent)]/50">
           <Search size={15} className="shrink-0 text-[var(--mesh-text-muted)]" />
           <input
             value={threadQuery}
             onChange={(event) => setThreadQuery(event.target.value)}
             className="mesh-search-input min-w-0 flex-1 bg-transparent text-[var(--mesh-text)] outline-none placeholder:text-[var(--mesh-text-muted)]"
-            placeholder="Search conversations"
+            aria-label="Search conversations"
+            placeholder="Find a conversation"
             suppressHydrationWarning
           />
         </label>
@@ -399,7 +403,8 @@ export function MeChatConversationList({
       )}
 
       <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-4">
-        <div className="px-1 py-4">
+        <div className="presence-notes px-1 py-4">
+          <p className="presence-kicker mb-3">Little updates</p>
           <div className="flex gap-4 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             <button
               type="button"
@@ -411,7 +416,7 @@ export function MeChatConversationList({
               className="mesh-pressable flex w-16 shrink-0 flex-col items-center gap-1.5 transition active:scale-95"
             >
               <div className="relative">
-                <Avatar src={currentUser.avatarUrl} alt={currentUser.displayName} size="md" className="h-16 w-16 ring-2 ring-[var(--accent)]/20" />
+                <Avatar src={currentUser.avatarUrl} alt={currentUser.displayName} size="md" className="h-12 w-12 ring-2 ring-[var(--accent)]/20" />
                 {myNote ? (
                   <span className="absolute -top-2 left-1/2 max-w-[90px] -translate-x-1/2 truncate rounded-full border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] px-2 py-0.5 text-micro text-[var(--mesh-text)] shadow-sm">
                     {myNote.songTitle ? <Music size={8} className="mr-0.5 inline" /> : null}
@@ -441,7 +446,7 @@ export function MeChatConversationList({
                     {note.text || note.songTitle}
                   </span>
                   <span className="mesh-aurora-ring block rounded-full bg-gradient-to-tr from-[var(--accent)] to-[var(--accent-hover)] p-[2px] shadow-[0_0_24px_var(--accent-glow)]">
-                    <Avatar src={note.user.avatarUrl} alt={note.user.displayName} size="md" className="h-16 w-16 border-2 border-[var(--mesh-bg)]" />
+                    <Avatar src={note.user.avatarUrl} alt={note.user.displayName} size="md" className="h-12 w-12 border-2 border-[var(--mesh-bg)]" />
                   </span>
                 </div>
                 <span className="w-full truncate text-center text-micro text-[var(--mesh-text-secondary)]">
@@ -467,7 +472,7 @@ export function MeChatConversationList({
                     key={thread.id}
                     href={`/messages/${thread.id}`}
                     aria-current={active ? "page" : undefined}
-                    className={`group relative flex min-h-[4.25rem] min-w-0 items-center gap-3 rounded-2xl px-3 py-2 text-left transition active:scale-[0.99] ${
+                    className={`presence-conversation-row group relative flex min-h-[4.25rem] min-w-0 items-center gap-3 rounded-2xl px-3 py-2 text-left transition active:scale-[0.99] ${
                       active
                         ? "bg-[var(--accent)]/12"
                         : "hover:bg-[var(--mesh-panel-hover)]"

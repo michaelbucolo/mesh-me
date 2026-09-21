@@ -63,8 +63,8 @@ const controlRows = [
 
 export default function TrustCenterPage() {
   return (
-    <PublicSiteShell maxWidth="max-w-5xl">
-      <section className="grid gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-end">
+    <PublicSiteShell sectionLabel="Your trust, earned" maxWidth="max-w-5xl">
+      <section className="public-editorial-hero grid gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-end">
         <div>
           <p className="mesh-kicker mb-4">mesh.me Trust Center</p>
           <h1 className="mesh-title text-4xl leading-tight md:text-6xl">
@@ -79,7 +79,7 @@ export default function TrustCenterPage() {
 
       <section className="mt-12 grid gap-4 md:grid-cols-2">
         {trustPillars.map((pillar) => (
-          <article key={pillar.title} className="mesh-section p-5">
+          <article key={pillar.title} className="public-panel mesh-section p-5">
             <div className="mb-3 flex items-center gap-2">
               <pillar.icon className="h-5 w-5 text-[var(--accent-text)]" />
               <h2 className="text-base font-semibold text-[var(--text-primary)]">{pillar.title}</h2>
@@ -90,14 +90,14 @@ export default function TrustCenterPage() {
       </section>
 
       <section className="mt-12 grid gap-4 lg:grid-cols-[1.05fr_0.95fr]">
-        <article className="rounded-3xl border border-[var(--glass-card-border)] bg-[var(--glass-card-bg)] p-6">
+        <article className="public-panel rounded-3xl border border-[var(--glass-card-border)] bg-[var(--glass-card-bg)] p-6">
           <div className="mb-4 flex items-center gap-2">
             <FileCheck2 className="h-5 w-5 text-[var(--accent-text)]" />
             <h2 className="text-lg font-semibold text-[var(--text-primary)]">How the trust model shows up in product</h2>
           </div>
           <div className="space-y-3">
             {controlRows.map((row) => (
-              <div key={row.title} className="rounded-2xl border border-[var(--border-primary)] p-4">
+              <div key={row.title} className="public-panel rounded-2xl border border-[var(--border-primary)] p-4">
                 <div className="mb-2 flex items-center gap-2">
                   <row.icon className="h-4 w-4 text-[var(--accent-text)]" />
                   <h3 className="text-sm font-semibold text-[var(--text-primary)]">{row.title}</h3>
@@ -108,7 +108,7 @@ export default function TrustCenterPage() {
           </div>
         </article>
 
-        <article className="rounded-3xl border border-[var(--glass-card-border)] bg-[var(--glass-card-bg)] p-6">
+        <article className="public-panel rounded-3xl border border-[var(--glass-card-border)] bg-[var(--glass-card-bg)] p-6">
           <p className="mb-3 text-xs font-semibold mesh-eyebrow text-[var(--text-muted)]">
             Source-respecting platform model
           </p>

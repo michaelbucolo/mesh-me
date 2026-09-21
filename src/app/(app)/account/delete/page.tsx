@@ -30,8 +30,8 @@ export default async function DeleteAccountPage() {
   const hasPassword = federatedIdentities === 0;
 
   return (
-    <main className="simple-page grid gap-5">
-      <header className="mesh-surface rounded-lg p-4 md:p-5">
+    <main className="personal-studio personal-account-delete simple-page grid gap-5">
+      <header className="personal-page-heading mesh-surface rounded-lg p-4 md:p-5">
         <Link href="/settings" className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--text-secondary)] transition hover:text-[var(--text-primary)]">
           <ArrowLeft className="h-4 w-4" aria-hidden="true" />
           Back to settings
@@ -42,7 +42,7 @@ export default async function DeleteAccountPage() {
               <ShieldAlert className="h-4 w-4" aria-hidden="true" />
               Permanent account removal
             </div>
-            <h1 className="mt-3 text-2xl font-semibold leading-tight">Delete your Mesh.me account</h1>
+            <h1 className="personal-display-title mt-3 text-2xl font-semibold leading-tight">Delete your Mesh.me account</h1>
             <p className="mt-3 max-w-2xl text-sm leading-6 text-[var(--text-secondary)] md:text-base">
               This is the formal account removal flow. It removes your Mesh.me profile, sessions, posts, messages, settings, Meshi preferences, and connected-account records from Mesh.me.
             </p>

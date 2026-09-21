@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { PublicSiteShell } from "@/components/layout/public-site-shell";
 import { PAT_RESOURCES } from "@/lib/me-api";
 
 export const metadata: Metadata = {
@@ -26,7 +27,9 @@ const EXCLUSIONS: Array<{ what: string; why: string }> = [
 
 export default function DevelopersPage() {
   return (
-    <main className="mx-auto w-full max-w-3xl px-4 py-12 sm:px-6">
+    <PublicSiteShell sectionLabel="Build with your data" maxWidth="max-w-5xl">
+    <article className="public-developer-doc">
+      <p className="public-kicker">The Mesh.me API</p>
       <h1 className="text-3xl font-semibold text-[var(--text-primary,#f2f4f8)]">The personal data API</h1>
       <p className="mt-2 text-base leading-relaxed text-[var(--text-secondary,#b6c2d2)]">
         Everything mesh.me knows that&apos;s yours, readable by you, with a token. Read-only. Your account only.
@@ -90,7 +93,8 @@ export default function DevelopersPage() {
         thing that doesn&apos;t exist and a thing that isn&apos;t yours. v1 only ever gains fields, never loses or
         renames them; anything breaking would be a v2 beside it.
       </p>
-    </main>
+    </article>
+    </PublicSiteShell>
   );
 }
 

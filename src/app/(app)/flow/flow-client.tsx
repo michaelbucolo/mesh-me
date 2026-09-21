@@ -11,6 +11,8 @@ import { safeHref } from "@/lib/utils";
 import { attachNormalizer } from "@/lib/audio-normalize";
 import { playSound } from "@/lib/sound";
 import { useToast } from "@/components/ui/toast";
+import { Modal } from "@/components/ui/modal";
+import { PaperWait } from "@/components/loading/paper-wait";
 import { PlatformLogo } from "@/components/platform/platform-logo";
 import { getPlatformCapability, normalizePlatformId } from "@/lib/platform-capabilities";
 import { setFlowStudioWeights } from "@/lib/actions";
@@ -109,21 +111,6 @@ const laneStageVariants = {
   }),
 };
 const laneStageTransition = SPRING_PANEL;
-
-// The platform's loading motif: a sparkle with a brand mote orbiting it —
-// on-brand where a spinner or pulse used to be. Framer degrades it to a calm
-// static sparkle under reduced motion.
-function OrbitSparkle({ size = 12 }: { size?: number }) {
-  const box = size + 8;
-  return (
-    <span className="relative inline-flex items-center justify-center" style={{ width: box, height: box }} aria-hidden>
-      <motion.span className="absolute inset-0" animate={{ rotate: 360 }} transition={{ duration: 2.2, ease: "linear", repeat: Infinity }}>
-        <span className="absolute left-1/2 top-0 h-1 w-1 -translate-x-1/2 rounded-full" style={{ background: "var(--mesh-cyan)", boxShadow: "0 0 6px var(--mesh-cyan)" }} />
-      </motion.span>
-      <Sparkles size={size} className="text-[var(--accent-text)]" style={{ filter: "drop-shadow(0 0 3px var(--accent))" }} />
-    </span>
-  );
-}
 
 // One full-screen reel: video autoplays in view, images fill the frame, and
 // text-only posts become a typographic card — any content type, same stage.
@@ -924,8 +911,8 @@ function ReelContent({
               on a 390 viewport; a centered ~150px pill starts ~x120). top-16
               clears the chrome row. */}
           {laneLoading && (
-            <span className="absolute left-1/2 top-16 z-10 flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-black/60 px-3 py-1 text-micro font-semibold text-white backdrop-blur">
-              <OrbitSparkle size={12} /> Finding similar…
+            <span role="status" className="flow-loading-status absolute left-1/2 top-16 z-10 flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-black/60 px-3 py-1 text-micro font-semibold text-white backdrop-blur">
+              <PaperWait size="sm" /> Finding similar…
             </span>
           )}
           {/* A dry lane says so instead of silently un-rendering its chevron —
@@ -1058,7 +1045,7 @@ function ReelContent({
           </div>
 
           {/* Right action rail */}
-          <div className="absolute bottom-16 right-2 flex flex-col items-center gap-4" onClick={(e) => e.stopPropagation()}>
+          <div className="social-flow-actions absolute bottom-16 right-2 flex flex-col items-center gap-4" onClick={(e) => e.stopPropagation()}>
             <RailButton label="Like" count={formatCount(likeCount)} onClick={() => handleLike()} active={liked}>
               <span className="relative inline-flex items-center justify-center">
                 {/* A radial glow ring flares out on every like. */}
@@ -1244,7 +1231,7 @@ function FlowColdStart({
   };
 
   return (
-    <div className="flex h-full min-h-[60dvh] w-full flex-col items-center justify-center gap-5 overflow-y-auto bg-black px-6 py-10 text-center">
+    <div className="social-flow-empty flex h-full min-h-[60dvh] w-full flex-col items-center justify-center gap-5 overflow-y-auto bg-black px-6 py-10 text-center">
       <div>
         <p className="text-xl font-semibold text-white">
           {filteredOnly ? "No shorts to play" : "Your Flow is waiting"}
@@ -1762,9 +1749,11 @@ export function FlowClient({
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const root = containerRef.current;
-      if (!root) return;
-      if (e.key === "ArrowDown") root.scrollBy({ top: root.clientHeight, behavior: "smooth" });
-      else if (e.key === "ArrowUp") root.scrollBy({ top: -root.clientHeight, behavior: "smooth" });
+      const target = e.target instanceof Element ? e.target : null;
+      if (!root || e.defaultPrevented || target?.closest("input, textarea, select, button, [role='dialog'], [contenteditable='true']")) return;
+      const behavior = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth";
+      if (e.key === "ArrowDown") root.scrollBy({ top: root.clientHeight, behavior });
+      else if (e.key === "ArrowUp") root.scrollBy({ top: -root.clientHeight, behavior });
       else if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
         const slot = postsRef.current[activeIndexRef.current];
         if (slot) void swipeLane(slot.id, e.key === "ArrowRight" ? 1 : -1);
@@ -1774,23 +1763,12 @@ export function FlowClient({
     return () => window.removeEventListener("keydown", onKey);
   }, [swipeLane]);
 
-  // Escape closes the modes dialog — it's an explicit role="dialog", so a
-  // keyboard user expects it to dismiss.
-  useEffect(() => {
-    if (!showModes) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setShowModes(false);
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [showModes]);
-
   if (posts.length === 0) {
     return <FlowColdStart people={suggestedPeople} refreshing={refreshing} onLoadFlow={() => void refresh()} formStats={formStats} supplyRefreshing={supplyRefreshing} />;
   }
 
   return (
-    <div className="relative h-full min-h-0 w-full min-w-0 flex-1 bg-black">
+    <div className="social-flow relative h-full min-h-0 w-full min-w-0 flex-1 bg-black">
       <button
         type="button"
         aria-label="Back"
@@ -1810,31 +1788,7 @@ export function FlowClient({
         <SlidersHorizontal size={14} aria-hidden="true" />
         {studioActive ? "Studio" : FLOW_MODES.find((m) => m.id === mode)?.name}
       </button>
-      <AnimatePresence>
-        {showModes && (
-        <motion.div
-          key="flow-modes"
-          className="absolute inset-0 z-40 flex items-end justify-center bg-black/60 sm:items-center"
-          onClick={() => setShowModes(false)}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.22, ease: EASE_OUT }}
-        >
-          <motion.div
-            role="dialog"
-            aria-label="Flow ranking modes"
-            onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-md rounded-t-3xl border border-[var(--border-primary)] bg-[var(--paper-1)] p-5 pb-8 sm:rounded-3xl sm:pb-5"
-            initial={{ y: 48, opacity: 0, scale: 0.98 }}
-            animate={{ y: 0, opacity: 1, scale: 1 }}
-            exit={{ y: 30, opacity: 0, scale: 0.98 }}
-            transition={SPRING_PANEL}
-          >
-            <p className="text-base font-semibold text-white">How should your Flow rank?</p>
-            <p className="mt-0.5 text-xs text-white/50">
-              You steer the algorithm. No ads, no paid reach — ever.
-            </p>
+      <Modal open={showModes} onClose={() => setShowModes(false)} title="Flow ranking modes" description="You steer what comes next. Choose a mode or make your own mix." className="social-flow-ranking">
             <div className="mt-4 grid gap-1.5 mesh-cascade">
               {FLOW_MODES.map((m, idx) => (
                 <button
@@ -1844,26 +1798,26 @@ export function FlowClient({
                   style={{ ["--i"]: idx } as React.CSSProperties}
                   className={`flex items-center gap-3 rounded-2xl border px-4 py-3 text-left transition ${
                     mode === m.id && !studioActive
-                      ? "border-white/25 bg-white/10"
-                      : "border-transparent hover:bg-white/5"
+                      ? "border-[var(--accent-muted)] bg-[var(--paper-2)]"
+                      : "border-transparent hover:bg-[var(--accent)]/5"
                   }`}
                 >
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-semibold text-white">{m.name}</p>
-                    <p className="text-xs text-white/55">{m.desc}</p>
+                    <p className="text-sm font-semibold text-[var(--text-primary)]">{m.name}</p>
+                    <p className="text-xs text-[var(--text-secondary)]">{m.desc}</p>
                   </div>
-                  {mode === m.id && !studioActive && <Check size={16} className="shrink-0 text-white" aria-hidden="true" />}
+                  {mode === m.id && !studioActive && <Check size={16} className="shrink-0 text-[var(--text-primary)]" aria-hidden="true" />}
                 </button>
               ))}
             </div>
 
             {/* Algorithm Studio — the MeshPro layer: your own mix, five
                 sliders, applied server-side. Not a preset; a possession. */}
-            <div className={`mt-5 rounded-2xl border px-4 py-4 ${studioActive ? "border-white/25 bg-white/10" : "border-white/10"}`}>
+            <div className={`mt-5 rounded-2xl border px-4 py-4 ${studioActive ? "border-[var(--accent-muted)] bg-[var(--paper-2)]" : "border-[var(--rule)]"}`}>
               <div className="flex items-center justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="text-sm font-semibold text-white">Your mix</p>
-                  <p className="text-xs text-white/55">
+                  <p className="text-sm font-semibold text-[var(--text-primary)]">Your mix</p>
+                  <p className="text-xs text-[var(--text-secondary)]">
                     {isPro ? "Tune the exact weights your Flow ranks by." : "A MeshPro control — tune the exact weights your Flow ranks by."}
                   </p>
                 </div>
@@ -1878,15 +1832,15 @@ export function FlowClient({
                       hasMoreRef.current = true;
                       void refresh();
                     }}
-                    className={`relative shrink-0 rounded-full p-0 transition-colors ${studio.enabled ? "bg-white" : "bg-white/20"}`}
+                    className={`relative shrink-0 rounded-full p-0 transition-colors ${studio.enabled ? "bg-[var(--accent)]" : "bg-[var(--paper-3)]"}`}
                     style={{ height: 24, width: 44, minHeight: 0, minWidth: 0 }}
                   >
                     <span
-                      className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full transition-[transform,background-color] duration-200 ${studio.enabled ? "translate-x-[0.9rem] bg-black" : "translate-x-0 bg-white"}`}
+                      className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full transition-[transform,background-color] duration-200 ${studio.enabled ? "translate-x-[0.9rem] bg-[var(--paper-0)]" : "translate-x-0 bg-[var(--accent)]"}`}
                     />
                   </button>
                 ) : (
-                  <Link href="/meshpro" className="shrink-0 rounded-full border border-white/20 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-white/10">
+                  <Link href="/meshpro" className="shrink-0 rounded-full border border-[var(--rule-strong)] px-3 py-1.5 text-xs font-semibold text-[var(--text-primary)] transition hover:bg-[var(--paper-2)]">
                     MeshPro
                   </Link>
                 )}
@@ -1895,8 +1849,8 @@ export function FlowClient({
                 <div className="mt-3 grid gap-2.5">
                   {STUDIO_SLIDERS.map((s) => (
                     <label key={s.key} className="grid gap-1">
-                      <span className="flex items-baseline justify-between text-xs text-white/70">
-                        <span className="font-semibold text-white/90">{s.label}</span>
+                      <span className="flex items-baseline justify-between text-xs text-[var(--text-secondary)]">
+                        <span className="font-semibold text-[var(--text-primary)]">{s.label}</span>
                         <span>{s.hint}</span>
                       </span>
                       <input
@@ -1917,20 +1871,17 @@ export function FlowClient({
                           hasMoreRef.current = true;
                           void refresh();
                         }}
-                        className="h-1.5 w-full cursor-pointer accent-white disabled:opacity-40"
+                        className="h-1.5 w-full cursor-pointer accent-[var(--accent)] disabled:opacity-40"
                       />
                     </label>
                   ))}
                 </div>
               )}
             </div>
-          </motion.div>
-        </motion.div>
-        )}
-      </AnimatePresence>
+      </Modal>
       {refreshing && (
-        <div className="absolute left-1/2 top-4 z-30 -translate-x-1/2 rounded-full bg-black/70 px-4 py-1.5 text-xs font-semibold text-white backdrop-blur">
-          Refreshing your Flow…
+        <div role="status" className="flow-loading-status absolute left-1/2 top-16 z-30 flex -translate-x-1/2 items-center gap-2 rounded-full bg-black/70 px-4 py-1.5 text-xs font-semibold text-white backdrop-blur">
+          <PaperWait size="sm" /> Refreshing your Flow…
         </div>
       )}
       {signedOut && (

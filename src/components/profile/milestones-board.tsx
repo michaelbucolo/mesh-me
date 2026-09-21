@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { PaperWait } from "@/components/loading/paper-wait";
 import { Check, Lock } from "lucide-react";
 import type { AchievementView } from "@/lib/achievements/award";
 import { recordAchievements, setActiveTitle } from "@/lib/achievements/actions";
@@ -108,7 +109,7 @@ export function MilestonesBoard({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="social-milestones space-y-6">
       <header>
         <h2 className="text-base font-semibold text-[var(--mesh-text)]">Milestones</h2>
         <p className="mt-1 text-sm text-[var(--mesh-text-secondary)]">
@@ -121,7 +122,7 @@ export function MilestonesBoard({
         <p className="mt-1 text-xs text-[var(--mesh-text-secondary)]">Badge rewards are free to earn and yours to keep. They never equip themselves.</p>
       </header>
 
-      {rewardStatus === "saving" && <p role="status" className="text-xs text-[var(--mesh-text-secondary)]">Saving your milestones…</p>}
+      {rewardStatus === "saving" && <p role="status" className="flex items-center gap-2 text-xs text-[var(--mesh-text-secondary)]"><PaperWait size="sm" />Saving your milestones…</p>}
       {rewardStatus === "error" && <div role="alert" className="rounded-xl border border-[var(--mesh-border)] p-3 text-sm text-[var(--mesh-text)]"><p>{rewardError}</p><button type="button" onClick={() => { void saveMilestones(); }} className="ds-focus-ring mt-1 min-h-11 font-semibold text-[var(--accent-text)]">Try again</button></div>}
 
       {wearable.length > 0 && (

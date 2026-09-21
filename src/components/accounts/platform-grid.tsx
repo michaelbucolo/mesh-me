@@ -160,7 +160,7 @@ export function PlatformGrid({
   const reduce = useReducedMotion() ?? false;
 
   return (
-    <ul className="grid grid-cols-3 gap-2.5 sm:grid-cols-4 sm:gap-3 lg:grid-cols-6">
+    <ul className="personal-platform-grid grid grid-cols-3 gap-2.5 sm:grid-cols-4 sm:gap-3 lg:grid-cols-6">
       {tiles.map((tile, index) => {
         const isNew = justConnected === tile.id;
         const merged = tile.state === "merged";
@@ -172,6 +172,7 @@ export function PlatformGrid({
 
         const shell = cn(
           TILE_CLASS,
+          "personal-platform-tile",
           merged
             ? "border-[var(--accent)]/45 bg-[var(--ds-surface)]"
             : tile.state === "attention"
@@ -202,8 +203,8 @@ export function PlatformGrid({
           >
             <motion.div
               className="h-full w-full"
-              whileHover={reduce ? undefined : { y: -4, scale: 1.04 }}
-              whileTap={reduce ? undefined : { scale: 0.95 }}
+              whileHover={reduce ? undefined : { y: -3, scale: 1.015 }}
+              whileTap={reduce ? undefined : { scale: 0.975 }}
               transition={SPRING}
             >
               {connectsOnTap && tile.connectHref ? (

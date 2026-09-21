@@ -18,8 +18,8 @@ export default async function WatchGlancePage() {
 
   if (!user) {
     return (
-      <main className="watch-glance">
-        <p className="watch-brand">mesh.me</p>
+      <main className="watch-glance watch-studio">
+        <header className="watch-studio-header"><span className="watch-meshi" aria-hidden="true"><i /><i /></span><p className="watch-brand">mesh.me</p></header>
         <p className="watch-muted">Sign in on your phone first — your session carries over here.</p>
         <Link href="/login?next=/watch" className="watch-item watch-action">
           Sign in
@@ -64,8 +64,8 @@ export default async function WatchGlancePage() {
   ]);
 
   return (
-    <main className="watch-glance">
-      <p className="watch-brand">mesh.me</p>
+    <main className="watch-glance watch-studio">
+      <header className="watch-studio-header"><span className="watch-meshi" aria-hidden="true"><i /><i /></span><p className="watch-brand">mesh.me</p></header>
       <p className="watch-muted">
         {unreadNotifications > 0
           ? `${unreadNotifications} unread ${unreadNotifications === 1 ? "notification" : "notifications"}`
@@ -73,7 +73,7 @@ export default async function WatchGlancePage() {
       </p>
 
       {latestNotifications.length > 0 && (
-        <section aria-label="Latest activity">
+        <section aria-label="Latest activity"><h1 className="watch-section-title">Activity</h1>
           {latestNotifications.map((n) => (
             <Link key={n.id} href="/notifications" className="watch-item">
               <span className="watch-item-title">
@@ -87,7 +87,7 @@ export default async function WatchGlancePage() {
       )}
 
       {threads.length > 0 && (
-        <section aria-label="Conversations">
+        <section aria-label="Conversations"><h2 className="watch-section-title">Conversations</h2>
           {threads.map((t) => {
             const other = t.members[0]?.user;
             return (

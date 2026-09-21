@@ -232,7 +232,7 @@ export function PlatformSheet({
   return (
     <Modal open={open} onClose={onClose} title={platform?.name ?? "Platform"}>
       {platform && (
-        <div className="grid gap-4">
+        <div className="personal-platform-sheet grid gap-4">
           <motion.div
             className="flex items-center gap-3"
             initial={{ opacity: 0, y: 6 }}

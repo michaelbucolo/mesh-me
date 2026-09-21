@@ -191,15 +191,15 @@ function TrailInner({ isPro }: { isPro: boolean }) {
   ];
 
   return (
-    <div className="mx-auto w-full max-w-3xl px-4 pb-24 pt-6">
+    <div className="personal-studio personal-trail mx-auto w-full max-w-3xl px-4 pb-24 pt-6">
       {/* Header */}
-      <div className="mb-2 flex items-center justify-between gap-3">
+      <div className="personal-page-heading mb-2 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2.5">
           <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-400/10 text-[var(--success)]">
             <Footprints size={20} />
           </span>
           <div>
-            <h1 className="text-xl font-semibold text-[var(--text-primary)]">Your Trail</h1>
+            <p className="personal-overline">Your Trail</p><h1 className="personal-display-title text-xl font-semibold text-[var(--text-primary)]">The moments that made it.</h1>
             <p className="text-xs text-[var(--text-muted)]">{data.label}{data.isCurrentMonth ? " — so far" : ""}</p>
           </div>
         </div>
@@ -228,7 +228,7 @@ function TrailInner({ isPro }: { isPro: boolean }) {
       </div>
 
       {/* Month / Year range. Your Year is the MeshPro long view. */}
-      <div className="mb-3 flex items-center gap-1.5">
+      <div className="personal-trail-range mb-3 flex items-center gap-1.5">
         <Link
           href="/trail"
           className={`inline-flex min-h-11 items-center rounded-full px-3.5 text-xs font-semibold transition ${
@@ -278,7 +278,7 @@ function TrailInner({ isPro }: { isPro: boolean }) {
       ) : (
         <>
           {/* Stats */}
-          <div className="mb-6 flex flex-wrap gap-2">
+          <div className="personal-trail-stats mb-6 flex flex-wrap gap-2">
             {stats.map((s) => (
               <span
                 key={s.label}
@@ -308,7 +308,7 @@ function TrailInner({ isPro }: { isPro: boolean }) {
           )}
 
           {/* The trail itself */}
-          <div ref={measureTrail} className="relative overflow-hidden rounded-3xl border border-[var(--border-primary)] bg-[radial-gradient(ellipse_at_top,#0c1226,#070a16_60%,#030409)]">
+          <div ref={measureTrail} className="personal-trail-map relative overflow-hidden rounded-3xl border border-[var(--border-primary)] bg-[radial-gradient(ellipse_at_top,#0c1226,#070a16_60%,#030409)]">
             {trail && (
               <div className="relative mx-auto w-full" style={{ maxWidth: trail.width }}>
                 <svg

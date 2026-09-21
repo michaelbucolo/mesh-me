@@ -14,8 +14,8 @@ export const metadata: Metadata = {
 
 export default function HelpCenterPage() {
   return (
-    <PublicSiteShell maxWidth="max-w-6xl">
-      <section className="grid gap-5 lg:grid-cols-[0.95fr_1.05fr] lg:items-end">
+    <PublicSiteShell sectionLabel="Here to help" maxWidth="max-w-6xl">
+      <section className="public-editorial-hero grid gap-5 lg:grid-cols-[0.95fr_1.05fr] lg:items-end">
         <div>
           <p className="mesh-kicker mb-3">Help Center</p>
           <h1 className="mesh-title text-4xl leading-tight md:text-6xl">Find a clear answer fast.</h1>
@@ -24,7 +24,7 @@ export default function HelpCenterPage() {
           </p>
         </div>
 
-        <div className="rounded-3xl border border-[var(--glass-card-border)] bg-[var(--glass-card-bg)] p-5">
+        <div className="public-panel rounded-3xl border border-[var(--glass-card-border)] bg-[var(--glass-card-bg)] p-5">
           <div className="flex items-center gap-3">
             <MeshiLogo size={52} color="blue" mood="thinking" />
             <div>
@@ -54,10 +54,10 @@ export default function HelpCenterPage() {
           const count = helpArticles.filter((article) => article.category === category).length;
 
           return (
-            <div key={category} className="rounded-2xl border border-[var(--glass-card-border)] bg-[var(--glass-card-bg)] p-4 shadow-[var(--shadow-sm)]">
+            <div key={category} className="public-panel rounded-2xl border border-[var(--glass-card-border)] bg-[var(--glass-card-bg)] p-4 shadow-[var(--shadow-sm)]">
               <div className="mb-3 flex items-center justify-between gap-3">
                 <Icon className="h-5 w-5 text-[var(--accent-text)]" aria-hidden="true" />
-                <span className="rounded-full border border-[var(--border-primary)] px-2 py-0.5 text-xs font-semibold text-[var(--text-muted)]">
+                <span className="public-panel rounded-full border border-[var(--border-primary)] px-2 py-0.5 text-xs font-semibold text-[var(--text-muted)]">
                   {count}
                 </span>
               </div>

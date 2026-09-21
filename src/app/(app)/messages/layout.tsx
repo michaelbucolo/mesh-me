@@ -40,7 +40,7 @@ const RAIL_ASIDE = "hidden min-h-0 border-r border-[var(--mesh-border)] lg:block
 
 function MessagesWait() {
   return (
-    <div className="grid h-full min-h-0 lg:grid-cols-[360px_minmax(0,1fr)]">
+    <div className="presence-messages-shell grid h-full min-h-0 lg:grid-cols-[360px_minmax(0,1fr)]">
       <aside className={RAIL_ASIDE}>
         <RouteWait shape="rail-list" label="Loading your conversations" />
       </aside>
@@ -165,7 +165,7 @@ async function MessagesShell({ children }: MessagesLayoutProps) {
     // message arrived. The provider adopts fresh server payloads by baseline
     // comparison instead.
     <MessagesDataProvider value={sidebarData}>
-      <div className="grid h-full min-h-0 lg:grid-cols-[360px_minmax(0,1fr)]">
+      <div className="presence-messages-shell grid h-full min-h-0 lg:grid-cols-[360px_minmax(0,1fr)]">
         <aside className={RAIL_ASIDE}>
           {/* Reads the provider's LIVE context (like the index pane does) —
               handing it the raw server prop froze it between navigations. */}

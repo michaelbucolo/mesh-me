@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { createPortal } from "react-dom";
-import { ChevronLeft, ChevronRight, ChevronsDown, Sparkles, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, ChevronsDown, X } from "lucide-react";
+import { PaperWait } from "@/components/loading/paper-wait";
 import { PostCard } from "@/components/feed/post-card";
 import { EASE_OUT } from "@/lib/motion";
 
@@ -56,21 +57,6 @@ function relatedTo(anchor: ReelPost, all: ReelPost[]): ReelPost[] {
     .slice(0, 6)
     .map((entry) => entry.post);
   return scored;
-}
-
-// The platform's loading motif: a sparkle with a brand mote orbiting it — on
-// brand where a spinner used to be. Framer degrades it to a calm static
-// sparkle under reduced motion.
-function OrbitSparkle({ size = 16 }: { size?: number }) {
-  const box = size + 8;
-  return (
-    <span className="relative inline-flex items-center justify-center" style={{ width: box, height: box }} aria-hidden>
-      <motion.span className="absolute inset-0" animate={{ rotate: 360 }} transition={{ duration: 2.2, ease: "linear", repeat: Infinity }}>
-        <span className="absolute left-1/2 top-0 h-1 w-1 -translate-x-1/2 rounded-full" style={{ background: "var(--mesh-cyan)", boxShadow: "0 0 6px var(--mesh-cyan)" }} />
-      </motion.span>
-      <Sparkles size={size} className="text-[var(--accent-text)]" style={{ filter: "drop-shadow(0 0 3px var(--accent))" }} />
-    </span>
-  );
 }
 
 export function FlowReels({
@@ -239,7 +225,7 @@ export function FlowReels({
 
           {loadingMore && (
             <div className="flow-reels-loading" role="status">
-              <OrbitSparkle size={16} />
+              <PaperWait size="sm" /><span className="sr-only">Loading more posts</span>
             </div>
           )}
         </div>

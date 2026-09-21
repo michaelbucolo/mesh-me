@@ -75,7 +75,7 @@ function RouteCard({ route }: { route: Route }) {
     <motion.div variants={cardVariants} className="min-w-0">
       <Link
         href={route.href}
-        className="group relative flex h-full flex-col overflow-hidden rounded-2xl border border-[var(--glass-card-border)] bg-[var(--glass-card-bg)] p-5 transition-colors hover:border-[var(--border-hover)] hover:bg-[var(--bg-hover)]"
+        className="public-route-card group relative flex h-full flex-col overflow-hidden rounded-2xl border border-[var(--glass-card-border)] bg-[var(--glass-card-bg)] p-5 transition-colors hover:border-[var(--border-hover)] hover:bg-[var(--bg-hover)]"
       >
         <div className="relative mb-4 flex items-center justify-between gap-3">
           <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-[var(--accent-muted)] bg-[var(--accent-subtle)]">
@@ -98,7 +98,7 @@ export function SiteRouteMap({
   description?: string;
 }) {
   return (
-    <section className="grid gap-5">
+    <section className="public-route-map grid gap-5">
       <motion.div
         className="max-w-3xl"
         initial={{ opacity: 0, y: 14 }}
@@ -106,7 +106,7 @@ export function SiteRouteMap({
         viewport={{ once: true, amount: 0.4 }}
         transition={{ duration: 0.5, ease: EASE_OUT }}
       >
-        <p className="mesh-kicker mb-3">Route by route</p>
+        <p className="mesh-kicker mb-3">Find your next stop</p>
         <h2 className="text-2xl font-semibold text-[var(--text-primary)] md:text-3xl">{title}</h2>
         <p className="mt-3 text-sm leading-6 text-[var(--text-secondary)] md:text-base">{description}</p>
       </motion.div>
@@ -133,9 +133,9 @@ export function SiteRouteMap({
         <div className="flex items-start gap-3">
           <MessageCircle className="mt-1 h-5 w-5 text-[var(--accent-text)]" />
           <div>
-            <h3 className="text-sm font-semibold text-[var(--text-primary)]">Launch UX rule</h3>
+            <h3 className="text-sm font-semibold text-[var(--text-primary)]">Your way around Mesh</h3>
             <p className="mt-1 text-sm leading-6 text-[var(--text-secondary)]">
-              Every route should answer three questions quickly: where the user is, what they can do here, and what the next best path is.
+              Explore at your own pace. Browse the product, check your privacy choices, or visit the Help Center whenever you need a hand.
             </p>
           </div>
         </div>

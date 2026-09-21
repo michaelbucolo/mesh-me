@@ -1,6 +1,5 @@
-import { SignatureArt } from "@/components/ui/signature-art";
 import { cn } from "@/lib/utils";
-import { LucideIcon } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 
 interface EmptyStateProps {
   icon: LucideIcon;
@@ -13,27 +12,14 @@ interface EmptyStateProps {
 
 export function EmptyState({ icon: Icon, title, description, children, className, compact = false }: EmptyStateProps) {
   return (
-    <div
-      className={cn(
-        "mesh-empty-state mesh-cascade relative flex flex-col items-center justify-center text-center",
-        compact ? "py-8" : "py-14",
-        className
-      )}
-    >
-      {/* A still aurora glow behind the icon keeps a blank screen lit and
-          inviting. Deliberately NOT animated: this surface is where the eye
-          rests, and the old breathing/bobbing pair nagged at it forever. */}
-      <SignatureArt className="mesh-empty-art" />
-      <span className="mesh-soft-glow" aria-hidden="true" style={{ top: compact ? "2.5rem" : "3.75rem" }} />
-      <div
-        className="mesh-float relative mb-4 rounded-[var(--ds-radius-md)] border border-[var(--ds-border)] bg-[var(--ds-surface-muted)] p-3"
-        style={{ ["--i" as string]: 0 }}
-      >
-        <Icon aria-hidden="true" className={cn("text-[var(--text-muted)]", compact ? "h-5 w-5" : "h-7 w-7")} />
+    <div className={cn("mesh-empty-state relative flex flex-col items-center justify-center text-center", className)} data-compact={compact}>
+      <div className="mesh-empty-symbol" aria-hidden="true">
+        <span className="mesh-empty-symbol-well"><Icon className={compact ? "h-5 w-5" : "h-6 w-6"} strokeWidth={1.5} /></span>
+        <span className="mesh-empty-satellite" />
       </div>
-      <h3 className="relative mb-1 text-base font-semibold text-[var(--text-primary)] ds-text-balance" style={{ ["--i" as string]: 1 }}>{title}</h3>
-      {description && <p className="relative max-w-sm text-sm leading-6 text-[var(--text-secondary)]" style={{ ["--i" as string]: 2 }}>{description}</p>}
-      {children && <div className="relative mt-4" style={{ ["--i" as string]: 3 }}>{children}</div>}
+      <h3 className="mesh-empty-title">{title}</h3>
+      {description && <p className="mesh-empty-description">{description}</p>}
+      {children && <div className="mesh-empty-actions">{children}</div>}
     </div>
   );
 }

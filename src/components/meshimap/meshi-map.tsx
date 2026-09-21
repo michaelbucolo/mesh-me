@@ -236,7 +236,7 @@ export function MeshiMap({
   const scale = 2 ** camera.zoom;
 
   return (
-    <div className="relative h-full w-full overflow-hidden" style={{ background: "#081226" }}>
+    <div className="presence-map relative h-full w-full overflow-hidden" style={{ background: "var(--paper-0)" }}>
       <div
         ref={hostRef}
         data-testid="meshi-map"
@@ -256,8 +256,8 @@ export function MeshiMap({
         >
           <defs>
             <linearGradient id="meshimap-sea" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#0d1c38" />
-              <stop offset="100%" stopColor="#060d1c" />
+              <stop offset="0%" stopColor="var(--paper-1)" />
+              <stop offset="100%" stopColor="var(--paper-0)" />
             </linearGradient>
           </defs>
           <rect width="100%" height="100%" fill="url(#meshimap-sea)" />
@@ -269,7 +269,7 @@ export function MeshiMap({
               size.height / 2 - latToY(camera.lat) * scale * 256
             }) scale(${(scale * 256) / 1000})`}
           >
-            <path data-testid="map-land" d={WORLD_PATH} fill="#16305a" stroke="#2b5590" strokeWidth={0.6} vectorEffect="non-scaling-stroke" />
+            <path data-testid="map-land" d={WORLD_PATH} fill="var(--paper-3)" stroke="var(--rule)" strokeWidth={0.6} vectorEffect="non-scaling-stroke" />
           </g>
         </svg>
 
@@ -299,7 +299,7 @@ export function MeshiMap({
               >
                 <div
                   className="relative h-full w-full overflow-hidden rounded-lg"
-                  style={{ background: "#0b1526e6", border: "1px solid #ffffff1f" }}
+                  style={{ background: "#0b1526e6", border: "1px solid var(--rule)" }}
                 >
                   <InkPreview strokes={decoded.ink.strokes} />
                   {/* REPORTING IS ON THE DRAWING, where you are looking when
@@ -315,7 +315,7 @@ export function MeshiMap({
                       onPointerDown={(e) => e.stopPropagation()}
                       onClick={() => void handleReport(d.id)}
                       className="pointer-events-auto absolute right-0.5 top-0.5 flex h-5 w-5 items-center justify-center rounded-full"
-                      style={{ background: "#0b1526cc", color: "#93a0bb", fontSize: 11, lineHeight: 1 }}
+                      style={{ background: "var(--paper-1)", color: "var(--text-secondary)", fontSize: 11, lineHeight: 1 }}
                     >
                       !
                     </button>
@@ -369,8 +369,8 @@ export function MeshiMap({
                     className="pointer-events-none absolute left-1/2 top-full -translate-x-1/2 whitespace-nowrap rounded-full px-1.5"
                     style={{
                       fontSize: 11,
-                      color: isYou ? "#04060c" : "#e8edf8",
-                      background: isYou ? "#60a5fa" : "#0a1120cc",
+                      color: isYou ? "var(--accent-ink)" : "var(--text-primary)",
+                      background: isYou ? "var(--accent)" : "var(--paper-1)",
                     }}
                   >
                     {isYou ? "you" : pin.displayName || pin.username}
@@ -396,12 +396,13 @@ export function MeshiMap({
           and saying so is the difference between a feature people can trust
           and one they find out about later. */}
       <div
-        className="pointer-events-none absolute left-3 top-3 rounded-lg px-2.5 py-1.5"
-        style={{ background: "#0a1120cc", color: "#93a0bb", fontSize: 11.5 }}
+        className="presence-map-caption pointer-events-none absolute left-3 top-3 rounded-lg px-2.5 py-1.5"
+        style={{ background: "var(--paper-1)", color: "var(--text-secondary)", fontSize: 11.5 }}
       >
-        {live.pins.length === 0
+        <p className="presence-kicker">People, in place</p><h1>MeshiMap</h1>
+        <p>{live.pins.length === 0
           ? "Nobody is sharing where they are right now."
-          : `${live.pins.length} ${live.pins.length === 1 ? "person" : "people"} nearby · everyone shows at their area, never their address`}
+          : `${live.pins.length} ${live.pins.length === 1 ? "person" : "people"} nearby · everyone shows at their area, never their address`}</p>
       </div>
 
       <ShareWhere initiallySharing={!!you} />
@@ -415,7 +416,7 @@ export function MeshiMap({
           data-testid="doodle-open"
           onClick={() => setPadOpen(true)}
           className="absolute bottom-3 right-3 rounded-full px-3.5 py-2"
-          style={{ background: "#182642", color: "#dce4f5", fontSize: 13, fontWeight: 600 }}
+          style={{ background: "var(--paper-2)", color: "var(--text-primary)", fontSize: 13, fontWeight: 600 }}
         >
           Draw
         </button>
@@ -425,7 +426,7 @@ export function MeshiMap({
         <div
           data-testid="map-notice"
           className="pointer-events-none absolute inset-x-3 top-14 rounded-lg px-3 py-2 text-center"
-          style={{ background: "#0b1526f2", color: "#dce4f5", fontSize: 12.5, border: "1px solid #ffffff1f" }}
+          style={{ background: "var(--paper-1)", color: "var(--text-primary)", fontSize: 12.5, border: "1px solid var(--rule)" }}
         >
           {notice}
         </div>
@@ -445,13 +446,13 @@ function PinCard({ pin, nowMs, isYou }: { pin: MapPin; nowMs: number; isYou: boo
   return (
     <div
       data-testid="map-pin-card"
-      className="absolute inset-x-3 bottom-3 rounded-2xl p-3.5"
-      style={{ background: "#0d1730", border: "1px solid #ffffff1f" }}
+      className="presence-map-card absolute inset-x-3 bottom-3 rounded-2xl p-3.5"
+      style={{ background: "var(--paper-1)", border: "1px solid var(--rule)" }}
     >
-      <div style={{ color: "#e8edf8", fontSize: 15, fontWeight: 600 }}>
+      <div style={{ color: "var(--text-primary)", fontSize: 15, fontWeight: 600 }}>
         {pin.displayName || pin.username}
       </div>
-      <div style={{ color: "#93a0bb", fontSize: 12 }}>
+      <div style={{ color: "var(--text-secondary)", fontSize: 12 }}>
         @{pin.username} · around here {describeAge(nowMs - pin.atMs)}
       </div>
       <div className="mt-3 flex gap-2">
@@ -459,14 +460,14 @@ function PinCard({ pin, nowMs, isYou }: { pin: MapPin; nowMs: number; isYou: boo
           href={`/mesh?user=${encodeURIComponent(pin.username)}`}
           data-testid="map-visit-mesh"
           className="rounded-full px-3.5 py-1.5"
-          style={{ background: "#60a5fa", color: "#04060c", fontSize: 13, fontWeight: 600 }}
+          style={{ background: "var(--accent)", color: "var(--accent-ink)", fontSize: 13, fontWeight: 600 }}
         >
           {isYou ? "Your mesh" : "Walk into their mesh"}
         </Link>
         <Link
           href={`/profile/${encodeURIComponent(pin.username)}`}
           className="rounded-full px-3.5 py-1.5"
-          style={{ background: "#182642", color: "#dce4f5", fontSize: 13 }}
+          style={{ background: "var(--paper-2)", color: "var(--text-primary)", fontSize: 13 }}
         >
           Profile
         </Link>
@@ -489,8 +490,8 @@ function MapButton({
       type="button"
       aria-label={label}
       onClick={onClick}
-      className="flex h-9 w-9 items-center justify-center rounded-lg"
-      style={{ background: "#0d1730", border: "1px solid #ffffff1f", color: "#dce4f5", fontSize: 16 }}
+      className="presence-map-zoom flex h-11 w-11 items-center justify-center rounded-full"
+      style={{ background: "var(--paper-1)", border: "1px solid var(--rule)", color: "var(--text-primary)", fontSize: 16 }}
     >
       {children}
     </button>

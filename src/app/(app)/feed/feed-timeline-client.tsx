@@ -531,13 +531,9 @@ export function FeedTimelineClient({
   };
 
   return (
-    <main className={`insta-feed-layout feed-x-layout feed-layout-mode-${layoutMode} feed-view-${contentFilter}`} data-meshi-zone="feed">
+    <main className={`social-page social-feed insta-feed-layout feed-x-layout feed-layout-mode-${layoutMode} feed-view-${contentFilter}`} data-meshi-zone="feed">
       <section className="min-w-0">
-        <PageIntro className="mesh-feed-intro" title={<>A little more <em>you.</em></>} description="Your people, your interests, and everything in between." />
-        {/* No identity cluster here: the app topbar states "Home" once — this
-            bar (hidden under 768px) is only the desktop action strip. It also
-            kept a second <h1> on the page. */}
-        <div className="insta-feed-topbar feed-x-topbar">
+        <PageIntro className="mesh-feed-intro social-page-intro" heading="h1" eyebrow="Your network" title="Your feed." description="The people and ideas you keep coming back to." action={
           <div className="feed-topbar-actions ml-auto flex items-center gap-2">
           <button
             type="button"
@@ -558,7 +554,7 @@ export function FeedTimelineClient({
               <MessageCircle size={20} aria-hidden="true" />
             </Link>
           </div>
-        </div>
+        } />
 
         <nav className="insta-feed-tabs feed-x-tabs" aria-label="Feed filters">
           {sourceFilters.map((filter) => (

@@ -1,0 +1,237 @@
+/* The shared Mesh studio: a quiet frame, clear hierarchy, and tactile controls.
+   Colour continues to come from the user's contrast-checked theme. */
+.mesh-experience {
+  --studio-radius: 24px;
+  --studio-gap: clamp(1rem, 2.6vw, 2.25rem);
+  --studio-border: color-mix(in srgb, var(--rule) 68%, transparent);
+  --studio-shadow: 0 8px 32px -24px var(--text-primary);
+  --signature-light: color-mix(in srgb, var(--accent) 5%, transparent);
+  --signature-shadow: 0 4px 20px -18px var(--accent);
+}
+
+/* Navigation is a frame around the world, with space to breathe. */
+.mesh-experience .mesh-shell { background: var(--paper-1); }
+.mesh-experience .mesh-sidebar {
+  height: 100%;
+  min-height: 0;
+  border: 0;
+  background: var(--paper-1);
+}
+.mesh-experience .mesh-sidebar > .mesh-sidebar-brand { padding: 1.75rem 1.5rem 1.35rem; }
+.mesh-experience .mesh-sidebar .mesh-brand-lockup { gap: .65rem; }
+.mesh-experience .mesh-sidebar nav { padding: 0 .85rem; }
+.mesh-navigation-label {
+  margin: 1.5rem .8rem .6rem;
+  color: var(--text-muted);
+  font-size: .75rem;
+  line-height: 1.5;
+  font-weight: 500;
+}
+.mesh-quick-jump {
+  display: flex;
+  align-items: center;
+  gap: .65rem;
+  min-height: 42px;
+  margin: 0 1.1rem;
+  padding: .6rem .75rem;
+  border: 1px solid var(--edge);
+  border-radius: 12px;
+  background: var(--paper-0);
+  color: var(--text-secondary);
+  font-size: .8125rem;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 160ms var(--mesh-ease-out), border-color 160ms var(--mesh-ease-out);
+}
+.mesh-quick-jump span { flex: 1; }
+.mesh-quick-jump kbd { font: inherit; font-size: .6875rem; color: var(--text-muted); white-space: nowrap; }
+.mesh-quick-jump:hover { background: var(--paper-2); }
+.mesh-quick-jump:focus-visible { outline: 2px solid var(--rule-focus); outline-offset: 3px; }
+.mesh-experience .mesh-nav-item {
+  min-height: 49px;
+  padding-inline: .9rem;
+  border-radius: 15px;
+  font-size: .875rem;
+  font-weight: 500;
+}
+.mesh-experience .mesh-nav-item-active { color: var(--text-primary); }
+.mesh-experience .mesh-nav-active-wash {
+  background: var(--paper-0);
+  border: 1px solid var(--studio-border);
+  box-shadow: var(--studio-shadow);
+}
+.mesh-library-navigation { margin-top: 1.15rem; padding-top: .35rem; border-top: 1px solid var(--studio-border); }
+.mesh-library-navigation .mesh-navigation-label { margin-top: .8rem; }
+.mesh-library-navigation a {
+  display: flex;
+  align-items: center;
+  gap: .9rem;
+  min-height: 43px;
+  padding: .65rem .9rem;
+  border-radius: 12px;
+  color: var(--text-secondary);
+  font-size: .8125rem;
+  transition: background-color 160ms var(--mesh-ease-out), color 160ms var(--mesh-ease-out);
+}
+.mesh-library-navigation a svg { width: 18px; height: 18px; stroke-width: 1.5; }
+.mesh-library-navigation a:is(:hover, [aria-current="page"]) { background: var(--paper-0); color: var(--text-primary); }
+.mesh-library-navigation a[aria-current="page"] svg { color: var(--accent-text); }
+.mesh-library-navigation a:focus-visible { outline: 2px solid var(--rule-focus); outline-offset: 2px; }
+.mesh-experience .mesh-user-dock {
+  min-height: 66px;
+  border-radius: 18px;
+  background: var(--paper-0);
+  box-shadow: inset 0 0 0 1px var(--studio-border);
+}
+.mesh-experience .mesh-sidebar-footer { margin: 0 1.1rem; padding: .85rem 0; border-color: var(--studio-border); }
+.mesh-experience .mesh-sidebar-footer .key { min-width: 36px; min-height: 36px; border-radius: 11px; background: var(--paper-0); }
+.mesh-experience .mesh-privacy-card { margin-top: 1.25rem; }
+.mesh-experience .mesh-main { background: var(--paper-0); }
+.mesh-experience .mesh-content { background: var(--paper-0); scrollbar-color: var(--rule) transparent; }
+.mesh-experience .mesh-content::-webkit-scrollbar-thumb { background: var(--rule); }
+.mesh-experience .mesh-topbar {
+  min-height: var(--mesh-topbar-h);
+  gap: 1.25rem;
+  padding-inline: var(--studio-gap);
+  background: var(--paper-0);
+  border-bottom: 1px solid var(--studio-border);
+  backdrop-filter: none;
+}
+.mesh-location { display: flex; align-items: center; gap: .65rem; }
+.mesh-location-context { color: var(--text-muted); font-size: .8125rem; white-space: nowrap; }
+.mesh-experience .mesh-topbar h1 { font-size: .9375rem; font-weight: 500; letter-spacing: -.02em; }
+.mesh-experience .mesh-topbar-search { max-width: 22rem; min-height: 40px; border-radius: 12px; background: var(--paper-1); }
+.mesh-experience .mesh-topbar-icon,
+.mesh-experience .mesh-topbar-btn { min-height: 38px; border-radius: 12px; box-shadow: none; background: var(--paper-1); }
+.mesh-experience .mesh-topbar-owner { background: var(--paper-1); border-radius: 999px; box-shadow: none; padding: .3rem .55rem .3rem .3rem; }
+.mesh-experience .mesh-topbar-owner > span:nth-child(2) { max-width: 7rem; font-size: .8125rem; }
+.mesh-experience .mesh-account-panel { padding: .65rem; border-radius: 22px; border-color: var(--rule); box-shadow: var(--shadow-float); }
+.mesh-experience .mesh-account-profile { border-radius: 16px; background: var(--paper-0); margin-bottom: .5rem; }
+.mesh-experience .mesh-dropdown-item { min-height: 43px; border-radius: 12px; }
+
+/* One set of surfaces is reused by forms, sheets, cards, and small utilities. */
+.mesh-experience :is(.glass-card, .mesh-panel, .mesh-surface, .profile-header-card) {
+  border-radius: var(--studio-radius);
+  border-color: var(--studio-border);
+  box-shadow: var(--studio-shadow);
+}
+.mesh-experience .mesh-field {
+  background: var(--paper-0);
+  border-color: var(--edge);
+  border-radius: 13px;
+}
+.mesh-experience .mesh-field:hover:not(:disabled) { background: var(--paper-1); }
+.mesh-experience .mesh-field:focus-visible { background: var(--paper-1); border-color: var(--rule-focus); }
+.mesh-experience .mesh-field[aria-invalid="true"] { border-color: var(--danger); background: var(--ds-danger-bg); }
+.mesh-experience .mesh-button { border-radius: 13px; font-weight: 500; }
+.mesh-experience .mesh-button.key:not(.key-lit) { box-shadow: inset 0 0 0 1px var(--edge), var(--studio-shadow); }
+.mesh-experience .mesh-button.key-lit { box-shadow: 0 4px 12px -8px var(--mould, var(--mould-cobalt)); }
+.mesh-experience .mesh-badge { padding: .35rem .6rem; min-height: 25px; font-weight: 500; }
+.mesh-experience .mesh-dialog {
+  border-radius: 28px;
+  border: 1px solid var(--rule);
+  background: var(--paper-1);
+  box-shadow: var(--shadow-float);
+}
+.mesh-experience .mesh-dialog > .mesh-dialog-header {
+  align-items: flex-start;
+  padding: 1.65rem 1.75rem 1.2rem;
+  border-color: var(--studio-border);
+  background: var(--paper-1);
+}
+.mesh-dialog-header h2 { font-size: 1.25rem; line-height: 1.3; letter-spacing: -.035em; font-weight: 500; }
+.mesh-dialog-header p { max-width: 35rem; }
+.mesh-experience .mesh-dialog > .mesh-dialog-body { padding: 1.5rem 1.75rem 1.75rem; }
+.mesh-confirm-actions { padding-top: .35rem; }
+.mesh-confirm-actions > button { flex: 1; }
+.mesh-experience .mesh-toast { padding: .85rem 1rem; border-radius: 20px; background: var(--paper-1); border-color: var(--rule); box-shadow: var(--shadow-float); }
+.mesh-experience .mesh-toast-symbol { width: 34px; height: 34px; border-radius: 12px; }
+.mesh-experience .mesh-toast-timer { inset-inline: 18px; }
+
+/* Working pages begin with their task; the motif lives at the edge. */
+.mesh-experience .mesh-page-intro {
+  min-height: 174px;
+  padding: 1.4rem 0 1.65rem;
+  margin: 0 0 1.5rem;
+  border-bottom-color: var(--studio-border);
+}
+.mesh-experience .mesh-page-intro-copy { max-width: 74%; }
+.mesh-experience .mesh-page-title { font-size: clamp(1.85rem, 3.2vw, 2.65rem); line-height: 1.12; letter-spacing: -.05em; font-weight: 500; }
+.mesh-experience .mesh-page-description { margin-top: .65rem; font-size: .9375rem; line-height: 1.65; max-width: 37rem; }
+.mesh-experience .mesh-page-eyebrow { margin-bottom: .75rem; font-size: .75rem; }
+.mesh-experience .mesh-page-eyebrow > span { width: 16px; height: 1px; border-radius: 0; background: var(--accent-text); box-shadow: none; }
+.mesh-experience .mesh-page-intro > .mesh-signature-art { width: 255px; right: -35px; opacity: .42; }
+.mesh-experience .mesh-signature-art::before { display: none; }
+.mesh-experience .mesh-page-intro-action { margin-top: 1.1rem; }
+.mesh-experience .mesh-feed-intro { min-height: 140px; }
+
+.mesh-experience .command-palette-search { padding: 1rem; border-radius: 16px; background: var(--paper-0); border: 1px solid var(--edge); }
+.mesh-experience .command-palette-results { margin-top: 1rem; }
+.mesh-experience .command-palette-item { min-height: 68px; padding: .85rem; border-radius: 15px; }
+.mesh-experience .command-palette-icon { width: 37px; height: 37px; border-radius: 12px; background: var(--paper-0); }
+.mesh-experience .command-palette-footer { padding-top: 1rem; margin-top: .75rem; border-color: var(--studio-border); }
+.mesh-experience .keyboard-shortcut-row { border-radius: 12px; }
+
+@media (min-width: 1024px) {
+  .mesh-experience .mesh-shell { --mesh-sidebar-width: 15rem; padding: 12px 12px 12px 0; }
+  .mesh-experience .mesh-main { height: calc(100dvh - 24px); border: 1px solid var(--studio-border); border-radius: 26px; }
+  .mesh-experience .mesh-main-mesh .mesh-topbar { border-radius: 25px 25px 0 0; }
+}
+@media (min-width: 768px) and (max-width: 1023px),
+  (min-width: 600px) and (max-width: 767.98px) and (min-height: 560px) {
+  .mesh-experience .mesh-sidebar > .mesh-sidebar-brand { padding: 1.25rem 0; }
+  .mesh-experience .mesh-sidebar nav { padding: 0 .45rem; }
+  .mesh-navigation-label, .mesh-quick-jump, .mesh-library-navigation { display: none; }
+  .mesh-experience .mesh-nav-item { margin-bottom: .4rem; }
+  .mesh-location-context { display: none; }
+}
+@media (max-width: 767px) {
+  .mesh-experience .mesh-topbar { min-height: var(--mesh-topbar-h); padding-inline: 1rem; gap: .5rem; }
+  .mesh-location-context { display: none; }
+  .mesh-experience .mesh-topbar h1 { font-size: 1rem; }
+  .mesh-experience .mobile-bottom-nav { border-radius: 23px; padding: .35rem .45rem; background: var(--paper-1); border: 1px solid var(--rule); box-shadow: var(--shadow-float); }
+  .mesh-experience .mesh-mobile-nav-item { min-height: 55px; gap: .3rem; border-radius: 17px; }
+  .mesh-experience .mesh-mobile-active { border-radius: 17px; background: var(--paper-2); }
+  .mesh-experience .mesh-dialog { border-radius: 24px; }
+  .mesh-experience .mesh-dialog > .mesh-dialog-header { padding: 1.25rem; }
+  .mesh-experience .mesh-dialog > .mesh-dialog-body { padding: 1.25rem; }
+  .mesh-experience .mesh-page-intro { min-height: 150px; padding-top: .8rem; }
+  .mesh-experience .mesh-page-intro-copy { max-width: 88%; }
+  .mesh-experience .mesh-page-intro > .mesh-signature-art { right: -100px; opacity: .18; }
+  .mesh-experience .mesh-page-description { font-size: .875rem; }
+}
+@media (max-height: 700px) and (min-width: 1024px) {
+  .mesh-navigation-label { margin-top: .7rem; }
+  .mesh-library-navigation { margin-top: .5rem; }
+  .mesh-experience .mesh-nav-item { min-height: 43px; }
+  .mesh-experience .mesh-sidebar > .mesh-sidebar-brand { padding-block: 1rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mesh-quick-jump, .mesh-library-navigation a { transition: none; }
+}
+@media (forced-colors: active) {
+  .mesh-experience :is(.mesh-main, .mesh-nav-active-wash, .mesh-dialog, .mesh-toast, .mesh-field, .mesh-quick-jump) { border: 1px solid CanvasText; }
+  .mesh-experience .mesh-nav-item-active, .mesh-library-navigation a[aria-current="page"] { outline: 2px solid Highlight; outline-offset: -2px; }
+  .mesh-experience .mesh-signature-art { display: none; }
+}
+
+/* Publishing and delivery receipts share a focused, readable workspace. */
+.studio-composer, .studio-queue-page { padding-block: 2rem; }
+.studio-compose-heading { padding-block: .5rem 1.35rem; border-bottom: 1px solid var(--studio-border); margin-bottom: 1rem; }
+.studio-compose-heading h1 { font-size: clamp(1.75rem, 3vw, 2.5rem); font-weight: 500; letter-spacing: -.045em; }
+.studio-compose-heading > a { padding: .6rem .9rem; border-radius: 12px; background: var(--paper-1); }
+.studio-composer > textarea { min-height: 210px; border-radius: 22px; padding: 1.5rem; }
+.studio-compose-targets { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .65rem; }
+.studio-compose-targets button { min-height: 76px; border-radius: 16px; }
+.studio-composer button, .studio-queue button { display: inline-flex; align-items: center; justify-content: center; gap: .5rem; min-height: 44px; border-radius: 12px; }
+.studio-compose-targets button { justify-content: flex-start; }
+.studio-queue :is([data-testid="queue-upcoming"], [data-testid="queue-past"]) { border-radius: 20px; padding: 1.25rem; }
+.studio-composer :is(input, textarea, button):focus-visible,
+.studio-queue :is(input, textarea, button):focus-visible { outline: 2px solid var(--rule-focus); outline-offset: 3px; }
+.studio-report-details { border-radius: 15px; background: var(--paper-0); border: 1px solid var(--studio-border); }
+.studio-report-details summary { padding: .85rem 1rem; font-size: .8125rem; color: var(--text-secondary); cursor: pointer; }
+.studio-report-details dl { border: 0; }
+@media (max-width: 540px) {
+  .studio-compose-targets { grid-template-columns: minmax(0, 1fr); }
+  .studio-composer, .studio-queue-page { padding-block: 1rem; }
+}

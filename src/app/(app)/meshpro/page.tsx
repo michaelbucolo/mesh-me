@@ -232,7 +232,7 @@ export default async function MeshProPage({ searchParams }: MeshProPageProps) {
   const showPricing = !isPro || (Boolean(billing?.giftUntil) && !hasSubscription);
 
   return (
-    <main className="simple-page mx-auto grid w-full max-w-3xl gap-10 pb-16">
+    <main className="personal-studio personal-commerce personal-pro simple-page mx-auto grid w-full max-w-3xl gap-10 pb-16">
       {syncResult && (
         <section className={`rounded-lg border px-4 py-3 text-sm font-semibold ${
           syncResult.ok
@@ -249,9 +249,10 @@ export default async function MeshProPage({ searchParams }: MeshProPageProps) {
         </section>
       )}
 
-      <header className="pt-4 text-center">
+      <header className="personal-commerce-hero pt-4 text-center">
+        <span className="personal-commerce-emblem" aria-hidden="true"><Crown size={28} strokeWidth={1.4} /></span>
         <p className="text-xs font-semibold mesh-eyebrow text-[var(--accent-text)]">MeshPro</p>
-        <h1 className="mx-auto mt-3 max-w-xl text-3xl font-semibold leading-tight md:text-4xl">
+        <h1 className="personal-display-title mx-auto mt-3 max-w-xl text-3xl font-semibold leading-tight md:text-4xl">
           Real controls, not decorations
         </h1>
         <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-[var(--text-secondary)]">
@@ -286,12 +287,12 @@ export default async function MeshProPage({ searchParams }: MeshProPageProps) {
         )}
       </header>
 
-      <section className="grid gap-3 sm:grid-cols-2">
+      <section className="personal-pro-features grid gap-3 sm:grid-cols-2">
         {unlocks.map(({ title, body, href, icon: Icon }) => (
           <Link
             key={title}
             href={href}
-            className="mesh-choice group rounded-xl p-5 transition"
+            className="personal-pro-feature mesh-choice group rounded-xl p-5 transition"
           >
             <Icon className="h-5 w-5 text-[var(--accent-text)]" aria-hidden="true" />
             <p className="mt-3 text-sm font-semibold text-[var(--text-primary)]">{title}</p>
@@ -347,7 +348,7 @@ export default async function MeshProPage({ searchParams }: MeshProPageProps) {
       )}
 
       {showPricing && (
-        <section id="pricing" className="grid gap-3 sm:grid-cols-2">
+        <section id="pricing" className="personal-pricing grid gap-3 sm:grid-cols-2">
           {Object.values(MESH_PRO_PRICING).map((plan) => (
             <article
               key={plan.id}

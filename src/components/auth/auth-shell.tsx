@@ -1,53 +1,27 @@
-import type { CSSProperties, ReactNode } from "react";
-import { ShieldCheck } from "lucide-react";
+import type { ReactNode } from "react";
+import Link from "next/link";
+import { ArrowLeft, ShieldCheck } from "lucide-react";
 import { MeshiBrandLockup } from "@/components/meshi/meshi-identity";
 import { meshBrand } from "@/lib/brand";
 
-const trustChips = ["Account required", "No ads", "Private by default"];
-
-export function AuthShell({
-  title,
-  description,
-  children,
-}: {
-  title: string;
-  description: string;
-  children: ReactNode;
-}) {
+export function AuthShell({ title, description, children }: { title: string; description: string; children: ReactNode }) {
   return (
-    <main className="mesh-aurora auth-shell relative isolate h-dvh max-h-dvh min-h-0 overflow-hidden text-[var(--text-primary)]">
-      <div className="pointer-events-none fixed inset-0 mesh-soft-grid mesh-soft-grid-elegant" aria-hidden="true" />
-      <div className="pointer-events-none fixed inset-0 mesh-shell-vignette" aria-hidden="true" />
-      <div className="auth-shell-grid relative z-10 mx-auto grid h-full min-h-0 w-full max-w-6xl grid-cols-1 content-center gap-4 overflow-hidden px-4 py-3 sm:gap-5 md:grid-cols-[0.68fr_1fr] md:items-center md:px-6 lg:grid-cols-[0.78fr_1fr] lg:gap-10 xl:px-8">
-        <section className="mesh-pop-in min-w-0">
-          <MeshiBrandLockup href="/" size={32} label={meshBrand.name} subtitle={`${meshBrand.meshi.name} is your identity`} className="text-base sm:text-lg" />
-          {/* `inline-flex` let the pill flow on the SAME line as the lockup's
-              inline content — its border sat flush against "Meshi is your
-              identity" (0px gap; journey audit). Block-level flex + w-fit
-              keeps the pill shape and gives it its own row. */}
-          <p className="mt-3 flex w-fit items-center gap-2 rounded-full border border-[var(--accent)]/25 bg-[var(--accent)]/10 px-3 py-1.5 text-xs font-semibold text-[var(--accent-text)] sm:py-2 sm:text-sm">
-            <ShieldCheck size={15} aria-hidden="true" />
-            Privacy first
-          </p>
-          <h1 className="mt-4 text-3xl font-semibold leading-[1.04] tracking-[0] sm:mt-7 sm:text-4xl lg:text-5xl xl:text-6xl">{title}</h1>
-          <p className="mt-2 max-w-md text-sm leading-6 text-[var(--text-secondary)] sm:mt-3 lg:text-base lg:leading-7">{description}</p>
-          <div className="mesh-cascade mt-4 hidden max-w-md flex-wrap gap-2 text-xs font-semibold text-[var(--text-secondary)] sm:flex">
-            {trustChips.map((item, index) => (
-              <span
-                key={item}
-                className="mesh-step rounded-md px-3 py-2"
-                style={{ "--i": index + 3 } as CSSProperties}
-              >
-                {item}
-              </span>
-            ))}
-          </div>
+    <main className="auth-shell auth-studio relative isolate text-[var(--text-primary)]">
+      <header className="auth-studio-header">
+        <MeshiBrandLockup href="/" size={32} label={meshBrand.name} className="text-lg" />
+        <Link href="/login"><ArrowLeft size={15} aria-hidden="true" /> Back to sign in</Link>
+      </header>
+      <div className="auth-shell-grid auth-studio-grid">
+        <section className="auth-studio-intro">
+          <div className="auth-studio-meshi" aria-hidden="true"><ShieldCheck size={44} strokeWidth={1.2} /></div>
+          <p className="public-kicker mt-3 flex w-fit"><ShieldCheck size={14} aria-hidden="true" /> A little peace of mind</p>
+          <h1>{title}</h1>
+          <p className="auth-studio-copy">{description}</p>
+          <div className="auth-studio-caption"><span aria-hidden="true" /> Your world is right where you left it.</div>
         </section>
-
-        <section className="mesh-pop-in mesh-delay-2 min-w-0">
-          {children}
-        </section>
+        <section className="auth-studio-card">{children}</section>
       </div>
+      <footer className="auth-studio-footer"><Link href="/privacy">Privacy</Link><Link href="/terms">Terms</Link><Link href="/support">Need a hand?</Link></footer>
     </main>
   );
 }

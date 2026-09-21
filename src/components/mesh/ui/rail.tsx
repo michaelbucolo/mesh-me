@@ -120,7 +120,7 @@ export function MeshRail({
       // pointer events, so nodes and hovers behind the empty space were dead.
       // `pointer-events-none` here hands those events back to the canvas; each
       // interactive child re-arms hit-testing with `pointer-events-auto`.
-      className="pointer-events-none absolute right-3 top-1/2 z-30 flex -translate-y-1/2 flex-col items-end gap-2"
+      className="presence-world-tools pointer-events-none absolute right-3 top-1/2 z-30 flex -translate-y-1/2 flex-col items-end gap-2"
     >
       {canCompose && (
         <RailButton label={copy.composeLabel} onClick={onCompose}>
@@ -149,6 +149,7 @@ export function MeshRail({
           <Inbox size={16} />
         </RailLink>
       )}
+      <span className="presence-tool-divider" aria-hidden="true" />
       <RailButton label={copy.searchLabel} onClick={onSearch}>
         <Search size={16} />
       </RailButton>
@@ -193,6 +194,7 @@ export function MeshRail({
           <History size={16} />
         </RailButton>
       )}
+      <span className="presence-tool-divider" aria-hidden="true" />
       <RailButton label="Help & shortcuts" onClick={onHelp}>
         <CircleHelp size={16} />
       </RailButton>

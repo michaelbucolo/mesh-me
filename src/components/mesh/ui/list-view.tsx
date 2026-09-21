@@ -117,7 +117,7 @@ export function MeshListView({
       <div
         role="dialog"
         aria-label={copy.listAria}
-        className="mesh-panel flex h-full w-full max-w-md animate-[sheetIn_.32s_cubic-bezier(0.22,1,0.36,1)] flex-col pt-16 shadow-2xl"
+        className="presence-world-list mesh-panel flex h-full w-full max-w-md animate-[sheetIn_.32s_cubic-bezier(0.22,1,0.36,1)] flex-col pt-16 shadow-2xl"
         onPointerDown={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between border-b border-[var(--rule)] px-4 py-3.5">

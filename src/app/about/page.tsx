@@ -20,8 +20,8 @@ const principles = [
 
 export default function AboutPage() {
   return (
-    <PublicSiteShell maxWidth="max-w-5xl">
-      <section className="grid gap-10 lg:grid-cols-[1fr_0.8fr] lg:items-center">
+    <PublicSiteShell sectionLabel="Our story" maxWidth="max-w-5xl">
+      <section className="public-editorial-hero grid gap-10 lg:grid-cols-[1fr_0.8fr] lg:items-center">
         <div>
           <p className="mesh-kicker mb-4">Why Mesh.me exists</p>
           <h1 className="mesh-title text-4xl leading-tight md:text-6xl">The internet should feel like one world you control.</h1>
@@ -30,7 +30,7 @@ export default function AboutPage() {
           </p>
         </div>
 
-        <div className="mesh-section p-6">
+        <div className="public-panel mesh-section p-6">
           <div className="mb-6 flex items-center gap-3">
             <MeshiLogo size={54} color="blue" mood="happy" />
             <div>
@@ -50,7 +50,7 @@ export default function AboutPage() {
           { icon: ShieldCheck, title: "Secure", copy: "Security choices are part of the product architecture, not decoration." },
           { icon: Sparkles, title: "Useful", copy: "Power comes from simplifying the user experience, not increasing noise." },
         ].map((item) => (
-          <article key={item.title} className="rounded-2xl border border-[var(--glass-card-border)] bg-[var(--glass-card-bg)] p-5">
+          <article key={item.title} className="public-panel rounded-2xl border border-[var(--glass-card-border)] bg-[var(--glass-card-bg)] p-5">
             <item.icon className="mb-4 h-5 w-5 text-[var(--accent-text)]" />
             <h2 className="text-base font-semibold text-[var(--text-primary)]">{item.title}</h2>
             <p className="mt-2 text-sm leading-6 text-[var(--text-secondary)]">{item.copy}</p>

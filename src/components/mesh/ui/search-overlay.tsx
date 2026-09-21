@@ -94,7 +94,7 @@ export function MeshSearchOverlay({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div role="dialog" aria-modal="true" aria-label="Search your Mesh" className={`w-full max-w-md ${closing ? "animate-[bubbleOut_.16s_var(--mesh-ease-press)_both]" : "animate-[bubbleIn_.36s_var(--mesh-ease-out)]"} rounded-2xl mesh-panel p-2 shadow-2xl`}>
+      <div role="dialog" aria-modal="true" aria-label="Search your Mesh" className={`presence-world-search w-full max-w-md ${closing ? "animate-[bubbleOut_.16s_var(--mesh-ease-press)_both]" : "animate-[bubbleIn_.36s_var(--mesh-ease-out)]"} rounded-2xl mesh-panel p-2 shadow-2xl`}>
         <div className="flex items-center gap-2 px-2">
           <Search size={15} className="shrink-0 text-[var(--text-tertiary)]" />
           <input

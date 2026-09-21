@@ -32,16 +32,16 @@ export default async function VerifyEmailPage({ searchParams }: VerifyEmailPageP
       title={success ? "Email verified" : "Verification needed"}
       description={success ? "Your Mesh.me identity is safer now." : "This link could not be used."}
     >
-      <section className="mx-auto w-full max-w-md rounded-2xl border border-[var(--glass-card-border)] bg-[var(--glass-card-bg)] p-6 text-center shadow-[var(--shadow-lg)] sm:p-8">
+      <section className="auth-verification-card mx-auto w-full max-w-md rounded-2xl border border-[var(--glass-card-border)] bg-[var(--glass-card-bg)] p-6 text-center shadow-[var(--shadow-lg)] sm:p-8">
         <div className="mx-auto mb-5 flex justify-center">
           <MeshiMascot size={68} mood={success ? "celebrating" : "thinking"} animate />
         </div>
         <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full border border-[var(--border-primary)] bg-[var(--bg-secondary)]">
           {success ? <CheckCircle2 className="h-6 w-6 text-[var(--success)]" /> : <MailWarning className="h-6 w-6 text-[var(--danger)]" />}
         </div>
-        <h1 className="text-2xl font-semibold tracking-tight text-[var(--text-primary)]">
+        <h2 className="text-2xl font-semibold tracking-tight text-[var(--text-primary)]">
           {success ? "Email verified" : "That link did not work"}
-        </h1>
+        </h2>
         <p className="mt-2 text-sm leading-6 text-[var(--text-secondary)]">
           {success
             ? `${result.email} is now verified on your Mesh.me account.`

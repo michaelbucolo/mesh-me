@@ -217,7 +217,7 @@ export function ContentLens({
       }}
     >
       <div
-        className="mesh-panel relative flex w-full max-w-lg animate-[bubbleIn_.36s_cubic-bezier(0.22,1,0.36,1)] flex-col overflow-hidden rounded-3xl shadow-2xl"
+        className="presence-world-lens mesh-panel relative flex w-full max-w-lg animate-[bubbleIn_.36s_cubic-bezier(0.22,1,0.36,1)] flex-col overflow-hidden rounded-3xl shadow-2xl"
         onPointerDown={(e) => {
           e.stopPropagation();
           // Touching the reader is a "wait, I'm reading" — pause catch-up.
@@ -418,12 +418,12 @@ export function ContentLens({
         {/* Catch-up progress — dots for every unseen stop, pause/resume for
             the auto-advance. Reading (any touch in the panel) pauses too. */}
         {catchup && (
-          <div className="flex items-center justify-center gap-2.5 border-t border-[var(--rule)] bg-cyan-400/[0.06] px-4 py-2">
+          <div className="flex items-center justify-center gap-2.5 border-t border-[var(--rule)] bg-[var(--paper-2)] px-4 py-2">
             <button
               type="button"
               aria-label={catchup.paused ? "Resume catch-up" : "Pause catch-up"}
               onClick={catchup.onTogglePause}
-              className="rounded-full bg-[var(--paper-2)] p-1.5 text-cyan-100 transition-colors hover:bg-[var(--paper-hover)]"
+              className="rounded-full bg-[var(--paper-2)] p-1.5 text-[var(--accent-text)] transition-colors hover:bg-[var(--paper-hover)]"
             >
               {catchup.paused ? <Play size={12} /> : <Pause size={12} />}
             </button>
@@ -443,11 +443,11 @@ export function ContentLens({
                 ))}
               </div>
             ) : (
-              <span className="text-micro font-semibold text-cyan-100/80">
+              <span className="text-micro font-semibold text-[var(--text-secondary)]">
                 {catchup.index + 1} / {catchup.total}
               </span>
             )}
-            <span className="text-micro font-medium mesh-eyebrow text-cyan-100/50">
+            <span className="text-micro font-medium mesh-eyebrow text-[var(--text-tertiary)]">
               {catchup.paused ? "Paused" : "Catch-up"}
             </span>
           </div>
@@ -455,7 +455,7 @@ export function ContentLens({
 
         {/* Stream controls — browse content across the mesh */}
         {total > 1 && (
-          <div className="flex items-center justify-between border-t border-[var(--rule)] bg-black/30 px-4 py-2.5">
+          <div className="flex items-center justify-between border-t border-[var(--rule)] bg-[var(--paper-2)] px-4 py-2.5">
             <button
               type="button"
               onClick={() => onNavigate(-1)}

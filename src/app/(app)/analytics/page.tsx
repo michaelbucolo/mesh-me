@@ -42,7 +42,7 @@ export default async function AnalyticsPage() {
       user.isMeshPro ? getLifetimeAnalytics() : Promise.resolve(null),
     ]);
     return (
-      <>
+      <div className="personal-analytics-page">
         <AnalyticsDashboard data={data} />
         <div className="mx-auto w-full max-w-7xl px-4 pb-6 sm:px-6">
           <ContentInventoryCard inventory={inventory} />
@@ -69,7 +69,7 @@ export default async function AnalyticsPage() {
             <ReportShelf accountCreatedAt={user.createdAt} />
           </div>
         )}
-      </>
+      </div>
     );
   }
 
@@ -80,7 +80,7 @@ export default async function AnalyticsPage() {
   const withheldByConsent = !(await hasAnalyticsConsent(user.id));
 
   return (
-    <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6">
+    <main className="personal-studio personal-analytics mx-auto w-full max-w-7xl px-4 py-6 sm:px-6">
       {withheldByConsent ? (
         <section className="flex flex-col items-center gap-3 rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] px-6 py-12 text-center">
           <h2 className="text-lg font-semibold text-[var(--mesh-text)]">Analytics is switched off</h2>

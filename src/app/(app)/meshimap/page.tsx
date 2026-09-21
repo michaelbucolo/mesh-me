@@ -23,15 +23,15 @@ export default async function MeshiMapPage() {
     return (
       <Shell>
         <div className="flex h-full w-full flex-col items-center justify-center gap-3 px-6 text-center">
-          <h1 style={{ color: "#e8edf8", fontSize: 20, fontWeight: 600 }}>MeshiMap</h1>
-          <p style={{ color: "#93a0bb", fontSize: 14, maxWidth: 380 }}>
+          <h1 style={{ color: "var(--text-primary)", fontSize: 20, fontWeight: 600 }}>MeshiMap</h1>
+          <p style={{ color: "var(--text-secondary)", fontSize: 14, maxWidth: 380 }}>
             See who is around you and step straight into their mesh. Everyone shows at their
             area — never their address — and only to the people they chose.
           </p>
           <Link
             href="/signup"
             className="mt-1 rounded-full px-4 py-2"
-            style={{ background: "#60a5fa", color: "#04060c", fontSize: 14, fontWeight: 600 }}
+            style={{ background: "var(--accent)", color: "var(--accent-ink)", fontSize: 14, fontWeight: 600 }}
           >
             Join the mesh
           </Link>

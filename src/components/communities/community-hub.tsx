@@ -1,12 +1,12 @@
 "use client";
 
 import Image from "next/image";
+import { PageIntro } from "@/components/ui/signature-art";
 import Link from "next/link";
 import { useRef, useState, type CSSProperties } from "react";
 import { motion, useReducedMotion } from "framer-motion";
-import { ArrowLeft, ArrowRight, ChevronDown, Lock, Plus, ShieldCheck } from "lucide-react";
+import { ArrowLeft, ArrowRight, Eye, Lock, Plus, ShieldCheck } from "lucide-react";
 import type { getCommunitiesHubData } from "@/lib/community-hub";
-import { Button } from "@/components/ui/button";
 import { formatCount, formatRelativeTime } from "@/lib/utils";
 import { SPRING_PANEL } from "@/lib/motion";
 
@@ -14,8 +14,6 @@ const HUB_SPRING = SPRING_PANEL;
 
 type CommunitiesHubData = NonNullable<Awaited<ReturnType<typeof getCommunitiesHubData>>>;
 type Community = CommunitiesHubData["communities"][number];
-
-const CATEGORY_TABS = ["All", "Technology", "Design", "Entrepreneurship", "Lifestyle", "Science", "Travel", "Gaming"];
 
 function CommunityAvatar({ name, iconUrl, size = "md" }: { name: string; iconUrl?: string | null; size?: "sm" | "md" | "lg" }) {
   const initial = name.trim().charAt(0).toUpperCase() || "M";
@@ -37,7 +35,7 @@ function FeaturedCard({ community }: { community: Community }) {
   return (
     <Link
       href={`/communities/${community.slug}`}
-      className="group relative flex min-w-[min(260px,80vw)] max-w-[300px] shrink-0 flex-col overflow-hidden rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] transition-[color,background-color,border-color,box-shadow,transform,opacity] duration-200 hover:border-[var(--mesh-border-active)]"
+      className="social-community-feature group relative flex min-w-[min(260px,80vw)] max-w-[300px] shrink-0 flex-col overflow-hidden rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] transition-[color,background-color,border-color,box-shadow,transform,opacity] duration-200 hover:border-[var(--mesh-border-active)]"
     >
       <div className="relative h-36 bg-gradient-to-br from-[var(--mesh-bg)] to-[var(--mesh-bg-elevated)]">
         {community.iconUrl ? (
@@ -70,14 +68,12 @@ function FeaturedCard({ community }: { community: Community }) {
 function CommunityRow({ community, selected, onSelect, index }: { community: Community; selected: boolean; onSelect: () => void; index: number }) {
   const reduce = useReducedMotion();
   return (
-    <motion.button
-      type="button"
-      onClick={onSelect}
-      data-feedback={selected ? "off" : "select"}
-      aria-pressed={selected}
-      whileTap={reduce ? undefined : { scale: 0.99 }}
+    <div className="social-community-directory-row">
+    <Link
+      href={`/communities/${community.slug}`}
+      data-feedback="navigate"
       style={{ "--i": index } as CSSProperties}
-      className={`relative block w-full rounded-xl px-4 py-3 text-left transition-colors ${
+      className={`social-community-row relative block w-full rounded-xl px-4 py-3 text-left transition-colors ${
         selected ? "border border-[var(--mesh-border-active)]" : "border border-transparent hover:bg-[var(--mesh-panel)]"
       }`}
     >
@@ -114,8 +110,11 @@ function CommunityRow({ community, selected, onSelect, index }: { community: Com
             <span className="h-2 w-2 rounded-full bg-[var(--accent)] inline-block" />
           )}
         </span>
+        <ArrowRight className="h-4 w-4 shrink-0 text-[var(--text-muted)]" aria-hidden="true" />
       </span>
-    </motion.button>
+    </Link>
+    <motion.button type="button" onClick={onSelect} data-feedback={selected ? "off" : "select"} aria-pressed={selected} whileTap={reduce ? undefined : { scale: 0.95 }} className="social-community-open social-community-preview" aria-label={`Preview ${community.name}`}><Eye size={17} aria-hidden="true" /></motion.button>
+    </div>
   );
 }
 
@@ -125,6 +124,7 @@ export function CommunityHub({ data }: { data: CommunitiesHubData }) {
   for (const c of allCommunities) uniqueMap.set(c.id, c);
   const dedupedCommunities = Array.from(uniqueMap.values());
 
+  const categoryTabs = ["All", ...new Set(dedupedCommunities.map((community) => community.category).filter((category): category is string => Boolean(category)))];
   const featured = data.publicCommunities.slice(0, 6);
   const [activeCategory, setActiveCategory] = useState("All");
   const [selectedId, setSelectedId] = useState<string | null>(featured[0]?.id ?? null);
@@ -145,7 +145,7 @@ export function CommunityHub({ data }: { data: CommunitiesHubData }) {
   const selectedCommunity = dedupedCommunities.find((c) => c.id === selectedId) ?? featured[0] ?? null;
 
   return (
-    <div className="mx-auto grid w-full max-w-7xl gap-6 px-4 py-6 xl:grid-cols-[minmax(0,1fr)_380px]">
+    <div className="social-page social-community-hub mx-auto grid w-full max-w-7xl gap-6 px-4 py-6 xl:grid-cols-[minmax(0,1fr)_320px]">
       {/* Main column */}
       <div className="min-w-0 space-y-6">
         {/* THE FRONT DOOR THIS SURFACE DID NOT HAVE.
@@ -155,28 +155,15 @@ export function CommunityHub({ data }: { data: CommunitiesHubData }) {
             creation path for an entire surface was to type the URL.
             The page metadata has said "Create, discover, post, chat, and
             moderate" this whole time; only four of those five were reachable. */}
-        <header className="flex flex-wrap items-center justify-between gap-3">
-          <div className="min-w-0">
-            <h1 className="text-xl font-semibold text-[var(--mesh-text)]">Communities</h1>
-            <p className="text-sm text-[var(--mesh-text-secondary)]">
-              Places built around one thing, run by the people in them.
-            </p>
-          </div>
-          <Link
-            href="/communities/create"
-            className="ds-focus-ring inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-[var(--accent-contrast,#fff)] transition-opacity hover:opacity-90"
-          >
-            <Plus size={16} aria-hidden="true" />
-            Create a community
-          </Link>
-        </header>
+        <PageIntro className="social-page-intro" heading="h1" eyebrow="Better together" title="Find your circle." description="Shared interests. Familiar faces. A place to belong."
+          action={<Link href="/communities/create" className="mesh-action mesh-action-primary px-4 text-sm"><Plus size={16} aria-hidden="true" />Create a community</Link>} />
 
         {/* Featured communities carousel */}
         <section>
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-lg font-semibold text-[var(--mesh-text)]">Featured communities</h2>
             <div className="flex items-center gap-2">
-              <Link href="/communities?view=featured" className="inline-flex min-h-11 items-center gap-1 text-xs text-[var(--accent-text)] hover:underline">
+              <Link href="#community-directory" className="inline-flex min-h-11 items-center gap-1 text-xs text-[var(--accent-text)] hover:underline">
                 View all
                 <ArrowRight size={12} />
               </Link>
@@ -213,7 +200,7 @@ export function CommunityHub({ data }: { data: CommunitiesHubData }) {
 
         {/* Category tabs */}
         <div className="flex flex-wrap items-center gap-2">
-          {CATEGORY_TABS.map((cat) => {
+          {categoryTabs.map((cat) => {
             const active = activeCategory === cat;
             return (
               <motion.button
@@ -239,13 +226,10 @@ export function CommunityHub({ data }: { data: CommunitiesHubData }) {
               </motion.button>
             );
           })}
-          <Button type="button" variant="outline" size="sm" rightIcon={<ChevronDown size={14} />}>
-            More
-          </Button>
         </div>
 
         {/* All communities directory */}
-        <section>
+        <section id="community-directory">
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-lg font-semibold text-[var(--mesh-text)]">All communities</h2>
             <div className="flex items-center gap-4 text-xs text-[var(--mesh-text-muted)]">
@@ -273,9 +257,7 @@ export function CommunityHub({ data }: { data: CommunitiesHubData }) {
           {filteredCommunities.length > 0 && (
             <p className="mt-4 text-center text-xs text-[var(--mesh-text-muted)]">
               Showing 1–{filteredCommunities.length} of {dedupedCommunities.length} communities
-              <Button type="button" variant="outline" size="sm" className="ml-3">
-                Load more
-              </Button>
+
             </p>
           )}
         </section>
@@ -327,22 +309,11 @@ export function CommunityHub({ data }: { data: CommunitiesHubData }) {
                 </div>
               </div>
 
-              {/* Detail tabs */}
-              <div className="flex border-t border-[var(--mesh-border)]">
-                {["About", "Activity", "Members", "Spaces", "Settings"].map((tab, i) => (
-                  <button
-                    key={tab}
-                    type="button"
-                    className={`flex-1 py-2.5 text-center text-xs font-medium transition-colors ${
-                      i === 0
-                        ? "border-b-2 border-[var(--accent)] text-[var(--mesh-text)]"
-                        : "text-[var(--mesh-text-muted)] hover:text-[var(--mesh-text-secondary)]"
-                    }`}
-                  >
-                    {tab}
-                  </button>
-                ))}
-              </div>
+              <nav className="social-community-shortcuts" aria-label={`${selectedCommunity.name} sections`}>
+                <Link href={`/communities/${selectedCommunity.slug}#community-posts`}>Posts</Link>
+                <Link href={`/communities/${selectedCommunity.slug}#community-chat`}>Chat</Link>
+                <Link href={`/communities/${selectedCommunity.slug}#community-members`}>Members</Link>
+              </nav>
             </section>
 
             {/* About section */}
@@ -356,13 +327,8 @@ export function CommunityHub({ data }: { data: CommunitiesHubData }) {
                 </div>
                 <div>
                   <h4 className="text-xs font-semibold text-[var(--mesh-text-muted)] mb-2">Community rules</h4>
-                  <ol className="space-y-1 text-xs text-[var(--mesh-text-secondary)]">
-                    <li>1. Be respectful and kind.</li>
-                    <li>2. Share openly, give credit.</li>
-                    <li>3. No spam or self-promotion.</li>
-                    <li>4. Protect privacy and data.</li>
-                  </ol>
-                  <Link href={`/communities/${selectedCommunity.slug}`} className="mt-2 inline-flex items-center gap-1 text-xs text-[var(--accent-text)] hover:underline">
+                  <p className="text-xs leading-relaxed text-[var(--mesh-text-secondary)]">Read this community’s rules before joining the conversation.</p>
+                  <Link href={`/communities/${selectedCommunity.slug}#community-rules`} className="mt-2 inline-flex items-center gap-1 text-xs text-[var(--accent-text)] hover:underline">
                     View all rules
                     <ArrowRight size={12} />
                   </Link>

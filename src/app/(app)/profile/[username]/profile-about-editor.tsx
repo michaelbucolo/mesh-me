@@ -50,7 +50,7 @@ export function ProfileAboutEditor({ initial }: { initial: { fields: Fields; pri
 
   if (!editing) {
     return (
-      <section className="rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] p-5">
+      <section className="social-profile-editor rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] p-5">
         <div className="flex items-center justify-between gap-3">
           <h2 className="text-lg font-semibold text-[var(--mesh-text)]">About</h2>
           <Button type="button" variant="secondary" size="sm" onClick={() => setEditing(true)} leftIcon={<Pencil className="h-4 w-4" aria-hidden="true" />}>
@@ -97,7 +97,7 @@ export function ProfileAboutEditor({ initial }: { initial: { fields: Fields; pri
   }
 
   return (
-    <section className="rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] p-5">
+    <section className="social-profile-editor rounded-2xl border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] p-5">
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-lg font-semibold text-[var(--mesh-text)]">Edit About</h2>
       </div>

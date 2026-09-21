@@ -127,14 +127,14 @@ export function DoodlePad({
   return (
     <div
       data-testid="doodle-pad"
-      className="absolute inset-x-0 bottom-0 z-20 p-3"
-      style={{ background: "#0b1526f2", borderTop: "1px solid #ffffff1f" }}
+      className="presence-doodle-pad absolute inset-x-0 bottom-0 z-20 p-3"
+      style={{ background: "var(--paper-1)", borderTop: "1px solid var(--rule)" }}
     >
       <div className="mb-2 flex items-center justify-between">
-        <span style={{ color: "#93a0bb", fontSize: 11.5 }}>
+        <span style={{ color: "var(--text-secondary)", fontSize: 11.5 }}>
           Draw something for the people around you
         </span>
-        <button type="button" onClick={onClose} aria-label="Close the pad" style={{ color: "#93a0bb", fontSize: 12.5 }}>
+        <button type="button" className="min-h-11 px-2" onClick={onClose} aria-label="Close the pad" style={{ color: "var(--text-secondary)", fontSize: 12.5 }}>
           Close
         </button>
       </div>
@@ -163,8 +163,9 @@ export function DoodlePad({
             aria-label={`Ink ${i + 1}`}
             data-testid={`doodle-ink-${i}`}
             onClick={() => setColour(i)}
-            className="h-7 w-7 rounded-full"
-            style={{ background: INK_HEX[i], border: colour === i ? "2px solid #ffffff" : "2px solid #ffffff22" }}
+            className="presence-doodle-ink h-11 w-11 rounded-full"
+            aria-pressed={colour === i}
+            style={{ background: INK_HEX[i], border: colour === i ? "3px solid var(--text-primary)" : "3px solid var(--rule)" }}
           />
         ))}
         <div className="flex-1" />
@@ -172,8 +173,8 @@ export function DoodlePad({
           type="button"
           onClick={() => setStrokes([])}
           disabled={strokes.length === 0}
-          className="rounded-full px-3 py-1.5"
-          style={{ background: "#182642", color: "#dce4f5", fontSize: 12.5, opacity: strokes.length === 0 ? 0.5 : 1 }}
+          className="min-h-11 rounded-full px-3 py-1.5"
+          style={{ background: "var(--paper-2)", color: "var(--text-primary)", fontSize: 12.5, opacity: strokes.length === 0 ? 0.5 : 1 }}
         >
           Clear
         </button>
@@ -182,10 +183,10 @@ export function DoodlePad({
           data-testid="doodle-send"
           onClick={() => void send()}
           disabled={strokes.length === 0 || sending}
-          className="rounded-full px-4 py-1.5"
+          className="min-h-11 rounded-full px-4 py-1.5"
           style={{
-            background: "#60a5fa",
-            color: "#04060c",
+            background: "var(--accent)",
+            color: "var(--accent-ink)",
             fontSize: 13,
             fontWeight: 600,
             opacity: strokes.length === 0 || sending ? 0.5 : 1,
@@ -196,12 +197,12 @@ export function DoodlePad({
       </div>
 
       {full && (
-        <p className="mt-1.5" style={{ color: "#93a0bb", fontSize: 11 }}>
+        <p className="mt-1.5" style={{ color: "var(--text-secondary)", fontSize: 11 }}>
           That&apos;s a full drawing — send it or clear and start again.
         </p>
       )}
       {error && (
-        <p className="mt-1.5" style={{ color: "#f0a3a3", fontSize: 11.5 }}>
+        <p className="mt-1.5" style={{ color: "var(--danger)", fontSize: 11.5 }}>
           {error}
         </p>
       )}

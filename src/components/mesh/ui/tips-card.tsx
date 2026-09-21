@@ -4,7 +4,7 @@
 
 "use client";
 
-import { X } from "lucide-react";
+import { Compass, Hand, MousePointer2, X } from "lucide-react";
 
 export function MeshTipsCard({
   isCoarsePointer,
@@ -22,26 +22,27 @@ export function MeshTipsCard({
       }}
     >
       <div
-        className="w-full max-w-sm animate-[bubbleIn_.36s_cubic-bezier(0.22,1,0.36,1)] rounded-2xl mesh-panel p-5 shadow-2xl"
+        className="presence-world-welcome w-full max-w-sm animate-[bubbleIn_.36s_cubic-bezier(0.22,1,0.36,1)] rounded-2xl mesh-panel p-5 shadow-2xl"
         onPointerDown={(e) => e.stopPropagation()}
       >
         <div className="mb-2 flex items-start justify-between">
-          <p className="text-sm font-semibold text-[var(--text-primary)]">This is your world</p>
+          <div><span className="presence-empty-symbol"><Compass size={24} aria-hidden="true" /></span><p className="presence-kicker">Meet your mesh</p><h2 className="presence-page-title">This is your world</h2></div>
           <button
             type="button"
             aria-label="Close"
             onClick={onDismiss}
-            className="rounded-md p-1 text-[var(--text-muted)] transition-colors hover:bg-[var(--paper-hover)] hover:text-[var(--text-primary)]"
+            className="flex h-11 w-11 items-center justify-center rounded-full text-[var(--text-muted)] transition-colors hover:bg-[var(--paper-hover)] hover:text-[var(--text-primary)]"
           >
             <X size={16} />
           </button>
         </div>
-        <p className="text-xs leading-relaxed text-[var(--text-secondary)]">
+        <p className="mt-3 text-sm leading-relaxed text-[var(--text-secondary)]">
           The people and posts you&apos;re closest to sit closest to you.{" "}
           {isCoarsePointer
             ? "Drag to look around, pinch to zoom, tap anything to open it."
             : "Drag to look around, scroll to zoom, click anything to open it."}
         </p>
+        <div className="presence-world-gestures"><span><Hand size={16} aria-hidden="true" />Drag to explore</span><span><MousePointer2 size={16} aria-hidden="true" />{isCoarsePointer ? "Tap to discover" : "Click to discover"}</span></div>
         <button
           type="button"
           onClick={onDismiss}

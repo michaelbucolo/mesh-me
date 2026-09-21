@@ -53,7 +53,7 @@ export function ProfileLinksEditor({ initial }: { initial: ProfileLink[] }) {
   }
 
   return (
-    <section className="plate p-5">
+    <section className="social-profile-editor plate p-5">
       <div className="mb-1 flex items-center gap-2">
         <LinkIcon size={16} aria-hidden="true" className="text-[var(--text-tertiary)]" />
         <h2 className="text-base font-semibold text-[var(--text-primary)]">Your links</h2>

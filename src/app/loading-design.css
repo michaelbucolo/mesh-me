@@ -1,0 +1,218 @@
+/* Loading is part of the destination: calm geometry, real page proportions,
+   and one thread of activity. All decoration is CSS/SVG, never a render loop. */
+.paper-wait-route {
+  width: 100%;
+  min-width: 0;
+  min-height: min(70vh, 46rem);
+  margin-inline: auto;
+  padding: clamp(1rem, 3vw, 2.5rem);
+}
+.wait-route-heading {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  max-width: 72rem;
+  min-height: 2.5rem;
+  margin: 0 auto 1.75rem;
+  color: var(--text-secondary);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  opacity: 0;
+  animation: wait-caption-arrive 280ms var(--mesh-ease-out) 650ms forwards;
+}
+.wait-route-emblem { position: relative; display: block; width: 1.6rem; height: 1.6rem; flex: none; }
+.wait-route-emblem i { position: absolute; inset: 0; border: 1px solid var(--border-primary); border-radius: 50%; }
+.wait-route-emblem i:last-child { inset: 0.4rem; border-color: var(--accent-text); }
+.wait-route-emblem::after { content: ""; position: absolute; width: 0.3rem; height: 0.3rem; right: 0; top: 0.45rem; border-radius: 50%; background: var(--accent-text); }
+.wait-route-body { max-width: 72rem; margin-inline: auto; }
+.paper-well {
+  display: block;
+  flex: none;
+  background: color-mix(in srgb, var(--text-primary) 7%, var(--paper-1));
+  border-radius: 999px;
+  animation: wait-surface-breathe 2.4s ease-in-out 700ms infinite;
+}
+.paper-well-tile { aspect-ratio: 1 / 1; height: auto !important; border-radius: 1rem; }
+.paper-wait-card {
+  padding: clamp(1rem, 2.5vw, 1.5rem);
+  border: 1px solid var(--border-primary);
+  border-radius: 1.5rem;
+  background: var(--paper-1);
+}
+.wait-identity { display: flex; flex: 1; align-items: center; min-width: 0; gap: 0.875rem; }
+.wait-lines { display: flex; flex: 1; min-width: 0; flex-direction: column; gap: 0.7rem; }
+.wait-feed, .wait-search, .wait-page, .wait-analytics, .wait-composer { display: flex; flex-direction: column; gap: 1.25rem; }
+.wait-feed, .wait-search, .wait-composer { max-width: 44rem; margin-inline: auto; }
+.wait-feed-card { display: flex; flex-direction: column; gap: 1.5rem; }
+.wait-compose-strip, .wait-action-row { display: flex; align-items: center; gap: 0.6rem; }
+.wait-compose-strip { justify-content: space-between; }
+.wait-action-row > :last-child { margin-left: auto; }
+.wait-discovery-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.25rem; }
+.wait-tile-card { display: flex; min-width: 0; flex-direction: column; gap: 1rem; }
+.wait-tile-card > .paper-well-tile { margin-bottom: 0.3rem; }
+.wait-list-card { padding-block: 0.4rem; }
+.wait-row-list { display: flex; flex-direction: column; }
+.paper-wait-row { display: flex; align-items: center; gap: 1rem; padding: 1.15rem 0; }
+.paper-wait-row + .paper-wait-row { border-top: 1px solid var(--border-primary); }
+.wait-profile { overflow: hidden; max-width: 56rem; margin-inline: auto; border: 1px solid var(--border-primary); border-radius: 1.75rem; background: var(--paper-1); }
+.wait-profile-cover { height: 11rem; overflow: hidden; }
+.wait-profile-cover .paper-well { background-color: color-mix(in srgb, var(--accent) 5%, var(--paper-2)); }
+.wait-profile-identity { position: relative; display: flex; align-items: flex-end; gap: 1.5rem; margin-top: -2rem; padding-inline: 1.75rem; }
+.wait-profile-identity > .paper-well { border: 5px solid var(--paper-1); }
+.wait-profile-identity > .wait-lines { padding-bottom: 0.5rem; }
+.wait-profile-bio { display: flex; flex-direction: column; gap: 0.65rem; padding: 1.5rem 1.75rem; }
+.wait-tab-row { display: flex; flex-wrap: wrap; gap: 0.5rem; padding-block: 0.5rem 1.25rem; }
+.wait-profile > .wait-tab-row { margin-inline: 1.75rem; border-bottom: 1px solid var(--border-primary); }
+.wait-profile-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.75rem; padding: 1.5rem; }
+.wait-settings { display: grid; grid-template-columns: 13.5rem minmax(0, 1fr); gap: 2rem; }
+.wait-settings-rail { display: flex; flex-direction: column; gap: 0.65rem; padding: 1.5rem 0.5rem; }
+.wait-settings-rail > :first-child { margin-bottom: 0.8rem; }
+.wait-settings-body { display: flex; flex-direction: column; gap: 1rem; }
+.wait-setting-card { display: flex; flex-direction: column; gap: 1.5rem; }
+.wait-setting-row { display: flex; align-items: center; justify-content: space-between; gap: 2rem; }
+.wait-conversation { display: flex; flex-direction: column; min-height: min(72vh, 50rem); }
+.wait-conversation-header { border-bottom: 1px solid var(--border-primary); padding: 0 0.25rem 1.25rem; }
+.wait-bubbles { display: flex; flex: 1; flex-direction: column; justify-content: flex-end; gap: 1.4rem; padding-block: 2rem; }
+.wait-bubble { display: flex; }
+.wait-bubble-mine { justify-content: flex-end; }
+.wait-bubble-mine .paper-well { background-color: color-mix(in srgb, var(--accent) 12%, var(--paper-1)); }
+.wait-message-input { padding-top: 1rem; border-top: 1px solid var(--border-primary); }
+.wait-flow { position: relative; display: flex; align-items: flex-end; min-height: 70vh; max-width: 35rem; margin-inline: auto; overflow: hidden; padding: 1.5rem; border: 1px solid var(--border-primary); border-radius: 1.5rem; background: var(--paper-1); }
+.wait-flow-caption { display: flex; flex: 1; flex-direction: column; gap: 1rem; padding-right: 1.5rem; }
+.wait-flow-rail { display: flex; flex-direction: column; gap: 1.25rem; }
+.wait-stat-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
+.wait-stat { display: flex; flex-direction: column; gap: 1.25rem; }
+.wait-chart { display: flex; flex-direction: column; gap: 2rem; }
+.wait-chart-bars { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); align-items: flex-end; height: 14rem; gap: clamp(0.3rem, 1vw, 1rem); border-bottom: 1px solid var(--border-primary); }
+.wait-chart-bars .paper-well { border-radius: 0.5rem 0.5rem 0 0; }
+.wait-composer { gap: 2rem; }
+.wait-connections { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+.wait-connected-card { display: flex; align-items: center; gap: 1rem; }
+.wait-page-feature, .wait-page-detail { display: flex; flex-direction: column; gap: 1rem; }
+.wait-page-feature { min-height: 15rem; justify-content: center; padding: 2rem; }
+.wait-page-feature > :last-child { margin-top: 0.75rem; }
+.wait-page-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.25rem; }
+[data-wait-shape="feed"] .wait-route-heading, [data-wait-shape="search"] .wait-route-heading, [data-wait-shape="composer"] .wait-route-heading { max-width: 44rem; }
+[data-wait-shape="profile"] .wait-route-heading { max-width: 56rem; }
+[data-wait-shape="rail-list"] { padding: 1rem; }
+[data-wait-shape="rail-list"] .wait-route-heading { margin-bottom: 1rem; font-size: 0.75rem; }
+[data-wait-shape="rail-list"] .paper-wait-card { border: 0; padding-inline: 0; background: transparent; }
+[data-wait-shape="canvas"] { position: relative; min-height: 80vh; overflow: hidden; }
+.wait-canvas { position: relative; width: min(80vw, 40rem); aspect-ratio: 1; margin: 0 auto; }
+.wait-canvas-orbit { position: absolute; inset: 24%; border: 1px solid var(--border-primary); border-radius: 50%; }
+.wait-canvas-orbit-outer { inset: 5%; }
+.wait-canvas-node { position: absolute; width: 1rem; height: 1rem; border: 1px solid var(--border-primary); border-radius: 50%; background: var(--paper-2); }
+.wait-canvas-node-0 { left: 49%; top: 4%; }
+.wait-canvas-node-1 { left: 86%; top: 26%; }
+.wait-canvas-node-2 { left: 12%; top: 72%; }
+.wait-canvas-node-3 { left: 29%; top: 30%; }
+.wait-canvas-node-4 { left: 67%; top: 67%; }
+
+/* The inline indicator is a tiny traveling thread; it inherits the control's ink. */
+.paper-wait { position: relative; display: inline-flex; align-items: center; justify-content: center; gap: 0.21em; width: 1.45em; height: 1em; vertical-align: middle; color: inherit; }
+.paper-wait-thread { position: absolute; left: 0.12em; right: 0.12em; height: 1px; background: currentColor; opacity: 0.18; }
+.paper-wait-dot { position: relative; display: block; width: 0.28em; height: 0.28em; background: currentColor; border-radius: 50%; opacity: 0.45; animation: wait-thread-pulse 1.25s var(--mesh-ease-out) infinite; }
+.paper-wait-dot:nth-of-type(2) { animation-delay: 0ms; }
+.paper-wait-dot:nth-of-type(3) { animation-delay: 120ms; }
+.paper-wait-dot:nth-of-type(4) { animation-delay: 240ms; }
+.paper-wait-sm { font-size: 0.875rem; }
+.paper-wait-md { font-size: 1.125rem; }
+.meshi-wait { padding: 2rem; }
+.meshi-wait-body { gap: 0.8rem; max-width: 28rem; padding: 1.15rem 1.5rem; border: 1px solid var(--border-primary); border-radius: 1.4rem; background: var(--paper-1); box-shadow: 0 12px 40px color-mix(in srgb, var(--text-primary) 4%, transparent); animation: wait-caption-arrive 320ms var(--mesh-ease-out) 750ms forwards; }
+.meshi-wait-thread { color: var(--accent-text); line-height: 1; }
+.meshi-wait-headline { font-size: 0.9375rem; font-weight: 500; letter-spacing: -0.015em; color: var(--text-primary); }
+.meshi-wait-detail { min-height: 0; font-size: 0.8125rem; color: var(--text-secondary); }
+
+/* The mesh's longer arrival uses a finite, lightweight orbital drawing. */
+.mesh-forming-surface { position: relative; display: grid; place-items: center; width: 100%; min-height: calc(100dvh - 8rem); overflow: hidden; border: 1px solid var(--border-primary); border-radius: 1.75rem; background: var(--paper-0); }
+.mesh-forming-backdrop { position: absolute; inset: 0; min-height: 0; height: 100%; border: 0; border-radius: 0; background: transparent; pointer-events: none; }
+.mesh-forming-diagram { display: block; width: min(84%, 44rem); height: auto; overflow: visible; color: var(--accent-text); }
+.mesh-forming-orbit { fill: none; stroke: var(--border-primary); stroke-width: 0.7; }
+.mesh-forming-strand { fill: none; stroke: currentColor; stroke-width: 0.75; opacity: 0.18; stroke-dasharray: 1; stroke-dashoffset: 1; animation: wait-strand-arrive 1.1s var(--mesh-ease-out) 200ms forwards; }
+.mesh-forming-strand:nth-child(2n) { animation-delay: 450ms; }
+.mesh-forming-node { fill: var(--paper-1); stroke: currentColor; stroke-width: 0.75; opacity: 0; transform-box: fill-box; transform-origin: center; animation: wait-node-arrive 800ms var(--mesh-ease-out) 300ms forwards; }
+.mesh-forming-node:nth-child(2n) { animation-delay: 500ms; }
+.mesh-forming-core { fill: var(--paper-1); stroke: currentColor; stroke-width: 0.8; }
+.mesh-forming-core-dot { fill: currentColor; opacity: 0.5; }
+.mesh-forming-label { position: absolute; bottom: 14%; display: flex; align-items: center; gap: 0.8rem; color: var(--text-secondary); font-size: 0.8125rem; }
+.mesh-forming-backdrop .mesh-forming-diagram { width: min(90%, 54rem); opacity: 0.75; }
+
+/* Empty and recovery states are calm landing places, with an obvious next step. */
+.mesh-empty-state { isolation: isolate; width: 100%; padding: 3.75rem 1.5rem; }
+.mesh-empty-state[data-compact="true"] { padding: 2rem 1rem; }
+.mesh-empty-symbol { position: relative; display: grid; place-items: center; width: 5.5rem; height: 5.5rem; margin-bottom: 1.5rem; color: var(--accent-text); }
+.mesh-empty-symbol::before, .mesh-empty-symbol::after { content: ""; position: absolute; border: 1px solid var(--border-primary); border-radius: 50%; }
+.mesh-empty-symbol::before { inset: 0; }
+.mesh-empty-symbol::after { inset: 0.6rem; border-style: dashed; }
+.mesh-empty-symbol-well { display: grid; place-items: center; width: 3.1rem; height: 3.1rem; border: 1px solid var(--border-primary); border-radius: 1rem; background: var(--paper-1); }
+.mesh-empty-satellite { position: absolute; top: 0.35rem; right: 0.7rem; width: 0.55rem; height: 0.55rem; border: 2px solid var(--paper-0); border-radius: 50%; background: var(--accent-text); }
+.mesh-empty-title { max-width: 28rem; font-size: 1.125rem; font-weight: 500; letter-spacing: -0.025em; line-height: 1.35; color: var(--text-primary); text-wrap: balance; }
+.mesh-empty-description { max-width: 25rem; margin-top: 0.6rem; font-size: 0.875rem; line-height: 1.75; color: var(--text-secondary); text-wrap: pretty; }
+.mesh-empty-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.75rem; margin-top: 1.5rem; }
+.mesh-empty-state[data-compact="true"] .mesh-empty-symbol { width: 4.5rem; height: 4.5rem; margin-bottom: 1rem; }
+.mesh-empty-state[data-compact="true"] .mesh-empty-title { font-size: 1rem; }
+.mesh-recovery { position: relative; display: grid; place-items: center; min-height: 70dvh; overflow: hidden; padding: clamp(1.25rem, 5vw, 4rem); background: var(--paper-0); color: var(--text-primary); }
+.mesh-recovery-full { min-height: 100dvh; }
+.mesh-recovery-card.plate { position: relative; width: 100%; max-width: 46rem; border: 1px solid var(--border-primary); border-radius: 2rem; padding: clamp(1.5rem, 5vw, 3.5rem); background: var(--paper-1); box-shadow: none; text-align: center; }
+.mesh-recovery-card.plate.mesh-recovery-card-compact { max-width: 40rem; }
+.mesh-recovery-code { display: inline-flex; align-items: center; gap: 0.65rem; color: var(--text-secondary); font-size: 0.75rem; font-weight: 500; }
+.mesh-recovery-code::before { content: ""; width: 0.3rem; height: 0.3rem; border-radius: 50%; background: var(--accent-text); }
+.mesh-recovery-visual { display: block; width: min(100%, 20rem); height: 10.5rem; margin: 1.75rem auto; color: var(--accent-text); }
+.mesh-recovery-visual path, .mesh-recovery-visual ellipse { fill: none; stroke: var(--border-primary); stroke-width: 1; }
+.mesh-recovery-visual .mesh-recovery-path { stroke: currentColor; stroke-dasharray: 3 6; opacity: 0.6; }
+.mesh-recovery-visual circle { fill: var(--paper-1); stroke: currentColor; stroke-width: 1; }
+.mesh-recovery-visual .mesh-recovery-node { fill: currentColor; stroke: none; }
+.mesh-recovery-title { margin: 0; font-family: var(--font-display-loaded, Georgia), serif; font-size: clamp(2rem, 4vw, 2.75rem); font-weight: 500; line-height: 1.15; letter-spacing: -0.035em; text-wrap: balance; }
+.mesh-recovery-description { max-width: 31rem; margin: 1rem auto 0; font-size: 0.9375rem; line-height: 1.75; color: var(--text-secondary); text-wrap: pretty; }
+.mesh-recovery-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.65rem; margin-top: 2rem; }
+.mesh-recovery-action { display: inline-flex; align-items: center; justify-content: center; gap: 0.6rem; min-height: 2.75rem; padding: 0.7rem 1.1rem; border: 1px solid var(--border-primary); border-radius: 999px; background: var(--paper-2); color: var(--text-primary); font-size: 0.8125rem; font-weight: 500; text-decoration: none; transition: background 160ms, transform 160ms var(--mesh-ease-press); }
+.mesh-recovery-action-primary { border-color: transparent; background: var(--accent); color: var(--accent-ink); }
+.mesh-recovery-action:active { transform: scale(0.97); }
+.mesh-recovery-action:focus-visible { outline: 2px solid var(--accent-text); outline-offset: 4px; }
+@media (hover: hover) { .mesh-recovery-action:hover { background: var(--paper-3); } .mesh-recovery-action-primary:hover { background: var(--accent); filter: brightness(1.05); } }
+@keyframes wait-caption-arrive { from { opacity: 0; } to { opacity: 1; } }
+@keyframes wait-surface-breathe { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+@keyframes wait-thread-pulse { 0%, 70%, 100% { transform: scale(0.75); opacity: 0.4; } 35% { transform: scale(1.15); opacity: 1; } }
+@keyframes wait-strand-arrive { to { stroke-dashoffset: 0; } }
+@keyframes wait-node-arrive { from { transform: scale(0.65); opacity: 0; } to { transform: scale(1); opacity: 0.65; } }
+@media (max-width: 700px) {
+  .paper-wait-route { padding: 1rem; }
+  .wait-route-heading { margin-bottom: 1.25rem; }
+  .wait-discovery-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem; }
+  .wait-tile-card { padding: 0.75rem; }
+  .wait-settings { grid-template-columns: minmax(0, 1fr); gap: 0.75rem; }
+  .wait-settings-rail { flex-direction: row; overflow: hidden; padding: 0 0 0.5rem; }
+  .wait-settings-rail .paper-well { width: 5rem !important; }
+  .wait-settings-rail > :first-child { display: none; }
+  .wait-connections, .wait-page-grid { grid-template-columns: minmax(0, 1fr); }
+  .wait-stat-grid { gap: 0.5rem; }
+  .wait-stat { padding: 1rem 0.75rem; }
+  .wait-profile-cover { height: 8rem; }
+  .wait-profile-identity { padding-inline: 1rem; gap: 1rem; }
+  .wait-profile-grid { padding: 1rem; gap: 0.5rem; }
+  .wait-profile-bio { padding-inline: 1rem; }
+  .wait-flow { min-height: 65vh; }
+  .mesh-recovery-visual { height: 8.5rem; margin-block: 1.5rem; }
+  .mesh-recovery-actions { gap: 0.5rem; }
+  .mesh-recovery-action { padding-inline: 0.9rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .paper-well, .paper-wait-dot, .mesh-forming-node, .mesh-forming-strand { animation: none; }
+  .paper-well { opacity: 1; }
+  .paper-wait-dot { opacity: 0.7; transform: none; }
+  .mesh-forming-node { opacity: 0.65; }
+  .mesh-forming-strand { stroke-dashoffset: 0; }
+  .wait-route-heading, .meshi-wait-body { animation-duration: 1ms; }
+  .mesh-recovery-action { transition: none; }
+  .mesh-recovery-action:active { transform: none; }
+}
+@media (forced-colors: active) {
+  .paper-well { background: CanvasText; opacity: 0.15; animation: none; }
+  .paper-wait-dot, .paper-wait-thread { background: CanvasText; animation: none; opacity: 1; }
+  .paper-wait-card, .mesh-empty-symbol-well, .mesh-recovery-card.plate, .meshi-wait-body { border-color: CanvasText; box-shadow: none; }
+  .wait-route-emblem i, .wait-canvas-orbit { border-color: CanvasText; }
+  .mesh-forming-node, .mesh-forming-core, .mesh-recovery-visual circle { stroke: CanvasText; fill: Canvas; }
+  .mesh-forming-strand, .mesh-forming-orbit, .mesh-recovery-visual path, .mesh-recovery-visual ellipse { stroke: CanvasText; }
+  .mesh-forming-core-dot, .mesh-recovery-visual .mesh-recovery-node { fill: CanvasText; }
+  .mesh-recovery-action { border-color: ButtonText; }
+}

@@ -5,14 +5,12 @@ import {
   BarChart3,
   BellRing,
   Brain,
-  Compass,
   Crown,
   Lock,
   MessageCircle,
   Palette,
   RadioTower,
   Shield,
-  Users,
   Waypoints,
 } from "lucide-react";
 import { PublicSiteShell } from "@/components/layout/public-site-shell";
@@ -102,147 +100,49 @@ const meshProItems = [
 
 export default function FeaturesPage() {
   return (
-    <PublicSiteShell>
-      <section className="grid gap-8 lg:grid-cols-[0.92fr_1.08fr] lg:items-end">
+    <PublicSiteShell sectionLabel="A world of possibilities" maxWidth="max-w-6xl">
+      <section className="public-editorial-hero public-feature-hero">
         <div>
-          <p className="mesh-kicker mb-4">Product vision</p>
-          <h1 className="mesh-title text-4xl leading-tight md:text-6xl">
-            The internet should feel like one world, not ten disconnected apps.
-          </h1>
+          <p className="mesh-kicker mb-4">Your people. Your interests. Your Mesh.</p>
+          <h1 className="mesh-title">All your worlds.<br />A little closer.</h1>
         </div>
-        <p className="mesh-copy text-base md:text-lg">
-          Mesh.me combines a standalone social network with a user-authorized control center for the rest of your digital life. One product model powers the Mesh, the Feed, MeChat, Analytics, connected accounts, and Meshi.
-        </p>
+        <div className="public-feature-intro">
+          <p className="mesh-copy">A social home of your own, with a familiar feed, real conversations, and a whole new way to explore the connections between them.</p>
+          <Link href="/explore" className="public-join-link">Take a look around <ArrowRight size={16} aria-hidden="true" /></Link>
+        </div>
       </section>
 
-      <section className="mt-12 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {productAreas.map((area) => (
-          <article key={area.title} className="mesh-section p-5">
-            <area.icon className="mb-4 h-5 w-5 text-[var(--accent-text)]" />
-            <h2 className="text-base font-semibold text-[var(--text-primary)]">{area.title}</h2>
-            <p className="mt-2 text-sm leading-6 text-[var(--text-secondary)]">{area.description}</p>
-          </article>
+      <section className="public-feature-grid" aria-label="Explore the product">
+        {productAreas.map((area, index) => (
+          <Link key={area.title} href={["/mesh", "/feed", "/messages", "/analytics"][index]} className="public-feature-tile">
+            <div className="public-feature-tile-top"><span>{String(index + 1).padStart(2, "0")}</span><area.icon size={22} strokeWidth={1.4} aria-hidden="true" /></div>
+            <div><h2>{area.title}</h2><p>{area.description}</p></div>
+            <span className="public-feature-tile-link">Explore {area.title}<ArrowRight size={16} aria-hidden="true" /></span>
+          </Link>
         ))}
       </section>
 
-      <section className="mt-12 grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
-        <div className="rounded-3xl border border-[var(--glass-card-border)] bg-[var(--glass-card-bg)] p-6">
-          <p className="mb-3 text-xs font-semibold mesh-eyebrow text-[var(--text-muted)]">
-            What makes Mesh.me different
-          </p>
-          <div className="grid gap-4 md:grid-cols-2">
-            {capabilityRows.map((capability) => (
-              <article key={capability.title} className="rounded-2xl border border-[var(--border-primary)] p-4">
-                <capability.icon className="mb-3 h-5 w-5 text-[var(--accent-text)]" />
-                <h3 className="text-sm font-semibold text-[var(--text-primary)]">{capability.title}</h3>
-                <p className="mt-2 text-sm leading-6 text-[var(--text-secondary)]">{capability.copy}</p>
-              </article>
-            ))}
-          </div>
-        </div>
-
-        <div className="rounded-3xl border border-[var(--glass-card-border)] bg-[var(--glass-card-bg)] p-6">
-          <div className="mb-5 flex items-center gap-2">
-            <Palette className="h-5 w-5 text-[var(--accent-text)]" />
-            <h2 className="text-lg font-semibold text-[var(--text-primary)]">Interface adaptability</h2>
-          </div>
-          <div className="space-y-3">
-            {interfaceModes.map((mode) => (
-              <div key={mode.title} className="rounded-2xl border border-[var(--border-primary)] p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <h3 className="text-sm font-semibold text-[var(--text-primary)]">{mode.title}</h3>
-                    <p className="mt-1 text-micro font-semibold mesh-eyebrow text-[var(--text-muted)]">
-                      {mode.audience}
-                    </p>
-                  </div>
-                </div>
-                <p className="mt-3 text-sm leading-6 text-[var(--text-secondary)]">{mode.copy}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="mt-12 grid gap-4 lg:grid-cols-[1fr_1fr]">
-        <article className="mesh-section p-6">
-          <div className="mb-4 flex items-center gap-2">
-            <Users className="h-5 w-5 text-[var(--accent-text)]" />
-            <h2 className="text-lg font-semibold text-[var(--text-primary)]">Built for different kinds of people</h2>
-          </div>
-          <p className="text-sm leading-6 text-[var(--text-secondary)]">
-            Mesh.me is meant to work for creators, casual users, and people who need a calmer, more familiar layout. The product adapts to the person instead of forcing every user into one rigid social pattern.
-          </p>
-        </article>
-
-        <article className="mesh-section p-6">
-          <div className="mb-4 flex items-center gap-2">
-            <Compass className="h-5 w-5 text-[var(--accent-text)]" />
-            <h2 className="text-lg font-semibold text-[var(--text-primary)]">Cross-platform philosophy</h2>
-          </div>
-          <p className="text-sm leading-6 text-[var(--text-secondary)]">
-            When supported by provider APIs and permissions, Mesh.me is designed to route interactions back to the original source so creators keep credit and the connected web stays fair.
-          </p>
-        </article>
-      </section>
-
-      <section className="mt-12 rounded-3xl border border-[var(--accent)]/20 bg-[var(--accent)]/5 p-6">
-        <div className="mb-4 flex items-center gap-2">
-          <Crown className="h-5 w-5 text-[var(--accent-text)]" />
-          <h2 className="text-lg font-semibold text-[var(--text-primary)]">MeshPro</h2>
-        </div>
-        <div className="grid gap-3 md:grid-cols-2">
-          {meshProItems.map((item) => (
-            <div
-              key={item}
-              className="rounded-2xl border border-[var(--accent)]/15 bg-[var(--bg-card)] px-4 py-3 text-sm text-[var(--text-secondary)]"
-            >
-              {item}
-            </div>
+      <section className="public-feature-principles">
+        <div className="public-feature-section-heading"><p className="public-kicker">Built around you</p><h2>Less noise.<br />More of what matters.</h2></div>
+        <div className="public-feature-principle-list">
+          {capabilityRows.map((capability) => (
+            <article key={capability.title}><capability.icon size={20} strokeWidth={1.4} aria-hidden="true" /><div><h3>{capability.title}</h3><p>{capability.copy}</p></div></article>
           ))}
         </div>
       </section>
 
-      <section className="mt-12 grid gap-4 lg:grid-cols-3">
-        {[
-          {
-            title: "Launch path",
-            copy: "Feed, Mesh, MeChat, Analytics, and the public trust pages now cross-link more directly so users can orient themselves without guessing where to go next.",
-          },
-          {
-            title: "Interface strategy",
-            copy: "The UX pass prioritizes quick comprehension on public pages, then progressively hands off to richer product surfaces after signup and onboarding.",
-          },
-          {
-            title: "What stays fixed",
-            copy: "Meshi remains visually stable so the mascot still feels like the constant identity anchor through the rest of the product.",
-          },
-        ].map((item) => (
-          <article key={item.title} className="rounded-2xl border border-[var(--glass-card-border)] bg-[var(--glass-card-bg)] p-5">
-            <h3 className="text-base font-semibold text-[var(--text-primary)]">{item.title}</h3>
-            <p className="mt-2 text-sm leading-6 text-[var(--text-secondary)]">{item.copy}</p>
-          </article>
-        ))}
+      <section className="public-panel public-feature-layouts">
+        <div className="public-feature-section-heading"><Palette size={22} aria-hidden="true" /><h2>Find your rhythm.</h2><p>Start with a view that feels familiar. Explore the rest when you feel like it.</p></div>
+        <div className="public-feature-mode-list">{interfaceModes.map((mode) => <article key={mode.title}><h3>{mode.title}</h3><p>{mode.copy}</p></article>)}</div>
       </section>
 
-      <section className="mt-12">
-        <SiteRouteMap
-          title="See how the pieces fit together"
-          description="Compare Mesh, Feed, MeChat, and Analytics, then dig into the trust and policy routes to see how they work."
-        />
+      <section className="public-feature-pro public-panel">
+        <div><p className="public-kicker"><Crown size={16} aria-hidden="true" /> MeshPro</p><h2>A little more you.</h2><p>Optional tools and personal touches. Your core social experience stays open.</p><Link href="/pricing" className="public-login-link">Explore MeshPro <ArrowRight size={15} aria-hidden="true" /></Link></div>
+        <ul>{meshProItems.map((item) => <li key={item}><span aria-hidden="true" />{item}</li>)}</ul>
       </section>
 
-      <section className="mt-12 mesh-section grid gap-6 p-6 md:grid-cols-[1fr_auto] md:items-center">
-        <div>
-          <p className="mesh-kicker mb-2">Launch direction</p>
-          <h2 className="text-2xl font-semibold text-[var(--text-primary)]">
-            Mesh.me is trying to become the cleanest, safest place to manage your whole online identity.
-          </h2>
-        </div>
-        <Link href="/signup" className="brand-button inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold">
-          Start with Meshi <ArrowRight className="h-4 w-4" />
-        </Link>
-      </section>
+      <section className="public-feature-source-note"><Shield size={18} aria-hidden="true" /><p>Connected platform features depend on each provider’s APIs and your permissions. Source credit stays visible, and supported interactions link back to the original platform.</p></section>
+      <section><SiteRouteMap title="Make yourself at home" description="Get to know Mesh.me, see your privacy choices, and find answers along the way." /></section>
     </PublicSiteShell>
   );
 }

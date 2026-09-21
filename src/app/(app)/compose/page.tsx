@@ -36,7 +36,7 @@ export default async function ComposePage() {
   });
 
   return (
-    <div className="h-full min-h-full w-full" style={{ background: "#070b14" }}>
+    <div className="h-full min-h-full w-full" style={{ background: "var(--paper-0)" }}>
       <ComposerView targets={targets} queueCount={queueCount} />
     </div>
   );

@@ -18,8 +18,9 @@ export function SignatureArt({ className }: { className?: string }) {
           <circle cx="422" cy="113" r="2" /><circle cx="76" cy="243" r="2" />
         </g>
         <g className="mesh-orbit-center" stroke="currentColor">
-          <rect x="220" y="136" width="48" height="48" rx="15" transform="rotate(-12 244 160)" fill="var(--paper-1)" />
-          <path d="M233 165v-8a4 4 0 018 0v8m0-8a4 4 0 018 0v8m0-8a4 4 0 018 0v8" strokeWidth="2.2" strokeLinecap="round" />
+          <circle cx="244" cy="160" r="29" fill="var(--paper-1)" strokeWidth="1.2" />
+          <circle cx="244" cy="160" r="38" strokeDasharray="2 7" strokeWidth=".8" opacity=".45" />
+          <path d="M235 155v9m18-9v9" strokeWidth="4" strokeLinecap="round" />
         </g>
         <path className="mesh-orbit-star" d="M367 73v12m-6-6h12M99 178v8m-4-4h8M290 273v8m-4-4h8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
       </svg>

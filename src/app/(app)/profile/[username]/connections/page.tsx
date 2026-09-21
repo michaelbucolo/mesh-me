@@ -41,8 +41,8 @@ export default async function ConnectionsPage({
   const people = canSee ? await getProfileConnections(profile.id, activeTab) : [];
 
   return (
-    <div className="mx-auto w-full max-w-2xl px-4 py-6">
-      <div className="mb-4 flex items-center gap-3">
+    <div className="social-page social-connections mx-auto w-full max-w-2xl px-4 py-6">
+      <div className="social-connections-heading mb-4 flex items-center gap-3">
         <Link
           href={`/profile/${profile.username}`}
           className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[var(--mesh-border)] bg-[var(--mesh-bg-elevated)] text-[var(--mesh-text-secondary)] transition-colors hover:bg-[var(--mesh-panel-hover)]"
@@ -59,6 +59,7 @@ export default async function ConnectionsPage({
         </div>
       </div>
 
+      <p className="social-connections-caption">The people in {profile.isOwnProfile ? "your" : `${profile.displayName}’s`} world.</p>
       {/* Followers / Following tabs */}
       <nav className="flex items-center gap-1 border-b border-[var(--mesh-border)]" aria-label="Connections">
         <ConnectionTab label="Followers" count={profile._count.followers} href={`${basePath}?tab=followers`} active={activeTab === "followers"} />
@@ -118,6 +119,7 @@ function ConnectionTab({ label, count, href, active }: { label: string; count: n
   return (
     <Link
       href={href}
+      aria-current={active ? "page" : undefined}
       className={`flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-semibold transition-colors ${
         active
           ? "border-[var(--accent)] text-[var(--mesh-text)]"

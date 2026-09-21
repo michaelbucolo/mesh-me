@@ -1,4 +1,7 @@
 import type { Metadata } from "next";
+import Link from "next/link";
+import { ArrowUpRight, Bookmark } from "lucide-react";
+import { PageIntro } from "@/components/ui/signature-art";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -59,13 +62,9 @@ export default async function SavedPage() {
   ].sort((a, b) => b.savedAtMs - a.savedAtMs);
 
   return (
-    <div className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-6">
-      <header className="mb-5">
-        <h1 className="text-2xl font-semibold text-[var(--text-primary)]">Saved</h1>
-        <p className="mt-1 text-sm text-[var(--text-secondary)]">
-          Everything you bookmarked — from mesh.me and every platform — in one list.
-        </p>
-      </header>
+    <div className="social-page social-saved mx-auto w-full max-w-3xl px-4 py-6 sm:px-6">
+      <PageIntro className="social-page-intro" heading="h1" eyebrow="Your collection" title="Worth keeping." description="The posts, links, and moments you saved for later." action={<Link href="/explore" className="mesh-action px-4 text-sm">Find something new <ArrowUpRight size={15} aria-hidden="true" /></Link>} />
+      <div className="social-section-heading"><span><Bookmark size={15} aria-hidden="true" /> Saved</span><span>Newest first</span></div>
       <SavedList initial={rows} />
     </div>
   );

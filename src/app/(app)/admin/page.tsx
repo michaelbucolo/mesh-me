@@ -249,16 +249,16 @@ export default async function AdminPage() {
       : 100;
 
   return (
-    <main data-meshi-zone="admin" className="mx-auto w-full max-w-7xl px-3 py-4 sm:px-6">
-      <header className="mesh-surface rounded-[28px] border border-[var(--ds-border)] p-4 shadow-[var(--shadow-soft)] sm:p-6">
+    <main data-meshi-zone="admin" className="personal-studio personal-admin mx-auto w-full max-w-7xl px-3 py-4 sm:px-6">
+      <header className="personal-page-heading mesh-surface rounded-[28px] border border-[var(--ds-border)] p-4 shadow-[var(--shadow-soft)] sm:p-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div className="flex items-start gap-4">
             <div className="grid h-14 w-14 place-items-center rounded-2xl bg-[var(--accent-subtle)]">
               <MeshiLogo size={38} color="blue" mood="happy" />
             </div>
             <div>
-              <Badge variant="accent" className="mb-2">Role-gated admin</Badge>
-              <h1 className="text-3xl font-semibold tracking-[0] text-[var(--text-primary)]">Admin Panel</h1>
+              <Badge variant="accent" className="mb-2">Administration</Badge>
+              <h1 className="personal-display-title text-3xl font-semibold tracking-[0] text-[var(--text-primary)]">Keep the Mesh in good shape.</h1>
               <p className="mt-1 max-w-3xl text-sm leading-6 text-[var(--text-secondary)]">
                 Manage users, reports, communities, security alerts, analytics, and public launch readiness from one place.
               </p>
@@ -284,7 +284,7 @@ export default async function AdminPage() {
         </div>
       </header>
 
-      <section className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <section className="personal-metrics mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard label="Users" value={data.counts.users} detail={`+${data.counts.recentSignups} this week`} icon={Users} />
         <MetricCard label="Posts" value={data.counts.posts} detail={`+${data.counts.recentPosts} this week`} icon={BarChart3} />
         <MetricCard label="Communities" value={data.counts.communities} detail={`${data.counts.publicCommunities} public, ${data.counts.privateCommunities} private`} icon={RadioTower} />

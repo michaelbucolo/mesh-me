@@ -75,7 +75,7 @@ export function SupportTicketForm() {
   }
 
   return (
-    <form ref={formRef} onSubmit={handleSubmit} className="rounded-3xl border border-[var(--glass-card-border)] bg-[var(--glass-card-bg)] p-4 shadow-[var(--shadow-sm)] sm:p-5">
+    <form ref={formRef} onSubmit={handleSubmit} className="public-support-form public-panel p-4 sm:p-6">
       <div className="mb-5 flex items-start gap-3">
         <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-[var(--accent)] text-[var(--accent-contrast)] shadow-[var(--shadow-sm)]">
           <LifeBuoy className="h-5 w-5" aria-hidden="true" />

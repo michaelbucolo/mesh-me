@@ -10,6 +10,9 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
+import Link from "next/link";
+import { CalendarClock } from "lucide-react";
+import { EmptyState } from "@/components/ui/empty-state";
 import { PlatformLogo } from "@/components/platform/platform-logo";
 import { ruleFor } from "@/lib/compose/plan";
 import type { PublishReport } from "@/lib/compose/publish";
@@ -23,10 +26,10 @@ import {
   sendScheduledNow,
 } from "@/lib/compose/schedule-actions";
 
-const INK = "#f2f4f8";
-const INK_DIM = "#8b93a7";
-const BRAND = "#3b82f6";
-const WARN = "#f87171";
+const INK = "var(--text-primary)";
+const INK_DIM = "var(--text-secondary)";
+const BRAND = "var(--accent)";
+const WARN = "var(--danger)";
 
 export type QueueRow = {
   id: string;
@@ -90,17 +93,15 @@ export function QueueView({ rows, reachable }: { rows: QueueRow[]; reachable: st
   }
 
   return (
-    <div className="mt-4">
+    <div className="studio-queue mt-4">
       {notice && (
-        <p className="mb-3 rounded-xl px-3.5 py-2.5 text-sm" style={{ background: "#0e1626", border: "1px solid #ffffff14", color: INK }}>
+        <p className="mb-3 rounded-xl px-3.5 py-2.5 text-sm" style={{ background: "var(--paper-1)", border: "1px solid var(--edge)", color: INK }}>
           {notice}
         </p>
       )}
 
       {upcoming.length === 0 && past.length === 0 && (
-        <p className="text-sm" style={{ color: INK_DIM }}>
-          Nothing waiting. Write something and give it a time.
-        </p>
+        <EmptyState icon={CalendarClock} title="A little room for what's next" description="Scheduled posts appear here with their delivery status." ><Link href="/compose" className="mesh-action mesh-action-primary">Compose a post</Link></EmptyState>
       )}
 
       {upcoming.length > 0 && (
@@ -110,7 +111,7 @@ export function QueueView({ rows, reachable }: { rows: QueueRow[]; reachable: st
             {upcoming.map((row) => {
               const willSkip = row.targets.filter((t) => !reachableSet.has(t));
               return (
-                <li key={row.id} className="rounded-xl px-3.5 py-3" data-testid="queue-upcoming" style={{ background: "#0e1626", border: "1px solid #ffffff14" }}>
+                <li key={row.id} className="rounded-xl px-3.5 py-3" data-testid="queue-upcoming" style={{ background: "var(--paper-1)", border: "1px solid var(--edge)" }}>
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="font-medium" style={{ color: INK, fontSize: 14 }}>
                       {spokenTime(row.scheduledForIso)}
@@ -158,7 +159,7 @@ export function QueueView({ rows, reachable }: { rows: QueueRow[]; reachable: st
                             setConfirmCancelId(null);
                           }}
                           className="rounded-full px-3 py-1.5 font-medium"
-                          style={{ background: "#ffffff0f", color: INK, fontSize: 12.5 }}
+                          style={{ background: "var(--paper-2)", color: INK, fontSize: 12.5 }}
                         >
                           Edit
                         </button>
@@ -172,7 +173,7 @@ export function QueueView({ rows, reachable }: { rows: QueueRow[]; reachable: st
                           setConfirmCancelId(null);
                         }}
                         className="rounded-full px-3 py-1.5 font-medium"
-                        style={{ background: "#ffffff0f", color: INK, fontSize: 12.5 }}
+                        style={{ background: "var(--paper-2)", color: INK, fontSize: 12.5 }}
                       >
                         Reschedule
                       </button>
@@ -181,7 +182,7 @@ export function QueueView({ rows, reachable }: { rows: QueueRow[]; reachable: st
                         disabled={isPending}
                         onClick={() => run(() => sendScheduledNow(row.id))}
                         className="rounded-full px-3 py-1.5 font-medium"
-                        style={{ background: "#ffffff0f", color: INK, fontSize: 12.5 }}
+                        style={{ background: "var(--paper-2)", color: INK, fontSize: 12.5 }}
                       >
                         Send now
                       </button>
@@ -191,7 +192,7 @@ export function QueueView({ rows, reachable }: { rows: QueueRow[]; reachable: st
                           disabled={isPending}
                           onClick={() => run(() => cancelScheduled(row.id), () => setConfirmCancelId(null))}
                           className="rounded-full px-3 py-1.5 font-semibold"
-                          style={{ background: `${WARN}22`, color: WARN, fontSize: 12.5 }}
+                          style={{ background: "var(--ds-danger-bg)", color: WARN, fontSize: 12.5 }}
                         >
                           Really cancel?
                         </button>
@@ -217,7 +218,7 @@ export function QueueView({ rows, reachable }: { rows: QueueRow[]; reachable: st
                         rows={3}
                         aria-label="Edit this post"
                         className="w-full resize-y rounded-lg px-2.5 py-2 outline-none"
-                        style={{ background: "#070b14", border: "1px solid #ffffff14", color: INK, fontSize: 13.5, lineHeight: 1.5 }}
+                        style={{ background: "var(--paper-0)", border: "1px solid var(--edge)", color: INK, fontSize: 13.5, lineHeight: 1.5 }}
                       />
                       <button
                         type="button"
@@ -229,7 +230,7 @@ export function QueueView({ rows, reachable }: { rows: QueueRow[]; reachable: st
                           )
                         }
                         className="mt-1.5 rounded-full px-3 py-1.5 font-semibold disabled:opacity-40"
-                        style={{ background: BRAND, color: "#04060c", fontSize: 12.5 }}
+                        style={{ background: BRAND, color: "var(--accent-ink)", fontSize: 12.5 }}
                       >
                         Save changes
                       </button>
@@ -243,7 +244,7 @@ export function QueueView({ rows, reachable }: { rows: QueueRow[]; reachable: st
                         onChange={(e) => setWhenLocal(e.target.value)}
                         aria-label="New time for this post"
                         className="rounded-lg px-2.5 py-1.5 outline-none"
-                        style={{ background: "#070b14", border: "1px solid #ffffff14", color: INK, fontSize: 13, colorScheme: "dark", minHeight: 44 }}
+                        style={{ background: "var(--paper-0)", border: "1px solid var(--edge)", color: INK, fontSize: 13, minHeight: 44 }}
                       />
                       <button
                         type="button"
@@ -255,7 +256,7 @@ export function QueueView({ rows, reachable }: { rows: QueueRow[]; reachable: st
                           )
                         }
                         className="rounded-full px-3 py-1.5 font-semibold disabled:opacity-40"
-                        style={{ background: BRAND, color: "#04060c", fontSize: 12.5 }}
+                        style={{ background: BRAND, color: "var(--accent-ink)", fontSize: 12.5 }}
                       >
                         Move it
                       </button>
@@ -278,7 +279,7 @@ export function QueueView({ rows, reachable }: { rows: QueueRow[]; reachable: st
                 new Date(row.firedAtIso).getTime() - new Date(row.scheduledForIso).getTime() > 90_000;
               const failedLegs = row.report?.outcomes.some((o) => o.state === "failed") ?? false;
               return (
-                <li key={row.id} className="rounded-xl px-3.5 py-3" data-testid="queue-past" style={{ background: "#0e1626", border: "1px solid #ffffff14" }}>
+                <li key={row.id} className="rounded-xl px-3.5 py-3" data-testid="queue-past" style={{ background: "var(--paper-1)", border: "1px solid var(--edge)" }}>
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="font-medium" style={{ color: INK, fontSize: 14 }}>
                       {spokenTime(row.scheduledForIso)}
@@ -302,7 +303,7 @@ export function QueueView({ rows, reachable }: { rows: QueueRow[]; reachable: st
                         type="button"
                         onClick={() => setOpenReportId(openReportId === row.id ? null : row.id)}
                         className="rounded-full px-3 py-1.5 font-medium"
-                        style={{ background: "#ffffff0f", color: INK, fontSize: 12.5 }}
+                        style={{ background: "var(--paper-2)", color: INK, fontSize: 12.5 }}
                       >
                         {openReportId === row.id ? "Close report" : "Report"}
                       </button>
@@ -316,7 +317,7 @@ export function QueueView({ rows, reachable }: { rows: QueueRow[]; reachable: st
                           setWhenLocal("");
                         }}
                         className="rounded-full px-3 py-1.5 font-medium"
-                        style={{ background: "#ffffff0f", color: INK, fontSize: 12.5 }}
+                        style={{ background: "var(--paper-2)", color: INK, fontSize: 12.5 }}
                       >
                         Reschedule
                       </button>
@@ -327,7 +328,7 @@ export function QueueView({ rows, reachable }: { rows: QueueRow[]; reachable: st
                         disabled={isPending}
                         onClick={() => run(() => retryFailedLegs(row.id))}
                         className="rounded-full px-3 py-1.5 font-medium"
-                        style={{ background: "#ffffff0f", color: INK, fontSize: 12.5 }}
+                        style={{ background: "var(--paper-2)", color: INK, fontSize: 12.5 }}
                       >
                         Retry failed
                       </button>
@@ -357,7 +358,7 @@ export function QueueView({ rows, reachable }: { rows: QueueRow[]; reachable: st
                         onChange={(e) => setWhenLocal(e.target.value)}
                         aria-label="New time for this post"
                         className="rounded-lg px-2.5 py-1.5 outline-none"
-                        style={{ background: "#070b14", border: "1px solid #ffffff14", color: INK, fontSize: 13, colorScheme: "dark", minHeight: 44 }}
+                        style={{ background: "var(--paper-0)", border: "1px solid var(--edge)", color: INK, fontSize: 13, minHeight: 44 }}
                       />
                       <button
                         type="button"
@@ -369,7 +370,7 @@ export function QueueView({ rows, reachable }: { rows: QueueRow[]; reachable: st
                           )
                         }
                         className="rounded-full px-3 py-1.5 font-semibold disabled:opacity-40"
-                        style={{ background: BRAND, color: "#04060c", fontSize: 12.5 }}
+                        style={{ background: BRAND, color: "var(--accent-ink)", fontSize: 12.5 }}
                       >
                         Queue it again
                       </button>

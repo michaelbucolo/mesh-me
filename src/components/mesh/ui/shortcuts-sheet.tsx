@@ -40,7 +40,7 @@ export function MeshShortcutsSheet({
       <div
         role="dialog"
         aria-label="Help and keyboard shortcuts"
-        className={`w-full max-w-sm ${closing ? "animate-[bubbleOut_.16s_var(--mesh-ease-press)_both]" : "animate-[bubbleIn_.36s_var(--mesh-ease-out)]"} rounded-2xl mesh-panel p-5 shadow-2xl`}
+        className={`presence-world-shortcuts w-full max-w-sm ${closing ? "animate-[bubbleOut_.16s_var(--mesh-ease-press)_both]" : "animate-[bubbleIn_.36s_var(--mesh-ease-out)]"} rounded-2xl mesh-panel p-5 shadow-2xl`}
         onPointerDown={(e) => e.stopPropagation()}
       >
         <div className="mb-2 flex items-start justify-between">
