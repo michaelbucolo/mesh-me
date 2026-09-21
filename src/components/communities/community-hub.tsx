@@ -2,10 +2,11 @@
 
 import Image from "next/image";
 import { PageIntro } from "@/components/ui/signature-art";
+import { EmptyState } from "@/components/ui/empty-state";
 import Link from "next/link";
 import { useRef, useState, type CSSProperties } from "react";
 import { motion, useReducedMotion } from "framer-motion";
-import { ArrowLeft, ArrowRight, Eye, Lock, Plus, ShieldCheck } from "lucide-react";
+import { ArrowLeft, ArrowRight, Eye, Lock, Plus, ShieldCheck, UsersRound } from "lucide-react";
 import type { getCommunitiesHubData } from "@/lib/community-hub";
 import { formatCount, formatRelativeTime } from "@/lib/utils";
 import { SPRING_PANEL } from "@/lib/motion";
@@ -142,10 +143,10 @@ export function CommunityHub({ data }: { data: CommunitiesHubData }) {
     ? dedupedCommunities
     : dedupedCommunities.filter((c) => c.category?.toLowerCase() === activeCategory.toLowerCase());
 
-  const selectedCommunity = dedupedCommunities.find((c) => c.id === selectedId) ?? featured[0] ?? null;
+  const selectedCommunity = dedupedCommunities.find((c) => c.id === selectedId) ?? featured[0] ?? dedupedCommunities[0] ?? null;
 
   return (
-    <div className="social-page social-community-hub mx-auto grid w-full max-w-7xl gap-6 px-4 py-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+    <div className={`social-page social-community-hub mx-auto grid w-full max-w-7xl gap-6 px-4 py-6 ${selectedCommunity ? "xl:grid-cols-[minmax(0,1fr)_320px]" : "grid-cols-1"}`}>
       {/* Main column */}
       <div className="min-w-0 space-y-6">
         {/* THE FRONT DOOR THIS SURFACE DID NOT HAVE.
@@ -158,8 +159,12 @@ export function CommunityHub({ data }: { data: CommunitiesHubData }) {
         <PageIntro className="social-page-intro" heading="h1" eyebrow="Better together" title="Find your circle." description="Shared interests. Familiar faces. A place to belong."
           action={<Link href="/communities/create" className="mesh-action mesh-action-primary px-4 text-sm"><Plus size={16} aria-hidden="true" />Create a community</Link>} />
 
+        {dedupedCommunities.length === 0 ? (
+          <EmptyState icon={UsersRound} title="Make the first connection." description="Create a community for your people, your interests, or something you want to build together." />
+        ) : (
+        <>
         {/* Featured communities carousel */}
-        <section>
+        {featured.length > 0 && <section>
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-lg font-semibold text-[var(--mesh-text)]">Featured communities</h2>
             <div className="flex items-center gap-2">
@@ -196,10 +201,10 @@ export function CommunityHub({ data }: { data: CommunitiesHubData }) {
               <FeaturedCard key={community.id} community={community} />
             ))}
           </div>
-        </section>
+        </section>}
 
         {/* Category tabs */}
-        <div className="flex flex-wrap items-center gap-2">
+        {categoryTabs.length > 1 && <div className="flex flex-wrap items-center gap-2">
           {categoryTabs.map((cat) => {
             const active = activeCategory === cat;
             return (
@@ -226,7 +231,7 @@ export function CommunityHub({ data }: { data: CommunitiesHubData }) {
               </motion.button>
             );
           })}
-        </div>
+        </div>}
 
         {/* All communities directory */}
         <section id="community-directory">
@@ -249,9 +254,9 @@ export function CommunityHub({ data }: { data: CommunitiesHubData }) {
                 />
               ))
             ) : (
-              <div className="rounded-2xl border border-dashed border-[var(--mesh-border)] px-6 py-10 text-center">
-                <p className="text-sm text-[var(--mesh-text-muted)]">No communities found in this category.</p>
-              </div>
+              <EmptyState icon={UsersRound} title="No communities in this category." description="Try another interest to find your people." compact>
+                <button type="button" onClick={() => setActiveCategory("All")} className="mesh-action px-4 text-sm">Show all communities</button>
+              </EmptyState>
             )}
           </div>
           {filteredCommunities.length > 0 && (
@@ -261,6 +266,8 @@ export function CommunityHub({ data }: { data: CommunitiesHubData }) {
             </p>
           )}
         </section>
+        </>
+        )}
       </div>
 
       {/* Right detail panel */}
