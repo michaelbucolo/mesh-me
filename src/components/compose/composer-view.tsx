@@ -163,7 +163,7 @@ export function ComposerView({ targets, queueCount = 0 }: { targets: ComposerTar
           placeholder="Title"
           data-testid="composer-title"
           className="mt-5 w-full rounded-xl px-3.5 py-2.5 outline-none"
-          style={{ background: "var(--paper-1)", border: "1px solid var(--edge)", color: INK, fontSize: 15 }}
+          style={{ background: "var(--paper-1)", border: "1px solid var(--edge)", color: INK, fontSize: 16 }}
         />
       )}
 
@@ -175,7 +175,7 @@ export function ComposerView({ targets, queueCount = 0 }: { targets: ComposerTar
         rows={6}
         data-testid="composer-text"
         className="mt-3 w-full resize-y rounded-xl px-3.5 py-3 outline-none"
-        style={{ background: "var(--paper-1)", border: "1px solid var(--edge)", color: INK, fontSize: 15.5, lineHeight: 1.5 }}
+        style={{ background: "var(--paper-1)", border: "1px solid var(--edge)", color: INK, fontSize: 16, lineHeight: 1.5 }}
       />
 
       <div className="mt-2 flex items-center justify-between">
@@ -336,7 +336,7 @@ export function ComposerView({ targets, queueCount = 0 }: { targets: ComposerTar
               aria-label="Pick a time"
               data-testid="composer-schedule-when"
               className="rounded-lg px-2.5 py-1.5 outline-none"
-              style={{ background: "var(--paper-0)", border: "1px solid var(--edge)", color: INK, fontSize: 13, minHeight: 44 }}
+              style={{ background: "var(--paper-0)", border: "1px solid var(--edge)", color: INK, fontSize: 16, minHeight: 44 }}
             />
           </div>
           <div className="mt-2.5 flex items-center gap-3">

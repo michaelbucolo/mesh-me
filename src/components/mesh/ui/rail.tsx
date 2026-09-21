@@ -15,26 +15,26 @@ function RailButton({
   label,
   onClick,
   children,
+  primary = false,
 }: {
   label: string;
   onClick: (e: React.MouseEvent<HTMLButtonElement>) => void;
   children: React.ReactNode;
+  primary?: boolean;
 }) {
   return (
     <button
       type="button"
       aria-label={label}
+      title={label}
+      data-primary={primary || undefined}
       onClick={onClick}
       onPointerDown={(e) => e.stopPropagation()}
-      // A labeled control, not a mystery icon: on touch the label is always
-      // shown (no hover to reveal it); with a mouse it stays a tidy icon that
-      // expands its label on hover/focus. Comfortable 44px touch target.
-      // `pointer-events-auto` re-arms this child under the container's
-      // `pointer-events-none` (see the toolbar wrapper).
-      className="pointer-events-auto mesh-rail-btn mesh-glass mesh-ctl ds-focus-ring flex h-11 items-center rounded-full px-3 text-[var(--text-secondary)]"
+      // The tooltip stays outside the 44px hit target; the accessible name is always present.
+      className="pointer-events-auto mesh-rail-btn ds-focus-ring"
     >
       <span className="flex h-5 w-5 shrink-0 items-center justify-center">{children}</span>
-      <span className="mesh-rail-label text-xs font-medium">{label}</span>
+      <span aria-hidden="true" className="mesh-rail-label">{label}</span>
     </button>
   );
 }
@@ -62,16 +62,17 @@ function RailLink({
     <Link
       href={href}
       aria-label={label}
+      title={label}
       // The canvas underneath treats a pointerdown as the start of a drag. Every
       // other rail control stops it for the same reason: without this, reaching
       // for the rail pans the world out from under you.
       onPointerDown={(e) => e.stopPropagation()}
       // `pointer-events-auto` re-arms this child under the container's
       // `pointer-events-none` (see the toolbar wrapper).
-      className="pointer-events-auto mesh-rail-btn mesh-glass mesh-ctl ds-focus-ring flex h-11 items-center rounded-full px-3 text-[var(--text-secondary)]"
+      className="pointer-events-auto mesh-rail-btn ds-focus-ring"
     >
       <span className="flex h-5 w-5 shrink-0 items-center justify-center">{children}</span>
-      <span className="mesh-rail-label text-xs font-medium">{label}</span>
+      <span aria-hidden="true" className="mesh-rail-label">{label}</span>
     </Link>
   );
 }
@@ -120,10 +121,10 @@ export function MeshRail({
       // pointer events, so nodes and hovers behind the empty space were dead.
       // `pointer-events-none` here hands those events back to the canvas; each
       // interactive child re-arms hit-testing with `pointer-events-auto`.
-      className="presence-world-tools pointer-events-none absolute right-3 top-1/2 z-30 flex -translate-y-1/2 flex-col items-end gap-2"
+      className="presence-world-tools pointer-events-none absolute right-3 top-1/2 z-30 -translate-y-1/2"
     >
       {canCompose && (
-        <RailButton label={copy.composeLabel} onClick={onCompose}>
+        <RailButton label={copy.composeLabel} onClick={onCompose} primary>
           <PenLine size={16} />
         </RailButton>
       )}

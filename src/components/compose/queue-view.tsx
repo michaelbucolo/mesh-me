@@ -218,7 +218,7 @@ export function QueueView({ rows, reachable }: { rows: QueueRow[]; reachable: st
                         rows={3}
                         aria-label="Edit this post"
                         className="w-full resize-y rounded-lg px-2.5 py-2 outline-none"
-                        style={{ background: "var(--paper-0)", border: "1px solid var(--edge)", color: INK, fontSize: 13.5, lineHeight: 1.5 }}
+                        style={{ background: "var(--paper-0)", border: "1px solid var(--edge)", color: INK, fontSize: 16, lineHeight: 1.5 }}
                       />
                       <button
                         type="button"
@@ -244,7 +244,7 @@ export function QueueView({ rows, reachable }: { rows: QueueRow[]; reachable: st
                         onChange={(e) => setWhenLocal(e.target.value)}
                         aria-label="New time for this post"
                         className="rounded-lg px-2.5 py-1.5 outline-none"
-                        style={{ background: "var(--paper-0)", border: "1px solid var(--edge)", color: INK, fontSize: 13, minHeight: 44 }}
+                        style={{ background: "var(--paper-0)", border: "1px solid var(--edge)", color: INK, fontSize: 16, minHeight: 44 }}
                       />
                       <button
                         type="button"
@@ -358,7 +358,7 @@ export function QueueView({ rows, reachable }: { rows: QueueRow[]; reachable: st
                         onChange={(e) => setWhenLocal(e.target.value)}
                         aria-label="New time for this post"
                         className="rounded-lg px-2.5 py-1.5 outline-none"
-                        style={{ background: "var(--paper-0)", border: "1px solid var(--edge)", color: INK, fontSize: 13, minHeight: 44 }}
+                        style={{ background: "var(--paper-0)", border: "1px solid var(--edge)", color: INK, fontSize: 16, minHeight: 44 }}
                       />
                       <button
                         type="button"

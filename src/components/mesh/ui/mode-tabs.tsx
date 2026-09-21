@@ -24,7 +24,6 @@ export function MeshModeTabs({
   // the prefetch keeps URL parity, and back/refresh behave.
   return (
     <div className="presence-world-mode absolute left-1/2 top-20 z-30 -translate-x-1/2">
-      <p className="presence-kicker">{isGlobal ? "An interconnected world" : "Your world, your way"}</p>
       <div className="presence-world-switch mesh-glass flex items-center gap-1 rounded-full p-1" role="group" aria-label="Choose a mesh">
       <button
         type="button"

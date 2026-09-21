@@ -14,15 +14,23 @@ interface ModalProps {
   title?: string;
   description?: string;
   initialFocusRef?: RefObject<HTMLElement | null>;
+  returnFocusRef?: RefObject<HTMLElement | null>;
 }
 
-export function Modal({ open, onClose, children, className, title, description, initialFocusRef }: ModalProps) {
+export function Modal({ open, onClose, children, className, title, description, initialFocusRef, returnFocusRef }: ModalProps) {
   return (
     <Dialog.Root open={open} onOpenChange={(nextOpen) => (!nextOpen ? onClose() : undefined)}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-[var(--bg-overlay)] backdrop-blur-sm data-[state=open]:animate-fade-in data-[state=closed]:animate-[fadeOut_0.16s_var(--mesh-ease-press)_both]" />
         <Dialog.Content
           {...(description ? {} : { "aria-describedby": undefined })}
+          onCloseAutoFocus={(event) => {
+            const target = returnFocusRef?.current;
+            if (target?.isConnected && target.getClientRects().length > 0) {
+              event.preventDefault();
+              target.focus();
+            }
+          }}
           onOpenAutoFocus={(event) => {
             if (initialFocusRef?.current) {
               event.preventDefault();

@@ -198,15 +198,74 @@
 
 /* World controls form one navigable instrument instead of a stack of floating pills. */
 .mesh-experience .presence-world-mode { top: 5rem; text-align: center; }
-.mesh-experience .presence-world-mode > p { margin-bottom: 0.625rem; }
 .mesh-experience .presence-world-switch { padding: 0.3rem; border-radius: 1rem; border: 1px solid var(--rule); background: var(--paper-1); box-shadow: 0 4px 18px color-mix(in srgb, var(--text-primary) 5%, transparent); }
 .mesh-experience .presence-world-switch button { display: inline-flex; min-height: 2.5rem; align-items: center; justify-content: center; gap: 0.5rem; padding-inline: 1.125rem; border-radius: 0.75rem; font-size: 0.8125rem; }
 .mesh-experience .presence-world-switch button[aria-pressed="true"] { background: var(--paper-3); color: var(--text-primary); box-shadow: none; }
-.mesh-experience .presence-world-tools { gap: 0.3125rem; right: 1.125rem; }
-.mesh-experience .presence-world-tools .mesh-rail-btn { min-width: 2.75rem; height: 2.75rem; border-radius: 0.9375rem; background: var(--paper-1); border: 1px solid var(--rule); box-shadow: none; }
+.mesh-experience .presence-world-tools {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.125rem;
+  right: 1.125rem;
+  width: 3.5rem;
+  padding: 0.3125rem;
+  border: 1px solid var(--rule);
+  border-radius: 1.25rem;
+  background: var(--paper-1);
+  box-shadow: 0 4px 24px color-mix(in srgb, var(--text-primary) 7%, transparent);
+}
+.mesh-experience .presence-world-tools .mesh-rail-btn {
+  position: relative;
+  display: flex;
+  width: 2.75rem;
+  min-width: 2.75rem;
+  height: 2.75rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  border-radius: 0.875rem;
+  background: transparent;
+  color: var(--text-secondary);
+  box-shadow: none;
+  transition: background-color 140ms, color 140ms;
+}
 .mesh-experience .presence-world-tools .mesh-rail-btn:hover,
 .mesh-experience .presence-world-tools .mesh-rail-btn:focus-visible { background: var(--paper-2); color: var(--text-primary); }
-.mesh-experience .presence-tool-divider { width: 1.5rem; height: 1px; margin: 0.125rem 0.625rem; background: var(--rule); }
+.mesh-experience .presence-world-tools .mesh-rail-btn[data-primary="true"] { background: var(--accent); color: var(--accent-ink); }
+.mesh-experience .presence-world-tools .mesh-rail-label {
+  position: absolute;
+  right: calc(100% + 0.875rem);
+  top: 50%;
+  translate: 0 -50%;
+  width: max-content;
+  max-width: min(16rem, calc(100vw - 7rem));
+  padding: 0.625rem 0.875rem;
+  border: 1px solid var(--rule);
+  border-radius: 0.75rem;
+  background: var(--paper-1);
+  color: var(--text-primary);
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.4;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 120ms, visibility 120ms;
+}
+.mesh-experience .presence-world-tools .mesh-rail-btn:hover .mesh-rail-label,
+.mesh-experience .presence-world-tools .mesh-rail-btn:focus-visible .mesh-rail-label { opacity: 1; visibility: visible; }
+.mesh-experience .presence-tool-divider { width: 1.5rem; height: 1px; margin: 0.1875rem 0; background: var(--rule); }
+@media (max-height: 650px) {
+  .mesh-experience .presence-world-tools { display: grid; grid-template-columns: repeat(2, 2.75rem); width: auto; gap: 0.25rem; }
+  .mesh-experience .presence-tool-divider { display: none; }
+  .mesh-experience .presence-world-tools .mesh-rail-label { right: calc(100% + 0.625rem); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mesh-experience .presence-world-tools .mesh-rail-btn,
+  .mesh-experience .presence-world-tools .mesh-rail-label { transition: none; }
+}
 .mesh-experience .presence-world-visiting { max-width: calc(100% - 5rem); flex-wrap: wrap; }
 .mesh-experience .presence-world-welcome { padding: 1.75rem; border-radius: 1.75rem; }
 .mesh-experience .presence-world-welcome .presence-empty-symbol { margin-bottom: 1rem; }
@@ -265,7 +324,6 @@
   .mesh-experience .presence-inbox > header { padding: 1.25rem 1rem; }
   .mesh-experience .presence-inbox [data-testid="inbox-list"] { padding-inline: 1rem; }
   .mesh-experience .presence-world-mode { top: 4.5rem; }
-  .mesh-experience .presence-world-mode > p { display: none; }
   .mesh-experience .presence-world-switch button { min-height: 2.25rem; padding-inline: 0.875rem; font-size: 0.75rem; }
   .mesh-experience .presence-world-tools { right: 0.75rem; }
   .mesh-experience .presence-world-tools .mesh-rail-btn { border-radius: 0.875rem; }
