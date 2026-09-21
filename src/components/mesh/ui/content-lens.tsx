@@ -101,16 +101,29 @@ export function ContentLens({
     el.muted = true;
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)");
     let disposed = false;
+    let resumeOnVisible = false;
     const syncPlayback = () => {
       if (!document.hidden && !reduce.matches) {
         void el.play().then(() => { if (disposed || document.hidden || reduce.matches) el.pause(); }).catch(() => {});
       } else el.pause();
     };
     syncPlayback();
-    const pauseHidden = () => { if (document.hidden || reduce.matches) el.pause(); };
-    document.addEventListener("visibilitychange", pauseHidden);
-    reduce.addEventListener("change", pauseHidden);
-    return () => { disposed = true; document.removeEventListener("visibilitychange", pauseHidden); reduce.removeEventListener("change", pauseHidden); el.pause(); };
+    const onVisibilityChange = () => {
+      if (document.hidden) {
+        resumeOnVisible = !el.paused;
+        el.pause();
+      } else if (resumeOnVisible) {
+        resumeOnVisible = false;
+        syncPlayback();
+      }
+    };
+    const onMotionChange = () => {
+      resumeOnVisible = false;
+      if (reduce.matches) el.pause();
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    reduce.addEventListener("change", onMotionChange);
+    return () => { disposed = true; document.removeEventListener("visibilitychange", onVisibilityChange); reduce.removeEventListener("change", onMotionChange); el.pause(); };
   }, [node.videoUrl]);
 
   // Fullscreen happens INSIDE mesh.me — like the Flow, we request it on OUR
