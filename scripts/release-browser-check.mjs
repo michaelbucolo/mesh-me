@@ -14,9 +14,8 @@ assert(!process.env.DATABASE_AUTH_TOKEN && !process.env.VERCEL, "Hosted credenti
 assert.equal(process.env.MESH_BROWSER_FIXTURE, "local-seed", "Explicit local-seed fixture acknowledgement is required");
 const engine = process.env.MESH_BROWSER || "chromium";
 assert(["chromium", "webkit"].includes(engine), "Unsupported browser engine");
-// Chromium service-worker installation does not inherit context-level TLS
-// exceptions. Trust this run's ephemeral fixture certificate by public-key
-// fingerprint, not a blanket ignore-certificate-errors browser switch.
+// Trust only this run's ephemeral fixture certificate for Chromium workers.
+// WebKit's networking processes use the runner's installed fixture CA.
 const fixtureSpki = process.env.MESH_BROWSER_CERT_SPKI;
 assert(fixtureSpki && /^[A-Za-z0-9+/]{43}=$/.test(fixtureSpki), "Ephemeral fixture certificate fingerprint required");
 const playwright = await import("playwright");
@@ -25,7 +24,7 @@ const output = path.resolve("browser-results", engine);
 await fs.mkdir(output, { recursive: true });
 const results = [];
 const runtimeErrors = [];
-const injectedPaths = new WeakMap();
+const networks = new WeakMap();
 const origin = base.origin;
 const viewports = [
   ["small-phone", { width: 320, height: 568 }],
@@ -36,26 +35,34 @@ const viewports = [
 const routes = ["/mesh", "/feed", "/flow", "/messages", "/notifications", "/profile/jordandev", "/settings", "/privacy-controls", "/connected-accounts", "/meshpro", "/search", "/communities", "/saved", "/analytics", "/meshimap"];
 
 async function context(options) {
-  // This exception trusts our ephemeral self-signed loopback fixture, never
-  // a hosted target (the strict origin guard above runs first).
   const value = await browser.newContext({ ignoreHTTPSErrors: true, ...options });
   value.setDefaultTimeout(15000);
   return value;
 }
 
 function observe(page, label) {
+  const network = { pending: new Set(), updated: Date.now() };
+  networks.set(page, network);
+  page.on("request", (request) => {
+    const url = new URL(request.url());
+    if (url.origin !== origin || url.pathname.endsWith("/stream")) return;
+    if (!["document", "script", "stylesheet", "fetch", "xhr"].includes(request.resourceType())) return;
+    network.pending.add(request);
+    network.updated = Date.now();
+  });
+  const finish = (request) => {
+    if (network.pending.delete(request)) network.updated = Date.now();
+  };
+  page.on("requestfinished", finish);
+  page.on("requestfailed", finish);
   page.on("pageerror", (error) => runtimeErrors.push({ label, route: new URL(page.url()).pathname, message: error.message }));
   page.on("console", (message) => {
     if (message.type() !== "error") return;
     const text = message.text();
     if (/Permissions policy violation/.test(text)) return; // Intentionally disabled device features.
-    // WebKit reports this progressive-enhancement advisory as console.error.
     if (engine === "webkit" && text === 'Viewport argument key "interactive-widget" not recognized and ignored.') return;
     const source = message.location().url;
-    if (/Failed to load resource/.test(text)) {
-      if (source && !source.startsWith(origin)) return; // Third-party seed image, not application JavaScript.
-      if (source && /503/.test(text) && injectedPaths.get(page)?.has(new URL(source).pathname)) return; // Explicitly injected failure only.
-    }
+    if (/Failed to load resource/.test(text) && source && !source.startsWith(origin)) return; // Third-party seed image only.
     runtimeErrors.push({ label, route: new URL(page.url()).pathname, message: text });
   });
 }
@@ -84,8 +91,14 @@ async function layout(page) {
 
 async function settle(page) {
   await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
-  // Observe post-hydration effects and deferred client components, not just SSR.
   await page.waitForTimeout(350);
+  // Give deferred chunks and finite prefetches a quiet window before leaving
+  // the page. Do not use networkidle: live presence streams remain open.
+  const network = networks.get(page);
+  const deadline = Date.now() + 3000;
+  while (network && Date.now() < deadline && (network.pending.size || Date.now() - network.updated < 200)) {
+    await page.waitForTimeout(50);
+  }
 }
 
 async function visit(page, route, authenticated = false) {
@@ -118,58 +131,54 @@ async function visit(page, route, authenticated = false) {
 }
 
 async function submitTwiceWithFault(page, form, alertText) {
-  let calls = 0;
-  let release;
-  let received;
-  let timer;
-  const gate = new Promise((resolve) => { release = resolve; });
-  const intercepted = new Promise((resolve) => { received = resolve; });
-  const matcher = `${origin}/**`;
-  const paths = new Set();
-  const interceptor = async (route) => {
-    const request = route.request();
-    if (request.method() !== "POST" || !request.headers()["next-action"]) return route.continue();
-    calls += 1;
-    paths.add(new URL(request.url()).pathname);
-    received();
-    await gate;
-    await route.fulfill({ status: 503, contentType: "text/plain", body: "Injected local test failure" });
-  };
-  injectedPaths.set(page, paths);
-  await page.route(matcher, interceptor);
+  // Reject the actual client fetch promise, before service-worker interception
+  // or browser-level HTTP retries. Count application submissions, not the
+  // engine's transparent retries of an injected 503. No payloads are recorded.
+  await page.evaluate(() => {
+    if (window.__meshBrowserFault) throw new Error("Previous fetch fixture was not restored");
+    const original = window.fetch;
+    let release;
+    const gate = new Promise((resolve) => { release = resolve; });
+    const state = { calls: 0, release, restore: () => { window.fetch = original; } };
+    window.__meshBrowserFault = state;
+    window.fetch = async (input, init) => {
+      const request = input instanceof Request ? input : null;
+      const url = new URL(request ? request.url : String(input), window.location.href);
+      const method = (init?.method || request?.method || "GET").toUpperCase();
+      const headers = new Headers(init?.headers || request?.headers);
+      if (url.origin === window.location.origin && method === "POST" && headers.has("next-action")) {
+        state.calls += 1;
+        await gate;
+        throw new TypeError("Injected local browser network failure");
+      }
+      return original.call(window, input, init);
+    };
+  });
   try {
-    // Same-tick submissions exercise the synchronous lock, not just the
-    // disabled attribute painted on the next React render.
     await form.evaluate((element) => {
       element.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
       element.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
     });
-    await Promise.race([
-      intercepted,
-      new Promise((_, reject) => { timer = setTimeout(() => reject(new Error("The fixture did not intercept the server action")), 10000); }),
-    ]);
-    clearTimeout(timer);
-    await page.waitForFunction(() => document.querySelector('form[aria-busy="true"]'));
+    await page.waitForFunction(() => window.__meshBrowserFault?.calls > 0);
     assert(await form.locator('button[type="submit"]').isDisabled(), "Pending submit remained interactive");
     assert(await page.getByRole("button", { name: "Forgot password", exact: true }).isDisabled(), "Pending action could change entry stage");
-    release();
+    await page.evaluate(() => window.__meshBrowserFault.release());
     await page.getByRole("alert").filter({ hasText: alertText }).waitFor();
     await settle(page);
-    assert.equal(calls, 1, "Repeated submission sent more than one server action");
+    const calls = await page.evaluate(() => window.__meshBrowserFault.calls);
+    assert.equal(calls, 1, "Repeated submission invoked more than one server action");
     assert(!(await form.locator('button[type="submit"]').isDisabled()), "Failed action did not unlock retry");
   } finally {
-    clearTimeout(timer);
-    release();
-    await page.unroute(matcher, interceptor);
-    injectedPaths.delete(page);
+    await page.evaluate(() => {
+      window.__meshBrowserFault?.release();
+      window.__meshBrowserFault?.restore();
+      delete window.__meshBrowserFault;
+    }).catch(() => {});
   }
 }
 
 try {
-  // Request interception must not race a newly activated service worker.
-  // Only this failure-injection context blocks workers. All normal guest and
-  // authenticated journey contexts below retain the app's real worker behavior.
-  const loginContext = await context({ viewport: { width: 390, height: 844 }, reducedMotion: "reduce", serviceWorkers: "block" });
+  const loginContext = await context({ viewport: { width: 390, height: 844 }, reducedMotion: "reduce" });
   const login = await loginContext.newPage();
   observe(login, "sign-in");
   await visit(login, "/login");
@@ -181,14 +190,16 @@ try {
     await login.getByTestId("entry-password-form").waitFor();
   });
   await check("password-failure-retains-details", login, async () => {
+    await visit(login, "/login");
+    await login.getByTestId("entry-identity-input").fill("jordandev");
+    await login.getByTestId("entry-continue-button").click();
     const form = login.getByTestId("entry-password-form");
+    await form.waitFor();
     await form.getByTestId("entry-password-input").fill(process.env.SEED_USER_PASSWORD || "password123");
     await submitTwiceWithFault(login, form, "Your details are still here");
     assert((await form.getByTestId("entry-password-input").inputValue()) === (process.env.SEED_USER_PASSWORD || "password123"), "Password was lost after transport failure");
   });
   await check("real-sign-in-and-late-autofill", login, async () => {
-    // An earlier fault-test failure must not contaminate independent sign-in
-    // verification with a session that happened to have been created.
     await loginContext.clearCookies();
     await login.goto(`${origin}/login?next=%2Ffeed`, { waitUntil: "domcontentloaded" });
     await login.locator('[data-entry-ready="true"]').waitFor();
