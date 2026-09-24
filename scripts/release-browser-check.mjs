@@ -89,11 +89,22 @@ async function layout(page) {
   if (sizes.contentWidth) assert(sizes.contentScrollWidth <= sizes.contentWidth + 2, `Content overflows: ${JSON.stringify(sizes)}`);
 }
 
+async function shellReady(page) {
+  // Streaming can briefly stage a hidden replacement next to the fallback.
+  // Require exactly ONE visible, final shell rather than throwing a locator
+  // strict-mode error during that intermediate server-streaming commit.
+  await page.waitForFunction(() => {
+    const shells = document.querySelectorAll("#mesh-main-content");
+    return shells.length === 1 && shells[0].getClientRects().length > 0;
+  }, null, { timeout: 30000 });
+}
+
 async function settle(page) {
   await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
-  await page.waitForTimeout(350);
-  // Give deferred chunks and finite prefetches a quiet window before leaving
-  // the page. Do not use networkidle: live presence streams remain open.
+  // RootClientEffects deliberately starts its companion imports 650ms after
+  // first paint. Observe that phase too, rather than closing/navigating while
+  // its chunks start loading. This is not a product load-time benchmark.
+  await page.waitForTimeout(900);
   const network = networks.get(page);
   const deadline = Date.now() + 3000;
   while (network && Date.now() < deadline && (network.pending.size || Date.now() - network.updated < 200)) {
@@ -102,8 +113,6 @@ async function settle(page) {
 }
 
 async function workerReady(page) {
-  // Exercise a genuinely installed worker, rather than navigating away while
-  // the deferred registration or its initial cache population is still pending.
   await page.waitForFunction(async () => {
     const registration = await navigator.serviceWorker.getRegistration();
     return !!navigator.serviceWorker.controller && registration?.active?.state === "activated";
@@ -114,7 +123,7 @@ async function visit(page, route, authenticated = false) {
   const response = await page.goto(`${origin}${route}`, { waitUntil: "domcontentloaded", timeout: 45000 });
   assert(response && response.status() < 400, `${route}: HTTP ${response?.status()}`);
   if (authenticated) {
-    await page.locator("#mesh-main-content").waitFor({ timeout: 30000 });
+    await shellReady(page);
     await page.waitForFunction(() => {
       const content = document.querySelector(".mesh-content");
       return content && !content.querySelector(".paper-wait-route") && (content.textContent.trim().length > 10 || content.querySelector("canvas,svg"));
@@ -128,6 +137,7 @@ async function visit(page, route, authenticated = false) {
   const body = await page.locator("body").innerText();
   assert(!/Application error|Unhandled Runtime Error|Something went wrong/i.test(body), `${route} rendered an error boundary`);
   await layout(page);
+  if (authenticated) assert.equal(await page.locator("#mesh-main-content").count(), 1, "Stable page has duplicate app shells");
   if (authenticated && route === "/feed" && page.viewportSize().width <= 600) {
     const intro = await page.locator(".mesh-feed-intro").boundingBox();
     assert(intro && intro.height <= 110, "Phone feed introduction displaced the content");
@@ -142,8 +152,8 @@ async function visit(page, route, authenticated = false) {
 
 async function submitTwiceWithFault(page, form, alertText) {
   // Hold the real client fetch promise to measure simultaneous user submits.
-  // After rejection the framework may retry internally; those attempts are
-  // reported separately and must not be confused with concurrent submissions.
+  // After rejection the framework or other components may invoke actions;
+  // report those attempts separately from the held concurrent submission.
   await page.evaluate(() => {
     if (window.__meshBrowserFault) throw new Error("Previous fetch fixture was not restored");
     const original = window.fetch;
@@ -226,7 +236,7 @@ try {
     await password.fill("stale-autofill-value");
     await password.evaluate((element, value) => { element.value = value; element.form.requestSubmit(); }, process.env.SEED_USER_PASSWORD || "password123");
     await login.waitForURL(`${origin}/feed`, { timeout: 45000 });
-    await login.locator("#mesh-main-content").waitFor();
+    await shellReady(login);
     const cookie = (await loginContext.cookies()).find((item) => item.name === "__Host-mesh_session");
     assert(cookie?.secure && cookie.httpOnly && cookie.path === "/" && cookie.sameSite === "Lax", "Production-mode secure session cookie missing");
     await settle(login);
