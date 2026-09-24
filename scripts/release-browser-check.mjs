@@ -70,8 +70,8 @@ function observe(page, label) {
 async function check(label, page, run) {
   const start = Date.now();
   try {
-    await run();
-    results.push({ label, status: "pass", durationMs: Date.now() - start });
+    const details = await run();
+    results.push({ label, status: "pass", durationMs: Date.now() - start, ...(details ? { details } : {}) });
   } catch (error) {
     results.push({ label, status: "fail", error: error.message, durationMs: Date.now() - start });
   }
@@ -101,6 +101,15 @@ async function settle(page) {
   }
 }
 
+async function workerReady(page) {
+  // Exercise a genuinely installed worker, rather than navigating away while
+  // the deferred registration or its initial cache population is still pending.
+  await page.waitForFunction(async () => {
+    const registration = await navigator.serviceWorker.getRegistration();
+    return !!navigator.serviceWorker.controller && registration?.active?.state === "activated";
+  }, null, { timeout: 15000 });
+}
+
 async function visit(page, route, authenticated = false) {
   const response = await page.goto(`${origin}${route}`, { waitUntil: "domcontentloaded", timeout: 45000 });
   assert(response && response.status() < 400, `${route}: HTTP ${response?.status()}`);
@@ -114,6 +123,7 @@ async function visit(page, route, authenticated = false) {
   } else if (route === "/login" || route === "/signup") {
     await page.locator('[data-entry-ready="true"]').waitFor({ timeout: 30000 });
   }
+  await workerReady(page);
   await settle(page);
   const body = await page.locator("body").innerText();
   assert(!/Application error|Unhandled Runtime Error|Something went wrong/i.test(body), `${route} rendered an error boundary`);
@@ -131,9 +141,9 @@ async function visit(page, route, authenticated = false) {
 }
 
 async function submitTwiceWithFault(page, form, alertText) {
-  // Reject the actual client fetch promise, before service-worker interception
-  // or browser-level HTTP retries. Count application submissions, not the
-  // engine's transparent retries of an injected 503. No payloads are recorded.
+  // Hold the real client fetch promise to measure simultaneous user submits.
+  // After rejection the framework may retry internally; those attempts are
+  // reported separately and must not be confused with concurrent submissions.
   await page.evaluate(() => {
     if (window.__meshBrowserFault) throw new Error("Previous fetch fixture was not restored");
     const original = window.fetch;
@@ -162,12 +172,14 @@ async function submitTwiceWithFault(page, form, alertText) {
     await page.waitForFunction(() => window.__meshBrowserFault?.calls > 0);
     assert(await form.locator('button[type="submit"]').isDisabled(), "Pending submit remained interactive");
     assert(await page.getByRole("button", { name: "Forgot password", exact: true }).isDisabled(), "Pending action could change entry stage");
+    const pendingCalls = await page.evaluate(() => window.__meshBrowserFault.calls);
+    assert.equal(pendingCalls, 1, "Two user submissions started concurrent server actions");
     await page.evaluate(() => window.__meshBrowserFault.release());
     await page.getByRole("alert").filter({ hasText: alertText }).waitFor();
     await settle(page);
-    const calls = await page.evaluate(() => window.__meshBrowserFault.calls);
-    assert.equal(calls, 1, "Repeated submission invoked more than one server action");
+    const totalFetchAttempts = await page.evaluate(() => window.__meshBrowserFault.calls);
     assert(!(await form.locator('button[type="submit"]').isDisabled()), "Failed action did not unlock retry");
+    return { pendingCalls, totalFetchAttempts };
   } finally {
     await page.evaluate(() => {
       window.__meshBrowserFault?.release();
@@ -184,10 +196,11 @@ try {
   await visit(login, "/login");
   await check("identity-failure-retry-and-double-submit", login, async () => {
     await login.getByTestId("entry-identity-input").fill("jordandev");
-    await submitTwiceWithFault(login, login.locator("form").first(), "Check your connection");
+    const details = await submitTwiceWithFault(login, login.locator("form").first(), "Check your connection");
     assert.equal(await login.getByTestId("entry-identity-input").inputValue(), "jordandev", "Identity was lost after failure");
     await login.getByTestId("entry-continue-button").click();
     await login.getByTestId("entry-password-form").waitFor();
+    return details;
   });
   await check("password-failure-retains-details", login, async () => {
     await visit(login, "/login");
@@ -196,8 +209,9 @@ try {
     const form = login.getByTestId("entry-password-form");
     await form.waitFor();
     await form.getByTestId("entry-password-input").fill(process.env.SEED_USER_PASSWORD || "password123");
-    await submitTwiceWithFault(login, form, "Your details are still here");
+    const details = await submitTwiceWithFault(login, form, "Your details are still here");
     assert((await form.getByTestId("entry-password-input").inputValue()) === (process.env.SEED_USER_PASSWORD || "password123"), "Password was lost after transport failure");
+    return details;
   });
   await check("real-sign-in-and-late-autofill", login, async () => {
     await loginContext.clearCookies();
@@ -242,6 +256,9 @@ try {
       await guest.goto(`${origin}/messages`, { waitUntil: "domcontentloaded" });
       await guest.waitForURL((url) => url.pathname === "/login");
       assert.equal(new URL(guest.url()).searchParams.get("next"), "/messages");
+      await guest.locator('[data-entry-ready="true"]').waitFor();
+      await workerReady(guest);
+      await settle(guest);
     });
     await guestContext.close();
 
