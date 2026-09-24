@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import styles from "./signature-art.module.css";
 
 /** Connected worlds, drawn without animation loops or image requests. */
 export function SignatureArt({ className }: { className?: string }) {
@@ -38,7 +39,7 @@ export function PageIntro({ title, description, eyebrow, action, heading = "h2",
 }) {
   const Heading = heading;
   return (
-    <header className={cn("mesh-page-intro", className)}>
+    <header className={cn("mesh-page-intro", styles.responsive, className)}>
       <SignatureArt />
       <div className="mesh-page-intro-copy">
         {eyebrow && <p className="mesh-page-eyebrow"><span aria-hidden="true" />{eyebrow}</p>}
