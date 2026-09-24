@@ -1,0 +1,50 @@
+/* The returning member's phone should open onto posts, not a full-height
+   landing-page introduction. Keep the desktop arrival and all four actions. */
+@media (max-width: 600px) {
+  .responsive:global(.mesh-feed-intro) {
+    min-height: 0;
+    padding-block: 0.75rem;
+    margin-bottom: 0.25rem;
+  }
+
+  .responsive:global(.mesh-feed-intro) :global(.mesh-page-intro-copy) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    column-gap: 0.5rem;
+    width: 100%;
+    max-width: none;
+  }
+
+  .responsive:global(.mesh-feed-intro) :global(.mesh-page-eyebrow),
+  .responsive:global(.mesh-feed-intro) :global(.mesh-page-description) {
+    display: none;
+  }
+
+  .responsive:global(.mesh-feed-intro) :global(.mesh-page-title) {
+    margin: 0;
+    font-size: 1.25rem;
+    line-height: 1.2;
+    letter-spacing: -0.04em;
+  }
+
+  .responsive:global(.mesh-feed-intro) :global(.mesh-page-intro-action) {
+    min-width: 0;
+    margin-top: 0;
+  }
+
+  .responsive:global(.mesh-feed-intro) :global(.feed-topbar-actions) {
+    gap: 0;
+    margin-left: 0;
+  }
+
+  .responsive:global(.mesh-feed-intro) :global(.feed-topbar-actions) :is(button, a) {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .responsive:global(.mesh-feed-intro) > :global(.mesh-signature-art) {
+    width: 180px;
+    opacity: 0.2;
+  }
+}
