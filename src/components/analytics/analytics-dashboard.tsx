@@ -31,7 +31,7 @@ import {
   UsersRound,
   XCircle,
 } from "lucide-react";
-import { formatRelativeTime } from "@/lib/utils";
+import { RelativeTime } from "@/components/ui/relative-time";
 import { AnalyticsControls } from "@/components/analytics/analytics-controls";
 import { CrossPlatformCommand } from "@/components/analytics/cross-platform-command";
 import { PrivacyPermissionsManager } from "@/components/analytics/privacy-permissions-manager";
@@ -422,7 +422,7 @@ function ActivityRow({ item }: { item: AnalyticsDashboardData["recentActivity"][
         <p className="truncate text-sm font-medium text-[var(--text-primary)]">{item.title}</p>
         <p className="truncate text-micro text-[var(--text-muted)]">{item.detail}</p>
       </div>
-      <span className="shrink-0 text-micro text-[var(--text-muted)]">{formatRelativeTime(item.timestamp)}</span>
+      <RelativeTime date={item.timestamp} className="shrink-0 text-micro text-[var(--text-muted)]" />
     </>
   );
   const row = "leaf flex items-center gap-3 px-2 py-2 transition hover:bg-[var(--bg-secondary)]";

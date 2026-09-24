@@ -37,6 +37,8 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
+      - name: Deterministic timestamps across clocks and timezones
+        run: node --import tsx scripts/relative-time-ssr-check.mjs
       - run: npx playwright install --with-deps ${{ matrix.browser }}
       - run: npx prisma generate
       - run: npx prisma db push
