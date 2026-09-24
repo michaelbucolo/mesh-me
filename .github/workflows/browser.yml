@@ -22,7 +22,7 @@ jobs:
       matrix:
         browser: [chromium, webkit]
     env:
-      NEXT_PUBLIC_APP_URL: http://localhost:3000
+      NEXT_PUBLIC_APP_URL: https://127.0.0.1:3443
       DATABASE_URL: file:./browser-ci.db
       AUTH_SECRET: ci-placeholder-not-a-secret-000000000000
       APP_DATA_ENCRYPTION_KEY: c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1
@@ -42,18 +42,26 @@ jobs:
       - run: npx prisma db push
       - run: npm run seed
       - run: npm run build
-      - name: Start isolated production-mode app
+      - name: Start isolated production-mode app over loopback TLS
         run: |
-          setsid nohup npx next start -p 3000 > /tmp/browser-server.log 2>&1 &
+          CERT_DIR=$(mktemp -d)
+          export BROWSER_TEST_CERT="$CERT_DIR/cert.pem"
+          export BROWSER_TEST_KEY="$CERT_DIR/key.pem"
+          openssl req -x509 -newkey rsa:2048 -nodes -days 1 \
+            -keyout "$BROWSER_TEST_KEY" -out "$BROWSER_TEST_CERT" \
+            -subj '/CN=127.0.0.1' -addext 'subjectAltName=IP:127.0.0.1' 2>/dev/null
+          setsid nohup npx next start -H 127.0.0.1 -p 3000 > /tmp/browser-server.log 2>&1 &
+          setsid nohup node scripts/browser-test-proxy.mjs > /tmp/browser-proxy.log 2>&1 &
           for i in $(seq 1 60); do
-            if curl -fsS http://localhost:3000/api/health > /dev/null 2>&1; then
+            if curl -kfsS https://127.0.0.1:3443/api/health > /dev/null 2>&1; then
               exit 0
             fi
             sleep 1
           done
           tail -60 /tmp/browser-server.log
+          tail -20 /tmp/browser-proxy.log
           exit 1
-      - name: Real sign-in, privacy boundaries, and responsive journeys
+      - name: Real sign-in, recovery, privacy boundaries, and responsive journeys
         run: node scripts/release-browser-check.mjs
       - name: Preserve isolated fixture screenshots and test results
         if: always()
@@ -67,4 +75,6 @@ jobs:
           retention-days: 3
       - name: Server log on failure
         if: failure()
-        run: tail -60 /tmp/browser-server.log || true
+        run: |
+          tail -60 /tmp/browser-server.log || true
+          tail -20 /tmp/browser-proxy.log || true
