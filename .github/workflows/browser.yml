@@ -1,0 +1,70 @@
+name: browser
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: browser-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  browser:
+    name: browser (${{ matrix.browser }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, webkit]
+    env:
+      NEXT_PUBLIC_APP_URL: http://localhost:3000
+      DATABASE_URL: file:./browser-ci.db
+      AUTH_SECRET: ci-placeholder-not-a-secret-000000000000
+      APP_DATA_ENCRYPTION_KEY: c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1
+      MESH_BROWSER_FIXTURE: local-seed
+      MESH_BROWSER: ${{ matrix.browser }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps ${{ matrix.browser }}
+      - run: npx prisma generate
+      - run: npx prisma db push
+      - run: npm run seed
+      - run: npm run build
+      - name: Start isolated production-mode app
+        run: |
+          setsid nohup npx next start -p 3000 > /tmp/browser-server.log 2>&1 &
+          for i in $(seq 1 60); do
+            if curl -fsS http://localhost:3000/api/health > /dev/null 2>&1; then
+              exit 0
+            fi
+            sleep 1
+          done
+          tail -60 /tmp/browser-server.log
+          exit 1
+      - name: Real sign-in, privacy boundaries, and responsive journeys
+        run: node scripts/release-browser-check.mjs
+      - name: Preserve isolated fixture screenshots and test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-${{ matrix.browser }}
+          path: |
+            browser-results/**/*.png
+            browser-results/**/report.json
+          if-no-files-found: ignore
+          retention-days: 3
+      - name: Server log on failure
+        if: failure()
+        run: tail -60 /tmp/browser-server.log || true
