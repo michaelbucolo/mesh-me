@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { effectiveProfileVisibility } from "@/lib/profile-visibility";
-import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore, type CSSProperties, type ReactNode } from "react";
 import { motion, useInView, useMotionValue, useReducedMotion, useSpring } from "framer-motion";
 import type { LucideIcon } from "lucide-react";
 import {
@@ -83,6 +83,12 @@ function labelFor(platform: string) {
   return platform.charAt(0).toUpperCase() + platform.slice(1);
 }
 
+// React reuses the server snapshot during hydration, then reads the client
+// snapshot. No browser preference may change text during that first render.
+const subscribeHydration = () => () => {};
+const clientHydrationSnapshot = () => true;
+const serverHydrationSnapshot = () => false;
+
 /**
  * A number that springs up from 0 the first time it scrolls into view.
  * Falls back to the final formatted string under reduced motion.
@@ -91,6 +97,7 @@ function AnimatedNumber({ value, target, format }: { value: string; target: numb
   const ref = useRef<HTMLSpanElement>(null);
   const inView = useInView(ref, { once: true, margin: "-40px" });
   const reduce = useReducedMotion();
+  const hydrated = useSyncExternalStore(subscribeHydration, clientHydrationSnapshot, serverHydrationSnapshot);
   const mv = useMotionValue(0);
   const spring = useSpring(mv, { stiffness: 70, damping: 18, restDelta: 0.4 });
   const [display, setDisplay] = useState(format(0));
@@ -110,7 +117,7 @@ function AnimatedNumber({ value, target, format }: { value: string; target: numb
     return () => unsubscribe();
   }, [spring, format, target, value, reduce]);
 
-  return <span ref={ref}>{reduce ? value : display}</span>;
+  return <span ref={ref}>{hydrated && reduce ? value : display}</span>;
 }
 
 /** Tiny area sparkline — trend at a glance, no axes, no chrome. Strokes itself in on view. */
