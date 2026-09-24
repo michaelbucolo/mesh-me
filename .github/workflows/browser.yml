@@ -50,6 +50,8 @@ jobs:
           openssl req -x509 -newkey rsa:2048 -nodes -days 1 \
             -keyout "$BROWSER_TEST_KEY" -out "$BROWSER_TEST_CERT" \
             -subj '/CN=127.0.0.1' -addext 'subjectAltName=IP:127.0.0.1' 2>/dev/null
+          SPKI=$(openssl x509 -in "$BROWSER_TEST_CERT" -pubkey -noout | openssl pkey -pubin -outform DER | openssl dgst -sha256 -binary | openssl base64 -A)
+          echo "MESH_BROWSER_CERT_SPKI=$SPKI" >> "$GITHUB_ENV"
           setsid nohup npx next start -H 127.0.0.1 -p 3000 > /tmp/browser-server.log 2>&1 &
           setsid nohup node scripts/browser-test-proxy.mjs > /tmp/browser-proxy.log 2>&1 &
           for i in $(seq 1 60); do

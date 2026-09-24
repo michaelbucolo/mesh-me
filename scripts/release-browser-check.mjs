@@ -14,13 +14,18 @@ assert(!process.env.DATABASE_AUTH_TOKEN && !process.env.VERCEL, "Hosted credenti
 assert.equal(process.env.MESH_BROWSER_FIXTURE, "local-seed", "Explicit local-seed fixture acknowledgement is required");
 const engine = process.env.MESH_BROWSER || "chromium";
 assert(["chromium", "webkit"].includes(engine), "Unsupported browser engine");
+// Chromium service-worker installation does not inherit context-level TLS
+// exceptions. Trust this run's ephemeral fixture certificate by public-key
+// fingerprint, not a blanket ignore-certificate-errors browser switch.
+const fixtureSpki = process.env.MESH_BROWSER_CERT_SPKI;
+assert(fixtureSpki && /^[A-Za-z0-9+/]{43}=$/.test(fixtureSpki), "Ephemeral fixture certificate fingerprint required");
 const playwright = await import("playwright");
-const browser = await playwright[engine].launch();
+const browser = await playwright[engine].launch(engine === "chromium" ? { args: [`--ignore-certificate-errors-spki-list=${fixtureSpki}`] } : {});
 const output = path.resolve("browser-results", engine);
 await fs.mkdir(output, { recursive: true });
 const results = [];
 const runtimeErrors = [];
-const faultPages = new WeakSet();
+const injectedPaths = new WeakMap();
 const origin = base.origin;
 const viewports = [
   ["small-phone", { width: 320, height: 568 }],
@@ -31,8 +36,8 @@ const viewports = [
 const routes = ["/mesh", "/feed", "/flow", "/messages", "/notifications", "/profile/jordandev", "/settings", "/privacy-controls", "/connected-accounts", "/meshpro", "/search", "/communities", "/saved", "/analytics", "/meshimap"];
 
 async function context(options) {
-  // This exception trusts only our ephemeral self-signed loopback fixture,
-  // never a public/production target (the strict origin guard above runs first).
+  // This exception trusts our ephemeral self-signed loopback fixture, never
+  // a hosted target (the strict origin guard above runs first).
   const value = await browser.newContext({ ignoreHTTPSErrors: true, ...options });
   value.setDefaultTimeout(15000);
   return value;
@@ -45,12 +50,11 @@ function observe(page, label) {
     const text = message.text();
     if (/Permissions policy violation/.test(text)) return; // Intentionally disabled device features.
     // WebKit reports this progressive-enhancement advisory as console.error.
-    // It does not support Chromium's virtual-keyboard viewport hint.
     if (engine === "webkit" && text === 'Viewport argument key "interactive-widget" not recognized and ignored.') return;
     const source = message.location().url;
     if (/Failed to load resource/.test(text)) {
       if (source && !source.startsWith(origin)) return; // Third-party seed image, not application JavaScript.
-      if (faultPages.has(page) && source && new URL(source).pathname === "/login" && /503/.test(text)) return; // Explicitly injected transport failure.
+      if (source && /503/.test(text) && injectedPaths.get(page)?.has(new URL(source).pathname)) return; // Explicitly injected failure only.
     }
     runtimeErrors.push({ label, route: new URL(page.url()).pathname, message: text });
   });
@@ -101,21 +105,37 @@ async function visit(page, route, authenticated = false) {
   const body = await page.locator("body").innerText();
   assert(!/Application error|Unhandled Runtime Error|Something went wrong/i.test(body), `${route} rendered an error boundary`);
   await layout(page);
+  if (authenticated && route === "/feed" && page.viewportSize().width <= 600) {
+    const intro = await page.locator(".mesh-feed-intro").boundingBox();
+    assert(intro && intro.height <= 110, "Phone feed introduction displaced the content");
+    const actions = await page.locator(".mesh-feed-intro .feed-topbar-actions").locator("button,a").all();
+    assert.equal(actions.length, 4, "Phone feed lost an action");
+    for (const action of actions) {
+      const box = await action.boundingBox();
+      assert(box && box.width >= 44 && box.height >= 44, "Phone feed action is not a usable touch target");
+    }
+  }
 }
 
 async function submitTwiceWithFault(page, form, alertText) {
   let calls = 0;
   let release;
+  let received;
+  let timer;
   const gate = new Promise((resolve) => { release = resolve; });
-  const matcher = `${origin}/login**`;
+  const intercepted = new Promise((resolve) => { received = resolve; });
+  const matcher = `${origin}/**`;
+  const paths = new Set();
   const interceptor = async (route) => {
     const request = route.request();
     if (request.method() !== "POST" || !request.headers()["next-action"]) return route.continue();
     calls += 1;
+    paths.add(new URL(request.url()).pathname);
+    received();
     await gate;
     await route.fulfill({ status: 503, contentType: "text/plain", body: "Injected local test failure" });
   };
-  faultPages.add(page);
+  injectedPaths.set(page, paths);
   await page.route(matcher, interceptor);
   try {
     // Same-tick submissions exercise the synchronous lock, not just the
@@ -124,6 +144,11 @@ async function submitTwiceWithFault(page, form, alertText) {
       element.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
       element.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
     });
+    await Promise.race([
+      intercepted,
+      new Promise((_, reject) => { timer = setTimeout(() => reject(new Error("The fixture did not intercept the server action")), 10000); }),
+    ]);
+    clearTimeout(timer);
     await page.waitForFunction(() => document.querySelector('form[aria-busy="true"]'));
     assert(await form.locator('button[type="submit"]').isDisabled(), "Pending submit remained interactive");
     assert(await page.getByRole("button", { name: "Forgot password", exact: true }).isDisabled(), "Pending action could change entry stage");
@@ -133,20 +158,24 @@ async function submitTwiceWithFault(page, form, alertText) {
     assert.equal(calls, 1, "Repeated submission sent more than one server action");
     assert(!(await form.locator('button[type="submit"]').isDisabled()), "Failed action did not unlock retry");
   } finally {
+    clearTimeout(timer);
     release();
     await page.unroute(matcher, interceptor);
-    faultPages.delete(page);
+    injectedPaths.delete(page);
   }
 }
 
 try {
-  const loginContext = await context({ viewport: { width: 390, height: 844 }, reducedMotion: "reduce" });
+  // Request interception must not race a newly activated service worker.
+  // Only this failure-injection context blocks workers. All normal guest and
+  // authenticated journey contexts below retain the app's real worker behavior.
+  const loginContext = await context({ viewport: { width: 390, height: 844 }, reducedMotion: "reduce", serviceWorkers: "block" });
   const login = await loginContext.newPage();
   observe(login, "sign-in");
   await visit(login, "/login");
   await check("identity-failure-retry-and-double-submit", login, async () => {
     await login.getByTestId("entry-identity-input").fill("jordandev");
-    await submitTwiceWithFault(login, login.locator('form').first(), "Check your connection");
+    await submitTwiceWithFault(login, login.locator("form").first(), "Check your connection");
     assert.equal(await login.getByTestId("entry-identity-input").inputValue(), "jordandev", "Identity was lost after failure");
     await login.getByTestId("entry-continue-button").click();
     await login.getByTestId("entry-password-form").waitFor();
@@ -158,11 +187,13 @@ try {
     assert((await form.getByTestId("entry-password-input").inputValue()) === (process.env.SEED_USER_PASSWORD || "password123"), "Password was lost after transport failure");
   });
   await check("real-sign-in-and-late-autofill", login, async () => {
+    // An earlier fault-test failure must not contaminate independent sign-in
+    // verification with a session that happened to have been created.
+    await loginContext.clearCookies();
     await login.goto(`${origin}/login?next=%2Ffeed`, { waitUntil: "domcontentloaded" });
     await login.locator('[data-entry-ready="true"]').waitFor();
     const identity = login.getByTestId("entry-identity-input");
     await identity.fill("stale_autofill_value");
-    // Simulate a password manager changing DOM values without onChange.
     await identity.evaluate((element) => { element.value = "jordandev"; element.form.requestSubmit(); });
     const form = login.getByTestId("entry-password-form");
     await form.waitFor();
