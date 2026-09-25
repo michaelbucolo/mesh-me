@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { effectiveProfileVisibility } from "@/lib/profile-visibility";
-import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore, type CSSProperties, type ReactNode } from "react";
 import { motion, useInView, useMotionValue, useReducedMotion, useSpring } from "framer-motion";
 import type { LucideIcon } from "lucide-react";
 import {
@@ -31,7 +31,7 @@ import {
   UsersRound,
   XCircle,
 } from "lucide-react";
-import { formatRelativeTime } from "@/lib/utils";
+import { RelativeTime } from "@/components/ui/relative-time";
 import { AnalyticsControls } from "@/components/analytics/analytics-controls";
 import { CrossPlatformCommand } from "@/components/analytics/cross-platform-command";
 import { PrivacyPermissionsManager } from "@/components/analytics/privacy-permissions-manager";
@@ -83,6 +83,12 @@ function labelFor(platform: string) {
   return platform.charAt(0).toUpperCase() + platform.slice(1);
 }
 
+// React reuses the server snapshot during hydration, then reads the client
+// snapshot. No browser preference may change text during that first render.
+const subscribeHydration = () => () => {};
+const clientHydrationSnapshot = () => true;
+const serverHydrationSnapshot = () => false;
+
 /**
  * A number that springs up from 0 the first time it scrolls into view.
  * Falls back to the final formatted string under reduced motion.
@@ -91,6 +97,7 @@ function AnimatedNumber({ value, target, format }: { value: string; target: numb
   const ref = useRef<HTMLSpanElement>(null);
   const inView = useInView(ref, { once: true, margin: "-40px" });
   const reduce = useReducedMotion();
+  const hydrated = useSyncExternalStore(subscribeHydration, clientHydrationSnapshot, serverHydrationSnapshot);
   const mv = useMotionValue(0);
   const spring = useSpring(mv, { stiffness: 70, damping: 18, restDelta: 0.4 });
   const [display, setDisplay] = useState(format(0));
@@ -110,7 +117,7 @@ function AnimatedNumber({ value, target, format }: { value: string; target: numb
     return () => unsubscribe();
   }, [spring, format, target, value, reduce]);
 
-  return <span ref={ref}>{reduce ? value : display}</span>;
+  return <span ref={ref}>{hydrated && reduce ? value : display}</span>;
 }
 
 /** Tiny area sparkline — trend at a glance, no axes, no chrome. Strokes itself in on view. */
@@ -415,7 +422,7 @@ function ActivityRow({ item }: { item: AnalyticsDashboardData["recentActivity"][
         <p className="truncate text-sm font-medium text-[var(--text-primary)]">{item.title}</p>
         <p className="truncate text-micro text-[var(--text-muted)]">{item.detail}</p>
       </div>
-      <span className="shrink-0 text-micro text-[var(--text-muted)]">{formatRelativeTime(item.timestamp)}</span>
+      <RelativeTime date={item.timestamp} className="shrink-0 text-micro text-[var(--text-muted)]" />
     </>
   );
   const row = "leaf flex items-center gap-3 px-2 py-2 transition hover:bg-[var(--bg-secondary)]";

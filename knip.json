@@ -1,5 +1,6 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
+  "entry": ["scripts/browser-test-proxy.mjs", "scripts/relative-time-ssr-check.mjs"],
   "ignore": [
     "ios/App/App/public/cordova.js",
     "ios/App/App/public/cordova_plugins.js",

@@ -43,33 +43,53 @@ const THEME_MODE_KEY = "mesh-theme";
 const THEME_PRESET_KEY = "mesh-theme-preset";
 const THEME_CUSTOM_KEY = "mesh-theme-custom";
 
+// Browser settings can be unavailable in restricted storage contexts. A
+// preference must never turn an otherwise usable page into an error screen.
+function readSetting(key: string): string | null {
+  try {
+    return typeof window === "undefined" ? null : localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function writeSetting(key: string, value: string | null) {
+  try {
+    if (value === null) localStorage.removeItem(key);
+    else localStorage.setItem(key, value);
+  } catch {
+    // The selected theme still works for this visit when persistence is denied.
+  }
+}
+
 function getSystemTheme(): ResolvedTheme {
   if (typeof window === "undefined") return "dark";
   return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 }
 
 function readStoredMode(): ThemeMode {
-  if (typeof window === "undefined") return "dark";
-  const stored = localStorage.getItem(THEME_MODE_KEY);
+  const stored = readSetting(THEME_MODE_KEY);
   return stored === "light" || stored === "dark" || stored === "system" ? stored : "dark";
 }
 
 function readStoredPreset(): ThemePreset {
-  if (typeof window === "undefined") return "default";
-  const stored = localStorage.getItem(THEME_PRESET_KEY);
+  const stored = readSetting(THEME_PRESET_KEY);
   return stored === "instagram" || stored === "ocean" || stored === "sunset" || stored === "forest" || stored === "mono" || stored === "default"
     ? stored
     : "default";
 }
 
 function readStoredCustomTheme(): ThemeCustomization | null {
-  if (typeof window === "undefined") return null;
-  const stored = localStorage.getItem(THEME_CUSTOM_KEY);
+  const stored = readSetting(THEME_CUSTOM_KEY);
   if (!stored) return null;
   try {
-    return JSON.parse(stored) as ThemeCustomization;
+    const colors: unknown = JSON.parse(stored);
+    if (!colors || typeof colors !== "object" || Array.isArray(colors)) return null;
+    const candidate = colors as Record<string, unknown>;
+    const keys = ["accent", "bgPrimary", "bgSecondary", "textPrimary", "textSecondary", "borderPrimary"] as const;
+    if (!keys.every((key) => typeof candidate[key] === "string" && /^#[0-9a-f]{6}$/i.test(candidate[key]))) return null;
+    return Object.fromEntries(keys.map((key) => [key, candidate[key]])) as unknown as ThemeCustomization;
   } catch {
-    localStorage.removeItem(THEME_CUSTOM_KEY);
     return null;
   }
 }
@@ -159,22 +179,42 @@ function applyCustomTheme(customTheme: ThemeCustomization | null) {
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [mode, setModeState] = useState<ThemeMode>(() => readStoredMode());
-  const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>(() => resolveTheme(readStoredMode()));
-  const [preset, setPresetState] = useState<ThemePreset>(() => readStoredPreset());
-  const [customTheme, setCustomThemeState] = useState<ThemeCustomization | null>(() => readStoredCustomTheme());
+  // The server and the first client render must agree. The nonce-protected
+  // boot script already paints the saved colors before hydration; do not
+  // overwrite that paint with these neutral server snapshots while restoring.
+  const [mode, setModeState] = useState<ThemeMode>("dark");
+  const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>("dark");
+  const [preset, setPresetState] = useState<ThemePreset>("default");
+  const [customTheme, setCustomThemeState] = useState<ThemeCustomization | null>(null);
+  const [restored, setRestored] = useState(false);
 
-  const resolve = useCallback((m: ThemeMode): ResolvedTheme => {
-    return resolveTheme(m);
+  const resolve = useCallback((m: ThemeMode): ResolvedTheme => resolveTheme(m), []);
+
+  useEffect(() => {
+    const restore = () => {
+      const storedMode = readStoredMode();
+      setModeState(storedMode);
+      setResolvedTheme(resolveTheme(storedMode));
+      setPresetState(readStoredPreset());
+      setCustomThemeState(readStoredCustomTheme());
+      setRestored(true);
+    };
+    restore();
+    const onStorage = (event: StorageEvent) => {
+      if (event.key === null || [THEME_MODE_KEY, THEME_PRESET_KEY, THEME_CUSTOM_KEY].includes(event.key)) restore();
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
   }, []);
 
   useEffect(() => {
+    if (!restored) return;
     applyTheme(mode, resolvedTheme);
     applyPreset(preset);
     applyCustomTheme(customTheme);
-  }, [customTheme, mode, preset, resolvedTheme]);
+  }, [customTheme, mode, preset, resolvedTheme, restored]);
 
-  // Listen for OS theme changes when in system mode
+  // Listen for OS theme changes when in system mode.
   useEffect(() => {
     const mq = window.matchMedia("(prefers-color-scheme: dark)");
     const handler = () => {
@@ -190,7 +230,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   const setMode = (newMode: ThemeMode) => {
     setModeState(newMode);
-    localStorage.setItem(THEME_MODE_KEY, newMode);
+    writeSetting(THEME_MODE_KEY, newMode);
     const resolved = resolve(newMode);
     setResolvedTheme(resolved);
     applyTheme(newMode, resolved);
@@ -198,19 +238,19 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   const setPreset = (newPreset: ThemePreset) => {
     setPresetState(newPreset);
-    localStorage.setItem(THEME_PRESET_KEY, newPreset);
+    writeSetting(THEME_PRESET_KEY, newPreset);
     applyPreset(newPreset);
   };
 
   const setCustomTheme = (colors: ThemeCustomization) => {
     setCustomThemeState(colors);
-    localStorage.setItem(THEME_CUSTOM_KEY, JSON.stringify(colors));
+    writeSetting(THEME_CUSTOM_KEY, JSON.stringify(colors));
     applyCustomTheme(colors);
   };
 
   const clearCustomTheme = () => {
     setCustomThemeState(null);
-    localStorage.removeItem(THEME_CUSTOM_KEY);
+    writeSetting(THEME_CUSTOM_KEY, null);
     applyCustomTheme(null);
   };
 

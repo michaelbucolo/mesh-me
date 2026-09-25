@@ -102,10 +102,52 @@ export function MeshEntryExperience({ initialStage = "identity", nextPath, oauth
   const [shaking, setShaking] = useState(false);
   const [isPending, startTransition] = useTransition();
 
+  const alive = useRef(false);
+  const actionLock = useRef(false);
+  const timers = useRef(new Set<number>());
+  const busy = isPending || leaving || success;
+
+  useEffect(() => {
+    alive.current = true;
+    const pendingTimers = timers.current;
+    return () => {
+      alive.current = false;
+      for (const timer of pendingTimers) window.clearTimeout(timer);
+      pendingTimers.clear();
+    };
+  }, []);
+
+  // Arrival/focus callbacks belong to this mounted entry screen. Navigating
+  // away must not leave behind a delayed redirect or a focus-stealing timer.
+  const later = useCallback((callback: () => void, milliseconds: number) => {
+    const timer = window.setTimeout(() => {
+      timers.current.delete(timer);
+      if (alive.current) callback();
+    }, milliseconds);
+    timers.current.add(timer);
+  }, []);
+
   const shake = useCallback(() => {
     setShaking(true);
-    window.setTimeout(() => setShaking(false), 450);
-  }, []);
+    later(() => setShaking(false), 450);
+  }, [later]);
+
+  // Catch transport failures here, inside the form, instead of letting a
+  // rejected server action replace the entire entry experience. A synchronous
+  // lock also closes the gap before React paints its pending/disabled state.
+  const runEntryAction = (action: () => Promise<void>, failureMessage: string) => {
+    if (actionLock.current || busy) return;
+    actionLock.current = true;
+    startTransition(async () => {
+      try {
+        await action();
+      } catch {
+        if (alive.current) setMessage(failureMessage);
+      } finally {
+        actionLock.current = false;
+      }
+    });
+  };
 
   const reduceMotion = useReducedMotion();
 
@@ -197,15 +239,19 @@ export function MeshEntryExperience({ initialStage = "identity", nextPath, oauth
   // ── Step 1: resolve who they are ───────────────────────────────────────
   const submitIdentity = (event?: React.FormEvent) => {
     event?.preventDefault();
-    const value = identifier.trim();
+    if (busy || actionLock.current) return;
+    // Password managers may update the actual control without an onChange.
+    const value = (identityRef.current?.value ?? identifier).trim();
+    setIdentifier(value);
     if (!value) {
       setMessage("Enter your username, email, or phone number.");
       return;
     }
     setMessage("");
     spark();
-    startTransition(async () => {
+    runEntryAction(async () => {
       const result = await resolveEntryIdentity(value);
+      if (!alive.current) return;
       if (result && "error" in result && result.error) {
         setMessage(result.error);
         return;
@@ -223,83 +269,94 @@ export function MeshEntryExperience({ initialStage = "identity", nextPath, oauth
       // Valid account → the field morphs into their Meshi, who asks for the password.
       const candidate = usernameCandidate(value);
       const loaded = candidate ? await loadPreview(candidate) : null;
+      if (!alive.current) return;
       setPreview(loaded);
       // Reel the mesh inward: the field collapses and re-forms as Meshi.
       fx.current.phase = "forming";
       setLeaving(true);
-      window.setTimeout(() => {
+      later(() => {
         setStage("password");
         setPassword("");
         setShowPassword(false);
         setLeaving(false);
-        window.setTimeout(() => passwordRef.current?.focus(), 180);
-        window.setTimeout(() => {
+        later(() => passwordRef.current?.focus(), 180);
+        later(() => {
           fx.current.phase = "idle";
         }, 640);
       }, reduceMotion ? 0 : 430);
-    });
+    }, "We couldn't reach Mesh.me. Check your connection and try again.");
   };
 
   // ── Step 2: password ───────────────────────────────────────────────────
   const submitPassword = (event: React.FormEvent) => {
     event.preventDefault();
-    if (!password) {
+    if (busy || actionLock.current) return;
+    const actualPassword = passwordRef.current?.value ?? password;
+    setPassword(actualPassword);
+    if (!actualPassword) {
       setMessage("Enter your password.");
       return;
     }
     setMessage("");
-    startTransition(async () => {
+    runEntryAction(async () => {
       const form = new FormData();
       form.set("email", identifier.trim());
-      form.set("password", password);
+      form.set("password", actualPassword);
       if (nextPath) form.set("next", nextPath);
       const result = await signInForEntry(form);
+      if (!alive.current) return;
       if (result && "error" in result && result.error) {
         setMessage(result.error === "Invalid email or password" ? "That password didn't work — try again, or reset it below." : result.error);
         shake();
-        window.setTimeout(() => passwordRef.current?.focus(), 80);
+        later(() => passwordRef.current?.focus(), 80);
         return;
       }
       // Success: Meshi pulls the whole mesh together, then we glide into the app.
       setSuccess(true);
       fx.current.phase = "success";
       const destination = (result && "redirectTo" in result && result.redirectTo) || "/mesh";
-      window.setTimeout(() => {
+      later(() => {
         router.refresh();
         router.push(destination);
-        window.setTimeout(() => {
+        later(() => {
           if (window.location.pathname.startsWith("/login") || window.location.pathname === "/") {
             window.location.assign(destination);
           }
         }, 1400);
       }, reduceMotion ? 200 : 900);
-    });
+    }, "We couldn't reach Mesh.me. Your details are still here. Please try again.");
   };
 
   // ── Reset ────────────────────────────────────────────────────────────────
   const submitReset = (event: React.FormEvent) => {
     event.preventDefault();
+    if (busy || actionLock.current) return;
     const email = resetEmail.trim().toLowerCase();
     if (!EMAIL_RE.test(email)) {
       setMessage("Enter the email on your account.");
       return;
     }
     setMessage("");
-    startTransition(async () => {
+    runEntryAction(async () => {
       try {
         const result = await requestPasswordReset(email);
+        if (!alive.current) return;
         if (result && "error" in result && result.error) {
           setMessage(result.error);
           return;
         }
         setResetSent(true);
       } catch {
-        setMessage("Account recovery is unavailable right now. Please try again.");
+        if (alive.current) setMessage("Account recovery is unavailable right now. Please try again.");
       }
-    });
+    }, "Account recovery is unavailable right now. Please try again.");
   };
 
   const backToIdentity = () => {
+    if (busy || actionLock.current) return;
+    for (const timer of timers.current) window.clearTimeout(timer);
+    timers.current.clear();
+    setShaking(false);
     setStage("identity");
     setMessage("");
     setPreview(null);
@@ -408,6 +465,7 @@ export function MeshEntryExperience({ initialStage = "identity", nextPath, oauth
           <form
             key="identity"
             onSubmit={submitIdentity}
+            aria-busy={busy}
             className={`mesh-gate-focus${leaving ? " mesh-gate-leaving" : ""}`}
             noValidate
           >
@@ -438,6 +496,7 @@ export function MeshEntryExperience({ initialStage = "identity", nextPath, oauth
               <input
                 autoFocus
                 ref={identityRef}
+                disabled={busy}
                 value={identifier}
                 onChange={(e) => {
                   setIdentifier(e.target.value);
@@ -459,7 +518,7 @@ export function MeshEntryExperience({ initialStage = "identity", nextPath, oauth
               <button
                 type="submit"
                 className={`mesh-gate-go overflow-hidden${identifier.trim() ? " is-ready" : ""}`}
-                disabled={isPending || !hydrated}
+                disabled={busy || !hydrated}
                 aria-label="Continue"
                 data-testid="entry-continue-button"
               >
@@ -486,6 +545,7 @@ export function MeshEntryExperience({ initialStage = "identity", nextPath, oauth
               }}
               className="mesh-gate-textlink"
               data-testid="entry-open-signup-button"
+              disabled={busy}
             >
               Create account
             </button>
@@ -499,7 +559,7 @@ export function MeshEntryExperience({ initialStage = "identity", nextPath, oauth
 
         {/* PASSWORD — the field has become the user's Meshi */}
         {stage === "password" && (
-          <form key="password" onSubmit={submitPassword} className="mesh-gate-focus" data-testid="entry-password-form" aria-busy={isPending} noValidate>
+          <form key="password" onSubmit={submitPassword} className="mesh-gate-focus" data-testid="entry-password-form" aria-busy={busy} noValidate>
             <h1 className="sr-only">Welcome back. Enter your password.</h1>
             <div ref={anchorRef} className={`mesh-gate-meshi${success ? " is-success" : ""}`}>
               <MeshiMascot
@@ -559,12 +619,13 @@ export function MeshEntryExperience({ initialStage = "identity", nextPath, oauth
                 className="mesh-gate-input"
                 aria-label="Password"
                 data-testid="entry-password-input"
-                disabled={success}
+                disabled={busy}
                 suppressHydrationWarning
               />
               <button
                 type="button"
                 onClick={() => setShowPassword((v) => !v)}
+                disabled={busy}
                 className="mesh-gate-peek focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7d9bff]"
                 aria-label={showPassword ? "Hide password" : "Show password"}
               >
@@ -573,7 +634,7 @@ export function MeshEntryExperience({ initialStage = "identity", nextPath, oauth
               <button
                 type="submit"
                 className={`mesh-gate-go overflow-hidden${password ? " is-ready" : ""}`}
-                disabled={isPending || success}
+                disabled={busy}
                 aria-label="Log in"
                 data-testid="entry-submit-button"
               >
@@ -582,7 +643,7 @@ export function MeshEntryExperience({ initialStage = "identity", nextPath, oauth
               </button>
             </div>
             <div className="mesh-gate-inline">
-              <button type="button" onClick={backToIdentity} className="mesh-gate-textlink">Not you?</button>
+              <button type="button" disabled={busy} onClick={backToIdentity} className="mesh-gate-textlink">Not you?</button>
               <button
                 type="button"
                 onClick={() => {
@@ -591,6 +652,7 @@ export function MeshEntryExperience({ initialStage = "identity", nextPath, oauth
                   setMessage("");
                   setStage("reset");
                 }}
+                disabled={busy}
                 className="mesh-gate-textlink"
               >
                 Forgot password?
@@ -609,12 +671,12 @@ export function MeshEntryExperience({ initialStage = "identity", nextPath, oauth
             <p className="mesh-gate-hint">Create your account. Make yourself at home.</p>
             <SignupForm prefill={signupDraft} onActivity={spark} onProgress={setSignupFilledCount} notice={message} />
             {oauthProviders.length > 0 && <IdentityProviderButtons providers={oauthProviders} next={nextPath} className="mesh-signup-providers" />}
-            <button type="button" onClick={backToIdentity} className="mesh-gate-textlink">I already have an account</button>
+            <button type="button" disabled={busy} onClick={backToIdentity} className="mesh-gate-textlink">I already have an account</button>
           </section>
         )}
         {/* Reset uses the same calm, focused form language. */}
         {stage === "reset" && (
-          <form key="reset" onSubmit={submitReset} className="mesh-gate-form" aria-busy={isPending} noValidate>
+          <form key="reset" onSubmit={submitReset} className="mesh-gate-form" aria-busy={busy} noValidate>
             <h1 ref={resetHeadingRef} tabIndex={-1} className="mesh-gate-q mesh-gate-q-sm">Reset password</h1>
             {resetSent ? (
               <div className="mesh-reset-sent" role="status"><ShieldCheck size={28} aria-hidden="true" /><h2>Check your inbox</h2><p className="mesh-gate-hint">If that email has an account, a reset link is on its way.</p></div>
@@ -625,6 +687,7 @@ export function MeshEntryExperience({ initialStage = "identity", nextPath, oauth
                   <span>Email</span>
                   <input
                     value={resetEmail}
+                    disabled={busy}
                     onChange={(e) => {
                       setResetEmail(e.target.value);
                       if (message) setMessage("");
@@ -644,7 +707,7 @@ export function MeshEntryExperience({ initialStage = "identity", nextPath, oauth
                 </button>
               </>
             )}
-            <button type="button" onClick={backToIdentity} className="mesh-gate-textlink">
+            <button type="button" disabled={busy} onClick={backToIdentity} className="mesh-gate-textlink">
               Back to sign in
             </button>
           </form>
@@ -658,8 +721,8 @@ export function MeshEntryExperience({ initialStage = "identity", nextPath, oauth
           <span>Private by default · No ads · No data selling · No tracking</span>
         </div>
         <nav className="mesh-gate-links">
-          <button type="button" onClick={() => { setStage("signup"); setMessage(""); }}>Create account</button>
-          <button type="button" onClick={() => { setStage("reset"); setResetSent(false); setMessage(""); }}>Forgot password</button>
+          <button type="button" disabled={busy} onClick={() => { setStage("signup"); setMessage(""); }}>Create account</button>
+          <button type="button" disabled={busy} onClick={() => { setStage("reset"); setResetSent(false); setMessage(""); }}>Forgot password</button>
           <Link href="/privacy">Privacy</Link>
           <Link href="/terms">Terms</Link>
         </nav>
