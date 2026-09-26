@@ -329,6 +329,8 @@ export function MeChatThread({
   const [typingUsers, setTypingUsers] = useState<TypingUser[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [draft, setDraft] = useState(initialSource?.content || "");
+  const sendLock = useRef(false);
+  const draftRevision = useRef(0);
   const [pendingSource, setPendingSource] = useState(initialSource);
   const [replyTo, setReplyTo] = useState<MeChatSerializedMessage | null>(null);
   const [showMediaTools, setShowMediaTools] = useState(false);
@@ -741,11 +743,13 @@ export function MeChatThread({
       // sendBeacon is the one API guaranteed to survive page teardown — a
       // keepalive fetch fired from pagehide still gets aborted by the
       // navigation. Beacons carry cookies and the server parses the JSON body
-      // regardless of content type, so this is a plain clear.
+      // regardless of content type. JSON keeps the beacon in CORS mode, so
+      // WebKit sends Origin even with our no-referrer policy. A plain string
+      // can omit both Origin and Fetch Metadata and correctly gets rejected.
       const sent =
         typeof navigator !== "undefined" &&
         typeof navigator.sendBeacon === "function" &&
-        navigator.sendBeacon(`/api/messages/${threadId}/typing`, body);
+        navigator.sendBeacon(`/api/messages/${threadId}/typing`, new Blob([body], { type: "application/json" }));
       if (!sent) {
         void fetch(`/api/messages/${threadId}/typing`, {
           method: "POST",
@@ -807,20 +811,26 @@ export function MeChatThread({
   }
 
   function sendCurrentMessage() {
-    if (isPending) return;
+    if (sendLock.current || isPending) return;
     if (!draft.trim() && attachments.length === 0 && !pendingSource?.sourceUrl) return;
+    sendLock.current = true;
+    const sentDraft = draft;
+    const sentRevision = draftRevision.current;
+    const sentAttachments = attachments;
+    const sentReply = replyTo;
+    const sentSource = pendingSource;
     startTransition(async () => {
       setError("");
       let optimisticId = "";
       try {
         const threadId = await ensureThread();
         const optimistic = createOptimisticMessage({
-          content: draft.trim(),
+          content: sentDraft.trim(),
           currentUser,
           threadId,
-          attachments,
-          replyTo,
-          source: pendingSource,
+          attachments: sentAttachments,
+          replyTo: sentReply,
+          source: sentSource,
         });
         optimisticId = optimistic.id;
         // Sending always brings you back to the newest message, even if you
@@ -833,15 +843,15 @@ export function MeChatThread({
           credentials: "same-origin",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            content: draft.trim(),
-            attachments,
-            replyToMessageId: replyTo?.id,
-            messageType: pendingSource?.messageType,
-            sourcePlatform: pendingSource?.sourcePlatform,
-            sourceUrl: pendingSource?.sourceUrl,
-            sourcePostId: pendingSource?.sourcePostId,
-            platformPostId: pendingSource?.platformPostId,
-            platformCommentId: pendingSource?.platformCommentId,
+            content: sentDraft.trim(),
+            attachments: sentAttachments,
+            replyToMessageId: sentReply?.id,
+            messageType: sentSource?.messageType,
+            sourcePlatform: sentSource?.sourcePlatform,
+            sourceUrl: sentSource?.sourceUrl,
+            sourcePostId: sentSource?.sourcePostId,
+            platformPostId: sentSource?.platformPostId,
+            platformCommentId: sentSource?.platformCommentId,
           }),
         });
         const data = await safeFetchJson<{ message?: MeChatSerializedMessage; error?: string }>(response);
@@ -856,17 +866,20 @@ export function MeChatThread({
         if (sendButtonRef.current?.isConnected && (!isExternalThread || data.message.metadata.delivery?.status === "delivered")) {
           celebrate({ kind: "send", anchor: sendButtonRef.current });
         }
-        setDraft("");
+        // Compare edits, not text: typing the same short reply again while a
+        // previous send is pending is still a NEW draft and must survive.
+        const draftUnchanged = draftRevision.current === sentRevision;
+        if (draftUnchanged) setDraft("");
         // Drop the stored draft under the pre-send key too (creating a thread
         // moves the key from recipient to thread mid-flight).
         try {
-          sessionStorage.removeItem(draftStorageKey);
+          if (draftUnchanged) sessionStorage.removeItem(draftStorageKey);
         } catch {
           // Best-effort.
         }
-        setReplyTo(null);
-        setPendingSource(undefined);
-        setAttachments([]);
+        setReplyTo((current) => current === sentReply ? null : current);
+        setPendingSource((current) => current === sentSource ? undefined : current);
+        setAttachments((current) => current.filter((item) => !sentAttachments.includes(item)));
         setShowMediaTools(false);
         // The real message takes the optimistic bubble's place — mark it seen so
         // swapping the React key doesn't replay the send-in animation.
@@ -880,6 +893,8 @@ export function MeChatThread({
           setMessages((current) => current.filter((message) => message.id !== optimisticId));
         }
         setError(sendError instanceof Error ? sendError.message : "Message failed");
+      } finally {
+        sendLock.current = false;
       }
     });
   }
@@ -1755,6 +1770,7 @@ export function MeChatThread({
               ref={draftRef}
               value={draft}
               onChange={(event) => {
+                draftRevision.current++;
                 draftTouchedRef.current = true;
                 setDraft(event.target.value);
               }}
@@ -1787,6 +1803,7 @@ export function MeChatThread({
             <button
               type="button"
               onClick={() => {
+                draftRevision.current++;
                 draftTouchedRef.current = true;
                 setDraft((current) => `${current}${current ? " " : ""}\uD83D\uDC4D`);
                 draftRef.current?.focus();

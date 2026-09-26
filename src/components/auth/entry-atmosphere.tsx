@@ -23,7 +23,7 @@ export function EntryAtmosphere({ state, anchorRef, reducedMotion }: {
   const [enabled, setEnabled] = useState(false);
 
   useEffect(() => {
-    const desktop = window.matchMedia("(min-width: 768px) and (min-height: 480px) and (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference)");
+    const motion = window.matchMedia("(prefers-reduced-motion: no-preference)");
     const connection = (navigator as Navigator & { connection?: SaveDataConnection }).connection;
     let idle: number | undefined;
     let delay: number | undefined;
@@ -35,7 +35,7 @@ export function EntryAtmosphere({ state, anchorRef, reducedMotion }: {
       idle = undefined;
       delay = undefined;
     };
-    const eligible = () => !reducedMotion && desktop.matches && !document.hidden && !connection?.saveData && areVisualEffectsEnabled();
+    const eligible = () => !reducedMotion && motion.matches && !document.hidden && !connection?.saveData && areVisualEffectsEnabled();
     const sync = () => {
       cancelStart();
       if (!eligible()) {
@@ -50,19 +50,28 @@ export function EntryAtmosphere({ state, anchorRef, reducedMotion }: {
     };
 
     sync();
-    desktop.addEventListener("change", sync);
+    motion.addEventListener("change", sync);
     connection?.addEventListener("change", sync);
     document.addEventListener("visibilitychange", sync);
     const unsubscribe = subscribeInteractionPreferences(sync);
     return () => {
       disposed = true;
       cancelStart();
-      desktop.removeEventListener("change", sync);
+      motion.removeEventListener("change", sync);
       connection?.removeEventListener("change", sync);
       document.removeEventListener("visibilitychange", sync);
       unsubscribe();
     };
   }, [reducedMotion]);
 
-  return enabled ? <Constellation state={state} anchorRef={anchorRef} reducedMotion={reducedMotion} /> : null;
+  return (
+    <div className="entry-atmosphere" data-entry-atmosphere={enabled ? "live" : "still"} aria-hidden="true">
+      {/* This light, static web also survives a slow/failed optional chunk. */}
+      <svg className="entry-still-web" viewBox="0 0 1000 1000" preserveAspectRatio="none" focusable="false">
+        <path d="M0 230 110 140 260 50 380 100 570 25 740 80 900 25 1000 190M0 540 75 360 110 140 20 20M0 880 90 740 75 360M90 740 230 940 410 900 600 975 780 895 930 950 1000 820M1000 530 925 385 900 25M925 385 950 680 780 895M260 50 180 0M230 940 100 1000M600 975 680 1000M110 140 0 120M950 680 1000 650" />
+        <g>{[[110,140],[260,50],[380,100],[740,80],[900,25],[75,360],[90,740],[230,940],[410,900],[780,895],[925,385],[950,680]].map(([x,y]) => <circle key={`${x}-${y}`} cx={x} cy={y} r="2.4" />)}</g>
+      </svg>
+      {enabled ? <Constellation state={state} anchorRef={anchorRef} reducedMotion={reducedMotion} /> : null}
+    </div>
+  );
 }

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { ArrowRight, Check, Circle, Eye, EyeOff } from "lucide-react";
 import { PaperWait } from "@/components/loading/paper-wait";
 import { signUp } from "@/lib/actions";
@@ -25,6 +26,8 @@ export function SignupForm({ prefill, onActivity, onProgress, notice }: {
   onProgress?: (count: number) => void;
   notice?: string;
 }) {
+  const router = useRouter();
+  const submitting = useRef(false);
   const [values, setValues] = useState<Fields>({ email: prefill?.email || "", username: prefill?.username || "", displayName: "", password: "" });
   const [errors, setErrors] = useState<Partial<Fields>>({});
   const [error, setError] = useState("");
@@ -51,6 +54,7 @@ export function SignupForm({ prefill, onActivity, onProgress, notice }: {
 
   function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (submitting.current) return;
     const form = event.currentTarget;
     const next = readFields(form);
     const nextErrors: Partial<Fields> = {};
@@ -67,9 +71,24 @@ export function SignupForm({ prefill, onActivity, onProgress, notice }: {
       return;
     }
     const data = new FormData(form);
+    submitting.current = true;
     startTransition(async () => {
-      const result = await signUp(data);
-      if (result?.error) setError(result.error);
+      try {
+        // Return the destination rather than catching Next's redirect sentinel.
+        // A dropped request remains a recoverable form state, not an error page.
+        const result = await signUp(data, { navigate: false });
+        if (result && "error" in result && result.error) setError(result.error);
+        else if (result && "redirectTo" in result && typeof result.redirectTo === "string") {
+          router.replace(result.redirectTo);
+          router.refresh();
+        } else {
+          setError("We couldn't confirm your account. Please try again.");
+        }
+      } catch {
+        setError("We couldn't reach Mesh.me. Your details are still here — try again.");
+      } finally {
+        submitting.current = false;
+      }
     });
   }
 

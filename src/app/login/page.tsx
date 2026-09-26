@@ -20,7 +20,7 @@ function getSafeNextPath(value: string | string[] | undefined) {
   try {
     const parsed = new URL(raw, "https://mesh.me");
     if (parsed.origin !== "https://mesh.me") return null;
-    if (parsed.pathname === "/login" || parsed.pathname === "/signup" || parsed.pathname === "/reset-password") {
+    if (["/login", "/signup", "/sign-up", "/forgot-password", "/reset-password"].includes(parsed.pathname)) {
       return null;
     }
     return `${parsed.pathname}${parsed.search}${parsed.hash}`;

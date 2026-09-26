@@ -1,0 +1,179 @@
+/* A shared, restrained sense of place. Reading surfaces stay opaque; the
+   light belongs at their edges. All colours follow the user's checked theme. */
+body.mesh-experience {
+  --world-light: color-mix(in srgb, var(--accent) 8%, transparent);
+  --world-rim: color-mix(in srgb, var(--accent) 25%, var(--rule));
+  --world-shadow: 0 14px 36px -28px color-mix(in srgb, var(--accent) 36%, transparent);
+}
+
+/* The front door is one continuous scene, not a marketing page beside a form. */
+body.mesh-experience .entry-studio-body {
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: center;
+  max-width: 640px;
+  gap: 0;
+  padding: .75rem clamp(1rem, 4vw, 2.5rem);
+}
+body.mesh-experience .entry-studio-card {
+  width: 100%;
+  max-width: 460px;
+  padding: 1.5rem 1.25rem;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  gap: 1.25rem;
+}
+body.mesh-experience .entry-stage-label {
+  justify-content: center;
+  border: 0;
+  padding-bottom: 0;
+  color: var(--text-secondary);
+  font-size: .75rem;
+  gap: .75rem;
+}
+body.mesh-experience .entry-stage-dots { gap: 5px; }
+body.mesh-experience .entry-stage-dots i { transition: background 220ms ease; }
+body.mesh-experience .entry-studio .mesh-gate-q {
+  font-family: var(--font-sans), sans-serif;
+  font-size: clamp(2rem, 5.7vw, 3rem);
+  font-weight: 500;
+  letter-spacing: -.065em;
+  text-wrap: balance;
+}
+body.mesh-experience .entry-studio .mesh-gate-q-sm { font-size: clamp(1.7rem, 5vw, 2.3rem); }
+body.mesh-experience .entry-studio .mesh-gate-meshi {
+  position: relative;
+  isolation: isolate;
+  margin-block: .15rem .6rem;
+}
+body.mesh-experience .entry-studio .mesh-gate-meshi::before {
+  content: "";
+  position: absolute;
+  inset: -30%;
+  z-index: -1;
+  pointer-events: none;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--accent-wash), transparent 68%);
+}
+body.mesh-experience .entry-studio .mesh-gate-inputwrap > .mesh-gate-input {
+  min-height: 60px;
+  padding-inline: 1.15rem 4rem;
+  border: 1px solid var(--edge);
+  border-radius: 20px;
+  background: var(--paper-1);
+  box-shadow: var(--world-shadow);
+  transition: border-color 180ms ease, box-shadow 180ms ease;
+}
+body.mesh-experience .entry-studio .mesh-gate-inputwrap > .mesh-gate-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 4px var(--accent-wash), var(--world-shadow);
+}
+body.mesh-experience .entry-studio .mesh-gate-go { border-radius: 14px; right: 8px; }
+body.mesh-experience .entry-studio .mesh-gate-halo { opacity: .75; }
+body.mesh-experience .entry-studio .mesh-gate-canvas { opacity: .8; }
+body.mesh-experience .entry-studio .mesh-gate-form { padding: .25rem; }
+body.mesh-experience .entry-studio .mesh-gate-input-line {
+  padding: .75rem 1rem;
+  border: 1px solid var(--edge);
+  background: var(--paper-1);
+  font-size: 1rem;
+}
+body.mesh-experience .entry-studio .mesh-gate-bubble {
+  border-color: var(--world-rim);
+  background: var(--paper-1);
+  box-shadow: var(--world-shadow);
+}
+body.mesh-experience .entry-studio .mesh-gate-foot { padding-top: .75rem; }
+.entry-atmosphere { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
+.entry-still-web { width: 100%; height: 100%; color: var(--accent); opacity: .25; }
+.entry-still-web path { fill: none; stroke: currentColor; stroke-width: .65; vector-effect: non-scaling-stroke; }
+.entry-still-web circle { fill: currentColor; }
+
+/* One material system for navigation, social, messages and personal spaces. */
+body.mesh-experience .mesh-content {
+  background: radial-gradient(ellipse 70% 400px at 90% 0, var(--world-light), transparent 80%), var(--paper-0);
+}
+body.mesh-experience .mesh-shell-mesh .mesh-content { background: var(--paper-0); }
+body.mesh-experience .mesh-sidebar {
+  background: radial-gradient(ellipse 100% 24% at 10% 100%, var(--world-light), transparent), var(--paper-1);
+  border-right: 1px solid var(--rule);
+}
+body.mesh-experience .mesh-nav-active-wash {
+  background: var(--accent-wash);
+  border-color: var(--world-rim);
+  box-shadow: var(--world-shadow);
+}
+body.mesh-experience .mesh-nav-item-active svg { color: var(--accent-text); }
+body.mesh-experience .mesh-nav-item-active { box-shadow: none; }
+body.mesh-experience :is(.mesh-topbar-search, .mesh-quick-jump):focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-wash);
+}
+body.mesh-experience .mesh-topbar {
+  background: color-mix(in srgb, var(--lg-fill) calc(var(--lg-alpha) * 100%), transparent);
+  -webkit-backdrop-filter: blur(var(--lg-blur)) saturate(var(--lg-sat));
+  backdrop-filter: blur(var(--lg-blur)) saturate(var(--lg-sat));
+  color: var(--lg-ink);
+}
+body.mesh-experience :is(.mesh-dialog, .mesh-account-panel) {
+  border-color: var(--world-rim);
+  box-shadow: var(--shadow-float), var(--world-shadow);
+}
+body.mesh-experience .social-feed .feed-x-tabs > a[aria-current="page"] {
+  color: var(--accent-text);
+  background: var(--accent-wash);
+  box-shadow: inset 0 0 0 1px var(--world-rim);
+}
+body.mesh-experience .presence-conversation-row[aria-current="page"] {
+  border-color: var(--world-rim);
+  background: var(--accent-wash);
+}
+body.mesh-experience .presence-message-composer:focus-within {
+  border-top-color: var(--world-rim);
+}
+body.mesh-experience :is(.mesh-composer-shell, .mesh-field, .mesh-dialog input, .mesh-dialog textarea):focus-within {
+  border-color: var(--accent);
+}
+body.mesh-experience .presence-empty-symbol {
+  border-radius: 50%;
+  border-color: var(--world-rim);
+  background: var(--accent-wash);
+  box-shadow: 0 0 0 8px var(--paper-0), 0 0 0 9px var(--rule);
+}
+body.mesh-experience .wait-route-emblem { color: var(--accent-text); }
+body.mesh-experience .paper-wait-card { border-color: var(--world-rim); }
+
+@media (hover: hover) and (pointer: fine) {
+  body.mesh-experience :is(.mesh-nav-item, .mesh-library-navigation a):hover { background: var(--accent-wash); }
+  body.mesh-experience :is(.glass-card, .profile-header-card, .public-route-card):hover { border-color: var(--world-rim); }
+}
+@media (prefers-reduced-motion: no-preference) {
+  body.mesh-experience .entry-studio .mesh-gate-focus { animation: world-arrive 440ms var(--mesh-ease-out) both; }
+  body.mesh-experience .entry-stage-dots .is-active:last-child { animation: world-node-arrive 440ms var(--mesh-ease-out); }
+  @keyframes world-arrive { from { opacity: 0; translate: 0 10px; } to { opacity: 1; translate: 0 0; } }
+  @keyframes world-node-arrive { from { box-shadow: 0 0 0 7px var(--accent-wash); } to { box-shadow: 0 0 0 0 transparent; } }
+}
+@media (max-width: 600px) {
+  body.mesh-experience .entry-studio .mesh-gate-brandbar { padding-inline: 1.25rem; }
+  body.mesh-experience .entry-studio-card { padding: .5rem .25rem; gap: 1rem; }
+  body.mesh-experience .entry-studio .mesh-gate-focus { gap: 1rem; }
+  body.mesh-experience .entry-studio .mesh-gate-q { font-size: 2.125rem; }
+  body.mesh-experience .entry-studio .mesh-gate-foot { padding-bottom: max(.75rem, env(safe-area-inset-bottom)); }
+  .entry-still-web { opacity: .32; }
+}
+@media (max-height: 620px) {
+  body.mesh-experience .entry-studio .mesh-gate-brandbar { padding-top: max(.4rem, env(safe-area-inset-top)); }
+  body.mesh-experience .entry-studio-body { padding-block: .25rem; }
+  body.mesh-experience .entry-studio-card { padding-block: .25rem; }
+  body.mesh-experience .entry-studio .mesh-gate-focus { gap: .65rem; }
+  body.mesh-experience .entry-stage-label { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  body.mesh-experience .entry-studio .mesh-gate-focus { animation: none; }
+  body.mesh-experience .entry-stage-dots i { transition: none; }
+}
+@media (forced-colors: active) {
+  .entry-atmosphere, body.mesh-experience .mesh-gate-halo { display: none; }
+  body.mesh-experience .mesh-topbar { background: Canvas; backdrop-filter: none; }
+}

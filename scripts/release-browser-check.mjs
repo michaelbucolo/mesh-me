@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
+import { runLivingWorldChecks } from "./living-world-browser.mjs";
 
 // Real authentication against disposable fixtures only. Production cookies
 // keep their Secure/__Host- requirements; the test origin uses loopback TLS.
@@ -55,7 +56,7 @@ function observe(page, label) {
   };
   page.on("requestfinished", finish);
   page.on("requestfailed", finish);
-  page.on("pageerror", (error) => runtimeErrors.push({ label, route: new URL(page.url()).pathname, message: error.message }));
+  page.on("pageerror", (error) => runtimeErrors.push({ label, route: new URL(page.url()).pathname, message: error.message, stack: error.stack, pending: [...network.pending].map((request) => ({ path: new URL(request.url()).pathname, type: request.resourceType() })) }));
   page.on("console", (message) => {
     if (message.type() !== "error") return;
     const text = message.text();
@@ -63,7 +64,7 @@ function observe(page, label) {
     if (engine === "webkit" && text === 'Viewport argument key "interactive-widget" not recognized and ignored.') return;
     const source = message.location().url;
     if (/Failed to load resource/.test(text) && source && !source.startsWith(origin)) return; // Third-party seed image only.
-    runtimeErrors.push({ label, route: new URL(page.url()).pathname, message: text });
+    runtimeErrors.push({ label, route: new URL(page.url()).pathname, source, message: text });
   });
 }
 
@@ -245,6 +246,7 @@ try {
   assert(results.at(-1).status === "pass", "Real sign-in failed; authenticated coverage cannot be claimed");
   const session = await loginContext.storageState(); // Memory only: never upload cookies or credentials.
   await loginContext.close();
+  await runLivingWorldChecks({ context, check, visit, layout, settle, observe, session, origin });
 
   for (const [label, viewport] of viewports) {
     const guestContext = await context({ viewport, reducedMotion: "reduce", isMobile: viewport.width < 500 });

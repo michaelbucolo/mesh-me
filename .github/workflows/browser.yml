@@ -44,7 +44,24 @@ jobs:
       - run: npx prisma db push
       - run: npm run seed
       - run: npm run build
+      - name: Allow independent fixture readers alongside real app writes
+        run: |
+          # Browser tests verify persisted rows through a separate connection.
+          # WAL keeps those readers from blocking the app's commit. This changes
+          # only the disposable local fixture, never the hosted database.
+          python3 <<'PY'
+          import os, sqlite3
+          from pathlib import Path
+          assert os.environ['DATABASE_URL'] == 'file:./browser-ci.db'
+          assert not os.environ.get('DATABASE_AUTH_TOKEN') and not os.environ.get('VERCEL')
+          database = Path('browser-ci.db')
+          assert database.is_file()
+          with sqlite3.connect(database) as connection:
+              assert connection.execute('SELECT count(*) FROM User').fetchone()[0] >= 10
+              assert connection.execute('PRAGMA journal_mode=WAL').fetchone()[0] == 'wal'
+          PY
       - name: Start isolated production-mode app over loopback TLS
+        id: start_app
         run: |
           CERT_DIR=$(mktemp -d)
           export BROWSER_TEST_CERT="$CERT_DIR/cert.pem"
@@ -71,6 +88,9 @@ jobs:
           exit 1
       - name: Real sign-in, recovery, privacy boundaries, and responsive journeys
         run: node scripts/release-browser-check.mjs
+      - name: First account, interrupted signup, and the first real Mesh post
+        if: ${{ !cancelled() && steps.start_app.outcome == 'success' }}
+        run: node scripts/first-world-browser.mjs
       - name: Preserve isolated fixture screenshots and test results
         if: always()
         uses: actions/upload-artifact@v4

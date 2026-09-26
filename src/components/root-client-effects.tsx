@@ -3,6 +3,7 @@
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import { InteractionFeedback } from "@/components/interaction-feedback";
+import "@/app/living-world.css";
 
 const DynamicFavicon = dynamic(() => import("@/components/dynamic-favicon").then((mod) => mod.DynamicFavicon), {
   ssr: false,

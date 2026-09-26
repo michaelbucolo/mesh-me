@@ -13,6 +13,7 @@
 //
 //   Revoke is deletion: instant, uncached, next-request-effective.
 
+import Link from "next/link";
 import { useState, useTransition } from "react";
 import { KeyRound } from "lucide-react";
 
@@ -115,9 +116,9 @@ export function ApiTokensPanel({ initialTokens }: { initialTokens: TokenRow[] })
         Read your own data from scripts and servers — the same data for everyone, no paywall. Tokens are
         read-only, scoped, and they all expire. We keep a fingerprint, not the token: nobody at mesh.me can
         read one back.{" "}
-        <a href="/developers" className="inline-flex min-h-11 items-center font-semibold text-[var(--accent-text)] underline underline-offset-4">
+        <Link href="/developers" className="inline-flex min-h-11 items-center font-semibold text-[var(--accent-text)] underline underline-offset-4">
           Read the docs
-        </a>
+        </Link>
       </p>
 
       {minted && (

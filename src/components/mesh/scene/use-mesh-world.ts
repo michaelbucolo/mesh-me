@@ -116,7 +116,7 @@ export interface MeshWorld {
   rewindAt: number | null;
   rewindValue: number;
   fitToContent: () => void;
-  loadScene: (opts?: { quiet?: boolean; signal?: AbortSignal }) => Promise<void>;
+  loadScene: (opts?: { quiet?: boolean; fresh?: boolean; signal?: AbortSignal }) => Promise<void>;
   loadImages: (model: SceneModel) => void;
   onRewindInput: (value: number) => void;
   backToNow: () => void;
@@ -254,9 +254,10 @@ export function useMeshWorld(
   }, [rtRef]);
 
   const loadScene = useCallback(
-    async (loadOpts?: { quiet?: boolean; signal?: AbortSignal }) => {
+    async (loadOpts?: { quiet?: boolean; fresh?: boolean; signal?: AbortSignal }) => {
       const rt = rtRef.current;
-      const url = meshApiUrl(viewUserId, viewMode);
+      const baseUrl = meshApiUrl(viewUserId, viewMode);
+      const url = loadOpts?.fresh ? `${baseUrl}${baseUrl.includes("?") ? "&" : "?"}refresh=1` : baseUrl;
       if (!loadOpts?.quiet) {
         setStatus("loading");
         setMeshData(null);
@@ -264,7 +265,7 @@ export function useMeshWorld(
       try {
         // First load rides the request the loader shell started while this
         // chunk was still downloading; refreshes fetch normally.
-        const prefetched = loadOpts?.quiet ? undefined : takeMeshPrefetch(url);
+        const prefetched = loadOpts?.quiet || loadOpts?.fresh ? undefined : takeMeshPrefetch(url);
         const res = prefetched
           ? await prefetched
           : await fetch(url, { cache: "no-store", signal: loadOpts?.signal });

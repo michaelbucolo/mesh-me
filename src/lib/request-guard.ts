@@ -119,7 +119,7 @@ export function safeInternalPath(value: string | null | undefined, baseOrigin: s
   try {
     const parsed = new URL(trimmed, baseOrigin);
     if (parsed.origin !== baseOrigin) return null;
-    if (parsed.pathname === "/login" || parsed.pathname === "/signup" || parsed.pathname === "/reset-password") {
+    if (["/login", "/signup", "/sign-up", "/reset-password", "/forgot-password"].includes(parsed.pathname)) {
       return null;
     }
     return `${parsed.pathname}${parsed.search}${parsed.hash}`;

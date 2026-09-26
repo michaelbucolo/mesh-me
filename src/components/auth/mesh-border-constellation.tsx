@@ -109,7 +109,8 @@ export function MeshBorderConstellation({
     if (!ctx) return;
     resolveThemeColors();
 
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const compact = window.matchMedia("(max-width: 767px), (pointer: coarse)").matches;
+    const dpr = Math.min(window.devicePixelRatio || 1, compact ? 1.5 : 2);
     let width = 0;
     let height = 0;
     let nodes: Node[] = [];
@@ -150,7 +151,7 @@ export function MeshBorderConstellation({
       canvas.height = Math.round(height * dpr);
 
       const area = width * height;
-      const count = Math.max(32, Math.min(72, Math.round(area / 24000)));
+      const count = compact ? Math.max(20, Math.min(28, Math.round(area / 14000))) : Math.max(32, Math.min(72, Math.round(area / 24000)));
       const cx = width / 2;
       const cy = height / 2;
       // Keep-clear ellipse around the centered card.
@@ -192,7 +193,7 @@ export function MeshBorderConstellation({
       // Precompute edges between near neighbours (drift is small, so the web
       // stays valid without recomputing each frame).
       edges = [];
-      const threshold = Math.min(width, height) * 0.22;
+      const threshold = Math.min(width, height) * (compact ? 0.42 : 0.22);
       for (let i = 0; i < nodes.length; i += 1) {
         for (let j = i + 1; j < nodes.length; j += 1) {
           const dx = nodes[i].bx - nodes[j].bx;
@@ -226,7 +227,7 @@ export function MeshBorderConstellation({
 
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, width, height);
-      ctx.globalCompositeOperation = "lighter";
+      ctx.globalCompositeOperation = "source-over";
 
       const cx = width / 2;
       const cy = height / 2;
@@ -367,7 +368,7 @@ export function MeshBorderConstellation({
       ctx.globalCompositeOperation = "source-over";
 
       if (reducedMotion && !success) return; // single static frame when calm
-      const interval = energy > 0.02 || converge || sparks.length ? 1000 / 30 : 1000 / 15;
+      const interval = energy > 0.02 || converge || sparks.length ? 1000 / 30 : 1000 / (compact ? 12 : 15);
       paintTimer = window.setTimeout(() => { raf = requestAnimationFrame(draw); }, interval);
     };
 

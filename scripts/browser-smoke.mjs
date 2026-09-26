@@ -139,7 +139,7 @@ async function runPublicEntryChecks(knownUser) {
       await assertNoOverflow(page, `${label} login initial`);
       // The entry flow's identity step leads with "Log in" (the old
       // "Who are you?" copy retired with the tone reset).
-      await assertText(page, "Log in", `${label} login heading`);
+      await assertText(page, "Your world awaits.", `${label} login heading`);
 
       const email = `browser-smoke-${Date.now()}-${label}@example.com`;
       await page.fill("[data-testid=\"entry-identity-input\"]", email, { timeout: 45000 });

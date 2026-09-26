@@ -12,6 +12,7 @@
 // waiting on you and where, the inbox has not saved you opening the other app —
 // which is the entire point.
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import Image from "next/image";
 import { Inbox, ArrowUpRight } from "lucide-react";
@@ -46,13 +47,13 @@ export function InboxView({ initial, initialTab = "needs-you" }: { initial: Inbo
           <div><p className="presence-kicker">All your conversations</p><h1 className="presence-page-title" style={{ color: INK }}>Inbox</h1></div>
           {/* The other half of one place for everything: what reaches you, and
               what you send out. Putting them on the same screen is the point. */}
-          <a
+          <Link
             href="/compose"
             className="presence-primary-link shrink-0 rounded-full px-3.5 py-1.5 font-semibold"
             style={{ background: "var(--accent)", color: "var(--accent-ink)", fontSize: 13.5 }}
           >
             Post everywhere <ArrowUpRight size={15} aria-hidden="true" />
-          </a>
+          </Link>
         </div>
         <p className="mt-1 text-sm" style={{ color: INK_DIM }}>
           {summarise(initial)}
@@ -257,13 +258,13 @@ function Empty({ tab }: { tab: Tab }) {
       <span className="presence-empty-symbol"><Inbox size={26} aria-hidden="true" /></span>
       <p style={{ color: INK, fontSize: 15, fontWeight: 500 }}>{text}</p>
       {tab === "needs-you" && (
-        <a
+        <Link
           href="/connected-accounts"
           className="mt-3 rounded-full px-3.5 py-1.5 text-sm font-semibold"
           style={{ background: "color-mix(in srgb, var(--accent) 12%, transparent)", color: OWED }}
         >
           Connect another platform
-        </a>
+        </Link>
       )}
     </div>
   );
