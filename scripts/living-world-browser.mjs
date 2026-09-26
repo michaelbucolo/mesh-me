@@ -163,7 +163,7 @@ export async function runLivingWorldChecks({ context, check, visit, layout, sett
       await fieldset.getByRole('button',{name:'Post',exact:true}).click();
       // The article appears optimistically. Wait for the server receipt before
       // checking persistence; the mobile composer is hidden, not unmounted.
-      await fieldset.locator('[role="status"]').filter({hasText:/^Post created$/}).waitFor({state:'attached',timeout:30000});
+      await page.locator('fieldset.social-composer [role="status"]').filter({hasText:/^Post created$/}).waitFor({state:'attached',timeout:30000});
       await page.locator('article').filter({hasText:text}).waitFor({timeout:30000});
       const result = await db.execute({sql:'SELECT id, visibility FROM Post WHERE content = ?',args:[text]});
       assert.equal(result.rows.length,1,'Publish did not create exactly one persisted post');
