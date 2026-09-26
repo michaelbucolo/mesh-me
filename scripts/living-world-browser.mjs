@@ -72,12 +72,48 @@ export async function runLivingWorldChecks({ context, check, visit, layout, sett
     const policy = response.headers()['content-security-policy'];
     const nonce = policy?.match(/'nonce-([^']+)'/)?.[1];
     assert(nonce && policy.includes("'strict-dynamic'"), 'Strict nonce policy was weakened');
-    const scripts = await missing.locator('script').evaluateAll(s => s.filter(x=>x.src || x.textContent.trim()).map(x=>x.nonce));
+    // strict-dynamic permits child scripts created by trusted runtime code.
+    // Check server-emitted scripts, not later chunks injected after hydration.
+    const html = await response.text();
+    const scripts = [...html.matchAll(/<script\b[^>]*>/g)].map(([tag]) => tag.match(/\bnonce="([^"]+)"/)?.[1]);
     assert(scripts.length>0 && scripts.every(n=>n===nonce),'Error-page scripts lack their request nonce');
     await missing.getByRole('link',{name:'Home',exact:true}).click();
     await missing.getByTestId('entry-identity-input').waitFor();
   });
   await missingContext.close();
+
+  const retryContext = await context({viewport:{width:390,height:844},reducedMotion:'reduce',storageState:session});
+  await retryContext.addInitScript(() => {
+    const original = window.fetch;
+    let interrupted = false;
+    window.fetch = (input, init) => {
+      const req = input instanceof Request ? input : null;
+      const url = new URL(req ? req.url : String(input), location.href);
+      if (!interrupted && url.origin === location.origin && url.pathname === '/api/mesh') {
+        interrupted = true;
+        return Promise.reject(new TypeError('Isolated first-world request interruption'));
+      }
+      return original.call(window, input, init);
+    };
+  });
+  const retryPage = await retryContext.newPage();
+  observe(retryPage, 'mesh-retry');
+  try {
+    await check('mesh-retry-fetches-the-world-again', retryPage, async () => {
+      await visit(retryPage, '/mesh', true);
+      const error = retryPage.getByText("Your mesh couldn't be reached.", {exact:true});
+      await error.waitFor();
+      const retried = retryPage.waitForResponse(response => {
+        const url = new URL(response.url());
+        return url.pathname === '/api/mesh' && url.searchParams.get('refresh') === '1';
+      });
+      await retryPage.getByRole('button', {name:'Try again',exact:true}).click();
+      assert.equal((await retried).status(),200);
+      await error.waitFor({state:'hidden'});
+      await retryPage.getByTestId('mesh-list').locator('li').first().waitFor({state:'attached'});
+      await layout(retryPage);
+    });
+  } finally { await retryContext.close(); }
 
   const signed = await context({viewport:{width:390,height:844},reducedMotion:'reduce',storageState:session});
   const page = await signed.newPage();
@@ -85,15 +121,41 @@ export async function runLivingWorldChecks({ context, check, visit, layout, sett
   const db = createClient({url:process.env.DATABASE_URL});
   const text = `Private browser journey ${process.env.MESH_BROWSER} ${Date.now()}`;
   try {
+    await check('explicit-mesh-refresh-sees-out-of-worker-writes', page, async () => {
+      await visit(page, '/feed', true);
+      const read = (fresh) => page.evaluate(async fresh => {
+        const response = await fetch(`/api/mesh${fresh ? '?refresh=1' : ''}`, {cache:'no-store'});
+        if (!response.ok) throw new Error(`Mesh read failed: ${response.status}`);
+        return response.json();
+      }, fresh);
+      const before = await read(false);
+      const original = before.posts?.[0];
+      assert(original?.id && typeof original.content === 'string', 'Expected an isolated native seed post');
+      const changed = `Independent-worker fixture ${Date.now()}`;
+      try {
+        // A direct fixture write simulates a mutation on another worker: the
+        // API worker's in-memory cache is deliberately NOT invalidated here.
+        const updated = await db.execute({sql:'UPDATE Post SET content=? WHERE id=? AND authorId=?',args:[changed,original.id,before.user.id]});
+        assert.equal(updated.rowsAffected,1);
+        const after = await read(true);
+        assert.equal(after.posts.find(post=>post.id===original.id)?.content,changed);
+      } finally {
+        await db.execute({sql:'UPDATE Post SET content=? WHERE id=? AND authorId=?',args:[original.content,original.id,before.user.id]});
+        await read(true);
+      }
+      return {freshReadObservedIndependentWrite:true};
+    });
     await check('private-post-persists-through-reload', page, async () => {
       await visit(page, '/feed', true);
-      await page.getByRole('link',{name:"Create post",exact:true}).click();
+      await page.locator("#mesh-main-content").getByRole('link',{name:"Create post",exact:true}).click();
       await page.getByRole('textbox',{name:'Post text',exact:true}).fill(text);
       await page.getByRole('button',{name:/^Audience:.*Change audience$/}).click();
       await page.getByRole('button',{name:/Only me.*Private to your account/}).click();
       const fieldset=page.getByRole('group',{name:'Create a post',exact:true});
       await fieldset.getByRole('button',{name:'Post',exact:true}).click();
-      await fieldset.getByRole('status').filter({hasText:'Post created'}).waitFor({timeout:30000});
+      // Mobile closes its composer after publishing. The persisted post,
+      // rather than a transient status inside that hidden composer, is proof.
+      await page.locator('article').filter({hasText:text}).waitFor({timeout:30000});
       const result = await db.execute({sql:'SELECT id, visibility FROM Post WHERE content = ?',args:[text]});
       assert.equal(result.rows.length,1,'Publish did not create exactly one persisted post');
       assert.equal(result.rows[0].visibility,'private');
