@@ -21,8 +21,12 @@ export function meshApiUrl(viewUserId?: string, viewMode: "mesh" | "global" = "m
 
 export function prefetchMesh(url: string) {
   if (meshPrefetches.has(url)) return;
+  const promise = fetch(url, { cache: "no-store" });
+  // The scene chunk may arrive after the request fails. Observe rejection
+  // immediately, while retaining the rejected promise for its recovery UI.
+  void promise.catch(() => {});
   meshPrefetches.set(url, {
-    promise: fetch(url, { cache: "no-store" }),
+    promise,
     startedAt: Date.now(),
   });
 }

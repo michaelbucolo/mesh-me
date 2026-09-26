@@ -22,7 +22,10 @@ export async function GET(req: Request) {
     return getPublicMesh(viewUserId, user);
   }
 
-  const cachedPayload = getMeshCache(user.id);
+  // A write may have landed on a different serverless instance. Explicit
+  // post-write refreshes must not reuse this process's older scene. Ordinary
+  // background polling retains the bounded cache; authorization runs first.
+  const cachedPayload = searchParams.get("refresh") === "1" ? undefined : getMeshCache(user.id);
   if (cachedPayload !== undefined) {
     return NextResponse.json(cachedPayload);
   }

@@ -436,7 +436,7 @@ export function MeshScene({ viewUserId, viewMode = "mesh", viewerIsPro = false }
         meshIsEmpty={world.meshIsEmpty}
         composeOpen={showCompose}
         traveling={traveling}
-        onRetry={() => router.refresh()}
+        onRetry={() => void world.loadScene({ fresh: true })}
         onCompose={() => chrome.open("compose")}
       />
 
@@ -498,7 +498,7 @@ export function MeshScene({ viewUserId, viewMode = "mesh", viewerIsPro = false }
           viewer={viewer}
           onClose={clearSelectionOnly}
           onEnterMesh={input.enterFriendMesh}
-          onMuteChanged={() => void world.loadScene({ quiet: true })}
+          onMuteChanged={() => void world.loadScene({ quiet: true, fresh: true })}
         />
       )}
 
@@ -510,7 +510,7 @@ export function MeshScene({ viewUserId, viewMode = "mesh", viewerIsPro = false }
           viewer={viewer}
           anchor={pluck.anchor}
           onHearted={(node) => emitHeart(rtRef.current, isOwnMesh, node)}
-          onMuted={() => void world.loadScene({ quiet: true })}
+          onMuted={() => void world.loadScene({ quiet: true, fresh: true })}
           onClose={() => setPluck(null)}
         />
       )}
@@ -559,7 +559,7 @@ export function MeshScene({ viewUserId, viewMode = "mesh", viewerIsPro = false }
           onPostCreated={() => {
             chrome.close("compose");
             setActiveBranch("posts");
-            void world.loadScene({ quiet: true });
+            void world.loadScene({ quiet: true, fresh: true });
           }}
         />
       )}
