@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { motion, useReducedMotion } from "framer-motion";
-import { ArrowRight, Compass, Eye, EyeOff, ShieldCheck, Waypoints, MessageCircle } from "lucide-react";
+import { ArrowRight, Compass, Eye, EyeOff, ShieldCheck } from "lucide-react";
 import { PaperWait } from "@/components/loading/paper-wait";
 import { requestPasswordReset, resolveEntryIdentity, signInForEntry } from "@/lib/actions";
 import {
@@ -27,7 +27,7 @@ import type {
 } from "@/components/auth/mesh-border-constellation";
 
 type MeshEntryExperienceProps = {
-  initialStage?: "identity" | "signup";
+  initialStage?: "identity" | "signup" | "reset";
   nextPath?: string | null;
   oauthProviders?: IdentityProvider[];
   initialError?: string | null;
@@ -319,7 +319,7 @@ export function MeshEntryExperience({ initialStage = "identity", nextPath, oauth
         router.refresh();
         router.push(destination);
         later(() => {
-          if (window.location.pathname.startsWith("/login") || window.location.pathname === "/") {
+          if (["/", "/login", "/signup", "/sign-up", "/forgot-password"].includes(window.location.pathname)) {
             window.location.assign(destination);
           }
         }, 1400);
@@ -425,28 +425,13 @@ export function MeshEntryExperience({ initialStage = "identity", nextPath, oauth
             pointerEvents: "none",
             mixBlendMode: "screen",
             background:
-              "radial-gradient(circle, rgba(110,139,255,0.95) 0%, rgba(52,228,234,0.85) 40%, rgba(236,72,153,0.9) 72%, rgba(236,72,153,0) 100%)",
+              "radial-gradient(circle, var(--accent) 0%, var(--accent-wash) 50%, transparent 72%)",
           }}
         />
       )}
 
       <div className="entry-studio-body">
-        <aside className="entry-studio-story" aria-label="Welcome to Mesh.me">
-          <p className="public-kicker"><span aria-hidden="true" /> Your World, Your Way</p>
-          <h2>Your corner<br />of the internet.</h2>
-          <p>A home for your people, your interests, and everything that makes you, you.</p>
-          <div className="entry-world" aria-hidden="true">
-            <span className="entry-world-orbit entry-world-orbit-outer" />
-            <span className="entry-world-orbit entry-world-orbit-inner" />
-            <span className="entry-world-center"><Waypoints size={44} strokeWidth={1.2} /></span>
-            <span className="entry-world-node entry-world-node-one"><Waypoints size={19} /></span>
-            <span className="entry-world-node entry-world-node-two"><MessageCircle size={19} /></span>
-            <span className="entry-world-node entry-world-node-three"><Compass size={19} /></span>
-            <span className="entry-world-dot entry-world-dot-one" />
-            <span className="entry-world-dot entry-world-dot-two" />
-          </div>
-          <div className="entry-studio-note"><ShieldCheck size={16} aria-hidden="true" /><span>Private by default. Yours to shape.</span></div>
-        </aside>
+
       <motion.main
         className="mesh-gate-core entry-studio-card"
         animate={
@@ -490,7 +475,7 @@ export function MeshEntryExperience({ initialStage = "identity", nextPath, oauth
                 bouncy={!identifier && !reduceMotion}
               />
             </div>
-            <h1 className="mesh-gate-q">Log in</h1>
+            <h1 className="mesh-gate-q">Your world awaits.</h1>
             <p className="mesh-gate-welcome">A world that feels like you.</p>
             <div ref={anchorRef} className="mesh-gate-inputwrap">
               <input

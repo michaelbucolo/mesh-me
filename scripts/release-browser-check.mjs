@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
+import { runLivingWorldChecks } from "./living-world-browser.mjs";
 
 // Real authentication against disposable fixtures only. Production cookies
 // keep their Secure/__Host- requirements; the test origin uses loopback TLS.
@@ -245,6 +246,7 @@ try {
   assert(results.at(-1).status === "pass", "Real sign-in failed; authenticated coverage cannot be claimed");
   const session = await loginContext.storageState(); // Memory only: never upload cookies or credentials.
   await loginContext.close();
+  await runLivingWorldChecks({ context, check, visit, layout, settle, observe, session, origin });
 
   for (const [label, viewport] of viewports) {
     const guestContext = await context({ viewport, reducedMotion: "reduce", isMobile: viewport.width < 500 });

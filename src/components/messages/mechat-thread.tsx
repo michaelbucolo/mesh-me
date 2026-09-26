@@ -329,6 +329,7 @@ export function MeChatThread({
   const [typingUsers, setTypingUsers] = useState<TypingUser[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [draft, setDraft] = useState(initialSource?.content || "");
+  const sendLock = useRef(false);
   const [pendingSource, setPendingSource] = useState(initialSource);
   const [replyTo, setReplyTo] = useState<MeChatSerializedMessage | null>(null);
   const [showMediaTools, setShowMediaTools] = useState(false);
@@ -807,20 +808,25 @@ export function MeChatThread({
   }
 
   function sendCurrentMessage() {
-    if (isPending) return;
+    if (sendLock.current || isPending) return;
     if (!draft.trim() && attachments.length === 0 && !pendingSource?.sourceUrl) return;
+    sendLock.current = true;
+    const sentDraft = draft;
+    const sentAttachments = attachments;
+    const sentReply = replyTo;
+    const sentSource = pendingSource;
     startTransition(async () => {
       setError("");
       let optimisticId = "";
       try {
         const threadId = await ensureThread();
         const optimistic = createOptimisticMessage({
-          content: draft.trim(),
+          content: sentDraft.trim(),
           currentUser,
           threadId,
-          attachments,
-          replyTo,
-          source: pendingSource,
+          attachments: sentAttachments,
+          replyTo: sentReply,
+          source: sentSource,
         });
         optimisticId = optimistic.id;
         // Sending always brings you back to the newest message, even if you
@@ -833,15 +839,15 @@ export function MeChatThread({
           credentials: "same-origin",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            content: draft.trim(),
-            attachments,
-            replyToMessageId: replyTo?.id,
-            messageType: pendingSource?.messageType,
-            sourcePlatform: pendingSource?.sourcePlatform,
-            sourceUrl: pendingSource?.sourceUrl,
-            sourcePostId: pendingSource?.sourcePostId,
-            platformPostId: pendingSource?.platformPostId,
-            platformCommentId: pendingSource?.platformCommentId,
+            content: sentDraft.trim(),
+            attachments: sentAttachments,
+            replyToMessageId: sentReply?.id,
+            messageType: sentSource?.messageType,
+            sourcePlatform: sentSource?.sourcePlatform,
+            sourceUrl: sentSource?.sourceUrl,
+            sourcePostId: sentSource?.sourcePostId,
+            platformPostId: sentSource?.platformPostId,
+            platformCommentId: sentSource?.platformCommentId,
           }),
         });
         const data = await safeFetchJson<{ message?: MeChatSerializedMessage; error?: string }>(response);
@@ -856,17 +862,17 @@ export function MeChatThread({
         if (sendButtonRef.current?.isConnected && (!isExternalThread || data.message.metadata.delivery?.status === "delivered")) {
           celebrate({ kind: "send", anchor: sendButtonRef.current });
         }
-        setDraft("");
+        setDraft((current) => current === sentDraft ? "" : current);
         // Drop the stored draft under the pre-send key too (creating a thread
         // moves the key from recipient to thread mid-flight).
         try {
-          sessionStorage.removeItem(draftStorageKey);
+          if (draftRef.current?.value === sentDraft) sessionStorage.removeItem(draftStorageKey);
         } catch {
           // Best-effort.
         }
-        setReplyTo(null);
-        setPendingSource(undefined);
-        setAttachments([]);
+        setReplyTo((current) => current === sentReply ? null : current);
+        setPendingSource((current) => current === sentSource ? undefined : current);
+        setAttachments((current) => current.filter((item) => !sentAttachments.includes(item)));
         setShowMediaTools(false);
         // The real message takes the optimistic bubble's place — mark it seen so
         // swapping the React key doesn't replay the send-in animation.
@@ -880,6 +886,8 @@ export function MeChatThread({
           setMessages((current) => current.filter((message) => message.id !== optimisticId));
         }
         setError(sendError instanceof Error ? sendError.message : "Message failed");
+      } finally {
+        sendLock.current = false;
       }
     });
   }
