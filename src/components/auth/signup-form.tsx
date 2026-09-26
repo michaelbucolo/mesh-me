@@ -78,9 +78,11 @@ export function SignupForm({ prefill, onActivity, onProgress, notice }: {
         // A dropped request remains a recoverable form state, not an error page.
         const result = await signUp(data, { navigate: false });
         if (result && "error" in result && result.error) setError(result.error);
-        else if (result && "redirectTo" in result) {
+        else if (result && "redirectTo" in result && typeof result.redirectTo === "string") {
           router.replace(result.redirectTo);
           router.refresh();
+        } else {
+          setError("We couldn't confirm your account. Please try again.");
         }
       } catch {
         setError("We couldn't reach Mesh.me. Your details are still here — try again.");
