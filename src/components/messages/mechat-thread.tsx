@@ -742,11 +742,13 @@ export function MeChatThread({
       // sendBeacon is the one API guaranteed to survive page teardown — a
       // keepalive fetch fired from pagehide still gets aborted by the
       // navigation. Beacons carry cookies and the server parses the JSON body
-      // regardless of content type, so this is a plain clear.
+      // regardless of content type. JSON keeps the beacon in CORS mode, so
+      // WebKit sends Origin even with our no-referrer policy. A plain string
+      // can omit both Origin and Fetch Metadata and correctly gets rejected.
       const sent =
         typeof navigator !== "undefined" &&
         typeof navigator.sendBeacon === "function" &&
-        navigator.sendBeacon(`/api/messages/${threadId}/typing`, body);
+        navigator.sendBeacon(`/api/messages/${threadId}/typing`, new Blob([body], { type: "application/json" }));
       if (!sent) {
         void fetch(`/api/messages/${threadId}/typing`, {
           method: "POST",

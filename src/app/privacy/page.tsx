@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { Metadata } from "next";
 import { LegalDocumentPage } from "@/components/legal/legal-document-page";
 import { meshBrand } from "@/lib/brand";
@@ -29,7 +30,7 @@ export default function PrivacyPage() {
       content: (
         <>
           <p>We use your information to operate and personalize Mesh.me; power the Mesh, Feed, MeChat, Communities, Analytics, and Meshi experiences; support connected-platform features you enable; process MeshPro subscriptions through Stripe; communicate with you about your account and security; and improve the Service.</p>
-          <p>We also use data to detect and prevent abuse and fraud, maintain security, enforce our <a href="/terms">Terms</a> and age-verification requirements, and comply with legal obligations.</p>
+          <p>We also use data to detect and prevent abuse and fraud, maintain security, enforce our <Link href="/terms">Terms</Link> and age-verification requirements, and comply with legal obligations.</p>
           <p>Mesh.me does not use your data to sell advertising, build third-party advertising profiles, or engage in data-broker monetization, and we will never sell your personal data. This is a permanent, foundational commitment.</p>
         </>
       ),
@@ -83,7 +84,7 @@ export default function PrivacyPage() {
         <>
           <p>When you connect a third-party account, Mesh.me uses that platform&apos;s official API only for the scopes you authorize, and only to power the features you use inside Mesh.me. We do not use connected-platform data for advertising, and we do not transfer or sell it.</p>
           <p><strong>Google API Services Limited Use.</strong> Mesh.me&apos;s use and transfer of information received from Google APIs adheres to the <a href="https://developers.google.com/terms/api-services-user-data-policy" rel="noopener noreferrer" target="_blank">Google API Services User Data Policy</a>, including the Limited Use requirements. Data obtained from Google (including YouTube) is used solely to provide and improve the user-facing features you request, is not transferred to third parties except as necessary to provide those features or as required by law, is not used for advertising, and is not read by humans except with your consent, for security purposes, or to comply with applicable law.</p>
-          <p><strong>Meta platforms.</strong> For Facebook, Instagram, and Threads, removing Mesh.me from your platform account triggers automatic deletion of the associated connected-account data through our data deletion and deauthorize callbacks. You can also request deletion at any time from the <a href="/data-deletion">Data Deletion</a> page.</p>
+          <p><strong>Meta platforms.</strong> For Facebook, Instagram, and Threads, removing Mesh.me from your platform account triggers automatic deletion of the associated connected-account data through our data deletion and deauthorize callbacks. You can also request deletion at any time from the <Link href="/data-deletion">Data Deletion</Link> page.</p>
         </>
       ),
     },
@@ -93,7 +94,7 @@ export default function PrivacyPage() {
       content: (
         <>
           <p>We retain information while your account is active and as needed to provide the Service. If you delete your account, we delete or anonymize personal data within 30 days, except where longer retention is required by law. Connected-platform tokens are deleted immediately when you disconnect an account, and backup or cached copies are purged within 90 days.</p>
-          <p>For step-by-step instructions on deleting your account, removing a single connected platform, or how platform-initiated deletion works, see our <a href="/data-deletion">Data Deletion</a> page. You can also request a copy (export) of your data through product settings.</p>
+          <p>For step-by-step instructions on deleting your account, removing a single connected platform, or how platform-initiated deletion works, see our <Link href="/data-deletion">Data Deletion</Link> page. You can also request a copy (export) of your data through product settings.</p>
         </>
       ),
     },

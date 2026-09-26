@@ -64,7 +64,7 @@ function observe(page, label) {
     if (engine === "webkit" && text === 'Viewport argument key "interactive-widget" not recognized and ignored.') return;
     const source = message.location().url;
     if (/Failed to load resource/.test(text) && source && !source.startsWith(origin)) return; // Third-party seed image only.
-    runtimeErrors.push({ label, route: new URL(page.url()).pathname, message: text });
+    runtimeErrors.push({ label, route: new URL(page.url()).pathname, source, message: text });
   });
 }
 

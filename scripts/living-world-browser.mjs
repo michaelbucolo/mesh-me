@@ -61,9 +61,13 @@ export async function runLivingWorldChecks({ context, check, visit, layout, sett
   missing.on('console', m => { if(m.type()==='error' && /Content Security Policy|content-security-policy|Refused to|violates|Hydration|hydration/.test(m.text())) errors.push(m.text()); });
   await check('missing-page-has-working-csp-and-recovery', missing, async () => {
     const response = await missing.goto(origin+'/__mesh_missing_page_fixture__', {waitUntil:'domcontentloaded'});
-    assert.equal(response.status(),404);
+    // Next sends 200 when its loading boundary has already begun streaming.
+    // Require the actual not-found body, noindex and valid nonces instead of
+    // treating a streamed status as proof that a real page exists.
+    assert([200,404].includes(response.status()));
     await missing.getByRole('heading',{name:'A little off the map.'}).waitFor();
     await settle(missing);
+    assert(await missing.locator('meta[name="robots"][content*="noindex"]').count()>0);
     assert.equal(errors.length,0,errors.join('\n'));
     const policy = response.headers()['content-security-policy'];
     const nonce = policy?.match(/'nonce-([^']+)'/)?.[1];
@@ -83,7 +87,7 @@ export async function runLivingWorldChecks({ context, check, visit, layout, sett
   try {
     await check('private-post-persists-through-reload', page, async () => {
       await visit(page, '/feed', true);
-      await page.getByRole('button',{name:"What's happening?",exact:true}).click();
+      await page.getByRole('link',{name:"Create post",exact:true}).click();
       await page.getByRole('textbox',{name:'Post text',exact:true}).fill(text);
       await page.getByRole('button',{name:/^Audience:.*Change audience$/}).click();
       await page.getByRole('button',{name:/Only me.*Private to your account/}).click();
