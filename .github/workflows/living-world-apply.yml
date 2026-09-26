@@ -2,7 +2,7 @@ name: Apply living world repair
 on:
   push:
     branches: [fix/living-world-20260926]
-    paths: [scripts/living-world.patch]
+    paths: [scripts/living-world.patch.gz.b64]
 permissions:
   contents: write
 concurrency:
@@ -16,13 +16,15 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.ref_name }}
-      - name: Apply checked patch and retire one-time tooling
+      - name: Apply checksum-verified patch and retire one-time tooling
         run: |
           set -euo pipefail
           test "${GITHUB_REF_NAME}" = "fix/living-world-20260926"
-          git apply --check scripts/living-world.patch
-          git apply scripts/living-world.patch
-          git rm scripts/living-world.patch .github/workflows/living-world-apply.yml .github/workflows/living-world-audit.yml
+          base64 --decode scripts/living-world.patch.gz.b64 | gzip -d > /tmp/living-world.patch
+          echo 'a9fce3465170041c84f8f1ace57ef2f138dcc5f75100e7d4797baee99c55dbb5  /tmp/living-world.patch' | sha256sum -c -
+          git apply --check /tmp/living-world.patch
+          git apply /tmp/living-world.patch
+          git rm scripts/living-world.patch.gz.b64 .github/workflows/living-world-apply.yml .github/workflows/living-world-audit.yml
           git add src scripts
           git diff --cached --check
           git config user.name 'github-actions[bot]'
