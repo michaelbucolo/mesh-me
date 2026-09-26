@@ -45,6 +45,7 @@ jobs:
       - run: npm run seed
       - run: npm run build
       - name: Start isolated production-mode app over loopback TLS
+        id: start_app
         run: |
           CERT_DIR=$(mktemp -d)
           export BROWSER_TEST_CERT="$CERT_DIR/cert.pem"
@@ -72,6 +73,7 @@ jobs:
       - name: Real sign-in, recovery, privacy boundaries, and responsive journeys
         run: node scripts/release-browser-check.mjs
       - name: First account, interrupted signup, and the first real Mesh post
+        if: ${{ !cancelled() && steps.start_app.outcome == 'success' }}
         run: node scripts/first-world-browser.mjs
       - name: Preserve isolated fixture screenshots and test results
         if: always()
