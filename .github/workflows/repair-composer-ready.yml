@@ -1,0 +1,61 @@
+name: Apply composer readiness repair
+on:
+  push:
+    branches: [fix/living-world-20260926]
+    paths: [.github/workflows/repair-composer-ready.yml]
+permissions:
+  contents: write
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+          fetch-depth: 2
+      - name: Apply exact composer and browser changes
+        run: |
+          set -euo pipefail
+          test "${GITHUB_REF_NAME}" = "fix/living-world-20260926"
+          test "$(git rev-parse HEAD^)" = "a14c75c2b873a0299b16c3256311c4167a904913"
+          python3 <<'PY'
+          from pathlib import Path
+          def edit(name,old,new):
+            p=Path(name);s=p.read_text();assert s.count(old)==1,(name,old,s.count(old));p.write_text(s.replace(old,new))
+          edit('src/components/feed/post-composer.tsx',
+            '<fieldset disabled={submitting || isPending} className={`social-composer feed-composer-card min-w-0 p-3 sm:p-4 ${socialMotion.composer}`} aria-busy={submitting || isPending}>',
+            '<fieldset disabled={loadedDraftKey !== draftKey || submitting || isPending} data-composer-ready={loadedDraftKey === draftKey} className={`social-composer feed-composer-card min-w-0 p-3 sm:p-4 ${socialMotion.composer}`} aria-busy={loadedDraftKey !== draftKey || submitting || isPending}>')
+          edit('scripts/release-browser-check.mjs',
+            'page.on("pageerror", (error) => runtimeErrors.push({ label, route: new URL(page.url()).pathname, message: error.message }));',
+            'page.on("pageerror", (error) => runtimeErrors.push({ label, route: new URL(page.url()).pathname, message: error.message, stack: error.stack, pending: [...network.pending].map((request) => ({ path: new URL(request.url()).pathname, type: request.resourceType() })) }));')
+          edit('scripts/living-world-browser.mjs',
+            '      const changed = `Independent-worker fixture ${Date.now()}`;',
+            "      const saved = await db.execute({sql:'SELECT content FROM Post WHERE id=? AND authorId=?',args:[original.id,before.user.id]});\n      assert.equal(saved.rows.length,1);\n      const changed = `Independent-worker fixture ${Date.now()}`;")
+          edit('scripts/living-world-browser.mjs','args:[original.content,original.id,before.user.id]','args:[saved.rows[0].content,original.id,before.user.id]')
+          edit('scripts/living-world-browser.mjs',
+            '''      await page.locator("#mesh-main-content").getByRole('link',{name:"Create post",exact:true}).click();
+                await page.getByRole('textbox',{name:'Post text',exact:true}).fill(text);'''.replace('                await','      await'),
+            '''      await page.locator("#mesh-main-content").getByRole('link',{name:"Create post",exact:true}).click();
+                await page.waitForURL(url=>url.pathname==='/feed' && url.searchParams.get('compose')==='true');
+                await page.locator('[data-composer-ready="true"]').waitFor();
+                await settle(page);
+                const body = page.getByRole('textbox',{name:'Post text',exact:true});
+                await body.fill(text);
+                assert.equal(await body.inputValue(),text);'''.replace('                ','      '))
+          edit('scripts/living-world-browser.mjs',
+            "      const fieldset=page.getByRole('group',{name:'Create a post',exact:true});",
+            "      assert.equal(await body.inputValue(),text,'Changing the audience erased the draft');\n      const fieldset=page.getByRole('group',{name:'Create a post',exact:true});")
+          edit('scripts/living-world-browser.mjs',
+            "      assert.equal(result.rows[0].visibility,'private');\n      await page.reload({waitUntil:'domcontentloaded'});\n      await page.locator('article').filter({hasText:text}).waitFor();",
+            "      assert.equal(result.rows[0].visibility,'private');\n      await settle(page);\n      await page.reload({waitUntil:'domcontentloaded'});\n      await page.locator('article').filter({hasText:text}).waitFor();\n      await settle(page);")
+          PY
+          node --check scripts/living-world-browser.mjs
+          node --check scripts/release-browser-check.mjs
+          git add src scripts
+          git diff --cached --check
+          git diff --cached --stat
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'Keep composer input safe until hydration and draft restoration complete'
+          git push origin HEAD:fix/living-world-20260926
