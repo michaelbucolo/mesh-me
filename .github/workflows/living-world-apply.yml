@@ -1,0 +1,31 @@
+name: Apply living world repair
+on:
+  push:
+    branches: [fix/living-world-20260926]
+    paths: [scripts/living-world.patch]
+permissions:
+  contents: write
+concurrency:
+  group: apply-living-world-repair
+  cancel-in-progress: false
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+      - name: Apply checked patch and retire one-time tooling
+        run: |
+          set -euo pipefail
+          test "${GITHUB_REF_NAME}" = "fix/living-world-20260926"
+          git apply --check scripts/living-world.patch
+          git apply scripts/living-world.patch
+          git rm scripts/living-world.patch .github/workflows/living-world-apply.yml .github/workflows/living-world-audit.yml
+          git add src scripts
+          git diff --cached --check
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'Restore the living entry, repair recovery routes, and preserve in-flight message drafts'
+          git push origin HEAD:fix/living-world-20260926
