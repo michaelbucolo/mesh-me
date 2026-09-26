@@ -18,7 +18,7 @@ jobs:
         run: |
           set -euo pipefail
           test "${GITHUB_REF_NAME}" = "fix/living-world-20260926"
-          test "$(git rev-parse HEAD^)" = "ebaea32352f0312c45448e51f428ac03dc564506"
+          test "$(git rev-parse HEAD^)" = "0dd4ecaf2b097d269d12a3e3140e15376855b9ec"
           python3 <<'PY'
           from pathlib import Path
           def edit(name,old,new,expected=1):
@@ -33,11 +33,9 @@ jobs:
           edit('src/components/mesh/scene/mesh-surface.tsx','world.loadScene({ quiet: true })','world.loadScene({ quiet: true, fresh: true })',3)
           edit('src/app/api/mesh/route.ts','  const cachedPayload = getMeshCache(user.id);','  // A write may have landed on a different serverless instance. Explicit\n  // post-write refreshes must not reuse this process\'s older scene. Ordinary\n  // background polling retains the bounded cache; authorization runs first.\n  const cachedPayload = searchParams.get("refresh") === "1" ? undefined : getMeshCache(user.id);')
           edit('src/components/mesh/scene/mesh-prefetch.ts','  meshPrefetches.set(url, {\n    promise: fetch(url, { cache: "no-store" }),','  const promise = fetch(url, { cache: "no-store" });\n  // The scene chunk may arrive after the request fails. Observe rejection\n  // immediately, while retaining the rejected promise for its recovery UI.\n  void promise.catch(() => {});\n  meshPrefetches.set(url, {\n    promise,')
-          edit('.github/workflows/browser.yml','      - name: Start isolated production-mode app over loopback TLS','      - name: Start isolated production-mode app over loopback TLS\n        id: start_app')
-          edit('.github/workflows/browser.yml','      - name: First account, interrupted signup, and the first real Mesh post\n        run:',"      - name: First account, interrupted signup, and the first real Mesh post\n        if: ${{ !cancelled() && steps.start_app.outcome == 'success' }}\n        run:")
           PY
           git rm .github/workflows/repair-mesh-refresh.yml
-          git add src .github/workflows/browser.yml
+          git add src
           git diff --cached --check
           git diff --cached --stat
           git config user.name 'github-actions[bot]'
