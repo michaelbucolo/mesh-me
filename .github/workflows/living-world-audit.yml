@@ -1,0 +1,77 @@
+name: Living world audit
+on:
+  push:
+    branches: [fix/living-world-20260926]
+permissions:
+  contents: read
+concurrency:
+  group: living-world-audit-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: git archive --format=tar.gz -o /tmp/mesh-source.tar.gz HEAD
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mesh-source
+          path: /tmp/mesh-source.tar.gz
+          retention-days: 1
+  public-journeys:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Inspect public journeys without changing production data
+        run: |
+          mkdir -p audit
+          node --input-type=module <<'JS'
+          import { chromium } from 'playwright';
+          import { writeFile } from 'node:fs/promises';
+          const browser = await chromium.launch();
+          const results = [];
+          for (const [name, viewport] of [['phone', {width:390,height:844}], ['desktop', {width:1440,height:1000}]]) {
+            const context = await browser.newContext({viewport, reducedMotion:'no-preference'});
+            for (const path of ['/', '/explore', '/login', '/sign-up', '/forgot-password', '/feed', '/messages', '/mesh']) {
+              const page = await context.newPage();
+              const item = {device:name,path,errors:[],failedRequests:[]};
+              page.on('pageerror', e => item.errors.push(e.message));
+              page.on('console', m => { if(m.type()==='error') item.errors.push(m.text()); });
+              page.on('requestfailed', r => item.failedRequests.push({url:r.url().split('?')[0],error:r.failure()?.errorText}));
+              try {
+                const response = await page.goto('https://www.meshs.me'+path, {waitUntil:'domcontentloaded',timeout:45000});
+                await page.waitForTimeout(1600);
+                item.status = response?.status();
+                item.finalUrl = page.url();
+                item.text = (await page.locator('body').innerText()).slice(0,10000);
+                item.overflow = await page.evaluate(() => document.documentElement.scrollWidth > innerWidth+1);
+                item.links = await page.locator('a').evaluateAll(a => a.map(x=>({text:x.textContent,href:x.getAttribute('href')})));
+                await page.screenshot({path:`audit/${name}-${path.replaceAll('/','')||'entry'}.png`,fullPage:true});
+              } catch(e) { item.error=String(e); }
+              results.push(item);
+              await page.close();
+            }
+            await context.close();
+          }
+          await browser.close();
+          await writeFile('audit/public-journeys.json', JSON.stringify(results,null,2));
+          console.log(JSON.stringify(results.map(({links,...r})=>r),null,2));
+          JS
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: production-public-journeys
+          path: audit/
+          retention-days: 7
