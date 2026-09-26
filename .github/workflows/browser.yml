@@ -71,6 +71,8 @@ jobs:
           exit 1
       - name: Real sign-in, recovery, privacy boundaries, and responsive journeys
         run: node scripts/release-browser-check.mjs
+      - name: First account, interrupted signup, and the first real Mesh post
+        run: node scripts/first-world-browser.mjs
       - name: Preserve isolated fixture screenshots and test results
         if: always()
         uses: actions/upload-artifact@v4
