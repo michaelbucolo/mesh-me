@@ -56,7 +56,7 @@ function observe(page, label) {
   };
   page.on("requestfinished", finish);
   page.on("requestfailed", finish);
-  page.on("pageerror", (error) => runtimeErrors.push({ label, route: new URL(page.url()).pathname, message: error.message }));
+  page.on("pageerror", (error) => runtimeErrors.push({ label, route: new URL(page.url()).pathname, message: error.message, stack: error.stack, pending: [...network.pending].map((request) => ({ path: new URL(request.url()).pathname, type: request.resourceType() })) }));
   page.on("console", (message) => {
     if (message.type() !== "error") return;
     const text = message.text();

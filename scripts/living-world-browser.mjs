@@ -131,6 +131,8 @@ export async function runLivingWorldChecks({ context, check, visit, layout, sett
       const before = await read(false);
       const original = before.posts?.[0];
       assert(original?.id && typeof original.content === 'string', 'Expected an isolated native seed post');
+      const saved = await db.execute({sql:'SELECT content FROM Post WHERE id=? AND authorId=?',args:[original.id,before.user.id]});
+      assert.equal(saved.rows.length,1);
       const changed = `Independent-worker fixture ${Date.now()}`;
       try {
         // A direct fixture write simulates a mutation on another worker: the
@@ -140,7 +142,7 @@ export async function runLivingWorldChecks({ context, check, visit, layout, sett
         const after = await read(true);
         assert.equal(after.posts.find(post=>post.id===original.id)?.content,changed);
       } finally {
-        await db.execute({sql:'UPDATE Post SET content=? WHERE id=? AND authorId=?',args:[original.content,original.id,before.user.id]});
+        await db.execute({sql:'UPDATE Post SET content=? WHERE id=? AND authorId=?',args:[saved.rows[0].content,original.id,before.user.id]});
         await read(true);
       }
       return {freshReadObservedIndependentWrite:true};
@@ -148,9 +150,15 @@ export async function runLivingWorldChecks({ context, check, visit, layout, sett
     await check('private-post-persists-through-reload', page, async () => {
       await visit(page, '/feed', true);
       await page.locator("#mesh-main-content").getByRole('link',{name:"Create post",exact:true}).click();
-      await page.getByRole('textbox',{name:'Post text',exact:true}).fill(text);
+      await page.waitForURL(url=>url.pathname==='/feed' && url.searchParams.get('compose')==='true');
+      await page.locator('[data-composer-ready="true"]').waitFor();
+      await settle(page);
+      const body = page.getByRole('textbox',{name:'Post text',exact:true});
+      await body.fill(text);
+      assert.equal(await body.inputValue(),text);
       await page.getByRole('button',{name:/^Audience:.*Change audience$/}).click();
       await page.getByRole('button',{name:/Only me.*Private to your account/}).click();
+      assert.equal(await body.inputValue(),text,'Changing the audience erased the draft');
       const fieldset=page.getByRole('group',{name:'Create a post',exact:true});
       await fieldset.getByRole('button',{name:'Post',exact:true}).click();
       // Mobile closes its composer after publishing. The persisted post,
@@ -159,8 +167,10 @@ export async function runLivingWorldChecks({ context, check, visit, layout, sett
       const result = await db.execute({sql:'SELECT id, visibility FROM Post WHERE content = ?',args:[text]});
       assert.equal(result.rows.length,1,'Publish did not create exactly one persisted post');
       assert.equal(result.rows[0].visibility,'private');
+      await settle(page);
       await page.reload({waitUntil:'domcontentloaded'});
       await page.locator('article').filter({hasText:text}).waitFor();
+      await settle(page);
       const guest = await context({viewport:{width:390,height:844},reducedMotion:'reduce'});
       try {
         const denied=await guest.request.get(`${origin}/feed/${result.rows[0].id}`);
