@@ -205,7 +205,7 @@ export async function resolveEntryIdentity(rawIdentifier: string) {
   };
 }
 
-export async function signUp(formData: FormData) {
+export async function signUp(formData: FormData, options: { navigate?: boolean } = {}) {
   const rawEmail = formData.get("email") as string;
   const password = formData.get("password") as string;
   const rawUsername = formData.get("username") as string;
@@ -381,6 +381,7 @@ export async function signUp(formData: FormData) {
   // (Next.js redirect throws internally and must not be caught)
   const sessionId = await createSession(userId, passwordHash);
   if (!sessionId) return { error: "Your sign-in details changed. Please sign in again." };
+  if (options.navigate === false) return { redirectTo: "/onboarding" as const };
   redirect("/onboarding");
 }
 

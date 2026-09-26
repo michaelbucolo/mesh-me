@@ -330,6 +330,7 @@ export function MeChatThread({
   const [searchQuery, setSearchQuery] = useState("");
   const [draft, setDraft] = useState(initialSource?.content || "");
   const sendLock = useRef(false);
+  const draftRevision = useRef(0);
   const [pendingSource, setPendingSource] = useState(initialSource);
   const [replyTo, setReplyTo] = useState<MeChatSerializedMessage | null>(null);
   const [showMediaTools, setShowMediaTools] = useState(false);
@@ -814,6 +815,7 @@ export function MeChatThread({
     if (!draft.trim() && attachments.length === 0 && !pendingSource?.sourceUrl) return;
     sendLock.current = true;
     const sentDraft = draft;
+    const sentRevision = draftRevision.current;
     const sentAttachments = attachments;
     const sentReply = replyTo;
     const sentSource = pendingSource;
@@ -864,11 +866,14 @@ export function MeChatThread({
         if (sendButtonRef.current?.isConnected && (!isExternalThread || data.message.metadata.delivery?.status === "delivered")) {
           celebrate({ kind: "send", anchor: sendButtonRef.current });
         }
-        setDraft((current) => current === sentDraft ? "" : current);
+        // Compare edits, not text: typing the same short reply again while a
+        // previous send is pending is still a NEW draft and must survive.
+        const draftUnchanged = draftRevision.current === sentRevision;
+        if (draftUnchanged) setDraft("");
         // Drop the stored draft under the pre-send key too (creating a thread
         // moves the key from recipient to thread mid-flight).
         try {
-          if (draftRef.current?.value === sentDraft) sessionStorage.removeItem(draftStorageKey);
+          if (draftUnchanged) sessionStorage.removeItem(draftStorageKey);
         } catch {
           // Best-effort.
         }
@@ -1765,6 +1770,7 @@ export function MeChatThread({
               ref={draftRef}
               value={draft}
               onChange={(event) => {
+                draftRevision.current++;
                 draftTouchedRef.current = true;
                 setDraft(event.target.value);
               }}
@@ -1797,6 +1803,7 @@ export function MeChatThread({
             <button
               type="button"
               onClick={() => {
+                draftRevision.current++;
                 draftTouchedRef.current = true;
                 setDraft((current) => `${current}${current ? " " : ""}\uD83D\uDC4D`);
                 draftRef.current?.focus();
